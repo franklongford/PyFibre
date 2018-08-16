@@ -105,6 +105,63 @@ def print_fourier_results(fig_dir, fig_name, angles, fourier_spec, sdi):
 	plt.close('all')
 
 
+def select_samples(full_set, area, n_sample):
+	"""
+	select_samples(full_set, area, n_sample)
+
+	Selects n_sample random sections of image stack full_set
+
+	Parameters
+	----------
+
+	full_set:  array_like (float); shape(n_frame, n_y, n_x)
+		Full set of n_frame images
+
+	area:  int
+		Unit length of sample area
+
+	n_sample:  int
+		Number of randomly selected areas to sample
+
+	Returns
+	-------
+
+	data_set:  array_like (float); shape=(n_sample, 2, n_y, n_x)
+		Sampled areas
+
+	indices:  array_like (float); shape=(n_sample, 2)
+		Starting points for random selection of full_set
+
+	"""
+	
+	if full_set.ndim == 2: full_set = full_set.reshape((1,) + full_set.shape)
+
+	n_frame = full_set.shape[0]
+	n_y = full_set.shape[1]
+	n_x = full_set.shape[2]
+
+	data_set = np.zeros((n_sample, n_frame, area, area))
+
+	pad = area // 2
+
+	indices = np.zeros((n_sample, 2), dtype=int)
+
+	for n in range(n_sample):
+
+		try: start_x = np.random.randint(pad, n_x - pad)
+		except: start_x = pad
+		try: start_y = np.random.randint(pad, n_y - pad) 
+		except: start_y = pad
+
+		indices[n][0] = start_x
+		indices[n][1] = start_y
+
+		data_set[n] = full_set[:, start_y-pad: start_y+pad, 
+					  start_x-pad: start_x+pad]
+
+	return data_set.reshape(n_sample * n_frame, area, area), indices
+
+
 def derivatives(image):
 
 	derivative = np.zeros((2,) + image.shape)
@@ -166,63 +223,6 @@ def form_nematic_tensor(dx_shg, dy_shg, sigma=None, size=None):
 	n_vector = np.stack((nxx, nxy, nxy, nyy), -1).reshape(nxx.shape + (2,2))
 
 	return n_vector
-
-
-def select_samples(full_set, area, n_sample):
-	"""
-	select_samples(full_set, area, n_sample)
-
-	Selects n_sample random sections of image stack full_set
-
-	Parameters
-	----------
-
-	full_set:  array_like (float); shape(n_frame, n_y, n_x)
-		Full set of n_frame images
-
-	area:  int
-		Unit length of sample area
-
-	n_sample:  int
-		Number of randomly selected areas to sample
-
-	Returns
-	-------
-
-	data_set:  array_like (float); shape=(n_sample, 2, n_y, n_x)
-		Sampled areas
-
-	indices:  array_like (float); shape=(n_sample, 2)
-		Starting points for random selection of full_set
-
-	"""
-	
-	if full_set.ndim == 2: full_set = full_set.reshape((1,) + full_set.shape)
-
-	n_frame = full_set.shape[0]
-	n_y = full_set.shape[1]
-	n_x = full_set.shape[2]
-
-	data_set = np.zeros((n_sample, n_frame, area, area))
-
-	pad = area // 2
-
-	indices = np.zeros((n_sample, 2), dtype=int)
-
-	for n in range(n_sample):
-
-		try: start_x = np.random.randint(pad, n_x - pad)
-		except: start_x = pad
-		try: start_y = np.random.randint(pad, n_y - pad) 
-		except: start_y = pad
-
-		indices[n][0] = start_x
-		indices[n][1] = start_y
-
-		data_set[n] = full_set[:, start_y-pad: start_y+pad, 
-					  start_x-pad: start_x+pad]
-
-	return data_set.reshape(n_sample * n_frame, area, area), indices
 
 
 def nematic_tensor_analysis(nem_vector):
@@ -395,4 +395,3 @@ def fourier_transform_analysis(image_shg):
 	sdi = np.mean(fourier_spec) / np.max(fourier_spec)
 
 	return angles, fourier_spec, sdi
-

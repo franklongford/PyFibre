@@ -25,7 +25,7 @@ from analysis import (fourier_transform_analysis, print_fourier_results, select_
 						derivatives)
 
 
-def experimental_image(current_dir, input_file_name):
+def analyse_image(current_dir, input_file_name):
 
 	cmap = 'viridis'
 	size = 10
@@ -120,7 +120,7 @@ def experimental_image(current_dir, input_file_name):
 	return np.mean(tot_q), np.mean(av_q) 
 
 
-def experimental_directory(current_dir, input_files, key=None):
+def analyse_directory(current_dir, input_files, key=None):
 
 	print()
 
@@ -139,7 +139,7 @@ def experimental_directory(current_dir, input_files, key=None):
 	mean_av_q = np.zeros(len(input_files))
 
 	for i, input_file_name in enumerate(input_files):
-		mean_tot_q[i], mean_av_q[i] = experimental_image(current_dir, input_file_name)
+		mean_tot_q[i], mean_av_q[i] = analyse_image(current_dir, input_file_name)
 
 	fig_dir = current_dir + '/fig/'
 	if not os.path.exists(fig_dir): os.mkdir(fig_dir)
@@ -159,38 +159,3 @@ def experimental_directory(current_dir, input_files, key=None):
 	if key == None: plt.savefig('{}average_anis.png'.format(fig_dir), bbox_inches='tight')
 	else: plt.savefig('{}average_anis_{}.png'.format(fig_dir, key), bbox_inches='tight')
 	plt.close()
-
-
-def image_analysis():
-
-	"Select Data Set"
-	area_sample = int(2 * (np.min((int(param['l_sample'] * conv),) + image_shg.shape[1:]) // 2))
-
-	data_file_name = ut.check_file_name(file_names['output_file_name'], 'out', 'npy') + '_data'
-
-	if not ow_data and os.path.exists(data_dir + data_file_name + '.npy'):
-		print("\n Loading {} x {} pixel image data set samples {}".format(area_sample, area_sample, data_file_name))
-		data_set = ut.load_npy(data_dir + data_file_name)
-		dx_shg_set, dy_shg_set = ut.load_npy(data_dir + data_file_name + '_dxdy')
-	else:
-		data_set, indices = select_samples(image_shg, area_sample, param['min_sample'])
-		print("\n Saving {} x {} pixel image data set samples {}".format(area_sample, area_sample, data_file_name))
-
-		ut.save_npy(data_dir + data_file_name, data_set)
-
-		pad = area_sample // 2
-		dx_shg_set = np.zeros((param['min_sample'], n_frame, area_sample, area_sample))
-		dy_shg_set = np.zeros((param['min_sample'], n_frame, area_sample, area_sample))
-
-		print(dx_shg.shape)
-
-		for n in range(param['min_sample']):
-			dx_shg_set[n] = dx_shg[:, indices[n][1]-pad: indices[n][1]+pad, 
-						  	indices[n][0]-pad: indices[n][0]+pad]
-			dy_shg_set[n] = dy_shg[:, indices[n][1]-pad: indices[n][1]+pad, 
-						  		indices[n][0]-pad: indices[n][0]+pad]
-
-		dx_shg_set = dx_shg_set.reshape(data_set.shape)
-		dy_shg_set = dy_shg_set.reshape(data_set.shape)
-
-		ut.save_npy(data_dir + data_file_name + '_dxdy', np.array((dx_shg_set, dy_shg_set)))
