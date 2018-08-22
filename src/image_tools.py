@@ -10,8 +10,16 @@ Last Modified: 19/04/2018
 
 import numpy as np
 import scipy as sp
-from scipy import signal
+from scipy import signal, interpolate, ndimage
 from scipy.ndimage import filters
+
+from skimage import measure, transform, feature
+from skimage.morphology import disk, square, label, convex_hull_image, closing
+from skimage.filters import rank, threshold_otsu
+from skimage.color import label2rgb
+
+from sklearn.feature_extraction import image as image_fe
+from sklearn.cluster import spectral_clustering
 
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as plt3d
@@ -20,7 +28,6 @@ import matplotlib.animation as animation
 import sys, os
 
 import utilities as ut
-import setup
 
 
 def print_anis_results(fig_dir, fig_name, tot_q, tot_angle, av_q, av_angle):
@@ -162,15 +169,35 @@ def select_samples(full_set, area, n_sample):
 	return data_set.reshape(n_sample * n_frame, area, area), indices
 
 
-def derivatives(image):
+def derivatives(image, mode='cd'):
 
-	derivative = np.zeros((2,) + image.shape)
-	derivative[0] += np.gradient(image, axis=0)  #(ut.move_array_centre(image, np.array((1, 0))) - image)
-	derivative[1] += np.gradient(image, axis=1)  #(ut.move_array_centre(image, np.array((0, 1))) - image)
+	derivative = np.zeros(((2,) + image.shape))
+	if mode == 'cd': 
+		derivative[0] += np.nan_to_num(np.gradient(image, edge_order=1, axis=-2))
+		derivative[1] += np.nan_to_num(np.gradient(image, edge_order=1, axis=-1))
+
+	elif mode == 'sobel':
+		derivative[0] += np.nan_to_num(ndimage.sobel(image, axis=-2))
+		derivative[1] += np.nan_to_num(ndimage.sobel(image, axis=-1))
+
+	elif mode == 'bspl':
+		x = np.arange(image.shape[0])
+		y = np.arange(image.shape[1])
+
+		spline = interpolate.RectBivariateSpline(x, y, image)
+		image_bispl = spline.ev(*np.meshgrid(x, y))
+		derivative = np.gradient(image_bispl)
+
+		fig = plt.figure()
+		plt.imshow(image_bispl, cmap='Greys', interpolation='nearest', origin='lower')
+		plt.axis("off")
+		plt.colorbar()
+		plt.savefig('test_image_bispl.png', bbox_inches='tight')
+		plt.close()
 
 	return derivative
 
-def form_nematic_tensor(dx_shg, dy_shg, sigma=None, size=None):
+def form_nematic_tensor(image, sigma=None, size=None):
 	"""
 	form_nematic_tensor(dx_shg, dy_shg)
 
@@ -193,7 +220,8 @@ def form_nematic_tensor(dx_shg, dy_shg, sigma=None, size=None):
 
 	"""
 
-	nframe = dx_shg.shape[0]
+	nframe = image.shape[0]
+	dx_shg, dy_shg = derivatives(image, mode='cd')
 	r_xy_2 = (dx_shg**2 + dy_shg**2)
 	indicies = np.where(r_xy_2 > 0)
 
@@ -205,9 +233,6 @@ def form_nematic_tensor(dx_shg, dy_shg, sigma=None, size=None):
 	nyy[indicies] += dx_shg[indicies]**2 / r_xy_2[indicies]
 	nxy[indicies] -= dx_shg[indicies] * dy_shg[indicies] / r_xy_2[indicies]
 
-	#nxx = np.nan_to_num(dy_shg**2 / r_xy_2)
-	#nyy = np.nan_to_num(dx_shg**2 / r_xy_2)
-	#nxy = np.nan_to_num(-dx_shg * dy_shg / r_xy_2)
 
 	if sigma != None:
 		for frame in range(nframe):
@@ -216,9 +241,16 @@ def form_nematic_tensor(dx_shg, dy_shg, sigma=None, size=None):
 			nxy[frame] = filters.gaussian_filter(nxy[frame], sigma=sigma)
 	elif size != None:
 		for frame in range(nframe):
-			nxx[frame] = filters.uniform_filter(nxx[frame], size=size)
-			nyy[frame] = filters.uniform_filter(nyy[frame], size=size)
-			nxy[frame] = filters.uniform_filter(nxy[frame], size=size)
+
+			nxx[frame] = filters.maximum_filter(nxx[frame], size=size)
+			nyy[frame] = filters.maximum_filter(nyy[frame], size=size)
+			nxy[frame] = filters.maximum_filter(nxy[frame], size=size)
+
+			#nxx[frame] = filters.uniform_filter(nxx[frame], size=size)
+			#nyy[frame] = filters.uniform_filter(nyy[frame], size=size)
+			#nxy[frame] = filters.uniform_filter(nxy[frame], size=size)
+
+	#nxx, nxy, nyy = feature.structure_tensor(image[0])
 
 	n_vector = np.stack((nxx, nxy, nxy, nyy), -1).reshape(nxx.shape + (2,2))
 
@@ -256,14 +288,52 @@ def nematic_tensor_analysis(nem_vector):
 
 	eig_val, eig_vec = np.linalg.eig(nem_vector)
 	tot_q = eig_val.max(axis=-1) - eig_val.min(axis=-1)
-	tot_angle = np.arcsin(eig_vec[:, :, :, 0, 1]) / np.pi * 180
+	#tot_angle = np.arctan2(eig_vec[..., 0, 0], eig_vec[..., 0, 1]) / np.pi * 180
+	tot_angle = np.arctan2(nem_vector[..., 1, 0], nem_vector[..., 1, 1]) / np.pi * 180
+	tot_energy = np.trace(nem_vector, axis1=-2, axis2=-1)
 
-	av_nem_vector = np.mean(nem_vector, axis=(1, 2))
-	eig_val, eig_vec = np.linalg.eig(av_nem_vector)
-	av_q = eig_val.max(axis=-1) - eig_val.min(axis=-1)
-	av_angle = np.arcsin(eig_vec[:, 0, 1]) / np.pi * 180
+	return tot_q, tot_angle, tot_energy
 
-	return tot_q, tot_angle, av_q, av_angle
+
+def spec_clustering(image, n_clusters=3):
+
+	graph = image_fe.img_to_graph(image)
+	labels = spectral_clustering(graph, n_clusters=n_clusters, assign_labels='kmeans', random_state=1)
+	return labels.reshape(image.shape)
+
+
+def clear_border(image):
+
+	image[:, 0] = 0
+	image[0, :] = 0
+	image[:, -1] = 0
+	image[-1, :] = 0
+
+	return image
+
+def int_clustering(image, n_clusters=3, red=0.5):
+
+	#image = np.where(image >= threshold_otsu(image), 1, 0)
+	#c_hull = convex_hull_image(image)
+
+	image_trans = transform.rescale(image, red) / 255.
+	thresh = threshold_otsu(image_trans)
+	bw = closing(image_trans > thresh, square(3))
+	# remove artifacts connected to image border
+	cleared = clear_border(bw)
+
+	# label image regions
+	label_image = measure.label(cleared)
+	label_image = transform.resize(label_image, image.shape, preserve_range=True, anti_aliasing=False)
+	label_image = np.array(label_image, dtype=int)
+
+	print(label_image.shape)
+	
+	areas = []
+	for region in measure.regionprops(label_image): areas.append(region.area)
+	sort_areas = np.argsort(areas)[-n_clusters:]
+
+	return label_image, sort_areas
 
 
 def smart_nematic_tensor_analysis(nem_vector, precision=1E-1):
@@ -295,9 +365,12 @@ def smart_nematic_tensor_analysis(nem_vector, precision=1E-1):
 
 	"""
 
+	tot_q, tot_angle, tot_energy = nematic_tensor_analysis(nem_vector)
+
 	n_sample = nem_vector.shape[0]
-	tot_q = np.zeros(n_sample)
-	map_shape = nem_vector.shape[2:]
+	
+	for n in range(n_sample):
+		section = np.argmax(tot_q[n])
 
 	def rec_search(nem_vector, q):
 
@@ -312,9 +385,7 @@ def smart_nematic_tensor_analysis(nem_vector, precision=1E-1):
 				q_section = q[i * image_shape[0] // 2 : (i+1) * image_shape[0] // 2,
 							j * image_shape[1] // 2 : (j+1) * image_shape[1] // 2]
 
-				av_n = np.reshape(np.mean(vec_section, axis=(1, 2)), (2, 2))
-				eig_val, eig_vec = np.linalg.eigh(av_n)
-				new_q = (eig_val.T[1] - eig_val.T[0])
+				new_q, _ = nematic_tensor_analysis(np.mean(vector_map, axis=(1, 2)))
 				old_q = np.mean(q_section)
 
 				if abs(new_q - old_q) >= precision: q_section = rec_search(vec_section, q_section)
@@ -328,9 +399,12 @@ def smart_nematic_tensor_analysis(nem_vector, precision=1E-1):
 	for n in range(n_sample):
 		vector_map = nem_vector[n]
 		q0 = np.zeros(map_shape)
-		av_n = np.reshape(np.mean(vector_map, axis=(1, 2)), (2, 2))
-		eig_val, eig_vec = np.linalg.eigh(av_n)
-		q0 += (eig_val.T[1] - eig_val.T[0])
+
+		print(vector_map.shape, np.mean(vector_map, axis=(1, 2)))
+
+		av_q, _ = nematic_tensor_analysis(np.mean(vector_map, axis=(1, 2)))
+
+		q0 += av_q
 		q1 = rec_search(vector_map, q0)
 
 		tot_q[n] = np.mean(np.unique(q1))

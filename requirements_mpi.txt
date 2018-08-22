@@ -2,8 +2,13 @@ numpy
 scipy
 matplotlib
 imageio
+imagej
+cython
+Cython
+pyjnius
 scikit-learn
-mpi4py
+scikit-image
 keras
 Theano
 tensorflow
+mpi4py
