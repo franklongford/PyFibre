@@ -4,10 +4,6 @@ matplotlib
 imageio
 scikit-learn
 scikit-image
-keras
-Theano
-tensorflow
 networkx
-skan
 pandas
 numba
