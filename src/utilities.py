@@ -26,8 +26,8 @@ def logo():
 	print( "  | | |     |    /\  /\   /   \    /   \   /   \ |      /   \  |    | | |")
 	print( "  | | |     |   |  \/  | |     |  |     | | ___/ |     |     | |    | | | ")
 	print( "  | | |   __|__ |      |  \___/ \  \___/|  \___   \___  \___/  |__  | | |")
-	print( "  | | |                                /                            | | |")
-	print( "  |_|_|                            ___/                             |_|_|")
+	print( "  | | |                                 /                           | | |")
+	print( "  |_|_|                             ___/                            |_|_|")
 	print( " /_____\\" + ' ' * 15 + "/_____\\"  + ' ' * 15 + "/_____\\"  + ' ' * 15 + "/_____\\")
 	print( "|_______|" + '_' * 13 + "|_______|" + '_' * 13 + "|_______|" + '_' * 13 + "|_______|" + '  v1.0.1')
 	print( "\n              Collagen ECM Simulation\n")
@@ -188,6 +188,23 @@ def move_array_centre(array, centre):
 	return array
 
 
+def nanmean(array_like):
+
+	return np.nansum(array_like) / (len(array_like) - np.count_nonzero(np.isnan(array_like)))
+
+
+def adjoint_mat(matrix):
+
+	xx = matrix[...,0,0]
+	xy = matrix[...,0,1]
+	yx = matrix[...,1,0]
+	yy = matrix[...,1,1]
+
+	mat_ad = np.stack((-yy, yx, xy, -xx), -1).reshape(xx.shape + (2,2))
+
+	return mat_ad
+
+
 ####### OBSOLETE ########
 
 def gaussian_filter(histogram, std, r, n_xyz):
@@ -208,6 +225,25 @@ def gaussian_filter(histogram, std, r, n_xyz):
 	image = image.T
 
 	return image
+
+
+def bubble_sort(array, key):
+	"""
+	bubble_sort(array, key)
+
+	Sorts array and key by order of elements of key
+	"""
+
+	for passnum in range(len(array)-1, 0, -1):
+		for i in range(passnum):
+			if key[i] > key[i+1]:
+				temp = array[i]
+				array[i] = array[i+1]
+				array[i+1] = temp
+
+				temp = key[i]
+				key[i] = key[i+1]
+				key[i+1] = temp
 
 
 def dx_dy_shg(histogram, std, n_xyz, dxdydz, r, non_zero):

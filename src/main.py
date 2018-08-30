@@ -29,11 +29,15 @@ if ('learning' in modules):
 
 if ('anisotropy' in modules):
 	from anisotropy import analyse_image, analyse_directory
-	if ('-all' in sys.argv): analyse_directory(current_dir, input_files)	
+
+	ow_anis = ('-ow_anis' in sys.argv)
+
+	if ('-all' in sys.argv):
+		analyse_directory(current_dir, input_files, ow_anis=ow_anis)	
 	if ('-key' in sys.argv):
 		key = sys.argv[sys.argv.index('-key') + 1]
-		analyse_directory(current_dir, input_files, key=key)
+		analyse_directory(current_dir, input_files, key=key, ow_anis=ow_anis)
 	elif ('-name' in sys.argv): 
 		input_file_name = sys.argv[sys.argv.index('-name') + 1]
-		analyse_image(current_dir, input_file_name)
+		analyse_directory(current_dir, [input_file_name], ow_anis=ow_anis)
 		

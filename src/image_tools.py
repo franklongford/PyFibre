@@ -8,26 +8,69 @@ Created on: 09/03/2018
 Last Modified: 19/04/2018
 """
 
+import sys, os
 import numpy as np
 import scipy as sp
-from scipy import signal, interpolate, ndimage
-from scipy.ndimage import filters
+import sknw
+import networkx as nx
 
-from skimage import measure, transform, feature
-from skimage.morphology import disk, square, label, convex_hull_image, closing
-from skimage.filters import rank, threshold_otsu
-from skimage.color import label2rgb
+from scipy import interpolate
+from scipy.misc import derivative
+from scipy.ndimage import filters, imread, sobel
+from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
 
-from sklearn.feature_extraction import image as image_fe
+from skimage import measure, transform, img_as_float, exposure, feature
+from skimage.morphology import (square, disk, ball, closing, binary_closing, 
+									skeletonize, thin, dilation, erosion, medial_axis)
+from skimage.filters import rank, threshold_otsu, try_all_threshold
+from skimage.color import label2rgb, rgb2hsv, hsv2rgb
+from skimage.restoration import denoise_tv_chambolle, estimate_sigma
+
+from sklearn.decomposition import NMF
+from sklearn.feature_extraction.image import img_to_graph
 from sklearn.cluster import spectral_clustering
 
 import matplotlib.pyplot as plt
-import mpl_toolkits.mplot3d.axes3d as plt3d
-import matplotlib.animation as animation
-
-import sys, os
 
 import utilities as ut
+
+
+def set_HSB(image, hue, saturation=1, brightness=1):
+	""" Add color of the given hue to an RGB image.
+
+	By default, set the saturation to 1 so that the colors pop!
+	"""
+	with suppress(RuntimeWarning): hsv = rgb2hsv(image)
+
+	hsv[..., 0] = hue
+	hsv[..., 1] = saturation
+	hsv[..., 2] = brightness
+
+	return hsv2rgb(hsv)
+
+
+def load_tif(image_name):
+
+	image_orig = img_as_float(imread(image_name)).astype(np.float32)
+
+	if image_orig.ndim > 2: 
+		image = np.sum(image_orig / image_orig.max(axis=-1), axis=0)
+	else: image = image_orig
+
+	return image
+
+def prepare_image_shg(image, size=None, sigma=None, weight=None, clip_limit=None, threshold=False, n_components=None):
+
+	if sigma != None: image = filters.gaussian_filter(image, sigma=sigma)
+	if size != None: image = rank.noise_filter(image, disk(size))
+	if n_components != None: image = nmf_reconstuction(image, n_components)
+	if clip_limit != None: image = exposure.equalize_adapthist(image, clip_limit=clip_limit)
+	if threshold: image = np.where(image >= threshold_otsu(image), image, 0)
+	if weight != None: image = denoise_tv_chambolle(image, weight=weight)
+
+	image = image / image.max()
+
+	return image
 
 
 def print_anis_results(fig_dir, fig_name, tot_q, tot_angle, av_q, av_angle):
@@ -169,33 +212,57 @@ def select_samples(full_set, area, n_sample):
 	return data_set.reshape(n_sample * n_frame, area, area), indices
 
 
-def derivatives(image, mode='cd'):
+def derivatives(image, rank=1, mode='cd'):
 
 	derivative = np.zeros(((2,) + image.shape))
-	if mode == 'cd': 
-		derivative[0] += np.nan_to_num(np.gradient(image, edge_order=1, axis=-2))
-		derivative[1] += np.nan_to_num(np.gradient(image, edge_order=1, axis=-1))
+	derivative[0] += np.nan_to_num(np.gradient(image, edge_order=1, axis=-2))
+	derivative[1] += np.nan_to_num(np.gradient(image, edge_order=1, axis=-1))
 
-	elif mode == 'sobel':
-		derivative[0] += np.nan_to_num(ndimage.sobel(image, axis=-2))
-		derivative[1] += np.nan_to_num(ndimage.sobel(image, axis=-1))
+	if rank == 2:
+		second_derivative = np.zeros(((4,) + image.shape))
+		second_derivative[0] += np.nan_to_num(np.gradient(derivative[0], edge_order=1, axis=-2))
+		second_derivative[1] += np.nan_to_num(np.gradient(derivative[1], edge_order=1, axis=-2))
+		second_derivative[2] += np.nan_to_num(np.gradient(derivative[0], edge_order=1, axis=-1))
+		second_derivative[3] += np.nan_to_num(np.gradient(derivative[1], edge_order=1, axis=-1))
 
-	elif mode == 'bspl':
-		x = np.arange(image.shape[0])
-		y = np.arange(image.shape[1])
+		return second_derivative
 
-		spline = interpolate.RectBivariateSpline(x, y, image)
-		image_bispl = spline.ev(*np.meshgrid(x, y))
-		derivative = np.gradient(image_bispl)
+	else: return derivative
 
-		fig = plt.figure()
-		plt.imshow(image_bispl, cmap='Greys', interpolation='nearest', origin='lower')
-		plt.axis("off")
-		plt.colorbar()
-		plt.savefig('test_image_bispl.png', bbox_inches='tight')
-		plt.close()
 
-	return derivative
+def nmf_reconstuction(image, n_components):
+	"""
+	nmf_reconstuction(image, n_sample)
+
+	Calculates non-negative matrix factorisation of over area^2 pixels for n_samples
+
+	Parameters
+	----------
+
+	image:  array_like (float); shape=(n_x, n_y)
+		Image to reconstruct
+
+	n_components:  int
+		Number of components to include in model
+
+
+	Returns
+	-------
+
+	"""
+
+	print("\n Performing NMF Analysis")
+
+	rng = np.random.RandomState(0)
+
+	model = NMF(n_components=n_components, init='random', random_state=0)
+
+	W = model.fit_transform(image)
+	H = model.components_
+	#W[...,n_components//4:] = 0
+
+	return np.dot(W, H)
+
 
 def form_nematic_tensor(image, sigma=None, size=None):
 	"""
@@ -220,8 +287,10 @@ def form_nematic_tensor(image, sigma=None, size=None):
 
 	"""
 
+	if image.ndim == 2: image = image.reshape((1,) + image.shape)
 	nframe = image.shape[0]
-	dx_shg, dy_shg = derivatives(image, mode='cd')
+
+	dx_shg, dy_shg = derivatives(image)
 	r_xy_2 = (dx_shg**2 + dy_shg**2)
 	indicies = np.where(r_xy_2 > 0)
 
@@ -233,71 +302,147 @@ def form_nematic_tensor(image, sigma=None, size=None):
 	nyy[indicies] += dx_shg[indicies]**2 / r_xy_2[indicies]
 	nxy[indicies] -= dx_shg[indicies] * dy_shg[indicies] / r_xy_2[indicies]
 
-
 	if sigma != None:
 		for frame in range(nframe):
 			nxx[frame] = filters.gaussian_filter(nxx[frame], sigma=sigma)
 			nyy[frame] = filters.gaussian_filter(nyy[frame], sigma=sigma)
 			nxy[frame] = filters.gaussian_filter(nxy[frame], sigma=sigma)
-	elif size != None:
-		for frame in range(nframe):
 
-			nxx[frame] = filters.maximum_filter(nxx[frame], size=size)
-			nyy[frame] = filters.maximum_filter(nyy[frame], size=size)
-			nxy[frame] = filters.maximum_filter(nxy[frame], size=size)
+	n_tensor = np.stack((nxx, nxy, nxy, nyy), -1).reshape(nxx.shape + (2,2))
+	if nframe == 1: n_tensor = n_tensor.reshape(n_tensor.shape[1:])
 
-			#nxx[frame] = filters.uniform_filter(nxx[frame], size=size)
-			#nyy[frame] = filters.uniform_filter(nyy[frame], size=size)
-			#nxy[frame] = filters.uniform_filter(nxy[frame], size=size)
-
-	#nxx, nxy, nyy = feature.structure_tensor(image[0])
-
-	n_vector = np.stack((nxx, nxy, nxy, nyy), -1).reshape(nxx.shape + (2,2))
-
-	return n_vector
+	return n_tensor
 
 
-def nematic_tensor_analysis(nem_vector):
+def form_structure_tensor(image, sigma=None, size=None):
 	"""
-	nematic_tensor_analysis(nem_vector)
+	form_structure_tensor(image)
 
-	Calculates eigenvalues and eigenvectors of average nematic tensor over area^2 pixels for n_samples
+	Create local nematic tensor n for each pixel in image
 
 	Parameters
 	----------
 
-	nem_vector:  array_like (float); shape(n_frame, n_y, n_x, 4)
-		Flattened 2x2 nematic vector for each pixel in dx_shg, dy_shg (n_xx, n_xy, n_yx, n_yy)
+	dx_grid:  array_like (float); shape=(nframe, n_y, n_x)
+		Matrix of derivative of image intensity with respect to x axis for each pixel
 
-	area:  int
-		Unit length of sample area
-
-	n_sample:  int
-		Number of randomly selected areas to sample
+	dy_grid:  array_like (float); shape=(nframe, n_y, n_x)
+		Matrix of derivative of image intensity with respect to y axis for each pixel
 
 	Returns
 	-------
 
-	av_eigval:  array_like (float); shape=(n_frame, n_sample, 2)
-		Eigenvalues of average nematic tensors for n_sample areas
-
-	av_eigvec:  array_like (float); shape=(n_frame, n_sample, 2, 2)
-		Eigenvectors of average nematic tensors for n_sample areas
+	j_tensor:  array_like (float); shape(nframe, n_y, n_x, 2, 2)
+		2x2 structure tensor for each pixel in image stack	
 
 	"""
 
-	eig_val, eig_vec = np.linalg.eig(nem_vector)
-	tot_q = eig_val.max(axis=-1) - eig_val.min(axis=-1)
-	#tot_angle = np.arctan2(eig_vec[..., 0, 0], eig_vec[..., 0, 1]) / np.pi * 180
-	tot_angle = np.arctan2(nem_vector[..., 1, 0], nem_vector[..., 1, 1]) / np.pi * 180
-	tot_energy = np.trace(nem_vector, axis1=-2, axis2=-1)
+	if image.ndim == 2: image = image.reshape((1,) + image.shape)
+	nframe = image.shape[0]
 
-	return tot_q, tot_angle, tot_energy
+	jxx = np.zeros(image.shape)
+	jxy = np.zeros(image.shape)
+	jyy = np.zeros(image.shape)
+
+	for frame in range(nframe):
+		jxx[frame], jxy[frame], jyy[frame] = feature.structure_tensor(image[frame], sigma=sigma)
+
+	j_tensor = np.stack((jxx, jxy, jxy, jyy), -1).reshape(jxx.shape + (2,2))
+	if nframe == 1: j_tensor = j_tensor.reshape(j_tensor.shape[1:])
+
+	return j_tensor
+
+
+def form_hessian_tensor(image, sigma=None, size=None):
+
+
+	if image.ndim == 2: image = image.reshape((1,) + image.shape)
+	nframe = image.shape[0]
+
+	dxdx = np.zeros(image.shape)
+	dxdy = np.zeros(image.shape)
+	dydy = np.zeros(image.shape)
+
+	#dxdx, dxdy, dydx, dyy = derivatives(image, rank=2)
+	for frame in range(nframe):
+		dxdx[frame], dxdy[frame], dydy[frame] = feature.hessian_matrix(image[frame], order="xy", sigma=sigma)
+
+	H_tensor = np.stack((dxdx, dxdy, dxdy, dydy), -1).reshape(dxdx.shape + (2,2))
+	if nframe == 1: H_tensor = H_tensor.reshape(H_tensor.shape[1:])
+
+	return H_tensor
+
+
+def vesselness(eig1, eig2, beta1=0.1, beta2=0.1):
+
+	A = np.exp(-(eig1/eig2)**2 / (2 * beta1))
+	B = (1 - np.exp(- (eig1**2 + eig2**2) / (2 * beta2)))
+
+	return A * B
+
+
+def tensor_analysis(tensor):
+	"""
+	tensor_analysis(tensor)
+
+	Calculates eigenvalues and eigenvectors of average tensor over area^2 pixels for n_samples
+
+	Parameters
+	----------
+
+	tensor:  array_like (float); shape(nframe, nx, ny, 2, 2)
+		Average tensor over area under examination 
+
+	Returns
+	-------
+
+	tot_anis:  array_like (float); shape=(n_frame, nx, ny)
+		Difference between eigenvalues of average tensors
+
+	tot_angle:  array_like (float); shape=(n_frame, nx, ny)
+		Angle of dominant eigenvector of average tensors
+
+	tot_energy:  array_like (float); shape=(n_frame, nx, ny)
+		Determinent of eigenvalues of average tensors
+
+	"""
+
+	if tensor.ndim == 2: tensor = tensor.reshape((1,) + tensor.shape)
+
+	eig_val, eig_vec = np.linalg.eigh(tensor)
+
+	eig_diff = np.diff(eig_val, axis=-1).max(axis=-1)
+	eig_sum = eig_val.sum(axis=-1)
+	indicies = np.nonzero(eig_sum)
+
+	tot_anis = np.zeros(tensor.shape[:-2])
+	tot_anis[indicies] += eig_diff[indicies] / eig_sum[indicies]
+
+	tot_angle = np.arctan2(tensor[..., 1, 0], tensor[..., 1, 1]) / np.pi * 180
+	tot_energy = np.trace(np.abs(tensor), axis1=-2, axis2=-1)
+
+	return tot_anis, tot_angle, tot_energy
+
+
+def get_curvature(j_tensor, H_tensor):
+
+	ad_H_tensor = ut.adjoint_mat(H_tensor)
+
+	denominator = (1 + j_tensor[...,0,0] + j_tensor[...,1,1])
+	gauss_curvature = np.linalg.det(H_tensor) / denominator**2
+
+	numerator = - 2 * j_tensor[...,0,1] * H_tensor[...,0,1]
+	numerator += (1 + j_tensor[...,1,1]) * H_tensor[...,0,0]
+	numerator += (1 + j_tensor[...,0,0]) * H_tensor[...,1,1]
+
+	mean_curvature =  numerator / (2 * denominator**1.5)
+
+	return np.nan_to_num(gauss_curvature), np.nan_to_num(mean_curvature)
 
 
 def spec_clustering(image, n_clusters=3):
 
-	graph = image_fe.img_to_graph(image)
+	graph = img_to_graph(image)
 	labels = spectral_clustering(graph, n_clusters=n_clusters, assign_labels='kmeans', random_state=1)
 	return labels.reshape(image.shape)
 
@@ -311,29 +456,131 @@ def clear_border(image):
 
 	return image
 
-def int_clustering(image, n_clusters=3, red=0.5):
+
+def cluster_extraction(image, n_clusters=5):
 
 	#image = np.where(image >= threshold_otsu(image), 1, 0)
-	#c_hull = convex_hull_image(image)
+	old_shape = image.shape
+	red = old_shape[0] // 4
+	clustering = True
 
-	image_trans = transform.rescale(image, red) / 255.
-	thresh = threshold_otsu(image_trans)
-	bw = closing(image_trans > thresh, square(3))
-	# remove artifacts connected to image border
-	cleared = clear_border(bw)
+	while clustering:
+		if red > 1:
+			new_shape = (image.shape[0]//red, image.shape[1]//red)
+			image_trans = transform.resize(image, new_shape, mode='reflect', anti_aliasing=True)# / 256.
+		else: image_trans = image
 
-	# label image regions
-	label_image = measure.label(cleared)
-	label_image = transform.resize(label_image, image.shape, preserve_range=True, anti_aliasing=False)
+		filtered = image_trans > threshold_otsu(image_trans)
+		closed = binary_closing(filtered, disk(2))
+		#skeleton = thin(closed)
+		cleared = clear_border(filtered)
+
+		label_image, num_features = measure.label(cleared, return_num=True, connectivity=1)
+
+		if (num_features >= n_clusters * 3) or red == 1: clustering = False
+		else: red = red // 2
+
 	label_image = np.array(label_image, dtype=int)
-
-	print(label_image.shape)
+	
+	if red > 1:
+		#label_image = transform.resize(label_image, image.shape, preserve_range=True, anti_aliasing=True)
+		for i in range(2): label_image = np.repeat(label_image, red, axis=i)
 	
 	areas = []
-	for region in measure.regionprops(label_image): areas.append(region.area)
+	for region in measure.regionprops(label_image): 
+		areas.append(region.filled_area)
 	sort_areas = np.argsort(areas)[-n_clusters:]
 
 	return label_image, sort_areas
+
+
+def network_extraction(image, n_clusters=3):
+
+	#image = np.where(image >= threshold_otsu(image), 1, 0)
+
+	filtered = image > threshold_otsu(image)
+	closed = binary_closing(filtered, disk(1))
+	skeleton = thin(closed)
+	#skeleton = skeletonize(~closed).astype(np.uint16)
+	#skeleton, distance = medial_axis(closed, return_distance=True)
+	cleared = clear_border(skeleton)
+
+	graph = sknw.build_sknw(cleared)
+	graph_nx = nx.Graph(graph)
+
+	label_image, num_features = measure.label(skeleton, return_num=True, connectivity=2)
+	#label_image = closing(label_image, disk(2))
+	#label_image = thin(label_image)
+	label_image = np.array(label_image, dtype=int)
+
+	areas = []
+	for region in measure.regionprops(label_image): 
+		areas.append(region.filled_area)
+	sort_areas = np.argsort(areas)[-n_clusters:]
+
+	net_path = 0#nx.average_shortest_path_length(graph_nx)
+	net_clustering = nx.average_clustering(graph_nx)
+
+	return label_image, sort_areas, net_path, net_clustering, skeleton
+
+
+def network_area(label, iterations=10):
+
+	dilated_image = binary_dilation(label, iterations=iterations)
+	filled_image = dilated_image#binary_fill_holes(dilated_image)
+	net_area = np.sum(filled_image)
+
+	return net_area, filled_image
+
+
+def network_analysis(label_image, sorted_areas, n_tensor, anis_map):
+
+	main_network = np.zeros(label_image.shape, dtype=int)
+	net_area = np.zeros(len(sorted_areas))
+	net_anis = np.zeros(len(sorted_areas))
+	net_linear = np.zeros(len(sorted_areas))
+	pix_anis = np.zeros(len(sorted_areas))
+
+	for i, n in enumerate(sorted_areas):
+		network_matrix = np.zeros(label_image.shape, dtype=int)
+
+		region =  measure.regionprops(label_image)[n]
+		minr, minc, maxr, maxc = region.bbox
+		indices = np.mgrid[minr:maxr, minc:maxc]
+
+		region_anis = anis_map[(indices[0], indices[1])]
+		region_tensor = n_tensor[(indices[0], indices[1])]
+		network_matrix[(indices[0], indices[1])] += region.image * (i+1)
+
+		net_area[i], network = network_area(region.image)
+		indices = np.where(network)
+		region_tensor = region_tensor[(indices[0], indices[1])]
+		region_anis = region_anis[(indices[0], indices[1])]
+
+		print(region_anis.shape)
+
+		net_anis[i], _ , _ = tensor_analysis(np.mean(region_tensor, axis=(0)))
+		pix_anis[i] = np.mean(region_anis)
+
+		if network.shape[0] > 1 and network.shape[1] > 1 : 
+			region = measure.regionprops(np.array(network, dtype=int))[0]
+			net_linear[i] += region.perimeter / net_area[i]
+		else: 
+			net_linear[i] += region.area / net_area[i]
+
+		main_network += network_matrix
+
+		"""
+		selem = square(3)
+		selem[1][1] = 0
+		degrees = rank.sum(binary_network, selem) * binary_network
+		connectivity = np.bincount(degrees.flatten())
+		nodes = np.where(degrees > 2, 1, 0)
+		med_nodes = np.median(degrees)
+		print(med_nodes, nodes.sum())
+		"""
+
+	return net_area, net_anis, net_linear, pix_anis
 
 
 def smart_nematic_tensor_analysis(nem_vector, precision=1E-1):
@@ -365,7 +612,7 @@ def smart_nematic_tensor_analysis(nem_vector, precision=1E-1):
 
 	"""
 
-	tot_q, tot_angle, tot_energy = nematic_tensor_analysis(nem_vector)
+	tot_q, tot_angle, tot_energy = tensor_analysis(nem_vector)
 
 	n_sample = nem_vector.shape[0]
 	
@@ -385,7 +632,7 @@ def smart_nematic_tensor_analysis(nem_vector, precision=1E-1):
 				q_section = q[i * image_shape[0] // 2 : (i+1) * image_shape[0] // 2,
 							j * image_shape[1] // 2 : (j+1) * image_shape[1] // 2]
 
-				new_q, _ = nematic_tensor_analysis(np.mean(vector_map, axis=(1, 2)))
+				new_q, _ = tensor_analysis(np.mean(vector_map, axis=(1, 2)))
 				old_q = np.mean(q_section)
 
 				if abs(new_q - old_q) >= precision: q_section = rec_search(vec_section, q_section)
@@ -402,7 +649,7 @@ def smart_nematic_tensor_analysis(nem_vector, precision=1E-1):
 
 		print(vector_map.shape, np.mean(vector_map, axis=(1, 2)))
 
-		av_q, _ = nematic_tensor_analysis(np.mean(vector_map, axis=(1, 2)))
+		av_q, _ = tensor_analysis(np.mean(vector_map, axis=(1, 2)))
 
 		q0 += av_q
 		q1 = rec_search(vector_map, q0)
