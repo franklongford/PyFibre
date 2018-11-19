@@ -16,7 +16,7 @@ import networkx as nx
 
 from scipy import interpolate
 from scipy.misc import derivative
-from scipy.ndimage import filters, imread, sobel
+from scipy.ndimage import filters, imread, sobel, distance_transform_edt
 from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
 
 from skimage import measure, transform, img_as_float, exposure, feature
@@ -25,6 +25,7 @@ from skimage.morphology import (square, disk, ball, closing, binary_closing,
 from skimage.filters import rank, threshold_otsu, try_all_threshold
 from skimage.color import label2rgb, rgb2hsv, hsv2rgb
 from skimage.restoration import denoise_tv_chambolle, estimate_sigma
+from skimage.feature import ORB
 
 from sklearn.decomposition import NMF
 from sklearn.feature_extraction.image import img_to_graph
@@ -33,6 +34,7 @@ from sklearn.cluster import spectral_clustering
 import matplotlib.pyplot as plt
 
 import utilities as ut
+from filters import tubeness
 
 
 def set_HSB(image, hue, saturation=1, brightness=1):
@@ -40,7 +42,7 @@ def set_HSB(image, hue, saturation=1, brightness=1):
 
 	By default, set the saturation to 1 so that the colors pop!
 	"""
-	with suppress(RuntimeWarning): hsv = rgb2hsv(image)
+	hsv = rgb2hsv(image)
 
 	hsv[..., 0] = hue
 	hsv[..., 1] = saturation
@@ -59,7 +61,8 @@ def load_tif(image_name):
 
 	return image
 
-def prepare_image_shg(image, size=None, sigma=None, weight=None, clip_limit=None, threshold=False, n_components=None):
+def prepare_image_shg(image, size=None, sigma=None, weight=None, clip_limit=None, 
+						threshold=False, n_components=None, tf=False):
 
 	if sigma != None: image = filters.gaussian_filter(image, sigma=sigma)
 	if size != None: image = rank.noise_filter(image, disk(size))
@@ -67,6 +70,7 @@ def prepare_image_shg(image, size=None, sigma=None, weight=None, clip_limit=None
 	if clip_limit != None: image = exposure.equalize_adapthist(image, clip_limit=clip_limit)
 	if threshold: image = np.where(image >= threshold_otsu(image), image, 0)
 	if weight != None: image = denoise_tv_chambolle(image, weight=weight)
+	if tf: image = tubeness(image, sigma=sigma)
 
 	image = image / image.max()
 
@@ -418,7 +422,8 @@ def tensor_analysis(tensor):
 	tot_anis = np.zeros(tensor.shape[:-2])
 	tot_anis[indicies] += eig_diff[indicies] / eig_sum[indicies]
 
-	tot_angle = np.arctan2(tensor[..., 1, 0], tensor[..., 1, 1]) / np.pi * 180
+	tot_angle = 0.5 * np.arctan2(2 * tensor[..., 1, 0], (tensor[..., 1, 1] - tensor[..., 0, 0])) / np.pi * 180
+	#tot_angle = np.arctan2(tensor[..., 1, 0], tensor[..., 1, 1]) / np.pi * 180
 	tot_energy = np.trace(np.abs(tensor), axis1=-2, axis2=-1)
 
 	return tot_anis, tot_angle, tot_energy
@@ -467,7 +472,7 @@ def cluster_extraction(image, n_clusters=5):
 	while clustering:
 		if red > 1:
 			new_shape = (image.shape[0]//red, image.shape[1]//red)
-			image_trans = transform.resize(image, new_shape, mode='reflect', anti_aliasing=True)# / 256.
+			image_trans = transform.resize(image, new_shape, mode='reflect')# / 256.
 		else: image_trans = image
 
 		filtered = image_trans > threshold_otsu(image_trans)
@@ -499,29 +504,43 @@ def network_extraction(image, n_clusters=3):
 	#image = np.where(image >= threshold_otsu(image), 1, 0)
 
 	filtered = image > threshold_otsu(image)
-	closed = binary_closing(filtered, disk(1))
-	skeleton = thin(closed)
+	#closed = binary_closing(filtered, disk(1))
+	#skeleton = thin(closed)
 	#skeleton = skeletonize(~closed).astype(np.uint16)
 	#skeleton, distance = medial_axis(closed, return_distance=True)
+	#cleared = clear_border(skeleton)
+	edges = feature.canny(image)
+	skeleton = thin(edges)
 	cleared = clear_border(skeleton)
 
-	graph = sknw.build_sknw(cleared)
-	graph_nx = nx.Graph(graph)
-
-	label_image, num_features = measure.label(skeleton, return_num=True, connectivity=2)
+	label_image, num_features = measure.label(cleared, return_num=True, connectivity=2)
 	#label_image = closing(label_image, disk(2))
 	#label_image = thin(label_image)
 	label_image = np.array(label_image, dtype=int)
 
 	areas = []
-	for region in measure.regionprops(label_image): 
-		areas.append(region.filled_area)
+	for region in measure.regionprops(label_image): areas.append(region.filled_area)
 	sort_areas = np.argsort(areas)[-n_clusters:]
 
-	net_path = 0#nx.average_shortest_path_length(graph_nx)
-	net_clustering = nx.average_clustering(graph_nx)
+	network = label_image
+	"""
+	network = np.zeros(label_image.shape)
+	for i, n in enumerate(sort_areas):
+		network_matrix = np.zeros(label_image.shape, dtype=int)
+		region = measure.regionprops(label_image)[n]
+		
+		minr, minc, maxr, maxc = region.bbox
+		indices = np.mgrid[minr:maxr, minc:maxc]
+		network[(indices[0], indices[1])] += region.image * (i+1)
+	"""
 
-	return label_image, sort_areas, net_path, net_clustering, skeleton
+	graph = sknw.build_sknw(cleared)
+	graph_nx = nx.Graph(graph)
+	net_path = 0#nx.average_shortest_path_length(graph_nx)
+	try: net_clustering = nx.average_clustering(graph_nx)
+	except: net_clustering = 0
+
+	return label_image, sort_areas, net_path, net_clustering, network, graph_nx
 
 
 def network_area(label, iterations=10):
@@ -533,41 +552,50 @@ def network_area(label, iterations=10):
 	return net_area, filled_image
 
 
-def network_analysis(label_image, sorted_areas, n_tensor, anis_map):
+def descriptor(image):
+
+	descriptor_extractor = ORB(n_keypoints=20)
+	descriptor_extractor.detect_and_extract(image)
+	keypoints = descriptor_extractor.keypoints
+
+	print(keypoints)
+
+def network_analysis(label_image, sorted_areas, n_tensor, anis_map, curve):
 
 	main_network = np.zeros(label_image.shape, dtype=int)
 	net_area = np.zeros(len(sorted_areas))
 	net_anis = np.zeros(len(sorted_areas))
 	net_linear = np.zeros(len(sorted_areas))
+	net_curve = np.zeros(len(sorted_areas))
 	pix_anis = np.zeros(len(sorted_areas))
+	solidity = np.zeros(len(sorted_areas))
 
 	for i, n in enumerate(sorted_areas):
 		network_matrix = np.zeros(label_image.shape, dtype=int)
 
-		region =  measure.regionprops(label_image)[n]
+		region = measure.regionprops(label_image)[n]
+		solidity[i] = region.solidity
 		minr, minc, maxr, maxc = region.bbox
 		indices = np.mgrid[minr:maxr, minc:maxc]
 
 		region_anis = anis_map[(indices[0], indices[1])]
 		region_tensor = n_tensor[(indices[0], indices[1])]
+		region_curve = curve[(indices[0], indices[1])]
 		network_matrix[(indices[0], indices[1])] += region.image * (i+1)
 
 		net_area[i], network = network_area(region.image)
 		indices = np.where(network)
 		region_tensor = region_tensor[(indices[0], indices[1])]
 		region_anis = region_anis[(indices[0], indices[1])]
-
-		print(region_anis.shape)
+		region_curve = region_curve[(indices[0], indices[1])]
 
 		net_anis[i], _ , _ = tensor_analysis(np.mean(region_tensor, axis=(0)))
 		pix_anis[i] = np.mean(region_anis)
+		net_curve[i] = np.mean(region_curve)
 
-		if network.shape[0] > 1 and network.shape[1] > 1 : 
+		if network.shape[0] > 1 and network.shape[1] > 1:
 			region = measure.regionprops(np.array(network, dtype=int))[0]
-			net_linear[i] += region.perimeter / net_area[i]
-		else: 
-			net_linear[i] += region.area / net_area[i]
-
+			net_linear[i] += 1 - region.equivalent_diameter / region.perimeter
 		main_network += network_matrix
 
 		"""
@@ -579,8 +607,9 @@ def network_analysis(label_image, sorted_areas, n_tensor, anis_map):
 		med_nodes = np.median(degrees)
 		print(med_nodes, nodes.sum())
 		"""
+	coverage = np.count_nonzero(main_network) / main_network.size
 
-	return net_area, net_anis, net_linear, pix_anis
+	return net_area, net_anis, net_linear, net_curve, pix_anis, coverage, solidity
 
 
 def smart_nematic_tensor_analysis(nem_vector, precision=1E-1):

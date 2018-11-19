@@ -11,6 +11,7 @@ import sys, os
 import numpy as np
 import scipy as sp
 from contextlib import suppress
+import networkx as nx
 
 from skimage import data, measure
 from skimage.morphology import convex_hull_image
@@ -24,6 +25,7 @@ import matplotlib.patches as mpatches
 
 import utilities as ut
 import image_tools as it
+from extraction import FIRE
 
 
 
@@ -62,19 +64,19 @@ def plot_figures(fig_dir, fig_name, image, anis, angle, energy, cmap='viridis'):
 	ax.set_axis_off()
 	plt.savefig('{}{}.png'.format(fig_dir, fig_name), bbox_inches='tight')
 	plt.close()
-	"""
+	#"""
 	picture = gray2rgb(image)
-	hue = np.mod(angle, 180) / 180
+	hue = (angle + 90) / 180
 	saturation = anis / anis.max()
 	brightness = image / image.max()
 	picture = it.set_HSB(picture, hue, saturation, brightness)
 
 	plt.figure()
-	plt.imshow(picture, vmin=0, vmax=1, origin='lower')
+	plt.imshow(picture, vmin=0, vmax=1)
 	plt.axis("off")
 	plt.savefig('{}{}_picture.png'.format(fig_dir, fig_name), bbox_inches='tight')
 	plt.close()
-	"""
+	#"""
 	plt.figure()
 	plt.imshow(anis, cmap='binary_r', interpolation='nearest', vmin=0, vmax=1)
 	plt.colorbar()
@@ -82,13 +84,13 @@ def plot_figures(fig_dir, fig_name, image, anis, angle, energy, cmap='viridis'):
 	plt.close()
 
 	plt.figure()
-	plt.imshow(np.where(norm_energy > 0.02, angle, -360), cmap='nipy_spectral', interpolation='nearest', vmin=-90, vmax=90)
+	plt.imshow(angle, cmap='nipy_spectral', interpolation='nearest', vmin=-90, vmax=90)
 	plt.colorbar()
 	plt.savefig('{}{}_anglemap.png'.format(fig_dir, fig_name), bbox_inches='tight')
 	plt.close()
 
 	plt.figure()
-	plt.imshow(energy, cmap='binary_r', interpolation='nearest', origin='lower')
+	plt.imshow(energy, cmap='binary_r', interpolation='nearest')
 	plt.axis("off")
 	plt.colorbar()
 	plt.savefig('{}{}_energymap.png'.format(fig_dir, fig_name), bbox_inches='tight')
@@ -165,6 +167,27 @@ def plot_labeled_figure(fig_dir, fig_name, image, label_image, labels, mode):
 	plt.close()
 
 
+def plot_graph(fig_dir, fig_name, image, graph, mode):
+
+	# draw image
+	plt.imshow(image, cmap='gray')
+
+	# draw edges by pts
+	for (s,e) in graph.edges():
+		ps = graph[s][e]['pts']
+		plt.plot(ps[:,1], ps[:,0], 'green')
+
+	# draw node by o
+	node, nodes = graph.node, graph.nodes()
+	ps = np.array([node[i]['o'] for i in nodes])
+	plt.plot(ps[:,1], ps[:,0], 'r.')
+
+	# title and show
+	plt.title('Build Graph')
+	plt.savefig('{}{}_{}_graph.png'.format(fig_dir, fig_name, mode), bbox_inches='tight')
+	plt.close()
+
+
 def test_analysis(current_dir, size=None, sigma=None, ow_anis=False):
 	"""
 	plot_labeled_figure(fig_dir, fig_name, image, label_image, labels)
@@ -194,18 +217,20 @@ def test_analysis(current_dir, size=None, sigma=None, ow_anis=False):
 	N = 200
 
 	fig_dir = current_dir + '/'
-	fig_names = ['test_image_circle', 'test_image_line', 
+	fig_names = [ 'test_image_line', 
 				'test_image_cross', 'test_image_noise', 
-				'test_image_checker', 'test_image_rings']
+				'test_image_checker', 'test_image_rings',
+				'test_image_fibres_flex', 'test_image_fibres_stiff']
 
 	ske_clus = np.zeros(len(fig_names))
 	ske_path = np.zeros(len(fig_names))
+	ske_solid = np.zeros(len(fig_names))
 	ske_lin = np.zeros(len(fig_names))
-	con_lin = np.zeros(len(fig_names))
+	ske_curve = np.zeros(len(fig_names))
+	ske_cover = np.zeros(len(fig_names))
 	mean_img_anis = np.zeros(len(fig_names))
 	mean_pix_anis = np.zeros(len(fig_names))
 	mean_ske_anis = np.zeros(len(fig_names))
-	mean_con_anis = np.zeros(len(fig_names))
 
 	for n, fig_name in enumerate(fig_names):
 
@@ -226,86 +251,36 @@ def test_analysis(current_dir, size=None, sigma=None, ow_anis=False):
 			test_image = np.zeros((N, N))
 			for i in range(10): test_image += np.eye(N, N, k=5-i)
 			for i in range(10): test_image += np.rot90(np.eye(N, N, k=5-i))
+			test_image = np.where(test_image != 0, 1, 0)
+			FIRE(test_image)
 		elif fig_name == 'test_image_noise':
 			test_image = np.random.random((N, N))
 		elif fig_name == 'test_image_checker':
 			test_image = data.checkerboard()
 			test_image = swirl(test_image, rotation=0, strength=10, radius=120)
+		elif fig_name == 'test_image_fibres_stiff':
+			test_image = np.load('col_2D_stiff_data.npy')[0]
+		elif fig_name == 'test_image_fibres_flex':
+			test_image = np.load('col_2D_flex_data.npy')[0]
 
-		res = analyse_image(current_dir, fig_name, test_image, sigma=sigma, ow_anis=ow_anis, mode='SHG')
-		(ske_clus[n], ske_path[n], ske_lin[n], con_lin[n], mean_ske_anis[n], 
-			mean_con_anis[n], mean_img_anis[n], mean_pix_anis[n]) = res
+		res = analyse_image(current_dir, fig_name, test_image, sigma=sigma, ow_anis=ow_anis, mode='test')
+		(ske_clus[n], ske_lin[n], ske_cover[n], ske_curve[n], ske_solid[n],
+			mean_ske_anis[n], mean_pix_anis[n], mean_img_anis[n]) = res
 
 		print(' Skeleton Clustering = {:>6.4f}'.format(ske_clus[n]))
 		print(' Skeleton Linearity = {:>6.4f}'.format(ske_lin[n]))
-		print(' Convolution Linearity = {:>6.4f}'.format(con_lin[n]))
+		print(' Skeleton Coverage = {:>6.4f}'.format(ske_cover[n]))
+		print(' Skeleton Solidity = {:>6.4f}'.format(ske_solid[n]))
+		print(' Skeleton Curvature = {:>6.4f}'.format(ske_curve[n]))
 		print(' Skeleton Anistoropy = {:>6.4f}'.format(mean_ske_anis[n]))
-		print(' Convolution Anistoropy = {:>6.4f}'.format(mean_con_anis[n]))
-		print(' Image anistoropy = {:>6.4f}'.format(mean_img_anis[n]))
-		print(' Pixel anistoropy = {:>6.4f}\n'.format(mean_pix_anis[n]))
+		print(' Total Pixel anistoropy = {:>6.4f}'.format(mean_pix_anis[n]))
+		print(' Total Image anistoropy = {:>6.4f}\n'.format(mean_img_anis[n]))
 
 	x_labels = fig_names
 	col_len = len(max(x_labels, key=len))
 
-	y_labels = ['skeleton cluster', 'skeleton linear', 'convolution linear']
-	print("Order of network properties in images:")
-	print(' {:{col_len}s} | {:10s} | {:10s} | {:10s}'.format('', *y_labels, col_len=col_len))
-	print("_" * 80)
-
-	sorted_ske_clus = np.argsort(ske_clus)[::-1]
-	sorted_sku_lin = np.argsort(ske_lin)[::-1]
-	sorted_con_lin = np.argsort(con_lin)[::-1]
-
-	for i, name in enumerate(x_labels):
-		print(' {:{col_len}s} | {:10d} | {:10d} | {:10d}'.format(name, 
-			np.argwhere(sorted_ske_clus == i)[0][0],
-			np.argwhere(sorted_sku_lin == i)[0][0],
-			np.argwhere(sorted_con_lin == i)[0][0], col_len=col_len))
-
-	print("\n")
-
-	y_labels = ['skeleton', 'convolution', 'image', 'pixel']
-	print("Order of anisotropy in images:")
-	print(' {:{col_len}s} | {:10s} | {:10s} | {:10s} | {:10s}'.format('', *y_labels, col_len=col_len))
-	print("_" * 80)
-
-	sorted_ske = np.argsort(mean_ske_anis)[::-1]
-	sorted_con = np.argsort(mean_con_anis)[::-1]
-	sorted_img = np.argsort(mean_img_anis)[::-1]
-	sorted_pix = np.argsort(mean_pix_anis)[::-1]
-
-	for i, name in enumerate(x_labels):
-		print(' {:{col_len}s} | {:10d} | {:10d} | {:10d} | {:10d}'.format(name, 
-			np.argwhere(sorted_ske == i)[0][0],
-			np.argwhere(sorted_con == i)[0][0],
-			np.argwhere(sorted_img == i)[0][0],
-			np.argwhere(sorted_pix == i)[0][0], col_len=col_len))
-
-	print("\n")
-
-	fig, ax = plt.subplots()
-	plt.title('Average Anisotropy')
-	im = ax.imshow((mean_ske_anis, mean_con_anis, mean_img_anis, mean_pix_anis), cmap='Reds', vmin=0, vmax=1)
-	ax.set_xticks(np.arange(len(fig_names)))
-	ax.set_yticks(np.arange(len(y_labels)))
-	ax.set_xticklabels(x_labels)
-	ax.set_yticklabels(y_labels)
-	cbar = fig.colorbar(im)
-	cbar.set_label('Anisotropy', rotation=-90, va="bottom")
-	plt.setp(plt.gca().get_xticklabels(), rotation=25, horizontalalignment='right')
-
-	for i in range(len(x_labels)):
-		text = ax.text(i, 0, round(mean_ske_anis[i], 2), ha="center", va="center", color="black")
-		text = ax.text(i, 1, round(mean_con_anis[i], 2), ha="center", va="center", color="black")
-		text = ax.text(i, 2, round(mean_img_anis[i], 2), ha="center", va="center", color="black")
-		text = ax.text(i, 2, round(mean_pix_anis[i], 2), ha="center", va="center", color="black")
-
-	plt.savefig('{}average_anis.png'.format(fig_dir), bbox_inches='tight')
-	plt.close()
-
-	#predictor = (ske_clus + mean_ske_anis + mean_con_anis + mean_pix_anis + mean_img_anis) / 5
-	predictor = predictor_metric(ske_clus, ske_lin, con_lin, mean_ske_anis, 
-									mean_con_anis, mean_pix_anis, mean_img_anis)
+	predictor = predictor_metric(ske_clus, ske_lin, ske_cover, ske_solid,
+								mean_ske_anis, mean_pix_anis, mean_img_anis)
 
 	for i, file_name in enumerate(x_labels): 
 		if np.isnan(predictor[i]):
@@ -342,7 +317,7 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 	if not ow_anis and os.path.exists(data_dir + fig_name + '.npy'):
 		averages = ut.load_npy(data_dir + fig_name)
 	else:
-		image = it.prepare_image_shg(image, sigma=sigma)
+		image = it.prepare_image_shg(image, sigma=sigma, tf=True)
 
 		fig, ax = plt.subplots(figsize=(10, 6))
 		plt.imshow(image, cmap=cmap, interpolation='nearest')
@@ -351,7 +326,7 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 		plt.close()
 
 		if mode == 'SHG':
-			image_shg = it.prepare_image_shg(image, clip_limit=0.05)
+			image_shg = it.prepare_image_shg(image, clip_limit=0.05, tf=True)
 
 			fig, ax = plt.subplots(figsize=(10, 6))
 			plt.imshow(image_shg, cmap=cmap, interpolation='nearest')
@@ -371,11 +346,13 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 		pix_j_anis, pix_j_angle, pix_j_energy = it.tensor_analysis(j_tensor)
 		pix_H_anis, pix_H_angle, pix_H_energy = it.tensor_analysis(H_tensor)
 
+		plot_figures(fig_dir, fig_name, image_shg, pix_j_anis, pix_j_angle, pix_j_energy, cmap='viridis')
+
 		fig, ax = plt.subplots(figsize=(10, 6))
-		plt.imshow(np.where(pix_j_anis > threshold_otsu(pix_j_anis), pix_j_anis, 0), cmap='Greys', interpolation='nearest')
+		plt.imshow(np.where(pix_n_anis > threshold_otsu(pix_n_anis), pix_n_anis, 0), cmap='Greys', interpolation='nearest')
 		plt.colorbar()
 		ax.set_axis_off()
-		plt.savefig('{}{}_pix_structure.png'.format(fig_dir, fig_name), bbox_inches='tight')
+		plt.savefig('{}{}_pix_nematic.png'.format(fig_dir, fig_name), bbox_inches='tight')
 		plt.close()
 		
 		gauss_curvature, mean_curvature = it.get_curvature(j_tensor, H_tensor)
@@ -406,54 +383,37 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 
 		"Extract main collagen network using mean curvature"
 
-		modes = ['skeleton', 'convolution']
-		anisotropy = np.zeros(len(modes))
-		path_length = np.zeros(len(modes))
-		linearity = np.zeros(len(modes))
-		clustering = np.zeros(len(modes))
-		pix_anis = np.zeros(len(modes))
+		(label_image, sorted_areas, net_path, 
+			clustering, main_network, graph) = it.network_extraction(image_shg, n_clusters)
+		(net_area, net_anis, net_linear, net_curve,
+			region_anis, coverage, solidity) = it.network_analysis(label_image, sorted_areas, j_tensor, 
+																	pix_j_anis, mean_curvature)
 
-		for i, mode in enumerate(modes):
+		plt.imshow(np.where(main_network != 0, 1, 0), cmap='Greys')
+		plt.savefig('{}{}_{}_network.png'.format(fig_dir, fig_name, 'skeleton'), bbox_inches='tight')
+		plt.close()
 
-			if mode == 'skeleton':
-				(label_image, sorted_areas, net_path, 
-					net_clustering, main_network) = it.network_extraction(mean_curvature, n_clusters)
-				net_area, net_anis, net_linear, region_anis = it.network_analysis(label_image, sorted_areas, n_tensor, pix_j_anis)
+		if mode == 'test':
+			plot_graph(fig_dir, fig_name, image_shg, graph, 'skeleton')
 
-				plt.imshow(main_network, cmap='Reds')
-				plt.savefig('{}{}_{}_network.png'.format(fig_dir, fig_name, mode), bbox_inches='tight')
-				plt.close()
+		plot_labeled_figure(fig_dir, fig_name, image_shg, label_image, sorted_areas, mode)
 
-			elif mode == 'convolution':
-				label_image, sorted_areas = it.cluster_extraction(mean_curvature, n_clusters)
-				net_area, net_anis, net_linear, region_anis = it.network_analysis(label_image, sorted_areas, n_tensor, pix_j_anis)
+		anisotropy = np.average(net_anis, weights=net_area)
+		linearity = np.average(net_linear, weights=net_area)
+		pix_anis = np.average(region_anis, weights=net_area)
+		solidity = np.average(solidity, weights=net_area)
+		curvature = np.average(net_curve, weights=net_area)
 
-				plot_labeled_figure(fig_dir, fig_name, image_shg, label_image, sorted_areas, mode)
-
-			#indices = np.nonzero(net_clustering)
-			#try: clustering[i] = np.average(net_clustering[indices], weights=net_area[indices])
-			#except: clustering[i] = 0
-
-			#indices = np.nonzero(path_length)
-			#try: path_length[i] = np.average(path_length[indices], weights=net_area[indices])
-			#except: path_length[i] = 0
-
-			anisotropy[i] = np.average(net_anis, weights=net_area)
-			linearity[i] = np.average(net_linear, weights=net_area)
-			pix_anis[i] = np.average(region_anis, weights=net_area)
-
-		averages = (net_clustering, net_path,
-					anisotropy[0], anisotropy[1],
-					linearity[0], linearity[1],
-					img_anis, pix_anis[1])
+		averages = (clustering, linearity, coverage, curvature,
+					solidity, anisotropy, pix_anis, img_anis)
 
 		ut.save_npy(data_dir + fig_name, averages)
 
 	return averages
 
-def predictor_metric(ske_clus, ske_lin, con_lin, ske_anis, con_anis, pix_anis, img_anis):
+def predictor_metric(clus, lin, cover, solid, region_anis, pix_anis, img_anis):
 
-	predictor = np.sqrt(ske_clus**2 + ske_lin**2 + con_anis**2 + pix_anis**2) / np.sqrt(4)
+	predictor = np.sqrt(clus**2 + lin**2 + region_anis**2 + pix_anis**2) / np.sqrt(4)
 	#predictor = np.sqrt(ske_clus**2 + ske_anis**2 + con_anis**2 + pix_anis**2 + img_anis**2) / np.sqrt(5)
 	#predictor = np.sqrt(ske_clus**2 + ske_anis**2 + con_anis**2 + pix_anis**2) / np.sqrt(4)
 	#predictor =  (ske_clus + ske_anis + pix_anis) / 3
@@ -505,91 +465,35 @@ def analyse_directory(current_dir, input_files, key=None, ow_anis=False):
 
 		ske_clus = np.zeros(len(input_files))
 		ske_path = np.zeros(len(input_files))
+		ske_solid = np.zeros(len(input_files))
 		ske_lin = np.zeros(len(input_files))
-		con_lin = np.zeros(len(input_files))
+		ske_curve = np.zeros(len(input_files))
+		ske_cover = np.zeros(len(input_files))
 		mean_img_anis = np.zeros(len(input_files))
 		mean_pix_anis = np.zeros(len(input_files))
 		mean_ske_anis = np.zeros(len(input_files))
-		mean_con_anis = np.zeros(len(input_files))
 
 		for i, input_file_name in enumerate(input_files):
 			image = it.load_tif(input_file_name)
 			res = analyse_image(current_dir, input_file_name, image, size=size, 
 								sigma=sigma, ow_anis=ow_anis, mode=mode)
-			(ske_clus[i], ske_path[i], mean_ske_anis[i], 
-				mean_con_anis[i], ske_lin[i], con_lin[i], 
-				mean_img_anis[i], mean_pix_anis[i]) = res
+			(ske_clus[i], ske_lin[i], ske_cover[i], ske_curve[i], ske_solid[i],
+				mean_ske_anis[i], mean_pix_anis[i], mean_img_anis[i]) = res
 
 			print(' Skeleton Clustering = {:>6.4f}'.format(ske_clus[i]))
 			print(' Skeleton Linearity = {:>6.4f}'.format(ske_lin[i]))
-			print(' Convolution Linearity = {:>6.4f}'.format(con_lin[i]))
+			print(' Skeleton Coverage = {:>6.4f}'.format(ske_cover[i]))
+			print(' Skeleton Solidity = {:>6.4f}'.format(ske_solid[i]))
+			print(' Skeleton Curvature = {:>6.4f}'.format(ske_curve[i]))
 			print(' Skeleton Anistoropy = {:>6.4f}'.format(mean_ske_anis[i]))
-			print(' Convolution Anistoropy = {:>6.4f}'.format(mean_con_anis[i]))
-			print(' Image anistoropy = {:>6.4f}'.format(mean_img_anis[i]))
-			print(' Pixel anistoropy = {:>6.4f}\n'.format(mean_pix_anis[i]))
+			print(' Total Pixel anistoropy = {:>6.4f}'.format(mean_pix_anis[i]))
+			print(' Total Image anistoropy = {:>6.4f}\n'.format(mean_img_anis[i]))
 
 		x_labels = [ut.check_file_name(image_name, extension='tif') for image_name in input_files]
 		col_len = len(max(x_labels, key=len))
 
-		y_labels = ['skeleton cluster', 'skeleton linear', 'convolution linear']
-		print("Order of network properties in images:")
-		print(' {:{col_len}s} | {:10s} | {:10s} | {:10s}'.format('', *y_labels, col_len=col_len))
-		print("_" * 80)
-
-		sorted_ske_clus = np.argsort(ske_clus)[::-1]
-		sorted_sku_lin = np.argsort(ske_lin)[::-1]
-		sorted_con_lin = np.argsort(con_lin)[::-1]
-
-		for i, name in enumerate(x_labels):
-			print(' {:{col_len}s} | {:10d} | {:10d} | {:10d}'.format(name, 
-				np.argwhere(sorted_ske_clus == i)[0][0],
-				np.argwhere(sorted_sku_lin == i)[0][0],
-				np.argwhere(sorted_con_lin == i)[0][0], col_len=col_len))
-
-		print("\n")
-
-		y_labels = ['skeleton', 'convolution', 'image', 'pixel']
-		print("Order of anisotropy in images:")
-		print(' {:{col_len}s} | {:10s} | {:10s} | {:10s} | {:10s}'.format('', *y_labels, col_len=col_len))
-		print("_" * 80)
-
-		sorted_ske = np.argsort(mean_ske_anis)[::-1]
-		sorted_con = np.argsort(mean_con_anis)[::-1]
-		sorted_img = np.argsort(mean_img_anis)[::-1]
-		sorted_pix = np.argsort(mean_pix_anis)[::-1]
-
-		for i, name in enumerate(x_labels):
-			print(' {:{col_len}s} | {:10d} | {:10d} | {:10d} | {:10d}'.format(name, 
-				np.argwhere(sorted_ske == i)[0][0],
-				np.argwhere(sorted_con == i)[0][0],
-				np.argwhere(sorted_img == i)[0][0],
-				np.argwhere(sorted_pix == i)[0][0], col_len=col_len))
-
-		print("\n")
-
-		fig, ax = plt.subplots()
-		plt.title('Average Anisotropy')
-		im = ax.imshow((mean_ske_anis, mean_con_anis, mean_img_anis, mean_pix_anis), cmap='Reds', vmin=0, vmax=1)
-		ax.set_xticks(np.arange(len(input_files)))
-		ax.set_yticks(np.arange(len(y_labels)))
-		ax.set_xticklabels(x_labels)
-		ax.set_yticklabels(y_labels)
-		cbar = fig.colorbar(im)
-		cbar.set_label('Anisotropy', rotation=-90, va="bottom")
-		plt.setp(plt.gca().get_xticklabels(), rotation=25, horizontalalignment='right')
-
-		for i in range(len(x_labels)):
-			text = ax.text(i, 0, round(mean_ske_anis[i], 2), ha="center", va="center", color="black")
-			text = ax.text(i, 1, round(mean_con_anis[i], 2), ha="center", va="center", color="black")
-			text = ax.text(i, 2, round(mean_img_anis[i], 2), ha="center", va="center", color="black")
-			text = ax.text(i, 2, round(mean_pix_anis[i], 2), ha="center", va="center", color="black")
-
-		if key == None: plt.savefig('{}average_anis.png'.format(fig_dir), bbox_inches='tight')
-		else: plt.savefig('{}average_anis_{}.png'.format(fig_dir, key), bbox_inches='tight')
-		plt.close()
-
-		predictor = predictor_metric(ske_clus, ske_lin, con_lin, mean_ske_anis, 
-									mean_con_anis, mean_pix_anis, mean_img_anis)
+		predictor = predictor_metric(ske_clus, ske_lin, ske_cover, ske_solid,
+									mean_ske_anis, mean_pix_anis, mean_img_anis)
 
 		for i, file_name in enumerate(x_labels): 
 			if np.isnan(predictor[i]):
