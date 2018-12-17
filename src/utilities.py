@@ -204,7 +204,45 @@ def adjoint_mat(matrix):
 
 	return mat_ad
 
+def ring(image, index, sizes, value):
+    
+    index = np.array(index)
+    sizes = np.array(sizes)
+    
+    for size in sizes:
+        indices = np.concatenate((index - size, index + size))
 
+        if indices[0] >= 0: 
+            image[indices[0], 
+                  max([indices[1], 0]): min([indices[3], image.shape[1]])+1] = value
+        if indices[2] < image.shape[0]: 
+            image[indices[2], 
+                  max([indices[1], 0]): min([indices[3], image.shape[1]])+1] = value
+        if indices[1] >= 0: 
+            image[max([indices[0], 0]): min([indices[2], image.shape[0]])+1,
+                 indices[1]] = value
+        if indices[3] < image.shape[1]: 
+            image[max([indices[0], 0]): min([indices[2], image.shape[0]])+1,
+                 indices[3]] = value
+
+    return image
+
+
+def conv_coord(array):
+    
+    return (array[:,0], array[:,1])
+
+
+def clear_border(image):
+
+	image[:, 0] = 0
+	image[0, :] = 0
+	image[:, -1] = 0
+	image[-1, :] = 0
+
+	return image
+
+	
 ####### OBSOLETE ########
 
 def gaussian_filter(histogram, std, r, n_xyz):

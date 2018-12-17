@@ -35,7 +35,18 @@ import matplotlib.pyplot as plt
 
 import utilities as ut
 from filters import tubeness
+from extraction import FIRE, adj_analysis
 
+
+def load_tif(image_name):
+
+	image_orig = img_as_float(imread(image_name)).astype(np.float32)
+
+	if image_orig.ndim > 2: 
+		image = np.sum(image_orig / image_orig.max(axis=-1), axis=0)
+	else: image = image_orig
+
+	return image
 
 def set_HSB(image, hue, saturation=1, brightness=1):
 	""" Add color of the given hue to an RGB image.
@@ -51,18 +62,8 @@ def set_HSB(image, hue, saturation=1, brightness=1):
 	return hsv2rgb(hsv)
 
 
-def load_tif(image_name):
-
-	image_orig = img_as_float(imread(image_name)).astype(np.float32)
-
-	if image_orig.ndim > 2: 
-		image = np.sum(image_orig / image_orig.max(axis=-1), axis=0)
-	else: image = image_orig
-
-	return image
-
 def prepare_image_shg(image, size=None, sigma=None, weight=None, clip_limit=None, 
-						threshold=False, n_components=None, tf=False):
+						threshold=False, n_components=None):
 
 	if sigma != None: image = filters.gaussian_filter(image, sigma=sigma)
 	if size != None: image = rank.noise_filter(image, disk(size))
@@ -70,7 +71,6 @@ def prepare_image_shg(image, size=None, sigma=None, weight=None, clip_limit=None
 	if clip_limit != None: image = exposure.equalize_adapthist(image, clip_limit=clip_limit)
 	if threshold: image = np.where(image >= threshold_otsu(image), image, 0)
 	if weight != None: image = denoise_tv_chambolle(image, weight=weight)
-	if tf: image = tubeness(image, sigma=sigma)
 
 	image = image / image.max()
 
@@ -234,40 +234,6 @@ def derivatives(image, rank=1, mode='cd'):
 	else: return derivative
 
 
-def nmf_reconstuction(image, n_components):
-	"""
-	nmf_reconstuction(image, n_sample)
-
-	Calculates non-negative matrix factorisation of over area^2 pixels for n_samples
-
-	Parameters
-	----------
-
-	image:  array_like (float); shape=(n_x, n_y)
-		Image to reconstruct
-
-	n_components:  int
-		Number of components to include in model
-
-
-	Returns
-	-------
-
-	"""
-
-	print("\n Performing NMF Analysis")
-
-	rng = np.random.RandomState(0)
-
-	model = NMF(n_components=n_components, init='random', random_state=0)
-
-	W = model.fit_transform(image)
-	H = model.components_
-	#W[...,n_components//4:] = 0
-
-	return np.dot(W, H)
-
-
 def form_nematic_tensor(image, sigma=None, size=None):
 	"""
 	form_nematic_tensor(dx_shg, dy_shg)
@@ -377,14 +343,6 @@ def form_hessian_tensor(image, sigma=None, size=None):
 	return H_tensor
 
 
-def vesselness(eig1, eig2, beta1=0.1, beta2=0.1):
-
-	A = np.exp(-(eig1/eig2)**2 / (2 * beta1))
-	B = (1 - np.exp(- (eig1**2 + eig2**2) / (2 * beta2)))
-
-	return A * B
-
-
 def tensor_analysis(tensor):
 	"""
 	tensor_analysis(tensor)
@@ -445,102 +403,37 @@ def get_curvature(j_tensor, H_tensor):
 	return np.nan_to_num(gauss_curvature), np.nan_to_num(mean_curvature)
 
 
-def spec_clustering(image, n_clusters=3):
+def network_extraction(image, pix_n_energy, n_clusters=3):
 
-	graph = img_to_graph(image)
-	labels = spectral_clustering(graph, n_clusters=n_clusters, assign_labels='kmeans', random_state=1)
-	return labels.reshape(image.shape)
-
-
-def clear_border(image):
-
-	image[:, 0] = 0
-	image[0, :] = 0
-	image[:, -1] = 0
-	image[-1, :] = 0
-
-	return image
-
-
-def cluster_extraction(image, n_clusters=5):
-
-	#image = np.where(image >= threshold_otsu(image), 1, 0)
-	old_shape = image.shape
-	red = old_shape[0] // 4
-	clustering = True
-
-	while clustering:
-		if red > 1:
-			new_shape = (image.shape[0]//red, image.shape[1]//red)
-			image_trans = transform.resize(image, new_shape, mode='reflect')# / 256.
-		else: image_trans = image
-
-		filtered = image_trans > threshold_otsu(image_trans)
-		closed = binary_closing(filtered, disk(2))
-		#skeleton = thin(closed)
-		cleared = clear_border(filtered)
-
-		label_image, num_features = measure.label(cleared, return_num=True, connectivity=1)
-
-		if (num_features >= n_clusters * 3) or red == 1: clustering = False
-		else: red = red // 2
-
-	label_image = np.array(label_image, dtype=int)
-	
-	if red > 1:
-		#label_image = transform.resize(label_image, image.shape, preserve_range=True, anti_aliasing=True)
-		for i in range(2): label_image = np.repeat(label_image, red, axis=i)
-	
-	areas = []
-	for region in measure.regionprops(label_image): 
-		areas.append(region.filled_area)
-	sort_areas = np.argsort(areas)[-n_clusters:]
-
-	return label_image, sort_areas
-
-
-def network_extraction(image, n_clusters=3):
-
-	#image = np.where(image >= threshold_otsu(image), 1, 0)
-
-	filtered = image > threshold_otsu(image)
-	#closed = binary_closing(filtered, disk(1))
-	#skeleton = thin(closed)
-	#skeleton = skeletonize(~closed).astype(np.uint16)
-	#skeleton, distance = medial_axis(closed, return_distance=True)
-	#cleared = clear_border(skeleton)
-	edges = feature.canny(image)
-	skeleton = thin(edges)
-	cleared = clear_border(skeleton)
+	binary = np.where(pix_n_energy > 0, 1, 0)
+	cleared = ut.clear_border(binary)
 
 	label_image, num_features = measure.label(cleared, return_num=True, connectivity=2)
-	#label_image = closing(label_image, disk(2))
-	#label_image = thin(label_image)
 	label_image = np.array(label_image, dtype=int)
 
-	areas = []
-	for region in measure.regionprops(label_image): areas.append(region.filled_area)
+	areas = np.empty((0,), dtype=float)
+	regions = []
+
+	for region in measure.regionprops(label_image): 
+	    areas = np.concatenate((areas, [region.filled_area]))
+	    regions.append(region.bbox)
+	
 	sort_areas = np.argsort(areas)[-n_clusters:]
 
-	network = label_image
-	"""
-	network = np.zeros(label_image.shape)
-	for i, n in enumerate(sort_areas):
-		network_matrix = np.zeros(label_image.shape, dtype=int)
-		region = measure.regionprops(label_image)[n]
-		
-		minr, minc, maxr, maxc = region.bbox
+	networks = []
+	sort_regions = []
+
+	for index in sort_areas:
+
+		minr, minc, maxr, maxc = regions[index]
 		indices = np.mgrid[minr:maxr, minc:maxc]
-		network[(indices[0], indices[1])] += region.image * (i+1)
-	"""
 
-	graph = sknw.build_sknw(cleared)
-	graph_nx = nx.Graph(graph)
-	net_path = 0#nx.average_shortest_path_length(graph_nx)
-	try: net_clustering = nx.average_clustering(graph_nx)
-	except: net_clustering = 0
+		image_TB = tubeness(image[(indices[0], indices[1])], 1)
+		networks.append(FIRE(image_TB, sigma=1))
 
-	return label_image, sort_areas, net_path, net_clustering, network, graph_nx
+		sort_regions.append(regions[index])
+
+	return label_image, sort_areas, sort_regions, networks
 
 
 def network_area(label, iterations=10):
@@ -552,21 +445,14 @@ def network_area(label, iterations=10):
 	return net_area, filled_image
 
 
-def descriptor(image):
-
-	descriptor_extractor = ORB(n_keypoints=20)
-	descriptor_extractor.detect_and_extract(image)
-	keypoints = descriptor_extractor.keypoints
-
-	print(keypoints)
-
-def network_analysis(label_image, sorted_areas, n_tensor, anis_map, curve):
+def network_analysis(label_image, sorted_areas, networks, n_tensor, anis_map):
 
 	main_network = np.zeros(label_image.shape, dtype=int)
 	net_area = np.zeros(len(sorted_areas))
 	net_anis = np.zeros(len(sorted_areas))
 	net_linear = np.zeros(len(sorted_areas))
-	net_curve = np.zeros(len(sorted_areas))
+	net_waviness = np.zeros(len(sorted_areas))
+	net_cluster = np.zeros(len(sorted_areas))
 	pix_anis = np.zeros(len(sorted_areas))
 	solidity = np.zeros(len(sorted_areas))
 
@@ -580,36 +466,29 @@ def network_analysis(label_image, sorted_areas, n_tensor, anis_map, curve):
 
 		region_anis = anis_map[(indices[0], indices[1])]
 		region_tensor = n_tensor[(indices[0], indices[1])]
-		region_curve = curve[(indices[0], indices[1])]
 		network_matrix[(indices[0], indices[1])] += region.image * (i+1)
 
 		net_area[i], network = network_area(region.image)
 		indices = np.where(network)
 		region_tensor = region_tensor[(indices[0], indices[1])]
 		region_anis = region_anis[(indices[0], indices[1])]
-		region_curve = region_curve[(indices[0], indices[1])]
 
 		net_anis[i], _ , _ = tensor_analysis(np.mean(region_tensor, axis=(0)))
 		pix_anis[i] = np.mean(region_anis)
-		net_curve[i] = np.mean(region_curve)
 
 		if network.shape[0] > 1 and network.shape[1] > 1:
 			region = measure.regionprops(np.array(network, dtype=int))[0]
 			net_linear[i] += 1 - region.equivalent_diameter / region.perimeter
 		main_network += network_matrix
 
-		"""
-		selem = square(3)
-		selem[1][1] = 0
-		degrees = rank.sum(binary_network, selem) * binary_network
-		connectivity = np.bincount(degrees.flatten())
-		nodes = np.where(degrees > 2, 1, 0)
-		med_nodes = np.median(degrees)
-		print(med_nodes, nodes.sum())
-		"""
+		net_waviness[i] = adj_analysis(networks[i])
+		net_path = 0#nx.average_shortest_path_length(graph_nx)
+		try: net_cluster[i] = nx.average_clustering(networks[i])
+		except: net_cluster[i] = 0
+
 	coverage = np.count_nonzero(main_network) / main_network.size
 
-	return net_area, net_anis, net_linear, net_curve, pix_anis, coverage, solidity
+	return net_area, net_anis, net_linear, net_cluster, net_waviness, pix_anis, coverage, solidity
 
 
 def smart_nematic_tensor_analysis(nem_vector, precision=1E-1):

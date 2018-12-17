@@ -35,7 +35,7 @@ def spiral_tv(image):
 
 def tubeness(image, sigma=None):
 
-	H_elems = hessian_matrix(image, order="xy", sigma=sigma)
+	H_elems = hessian_matrix(image, order="xy", sigma=sigma, mode='wrap')
 	H_eigen = hessian_matrix_eigvals(H_elems)
 	tube = np.where(H_eigen[1] < 0, abs(H_eigen[1]), 0)
 
@@ -45,3 +45,12 @@ def tubeness(image, sigma=None):
 def curvelet(image):
 
 	pass
+
+
+def vesselness(eig1, eig2, beta1=0.1, beta2=0.1):
+
+	A = np.exp(-(eig1/eig2)**2 / (2 * beta1))
+	B = (1 - np.exp(- (eig1**2 + eig2**2) / (2 * beta2)))
+
+	return A * B
+
