@@ -274,10 +274,10 @@ def plot_network(fig_dir, fig_name, image, regions, networks):
 	    'c': (0, 0.75, 0.75),
 	    'm': (0.75, 0, 0.75),
 	    'y': (0.75, 0.75, 0),
-	    'k': (0, 0, 0),
-	    'w': (1, 1, 1)}
+	    'k': (0, 0, 0)}
 
 	colours = list(BASE_COLOURS.keys())
+	
 
 	plt.figure(0, (10,10))
 	plt.imshow(image, cmap='Greys')
@@ -285,18 +285,16 @@ def plot_network(fig_dir, fig_name, image, regions, networks):
 	for j, Aij in enumerate(networks):
 
 		colour = BASE_COLOURS[colours[j % len(colours)]]
-
-		minr, minc, maxr, maxc = regions[j]
-
 		node_coord = np.stack((Aij.nodes[i]['xy'] for i in Aij.nodes()))
-		node_coord[:,0] += minr
-		node_coord[:,1] += minc
 		
-		#plt.scatter(node_coord[:,1], node_coord[:,0])
+		mapping = dict(zip(Aij.nodes, np.arange(Aij.number_of_nodes())))
+		Aij = nx.relabel_nodes(Aij, mapping)
+
+		#plt.scatter(node_coord[:,1], node_coord[:,0], c=colour)
 		for n, node in enumerate(Aij.nodes):
 			for m in list(Aij.adj[node]):
 				plt.plot([node_coord[n][1], node_coord[m][1]], 
-					 [node_coord[n][0], node_coord[m][0]], c=colour)
+					 	 [node_coord[n][0], node_coord[m][0]], c=colour)
 
 	plt.savefig('{}{}_networks.png'.format(fig_dir, fig_name), bbox_inches='tight')
 	plt.close()

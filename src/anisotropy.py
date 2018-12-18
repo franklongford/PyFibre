@@ -30,7 +30,8 @@ from extraction import FIRE
 from graphs import plot_figures, plot_labeled_figure, plot_network
 
 
-def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_clusters=6, ow_anis=False, mode='SHG'):
+def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_clusters=10, 
+				ow_anis=False, ow_graph=False, mode='SHG'):
 
 	cmap = 'viridis'
 
@@ -46,7 +47,7 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 		averages = ut.load_npy(data_dir + fig_name)
 
 	else:
-		image = it.prepare_image_shg(image, sigma=sigma, threshold=True, clip_limit=0.01)
+		image = it.prepare_image_shg(image, sigma=sigma, threshold=True, clip_limit=0.015)
 
 		fig, ax = plt.subplots(figsize=(10, 6))
 		plt.imshow(image, cmap=cmap, interpolation='nearest')
@@ -88,14 +89,13 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 
 		"Extract main collagen network using mean curvature"
 
-		(label_image, sorted_areas, regions, networks) = it.network_extraction(image, pix_n_energy, n_clusters)
+		(label_image, sorted_areas, regions, networks) = it.network_extraction(data_dir + fig_name, image, pix_n_energy, n_clusters, ow_graph)
 	
 		plot_network(fig_dir, fig_name, image, regions, networks)
+		plot_labeled_figure(fig_dir, fig_name, image, label_image, sorted_areas, mode)
 
 		(net_area, net_anis, net_linear, net_cluster,
 		fibre_waviness, net_waviness, region_anis, coverage, solidity) = it.network_analysis(label_image, sorted_areas, networks, j_tensor, pix_j_anis)
-
-		plot_labeled_figure(fig_dir, fig_name, image, label_image, sorted_areas, mode)
 
 		clustering = ut.nanmean(net_cluster, weights=net_area)
 		anisotropy = ut.nanmean(net_anis, weights=net_area)
@@ -119,7 +119,7 @@ def predictor_metric(clus, lin, cover, solid, fibre_waviness, net_waviness, regi
 	return predictor
 
 
-def analyse_directory(current_dir, input_files, key=None, ow_anis=False):
+def analyse_directory(current_dir, input_files, key=None, ow_anis=False, ow_graph=False):
 
 	print()
 
@@ -172,7 +172,7 @@ def analyse_directory(current_dir, input_files, key=None, ow_anis=False):
 			image = it.load_tif(input_file_name)
 			#image = rescale(image, 2)
 			res = analyse_image(current_dir, input_file_name, image, size=size, 
-								sigma=sigma, ow_anis=ow_anis, mode=mode)
+								sigma=sigma, ow_anis=ow_anis, ow_graph=ow_graph, mode=mode)
 			(ske_clus[i], ske_lin[i], ske_cover[i], fibre_waviness[i], net_waviness[i], ske_solid[i],
 				mean_ske_anis[i], mean_pix_anis[i], mean_img_anis[i]) = res
 

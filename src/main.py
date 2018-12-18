@@ -31,13 +31,14 @@ if ('anisotropy' in modules):
 	from anisotropy import analyse_image, analyse_directory
 
 	ow_anis = ('-ow_anis' in sys.argv)
+	ow_graph = ('-ow_graph' in sys.argv)
 
 	if ('-all' in sys.argv):
-		analyse_directory(current_dir, input_files, ow_anis=ow_anis)	
+		analyse_directory(current_dir, input_files, ow_anis=ow_anis, ow_graph=ow_graph)	
 	if ('-key' in sys.argv):
 		key = sys.argv[sys.argv.index('-key') + 1]
-		analyse_directory(current_dir, input_files, key=key, ow_anis=ow_anis)
+		analyse_directory(current_dir, input_files, key=key, ow_anis=ow_anis, ow_graph=ow_graph)
 	elif ('-name' in sys.argv): 
 		input_file_name = sys.argv[sys.argv.index('-name') + 1]
-		analyse_directory(current_dir, [input_file_name], ow_anis=ow_anis)
+		analyse_directory(current_dir, [input_file_name], ow_anis=ow_anis, ow_graph=ow_graph)
 		

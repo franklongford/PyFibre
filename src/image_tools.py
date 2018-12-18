@@ -402,7 +402,7 @@ def get_curvature(j_tensor, H_tensor):
 	return np.nan_to_num(gauss_curvature), np.nan_to_num(mean_curvature)
 
 
-def network_extraction(image, filtered, n_clusters=3):
+def network_extraction_old(image, filtered, n_clusters=3):
 
 	binary = np.where(filtered > threshold_otsu(filtered), 1, 0)#np.where(pix_n_energy > 0, 1, 0)
 	cleared = ut.clear_border(binary)
@@ -433,6 +433,44 @@ def network_extraction(image, filtered, n_clusters=3):
 		networks.append(FIRE(image_TB, sigma=1))
 
 		sort_regions.append(regions[index])
+
+	return label_image, sort_areas, sort_regions, networks
+
+
+def network_extraction(graph_name, image, filtered, n_clusters=3, ow_graph=False):
+
+	try: Aij = nx.read_gpickle(graph_name + ".pkl")
+	except IOError: ow_graph = True
+
+	if ow_graph:		
+			#equalised = exposure.equalize_adapthist(image, clip_limit=0.05)
+			image_TB = tubeness(image, 1)
+			Aij = FIRE(image_TB, sigma=1)
+			nx.write_gpickle(Aij, graph_name + ".pkl")
+
+	label_image = np.zeros(image.shape)
+	networks = []
+
+	for i, component in enumerate(nx.connected_components(Aij)):
+		subgraph = Aij.subgraph(component)
+		if subgraph.number_of_nodes() > 3:
+			networks.append(subgraph)
+			nodes_coord = np.stack((subgraph.nodes[i]['xy'] for i in subgraph.nodes()))
+			label_image[nodes_coord[:,0],nodes_coord[:,1]] = (i + 1) 
+
+	n_clusters = len(networks)
+	label_image = np.array(label_image, dtype=int)
+	areas = np.empty((0,), dtype=float)
+	regions = []
+
+	for region in measure.regionprops(label_image): 
+	    areas = np.concatenate((areas, [region.filled_area]))
+	    regions.append(region.bbox)
+
+	sort_areas = np.argsort(areas)[-n_clusters:]
+	sort_regions = []
+
+	for index in sort_areas: sort_regions.append(regions[index])
 
 	return label_image, sort_areas, sort_regions, networks
 

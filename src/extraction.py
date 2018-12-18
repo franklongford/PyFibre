@@ -319,7 +319,11 @@ def FIRE(image, sigma = 1.5, lambda_=0.5, nuc_thresh=2, lmp_thresh=0.2,
 
 
 def adj_analysis(Aij, angle_thresh=70):
-    
+
+
+	mapping = dict(zip(Aij.nodes, np.arange(Aij.number_of_nodes())))
+	Aij = nx.relabel_nodes(Aij, mapping)
+
 	node_coord = np.stack((Aij.nodes[i]['xy'] for i in Aij.nodes()))
 	edge_count = np.array([Aij.degree[node] for node in Aij.nodes], dtype=int)
 	theta_thresh = np.cos((180-angle_thresh) * np.pi / 180) + 1
