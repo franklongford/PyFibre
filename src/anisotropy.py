@@ -30,7 +30,7 @@ from extraction import FIRE
 from graphs import plot_figures, plot_labeled_figure, plot_network
 
 
-def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_clusters=5, ow_anis=False, mode='SHG'):
+def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_clusters=6, ow_anis=False, mode='SHG'):
 
 	cmap = 'viridis'
 
