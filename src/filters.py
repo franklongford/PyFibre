@@ -11,7 +11,6 @@ Last Modified: 19/04/2018
 import sys, os
 import numpy as np
 import scipy as sp
-import sknw
 import networkx as nx
 
 from scipy import interpolate

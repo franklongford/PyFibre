@@ -11,7 +11,6 @@ Last Modified: 19/04/2018
 import sys, os
 import numpy as np
 import scipy as sp
-import sknw
 import networkx as nx
 
 from scipy import interpolate
@@ -33,6 +32,7 @@ from sklearn.feature_extraction.image import img_to_graph
 from sklearn.cluster import spectral_clustering
 
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 
 import utilities as ut
 import image_tools as it
@@ -120,9 +120,9 @@ def print_fourier_results(fig_dir, fig_name, angles, fourier_spec, sdi):
 	plt.close('all')
 
 
-def plot_figures(fig_dir, fig_name, image, anis, angle, energy, cmap='viridis'):
+def plot_figures(fig_dir, fig_name, image, anis, angle, energy, tubeness, cmap='viridis'):
 	"""
-	plot_figures(fig_name, fig_dir, image, anis, angle, energy, cmap='viridis')
+	plot_figures(fig_name, fig_dir, image, anis, angle, energy, tubeness, cmap='viridis')
 
 	Plots a series of figures representing anisotropic analysis of image
 
@@ -169,7 +169,7 @@ def plot_figures(fig_dir, fig_name, image, anis, angle, energy, cmap='viridis'):
 	plt.close()
 	#"""
 	plt.figure()
-	plt.imshow(anis, cmap='binary_r', interpolation='nearest', vmin=0, vmax=1)
+	plt.imshow(anis, cmap='binary', interpolation='nearest', vmin=0, vmax=1)
 	plt.colorbar()
 	plt.savefig('{}{}_anisomap.png'.format(fig_dir, fig_name), bbox_inches='tight')
 	plt.close()
@@ -181,10 +181,17 @@ def plot_figures(fig_dir, fig_name, image, anis, angle, energy, cmap='viridis'):
 	plt.close()
 
 	plt.figure()
-	plt.imshow(energy, cmap='binary_r', interpolation='nearest')
+	plt.imshow(energy, cmap='binary', interpolation='nearest')
 	plt.axis("off")
 	plt.colorbar()
 	plt.savefig('{}{}_energymap.png'.format(fig_dir, fig_name), bbox_inches='tight')
+	plt.close()
+
+	plt.figure()
+	plt.imshow(tubeness, cmap='binary', interpolation='nearest')
+	plt.axis("off")
+	plt.colorbar()
+	plt.savefig('{}{}_tubemap.png'.format(fig_dir, fig_name), bbox_inches='tight')
 	plt.close()
 
 	plt.figure()
@@ -251,7 +258,7 @@ def plot_labeled_figure(fig_dir, fig_name, image, label_image, labels, mode):
 	fig, ax = plt.subplots(figsize=(10, 6))
 
 	image_label_overlay = label2rgb(cluster_image, image=image, bg_label=0)
-	ax.imshow(image_label_overlay)
+	ax.imshow(image_label_overlay, cmap='Greys')
 	#for r in rect: ax.add_patch(r)
 	ax.set_axis_off()
 	plt.savefig('{}{}_{}_labels.png'.format(fig_dir, fig_name, mode), bbox_inches='tight')
@@ -279,20 +286,24 @@ def plot_graph(fig_dir, fig_name, image, graph, mode):
 	plt.close()
 
 
-def plot_network(image, regions, networks):
+def plot_network(fig_dir, fig_name, image, regions, networks):
+
+	plt.figure(0, (10,10))
+	plt.imshow(image, cmap='Greys')
 
 	for j, Aij in enumerate(networks):
 
 		minr, minc, maxr, maxc = regions[j]
-		indices = np.mgrid[minr:maxr, minc:maxc]
 
-		plt.figure(0, (10,10))
-		plt.imshow(image[(indices[0], indices[1])], cmap='Greys')
 		node_coord = np.stack((Aij.nodes[i]['xy'] for i in Aij.nodes()))
+		node_coord[:,0] += minr
+		node_coord[:,1] += minc
+		
 		plt.scatter(node_coord[:,1], node_coord[:,0])
 		for n, node in enumerate(Aij.nodes):
-		    for m in list(Aij.adj[node]):
-		        plt.plot([Aij.nodes[n]['xy'][1], Aij.nodes[m]['xy'][1]], 
-		                 [Aij.nodes[n]['xy'][0], Aij.nodes[m]['xy'][0]], c='r')
-		plt.savefig('{}{}_network_{}.png'.format(fig_dir, fig_name, j), bbox_inches='tight')
-		plt.close()
+			for m in list(Aij.adj[node]):
+				plt.plot([node_coord[n][1], node_coord[m][1]], 
+					 [node_coord[n][0], node_coord[m][0]], c='r')
+
+	plt.savefig('{}{}_networks.png'.format(fig_dir, fig_name), bbox_inches='tight')
+	plt.close()

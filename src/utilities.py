@@ -188,9 +188,20 @@ def move_array_centre(array, centre):
 	return array
 
 
-def nanmean(array_like):
+def nanmean(array_like, weights=None):
 
-	return np.nansum(array_like) / (len(array_like) - np.count_nonzero(np.isnan(array_like)))
+	try: 
+		assert weights == None
+		weights = np.ones(array_like.shape)
+
+	except (AssertionError, ValueError): pass
+
+	indices = ~np.isnan(array_like)
+
+	try: average = np.average(array_like[indices], weights=weights[indices])
+	except ZeroDivisionError: average = None
+
+	return average
 
 
 def adjoint_mat(matrix):

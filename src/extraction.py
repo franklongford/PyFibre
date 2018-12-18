@@ -128,6 +128,27 @@ def new_branches(image, coord, ring_filter, max_thresh=0.2):
         return branch_coord, branch_vector, branch_r
 
 
+def branch_angles(direction, branch_vector, branch_r):
+
+	n_branch = branch_vector.shape[0]
+	dir_vector = np.tile(direction, (n_branch, 1))
+	dir_r = np.ones(n_branch)
+
+	combined_vector = np.hstack((branch_vector, dir_vector)).reshape(n_branch*2, 2)
+	combined_r = np.column_stack((branch_r, dir_r)).flatten()
+	cos_the = cos_sin_theta_2D(combined_vector, combined_r)
+
+	return cos_the
+
+
+def transfer_edges(Aij, source, target):
+
+	for node in list(Aij.adj[source]):
+		Aij.remove_edge(node, source)
+		if node != source:
+			Aij.add_edge(node, target)
+			Aij[node][target]['r'] = np.sqrt(((Aij.nodes[target]['xy'] - Aij.nodes[node]['xy'])**2).sum())
+
 class Fibre:
 
 	def __init__(self, index, direction=0, growing=True):
@@ -139,248 +160,275 @@ class Fibre:
 	    
 	def add_node(self, index, direction):
 
-	    self.nodes = np.concatenate((self.nodes, [index]))
-	    self.direction = direction
+		self.nodes = np.concatenate((self.nodes, [index]))
+		self.direction = direction
 
 	    
 	def grow(self, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 
-	    start_coord = Aij.nodes[self.nodes[0]]['xy']
-	    end_coord = Aij.nodes[self.nodes[-1]]['xy']
-	    
-	    ring_filter = ring(np.zeros(image.shape), end_coord, np.arange(2, 4), 1)
-	    branch_coord, branch_vector, branch_r = new_branches(image, end_coord, 
-	                                                         ring_filter, lmp_thresh)
-	    n_branch = branch_coord.shape[0]
-	    dir_vector = np.tile(self.direction, (n_branch, 1))
-	    dir_r = np.ones(n_branch)
+		start_coord = Aij.nodes[self.nodes[0]]['xy']
+		end_coord = Aij.nodes[self.nodes[-1]]['xy']
 
-	    combined_vector = np.hstack((branch_vector, dir_vector)).reshape(n_branch*2, 2)
-	    combined_r = np.column_stack((branch_r, dir_r)).flatten()
-	    cos_the = cos_sin_theta_2D(combined_vector, combined_r)
-	    
-	    indices = np.argwhere(abs(cos_the + 1) <= theta_thresh)
+		ring_filter = ring(np.zeros(image.shape), end_coord, np.arange(2, 3), 1)
+		branch_coord, branch_vector, branch_r = new_branches(image, end_coord, 
+				                                 ring_filter, lmp_thresh)
+		cos_the = branch_angles(self.direction, branch_vector, branch_r)
+		indices = np.argwhere(abs(cos_the + 1) <= theta_thresh)
 
-	    if indices.size == 0: 
-	        self.growing = False
-	        return
+		if indices.size == 0: 
+			self.growing = False
+			if Aij[self.nodes[-1]][self.nodes[-2]]['r'] <= 2:
+				transfer_edges(Aij, self.nodes[-1], self.nodes[-2])
+			return
 
-	    branch_coord = branch_coord[indices]
-	    branch_vector = branch_vector[indices]
-	    branch_r = branch_r[indices]
+		branch_coord = branch_coord[indices]
+		branch_vector = branch_vector[indices]
+		branch_r = branch_r[indices]
 
-	    close_nodes, _ = check_2D_arrays(tot_node_coord, branch_coord, 2)
-	    close_nodes = numpy_remove(close_nodes, self.nodes)
+		close_nodes, _ = check_2D_arrays(tot_node_coord, branch_coord, 2)
+		close_nodes = numpy_remove(close_nodes, self.nodes)
 
-	    if close_nodes.size != 0:
+		if close_nodes.size != 0:
 
-	        new_end = close_nodes.min()
+			new_end = close_nodes.min()
 
-	        new_end_coord = Aij.nodes[new_end]['xy']
-	        Aij.add_edge(self.nodes[-1], new_end)
-	        Aij[self.nodes[-1]][new_end]['r'] = np.sqrt(((new_end_coord - end_coord)**2).sum())
+			end_coord = Aij.nodes[self.nodes[-2]]['xy']
+			new_end_coord = Aij.nodes[new_end]['xy']
 
-	        new_dir_vector = new_end_coord - start_coord
-	        new_dir_r = np.sqrt((new_dir_vector**2).sum())
+			transfer_edges(Aij, self.nodes[-1], new_end)
 
-	        self.growing = False
-	        self.add_node(new_end, (new_dir_vector / new_dir_r))
+			new_dir_vector = new_end_coord - start_coord
+			new_dir_r = np.sqrt((new_dir_vector**2).sum())
 
-	    else:
-	        index = branch_r.argmax()
+			self.growing = False
+			self.add_node(new_end, (new_dir_vector / new_dir_r))
 
-	        new_end_coord = branch_coord[index].flatten()
-	        new_end_vector = new_end_coord - Aij.nodes[self.nodes[-2]]['xy']
-	        new_end_r = np.sqrt((new_end_vector**2).sum())
+		else:
+			index = branch_r.argmax()
 
-	        new_dir_vector = new_end_coord - start_coord
-	        new_dir_r = np.sqrt((new_dir_vector**2).sum())
+			new_end_coord = branch_coord[index].flatten()
+			new_end_vector = new_end_coord - Aij.nodes[self.nodes[-2]]['xy']
+			new_end_r = np.sqrt((new_end_vector**2).sum())
 
-	        if new_end_r >= r_thresh:
+			new_dir_vector = new_end_coord - start_coord
+			new_dir_r = np.sqrt((new_dir_vector**2).sum())
 
-	            new_end = Aij.number_of_nodes()
-	            Aij.add_node(new_end)
-	            Aij.add_edge(self.nodes[-1], new_end)
-	            Aij.nodes[new_end]['xy'] = new_end_coord
-	            Aij[self.nodes[-1]][new_end]['r'] = np.sqrt(((new_end_coord - end_coord)**2).sum())
+			if new_end_r >= r_thresh:
 
-	            self.add_node(new_end, (new_dir_vector / new_dir_r))
+				new_end = Aij.number_of_nodes()
+				Aij.add_node(new_end)
+				Aij.add_edge(self.nodes[-1], new_end)
+				Aij.nodes[new_end]['xy'] = new_end_coord
+				Aij[self.nodes[-1]][new_end]['r'] = np.sqrt(((new_end_coord - end_coord)**2).sum())
 
-	        else: 
-	            Aij.nodes[self.nodes[-1]]['xy'] = new_end_coord
-	            Aij[self.nodes[-1]][self.nodes[-2]]['r'] = new_end_r
+				self.add_node(new_end, (new_dir_vector / new_dir_r))
 
-	            self.direction = (new_dir_vector / new_dir_r)
+			else: 
+				Aij.nodes[self.nodes[-1]]['xy'] = new_end_coord
+				Aij[self.nodes[-1]][self.nodes[-2]]['r'] = new_end_r
+
+				self.direction = (new_dir_vector / new_dir_r)
+
 
 def FIRE(image, sigma = 1.5, lambda_=0.5, nuc_thresh=2, lmp_thresh=0.2, 
              angle_thresh=70, r_thresh=8):
 
-    "Prepare input image to gain distance matrix of foreground from background"
-    cleared = clear_border(image)
-    threshold = cleared > threshold_otsu(cleared)
-    distance = distance_transform_edt(threshold)
-    smoothed = gaussian_filter(distance, sigma=sigma)
+	"Prepare input image to gain distance matrix of foreground from background"
+	cleared = clear_border(image)
+	threshold = cleared > threshold_otsu(cleared)
+	distance = distance_transform_edt(threshold)
+	smoothed = gaussian_filter(distance, sigma=sigma)
 
-    "Set distance and angle thresholds for fibre iterator"
-    nuc_thresh = np.min([nuc_thresh, 0.3 * smoothed.max()])
-    lmp_thresh = np.min([lmp_thresh, 0.1 * smoothed.max()])
-    theta_thresh = np.cos((180-angle_thresh) * np.pi / 180) + 1
+	"Set distance and angle thresholds for fibre iterator"
+	nuc_thresh = np.min([nuc_thresh, 0.4 * smoothed.max()])
+	lmp_thresh = np.min([lmp_thresh, 0.1 * smoothed.max()])
+	theta_thresh = np.cos((180-angle_thresh) * np.pi / 180) + 1
 
-    print("Maximum distance = {}".format(smoothed.max()))
-    print("Using thresholds:\n nuc = {} pix  lmp = {} pix\n angle = {} deg".format(
-                    nuc_thresh, lmp_thresh, angle_thresh))
+	print("Maximum distance = {}".format(smoothed.max()))
+	print("Using thresholds:\n nuc = {} pix  lmp = {} pix\n angle = {} deg".format(
+		    nuc_thresh, lmp_thresh, angle_thresh))
 
-    "Get global maxima for smoothed distance matrix"
-    maxima = local_maxima(smoothed, selem=square(9))
-    nuc_node_coord = reduce_coord(np.argwhere(maxima * smoothed >= nuc_thresh),
-                            smoothed[np.where(maxima * smoothed >= nuc_thresh)], 10)
+	"Get global maxima for smoothed distance matrix"
+	maxima = local_maxima(smoothed, selem=square(11))
+	nuc_node_coord = reduce_coord(np.argwhere(maxima * smoothed >= nuc_thresh),
+		            smoothed[np.where(maxima * smoothed >= nuc_thresh)], r_thresh)
 
-    "Set up network arrays"
-    n_nuc = nuc_node_coord.shape[0]
+	"Set up network arrays"
+	n_nuc = nuc_node_coord.shape[0]
 
-    print("No. nucleation nodes = {}".format(n_nuc))
-    tot_fibres = []
+	print("No. nucleation nodes = {}".format(n_nuc))
+	tot_fibres = []
 
-    Aij = nx.Graph()
-    Aij.add_nodes_from(np.arange(n_nuc))
+	Aij = nx.Graph()
+	Aij.add_nodes_from(np.arange(n_nuc))
 
-    "Iterate through nucleation points"
-    index_m = n_nuc
-    for nuc, nuc_coord in enumerate(nuc_node_coord):
-        Aij.nodes[nuc]['xy'] = nuc_coord
+	"Iterate through nucleation points"
+	index_m = n_nuc
+	for nuc, nuc_coord in enumerate(nuc_node_coord):
+		Aij.nodes[nuc]['xy'] = nuc_coord
 
-        ring_filter = ring(np.zeros(smoothed.shape), nuc_coord, [4], 1)
-        lmp_coord, lmp_vectors, lmp_r = new_branches(smoothed, nuc_coord, ring_filter, 
-                                                     lmp_thresh)
-        n_lmp = lmp_coord.shape[0]
-        
-        Aij.add_nodes_from(index_m + np.arange(n_lmp))
-        Aij.add_edges_from([*zip(nuc * np.ones(n_lmp, dtype=int), 
-                                 index_m + np.arange(n_lmp))])
-        
-        iterator = zip(lmp_coord, lmp_vectors, lmp_r, index_m + np.arange(n_lmp))
+		ring_filter = ring(np.zeros(smoothed.shape), nuc_coord, [r_thresh // 2], 1)
+		lmp_coord, lmp_vectors, lmp_r = new_branches(smoothed, nuc_coord, ring_filter, 
+				                             lmp_thresh)
+		n_lmp = lmp_coord.shape[0]
 
-        for xy, vec, r, lmp in iterator:
-            Aij.nodes[lmp]['xy'] = xy
-            Aij[nuc][lmp]['r'] = r
-            
-            tot_fibres.append(Fibre(nuc))
-            tot_fibres[-1].add_node(lmp, -vec / r)
+		Aij.add_nodes_from(index_m + np.arange(n_lmp))
+		Aij.add_edges_from([*zip(nuc * np.ones(n_lmp, dtype=int), 
+				         index_m + np.arange(n_lmp))])
 
-        index_m += n_lmp
+		iterator = zip(lmp_coord, lmp_vectors, lmp_r, index_m + np.arange(n_lmp))
 
-    n_node = Aij.number_of_nodes()
-    n_fibres = len(tot_fibres)
-    fibre_grow = [fibre.growing for fibre in tot_fibres]
+		for xy, vec, r, lmp in iterator:
+			Aij.nodes[lmp]['xy'] = xy
+			Aij[nuc][lmp]['r'] = r
 
-    print("No. nodes created = {}".format(n_node))
-    print("No. fibres to grow = {}".format(n_fibres))
+			tot_fibres.append(Fibre(nuc))
+			tot_fibres[-1].add_node(lmp, -vec / r)
 
-    it = 0
-    while np.any(fibre_grow):
-        n_node = Aij.number_of_nodes()
-    
-        print("Iteration {}, {} nodes  {}/{} fibres left to grow".format(
-                it, n_node, int(np.sum(fibre_grow)), n_fibres))
+		index_m += n_lmp
 
-        tot_node_coord = np.stack((Aij.nodes[i]['xy'] for i in Aij.nodes()))
+	n_node = Aij.number_of_nodes()
+	n_fibres = len(tot_fibres)
+	fibre_grow = [fibre.growing for fibre in tot_fibres]
 
-        for fibre in tot_fibres:
-            
-            if fibre.growing:
-                fibre.grow(smoothed, Aij, tot_node_coord, lmp_thresh, 
-                                 theta_thresh, r_thresh)
-                
-        fibre_grow = [fibre.growing for fibre in tot_fibres]
+	print("No. nodes created = {}".format(n_node))
+	print("No. fibres to grow = {}".format(n_fibres))
 
-        it += 1
+	it = 0
+	while np.any(fibre_grow):
+		n_node = Aij.number_of_nodes()
 
-    return Aij
+		print("Iteration {}, {} nodes  {}/{} fibres left to grow".format(
+			it, n_node, int(np.sum(fibre_grow)), n_fibres))
+
+		tot_node_coord = np.stack((Aij.nodes[i]['xy'] for i in Aij.nodes()))
+
+		for fibre in tot_fibres:
+		    
+			if fibre.growing:
+				fibre.grow(smoothed, Aij, tot_node_coord, lmp_thresh, 
+					 theta_thresh, r_thresh)
+	
+		fibre_grow = [fibre.growing for fibre in tot_fibres]
+
+		it += 1
+
+	#Aij.remove_nodes_from(list(nx.isolates(Aij)))
+
+	return Aij
 
 
 def adj_analysis(Aij, angle_thresh=70):
     
-    node_coord = np.stack((Aij.nodes[i]['xy'] for i in Aij.nodes()))
-    theta_thresh = np.cos((180-angle_thresh) * np.pi / 180) + 1
-    d_coord, r2_coord = distance_matrix(node_coord)
-    waviness = np.empty((0,), dtype='float64')
-    edge_count = np.array([Aij.degree[node] for node in Aij.nodes], dtype=int)
-    tracing = np.where(edge_count == 1, 1, 0)
+	node_coord = np.stack((Aij.nodes[i]['xy'] for i in Aij.nodes()))
+	edge_count = np.array([Aij.degree[node] for node in Aij.nodes], dtype=int)
+	theta_thresh = np.cos((180-angle_thresh) * np.pi / 180) + 1
+	d_coord, r2_coord = distance_matrix(node_coord)
+	fibre_waviness = np.empty((0,), dtype='float64')
+	network_waviness = np.empty((0,), dtype='float64')
 
-    for n, node in enumerate(Aij.nodes):
-        if tracing[node]:
-            old_node = node
-            new_node = np.array(list(Aij.adj[node]))[0]#np.argwhere(Aij[node]).flatten()[0]
-            fibre = np.array([old_node, new_node])
-            coord_vec = -d_coord[old_node][new_node]
-            coord_r = Aij[node][new_node]['r']#np.sqrt(r2_coord[node][new_node])
-            fibre_l = coord_r
-            #print("Start node = ", old_node, node_coord[old_node], coord_r)
-            #print("Next fibre node = ", new_node, node_coord[new_node])
-            #print("Fibre length = ", coord_r)
-            while tracing[node]:
-                
-                new_connect = np.array(list(Aij.adj[new_node]))#np.argwhere(Aij[new_node]).flatten()
-                new_connect = numpy_remove(new_connect, [old_node])
-                n_edges = new_connect.shape[0]
-                #print("New connect = ", new_connect, n_edges)
-                
-                if n_edges > 1:
-                    coord_vec = np.tile(coord_vec, (n_edges, 1))
-                    coord_r = np.repeat(coord_r, n_edges)
-                    new_coord_vec = d_coord[new_node][new_connect]
-                    new_coord_r = np.array([Aij[new_node][n]['r'] for n in new_connect])
+	for component in nx.connected_components(Aij):
+		subgraph = Aij.subgraph(component)
+		edge_nodes = np.array([node for node in subgraph.nodes if subgraph.degree[node] == 1], dtype=int)
+		
+		for n, node1 in enumerate(edge_nodes):
+			for m, node2 in enumerate(edge_nodes[:n]):
+				shortest_path_r = nx.shortest_path_length(subgraph, source=node1, target=node2, weight='r')
+				euclidean_r = np.sqrt(((subgraph.nodes[node1]['xy'] - subgraph.nodes[node2]['xy'])**2).sum())
+				network_waviness = np.concatenate((network_waviness, [euclidean_r / shortest_path_r])) 
 
-                    combined_vector = np.hstack((new_coord_vec, 
-                                                 coord_vec)).reshape(n_edges*2, 2)
-                    combined_r = np.column_stack((new_coord_r, coord_r)).flatten()
-                    
-                    cos_the = cos_sin_theta_2D(combined_vector, combined_r)
-                    #print("Cos theta = ", cos_the)
-                    try:   
-                        indices = np.argwhere(cos_the + 1 <= theta_thresh).flatten()
-                        #print("Possible fibre nodes ", indices)
-                        straight = (cos_the[indices] + 1).argmin()
-                        index = indices[straight]
-                        #print(index, indices[straight], cos_the[index], new_coord_r[index])
-                        
-                        old_node = new_node
-                        coord_vec = - new_coord_vec[index]
-                        coord_r = new_coord_r[index]
-                        fibre_l += coord_r
-                        new_node = new_connect[index]
-                        #print("Next fibre node = ", new_node, node_coord[new_node])
-                        #print("New fibre length = ", fibre_l, coord_r)
 
-                    except (ValueError, IndexError): 
-                        tracing[node] = 0
-                        tracing[new_node] = 0
-                        
-                elif n_edges == 1:
-                    old_node = new_node
-                    new_node = new_connect[0]
-                    #print("Next fibre node = ", new_node, node_coord[new_node])
-                    coord_vec = -d_coord[old_node][new_node]
-                    coord_r = Aij[old_node][new_node]['r']#np.sqrt(r2_coord[old_node][new_node])
-                    fibre_l += coord_r
-                    #print("New fibre length = ", fibre_l, coord_r, np.sqrt(r2_coord[old_node][new_node]))
-                    
-                else: 
-                    tracing[node] = 0
-                    tracing[new_node] = 0
-                
-                if tracing[node]: fibre = np.concatenate((fibre, [new_node]))
-            
-            #print("End of fibre ", node, fibre)    
-            if fibre.shape[0] > 3:
-                euclid_dist = np.sqrt(r2_coord[fibre[0]][fibre[-1]])
-                #print("Terminals = ", node_coord[fibre[0]], node_coord[fibre[-1]],
-                #					  node_coord[fibre[0]] - node_coord[fibre[-1]],
-                #					  d_coord[fibre[0]][fibre[-1]],
-                #					  d_coord[fibre[0]][fibre[-1]]**2)
-                print("Length", fibre_l, "Displacement", euclid_dist)
+	tracing = np.where(edge_count == 1, 1, 0)
+	tot_fibres = []
 
-                waviness = np.concatenate((waviness, [euclid_dist / fibre_l]))
+	for n, node in enumerate(Aij.nodes):
+		if tracing[node]:
+			fibre = Fibre(node)
+			tracing[node] = 0
 
-    return waviness.mean()
+			new_node = np.array(list(Aij.adj[node]))[0]
+			coord_vec = -d_coord[node][new_node]
+			coord_r = Aij[node][new_node]['r']
+			direction = coord_vec / coord_r
+
+			fibre_l = coord_r
+			#print("Start node = ", node, node_coord[node], coord_r)
+			#print("Next fibre node = ", new_node, node_coord[new_node])
+			#print("Fibre length = ", coord_r)
+
+			while fibre.growing:
+		
+				fibre.add_node(new_node, direction)
+				new_connect = np.array(list(Aij.adj[fibre.nodes[-1]]))#np.argwhere(Aij[new_node]).flatten()
+
+				#print("New connect = ", new_connect, nx.edges(Aij, fibre.nodes[-1]))
+
+				new_connect = numpy_remove(new_connect, fibre.nodes)
+				n_edges = new_connect.shape[0]
+
+				#print("New connect = ", new_connect, n_edges)
+				#print(node_coord[new_node], node_coord[new_connect])
+	
+				if n_edges > 1:
+					new_coord_vec = d_coord[new_node][new_connect]
+					new_coord_r = np.array([Aij[new_node][n]['r'] for n in new_connect])
+					assert np.all(new_coord_r > 0), print(new_node, new_coord_vec, new_coord_r, fibre.nodes)
+
+					cos_the = branch_angles(fibre.direction, new_coord_vec, new_coord_r)
+
+					#print("Cos theta = ", cos_the)
+
+					try:   
+						indices = np.argwhere(cos_the + 1 <= theta_thresh).flatten()
+						#print("Possible fibre nodes ", indices)
+						straight = (cos_the[indices] + 1).argmin()
+						index = indices[straight]
+						#print(index, indices[straight], cos_the[index], new_coord_r[index])
+
+						new_node = new_connect[index]
+						coord_vec = - new_coord_vec[index]
+						coord_r = new_coord_r[index]
+						direction = coord_vec / coord_r
+
+						fibre_l += coord_r
+						
+						#print("Next fibre node = ", new_node, node_coord[new_node])
+						#print("New fibre length = ", fibre_l, coord_r)
+
+					except (ValueError, IndexError):
+						fibre.growing = False
+						tracing[fibre.nodes[-1]] = 0
+			
+				elif n_edges == 1:
+					new_node = new_connect[0]
+					coord_vec = -d_coord[fibre.nodes[-1]][new_node]
+					coord_r = Aij[fibre.nodes[-1]][new_node]['r']
+					#print(coord_r)
+					assert coord_r > 0, print(new_node, coord_vec, coord_r, fibre.nodes)#np.sqrt(r2_coord[old_node][new_node])
+					direction = coord_vec / coord_r
+
+					fibre_l += coord_r
+
+					#print("Next fibre node = ", new_node, node_coord[new_node])
+					#print("New fibre length = ", fibre_l, coord_r)
+				    
+				else:
+					fibre.growing = False
+					tracing[fibre.nodes[-1]] = 0
+		    
+			#print("End of fibre ", node, fibre.nodes)    
+			if fibre.nodes.size > 3:
+				euclid_dist = np.sqrt(r2_coord[fibre.nodes[0]][fibre.nodes[-1]])
+				"""
+				print("Terminals = ", node_coord[fibre.nodes[0]], node_coord[fibre.nodes[-1]],
+									  node_coord[fibre.nodes[0]] - node_coord[fibre.nodes[-1]],
+									  d_coord[fibre.nodes[0]][fibre.nodes[-1]],
+									  d_coord[fibre.nodes[0]][fibre.nodes[-1]]**2)
+				print("Length", fibre_l, "Displacement", euclid_dist)
+				"""
+
+				fibre_waviness = np.concatenate((fibre_waviness, [euclid_dist / fibre_l]))
+
+
+	return fibre_waviness.mean(), network_waviness.mean()
 

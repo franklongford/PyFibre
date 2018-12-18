@@ -57,7 +57,7 @@ if task in ['install', 'install_mpi']:
 
 	print(f"Copying {program_name} executable to {bin_dir}\n")
 
-	bashCommand = f"cp {current_dir + '/bin/'} {bin_dir}"
+	bashCommand = f"cp {current_dir}/bin/{program_name} {bin_dir}"
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	output, error = process.communicate()
 	if error:

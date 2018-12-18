@@ -7,8 +7,4 @@ scikit-image
 networkx
 pandas
 numba
-hdbscan
-umap-learn
-torch
-torchvision
 opencv-python

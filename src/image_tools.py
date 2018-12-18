@@ -11,7 +11,6 @@ Last Modified: 19/04/2018
 import sys, os
 import numpy as np
 import scipy as sp
-import sknw
 import networkx as nx
 
 from scipy import interpolate
@@ -403,9 +402,9 @@ def get_curvature(j_tensor, H_tensor):
 	return np.nan_to_num(gauss_curvature), np.nan_to_num(mean_curvature)
 
 
-def network_extraction(image, pix_n_energy, n_clusters=3):
+def network_extraction(image, filtered, n_clusters=3):
 
-	binary = np.where(pix_n_energy > 0, 1, 0)
+	binary = np.where(filtered > threshold_otsu(filtered), 1, 0)#np.where(pix_n_energy > 0, 1, 0)
 	cleared = ut.clear_border(binary)
 
 	label_image, num_features = measure.label(cleared, return_num=True, connectivity=2)
@@ -428,7 +427,9 @@ def network_extraction(image, pix_n_energy, n_clusters=3):
 		minr, minc, maxr, maxc = regions[index]
 		indices = np.mgrid[minr:maxr, minc:maxc]
 
-		image_TB = tubeness(image[(indices[0], indices[1])], 1)
+		try: equalised = exposure.equalize_adapthist(image[(indices[0], indices[1])], clip_limit=0.05)
+		except ZeroDivisionError: equalised = image[(indices[0], indices[1])]
+		image_TB = tubeness(equalised, 1)
 		networks.append(FIRE(image_TB, sigma=1))
 
 		sort_regions.append(regions[index])
@@ -451,7 +452,8 @@ def network_analysis(label_image, sorted_areas, networks, n_tensor, anis_map):
 	net_area = np.zeros(len(sorted_areas))
 	net_anis = np.zeros(len(sorted_areas))
 	net_linear = np.zeros(len(sorted_areas))
-	net_waviness = np.zeros(len(sorted_areas))
+	fibre_waviness = np.zeros(len(sorted_areas))
+	network_waviness = np.zeros(len(sorted_areas))
 	net_cluster = np.zeros(len(sorted_areas))
 	pix_anis = np.zeros(len(sorted_areas))
 	solidity = np.zeros(len(sorted_areas))
@@ -481,14 +483,16 @@ def network_analysis(label_image, sorted_areas, networks, n_tensor, anis_map):
 			net_linear[i] += 1 - region.equivalent_diameter / region.perimeter
 		main_network += network_matrix
 
-		net_waviness[i] = adj_analysis(networks[i])
-		net_path = 0#nx.average_shortest_path_length(graph_nx)
+		fibre_waviness[i], network_waviness[i] = adj_analysis(networks[i])
+				
 		try: net_cluster[i] = nx.average_clustering(networks[i])
-		except: net_cluster[i] = 0
+		except: net_cluster[i] = None
 
 	coverage = np.count_nonzero(main_network) / main_network.size
 
-	return net_area, net_anis, net_linear, net_cluster, net_waviness, pix_anis, coverage, solidity
+	#sys.exit()
+
+	return net_area, net_anis, net_linear, net_cluster, fibre_waviness, network_waviness, pix_anis, coverage, solidity
 
 
 def smart_nematic_tensor_analysis(nem_vector, precision=1E-1):
