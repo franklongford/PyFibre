@@ -70,16 +70,16 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 		H_tensor = it.form_hessian_tensor(image, sigma=sigma)
 		pix_tube = tubeness(image, sigma=sigma)
 
-		noise = estimate_sigma(np.where(pix_n_energy > threshold_otsu(pix_n_energy), 1, 0),
-								multichannel=False, average_sigmas=True)
-		if noise >= noise_thresh: raise NoiseError(noise, noise_thresh)
-		print(" Noise threshold accepted ({} < {})".format(noise, noise_thresh))
-
 		"Perform anisotropy analysis on each pixel"
 
 		pix_n_anis, pix_n_angle, pix_n_energy = it.tensor_analysis(n_tensor)
 		pix_j_anis, pix_j_angle, pix_j_energy = it.tensor_analysis(j_tensor)
 		pix_H_anis, pix_H_angle, pix_H_energy = it.tensor_analysis(H_tensor)
+
+		noise = estimate_sigma(np.where(pix_n_energy > threshold_otsu(pix_n_energy), 1, 0),
+								multichannel=False, average_sigmas=True)
+		if noise >= noise_thresh: raise NoiseError(noise, noise_thresh)
+		print(" Noise threshold accepted ({} < {})".format(noise, noise_thresh))
 
 		#plot_figures(fig_dir, fig_name, image, pix_j_anis, pix_j_angle, pix_j_energy, cmap='viridis')
 
