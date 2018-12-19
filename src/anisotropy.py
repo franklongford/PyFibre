@@ -62,7 +62,7 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 		noise = estimate_sigma(image, multichannel=False, average_sigmas=True)
 		
 		if noise >= noise_thresh: raise NoiseError(noise, noise_thresh)
-		print("Noise threshold accepted ({} < {})".format(noise, noise_thresh))
+		print(" Noise threshold accepted ({} < {})".format(noise, noise_thresh))
 
 		fig, ax = plt.subplots(figsize=(10, 6))
 		plt.imshow(image, cmap=cmap, interpolation='nearest')
