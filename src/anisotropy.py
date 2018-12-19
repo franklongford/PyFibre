@@ -192,7 +192,7 @@ def analyse_directory(current_dir, input_files, key=None, ow_anis=False, ow_grap
 			try:
 				res = analyse_image(current_dir, input_file_name, image, size=size, 
 								sigma=sigma, ow_anis=ow_anis, ow_graph=ow_graph, 
-								mode=mode, noise_thresh=0.1)
+								mode=mode, noise_thresh=0.18)
 
 				ske_clus = np.concatenate((ske_clus, [res[0]]))
 				ske_lin = np.concatenate((ske_lin, [res[1]]))
