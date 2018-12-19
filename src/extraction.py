@@ -11,6 +11,7 @@ Last Modified: 19/04/2018
 import numpy as np
 import sys
 import time
+import itertools
 
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import imread
@@ -148,19 +149,22 @@ def transfer_edges(Aij, source, target):
 		if node != source:
 			Aij.add_edge(node, target)
 			Aij[node][target]['r'] = np.sqrt(((Aij.nodes[target]['xy'] - Aij.nodes[node]['xy'])**2).sum())
+			Aij.nodes[target]['fibres'].update(Aij.nodes[source]['fibres'])
+			Aij.nodes[source]['fibres'] = set()
 
 class Fibre:
 
-	def __init__(self, index, direction=0, growing=True):
+	def __init__(self, index, nodes, direction=0, growing=True):
 
-		self.nodes = np.array([index])
+		self.index = index
+		self.nodes = np.array([nodes])
 		self.direction = direction
 		self.growing = growing
 
 	    
-	def add_node(self, index, direction):
+	def add_node(self, nodes, direction):
 
-		self.nodes = np.concatenate((self.nodes, [index]))
+		self.nodes = np.concatenate((self.nodes, [nodes]))
 		self.direction = direction
 
 	    
@@ -219,6 +223,7 @@ class Fibre:
 				Aij.add_node(new_end)
 				Aij.add_edge(self.nodes[-1], new_end)
 				Aij.nodes[new_end]['xy'] = new_end_coord
+				Aij.nodes[new_end]['fibres'] = set({self.index})
 				Aij[self.nodes[-1]][new_end]['r'] = np.sqrt(((new_end_coord - end_coord)**2).sum())
 
 				self.add_node(new_end, (new_dir_vector / new_dir_r))
@@ -266,6 +271,7 @@ def FIRE(image, sigma = 1.5, lambda_=0.5, nuc_thresh=2, lmp_thresh=0.2,
 	index_m = n_nuc
 	for nuc, nuc_coord in enumerate(nuc_node_coord):
 		Aij.nodes[nuc]['xy'] = nuc_coord
+		Aij.nodes[nuc]['fibres'] = set({})
 
 		ring_filter = ring(np.zeros(smoothed.shape), nuc_coord, [r_thresh // 2], 1)
 		lmp_coord, lmp_vectors, lmp_r = new_branches(smoothed, nuc_coord, ring_filter, 
@@ -281,8 +287,10 @@ def FIRE(image, sigma = 1.5, lambda_=0.5, nuc_thresh=2, lmp_thresh=0.2,
 		for xy, vec, r, lmp in iterator:
 			Aij.nodes[lmp]['xy'] = xy
 			Aij[nuc][lmp]['r'] = r
+			Aij.nodes[nuc]['fibres'].add(lmp)
+			Aij.nodes[lmp]['fibres'] = set({lmp}) 
 
-			tot_fibres.append(Fibre(nuc))
+			tot_fibres.append(Fibre(lmp, nuc))
 			tot_fibres[-1].add_node(lmp, -vec / r)
 
 		index_m += n_lmp
@@ -341,13 +349,12 @@ def adj_analysis(Aij, angle_thresh=70):
 				euclidean_r = np.sqrt(((subgraph.nodes[node1]['xy'] - subgraph.nodes[node2]['xy'])**2).sum())
 				network_waviness = np.concatenate((network_waviness, [euclidean_r / shortest_path_r])) 
 
-
 	tracing = np.where(edge_count == 1, 1, 0)
 	tot_fibres = []
 
 	for n, node in enumerate(Aij.nodes):
 		if tracing[node]:
-			fibre = Fibre(node)
+			fibre = Fibre(n, node)
 			tracing[node] = 0
 
 			new_node = np.array(list(Aij.adj[node]))[0]

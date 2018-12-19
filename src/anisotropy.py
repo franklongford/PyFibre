@@ -10,6 +10,7 @@ Last Modified: 10/08/2018
 import sys, os
 import numpy as np
 import scipy as sp
+import pandas as pd
 from contextlib import suppress
 import networkx as nx
 
@@ -94,25 +95,26 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 		plot_network(fig_dir, fig_name, image, regions, networks)
 		plot_labeled_figure(fig_dir, fig_name, image, label_image, sorted_areas, mode)
 
-		(net_area, net_anis, net_linear, net_cluster,
-		fibre_waviness, net_waviness, region_anis, coverage, solidity) = it.network_analysis(label_image, sorted_areas, networks, j_tensor, pix_j_anis)
+		(net_area, region_anis, net_linear, net_cluster,
+		fibre_waviness, net_waviness, pix_anis, coverage, solidity) = it.network_analysis(label_image, sorted_areas, networks, j_tensor, pix_j_anis)
 
 		clustering = ut.nanmean(net_cluster, weights=net_area)
-		anisotropy = ut.nanmean(net_anis, weights=net_area)
 		linearity = ut.nanmean(net_linear, weights=net_area)
-		pix_anis = ut.nanmean(region_anis, weights=net_area)
+		region_anis = ut.nanmean(region_anis, weights=net_area)
 		solidity = ut.nanmean(solidity, weights=net_area)
 		fibre_waviness = ut.nanmean(fibre_waviness, weights=net_area)
 		net_waviness = ut.nanmean(net_waviness, weights=net_area)
 
-		averages = (clustering, linearity, coverage, fibre_waviness, net_waviness, solidity, anisotropy, pix_anis, img_anis)
+		pix_anis = np.mean(pix_anis)
+
+		averages = (clustering, linearity, coverage, fibre_waviness, net_waviness, solidity, pix_anis, region_anis, img_anis)
 
 		ut.save_npy(data_dir + fig_name, averages)
 
 	return averages
 
 
-def predictor_metric(clus, lin, cover, solid, fibre_waviness, net_waviness, region_anis, pix_anis, img_anis):
+def predictor_metric(clus, lin, cover, solid, fibre_waviness, net_waviness, pix_anis, region_anis, img_anis):
 
 	predictor = np.sqrt(fibre_waviness**2 + net_waviness**2 + clus**2 + lin**2 + region_anis**2 + pix_anis**2) / np.sqrt(6)
 
@@ -164,7 +166,7 @@ def analyse_directory(current_dir, input_files, key=None, ow_anis=False, ow_grap
 		ske_cover = np.zeros(len(input_files))
 		mean_img_anis = np.zeros(len(input_files))
 		mean_pix_anis = np.zeros(len(input_files))
-		mean_ske_anis = np.zeros(len(input_files))
+		mean_reg_anis = np.zeros(len(input_files))
 		fibre_waviness = np.zeros(len(input_files))
 		net_waviness = np.zeros(len(input_files))
 
@@ -174,23 +176,30 @@ def analyse_directory(current_dir, input_files, key=None, ow_anis=False, ow_grap
 			res = analyse_image(current_dir, input_file_name, image, size=size, 
 								sigma=sigma, ow_anis=ow_anis, ow_graph=ow_graph, mode=mode)
 			(ske_clus[i], ske_lin[i], ske_cover[i], fibre_waviness[i], net_waviness[i], ske_solid[i],
-				mean_ske_anis[i], mean_pix_anis[i], mean_img_anis[i]) = res
+				mean_pix_anis[i], mean_reg_anis[i], mean_img_anis[i]) = res
 
 			print(' Network Clustering = {:>6.4f}'.format(ske_clus[i]))
 			print(' Network Linearity = {:>6.4f}'.format(ske_lin[i]))
 			print(' Network Coverage = {:>6.4f}'.format(ske_cover[i]))
 			print(' Network Solidity = {:>6.4f}'.format(ske_solid[i]))
-			print(' Network Anistoropy = {:>6.4f}'.format(mean_ske_anis[i]))
 			print(' Network Waviness = {:>6.4f}'.format(net_waviness[i]))
 			print(' Av. Fibre Waviness = {:>6.4f}'.format(fibre_waviness[i]))
-			print(' Total Pixel anistoropy = {:>6.4f}'.format(mean_pix_anis[i]))
+			
+			print(' Average Pixel anistoropy = {:>6.4f}'.format(mean_pix_anis[i]))
+			print(' Average Region Anistoropy = {:>6.4f}'.format(mean_reg_anis[i]))
 			print(' Total Image anistoropy = {:>6.4f}\n'.format(mean_img_anis[i]))
+
+		data = np.array([ske_clus, ske_lin, ske_cover, fibre_waviness, net_waviness, ske_solid, mean_pix_anis, mean_reg_anis, mean_img_anis]).T
+		dataframe = pd.DataFrame(data=data, columns=['Clustering', 'Linearity', 'Coverage', 'Fibre Waviness', 'Network Waviness', 
+							     'Solidity', 'Pixel Anis', 'Region Anis', 'Image Anis'],
+					 index = input_files)
+		dataframe.to_pickle(data_dir + 'tif_image_database.pkl')
 
 		x_labels = [ut.check_file_name(image_name, extension='tif') for image_name in input_files]
 		col_len = len(max(x_labels, key=len))
 
 		predictor = predictor_metric(ske_clus, ske_lin, ske_cover, ske_solid, fibre_waviness, net_waviness,
-						mean_ske_anis, mean_pix_anis, mean_img_anis)
+						mean_pix_anis, mean_reg_anis, mean_img_anis)
 
 		for i, file_name in enumerate(x_labels): 
 			if np.isnan(predictor[i]):
