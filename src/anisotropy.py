@@ -19,7 +19,7 @@ from skimage.morphology import convex_hull_image
 from skimage.transform import swirl, rescale
 from skimage.color import label2rgb, gray2rgb
 from skimage.filters import threshold_otsu, hessian
-from skimage.restoration import denoise_tv_chambolle
+from skimage.restoration import denoise_tv_chambolle, estimate_sigma
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -31,8 +31,17 @@ from extraction import FIRE
 from graphs import plot_figures, plot_labeled_figure, plot_network
 
 
+class NoiseError(Exception):
+    
+    def __init__(self, noise, thresh):
+
+    	self.noise = noise
+    	self.thresh = thresh
+    	self.message = "Image too noisy ({} > {})".format(noise, thresh)
+
+
 def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_clusters=10, 
-				ow_anis=False, ow_graph=False, mode='SHG'):
+				ow_anis=False, ow_graph=False, mode='SHG', noise_thresh=1.0):
 
 	cmap = 'viridis'
 
@@ -49,6 +58,10 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 
 	else:
 		image = it.prepare_image_shg(image, sigma=sigma, threshold=True, clip_limit=0.015)
+
+		noise = estimate_sigma(image, multichannel=False, average_sigmas=True)
+		
+		if noise >= noise_thresh: raise NoiseError(noise, noise_thresh)
 
 		fig, ax = plt.subplots(figsize=(10, 6))
 		plt.imshow(image, cmap=cmap, interpolation='nearest')
@@ -107,7 +120,8 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 
 		pix_anis = np.mean(pix_anis)
 
-		averages = (clustering, linearity, coverage, fibre_waviness, net_waviness, solidity, pix_anis, region_anis, img_anis)
+		averages = (clustering, linearity, coverage, fibre_waviness, 
+					net_waviness, solidity, pix_anis, region_anis, img_anis[0])
 
 		ut.save_npy(data_dir + fig_name, averages)
 
@@ -158,36 +172,53 @@ def analyse_directory(current_dir, input_files, key=None, ow_anis=False, ow_grap
 
 	for n, mode in enumerate(modes):
 		input_files = input_list[n]
+		removed_files = []
 
-		ske_clus = np.zeros(len(input_files))
-		ske_path = np.zeros(len(input_files))
-		ske_solid = np.zeros(len(input_files))
-		ske_lin = np.zeros(len(input_files))
-		ske_cover = np.zeros(len(input_files))
-		mean_img_anis = np.zeros(len(input_files))
-		mean_pix_anis = np.zeros(len(input_files))
-		mean_reg_anis = np.zeros(len(input_files))
-		fibre_waviness = np.zeros(len(input_files))
-		net_waviness = np.zeros(len(input_files))
+		ske_clus = np.empty((0,), dtype=float)
+		ske_path = np.empty((0,), dtype=float)
+		ske_solid = np.empty((0,), dtype=float)
+		ske_lin = np.empty((0,), dtype=float)
+		ske_cover = np.empty((0,), dtype=float)
+		mean_img_anis = np.empty((0,), dtype=float)
+		mean_pix_anis = np.empty((0,), dtype=float)
+		mean_reg_anis = np.empty((0,), dtype=float)
+		fibre_waviness = np.empty((0,), dtype=float)
+		net_waviness = np.empty((0,), dtype=float)
 
 		for i, input_file_name in enumerate(input_files):
 			image = it.load_tif(input_file_name)
 			#image = rescale(image, 2)
-			res = analyse_image(current_dir, input_file_name, image, size=size, 
-								sigma=sigma, ow_anis=ow_anis, ow_graph=ow_graph, mode=mode)
-			(ske_clus[i], ske_lin[i], ske_cover[i], fibre_waviness[i], net_waviness[i], ske_solid[i],
-				mean_pix_anis[i], mean_reg_anis[i], mean_img_anis[i]) = res
+			try:
+				res = analyse_image(current_dir, input_file_name, image, size=size, 
+								sigma=sigma, ow_anis=ow_anis, ow_graph=ow_graph, 
+								mode=mode, noise_thresh=0.05)
 
-			print(' Network Clustering = {:>6.4f}'.format(ske_clus[i]))
-			print(' Network Linearity = {:>6.4f}'.format(ske_lin[i]))
-			print(' Network Coverage = {:>6.4f}'.format(ske_cover[i]))
-			print(' Network Solidity = {:>6.4f}'.format(ske_solid[i]))
-			print(' Network Waviness = {:>6.4f}'.format(net_waviness[i]))
-			print(' Av. Fibre Waviness = {:>6.4f}'.format(fibre_waviness[i]))
-			
-			print(' Average Pixel anistoropy = {:>6.4f}'.format(mean_pix_anis[i]))
-			print(' Average Region Anistoropy = {:>6.4f}'.format(mean_reg_anis[i]))
-			print(' Total Image anistoropy = {:>6.4f}\n'.format(mean_img_anis[i]))
+				ske_clus = np.concatenate((ske_clus, [res[0]]))
+				ske_lin = np.concatenate((ske_lin, [res[1]]))
+				ske_cover = np.concatenate((ske_cover, [res[2]]))
+				fibre_waviness = np.concatenate((fibre_waviness, [res[3]]))
+				net_waviness = np.concatenate((net_waviness, [res[4]]))
+				ske_solid = np.concatenate((ske_solid, [res[5]]))
+				mean_pix_anis = np.concatenate((mean_pix_anis, [res[6]]))
+				mean_reg_anis = np.concatenate((mean_reg_anis, [res[7]]))
+				mean_img_anis = np.concatenate((mean_img_anis, [res[8]]))
+
+				print(' Network Clustering = {:>6.4f}'.format(ske_clus[-1]))
+				print(' Network Linearity = {:>6.4f}'.format(ske_lin[-1]))
+				print(' Network Coverage = {:>6.4f}'.format(ske_cover[-1]))
+				print(' Network Solidity = {:>6.4f}'.format(ske_solid[-1]))
+				print(' Network Waviness = {:>6.4f}'.format(net_waviness[-1]))
+				print(' Av. Fibre Waviness = {:>6.4f}'.format(fibre_waviness[-1]))
+				
+				print(' Average Pixel anistoropy = {:>6.4f}'.format(mean_pix_anis[-1]))
+				print(' Average Region Anistoropy = {:>6.4f}'.format(mean_reg_anis[-1]))
+				print(' Total Image anistoropy = {:>6.4f}\n'.format(mean_img_anis[-1]))
+
+			except NoiseError as err:
+				print(err.message)
+				removed_files.append(input_file_name)
+
+		for file_name in removed_files: input_files.remove(file_name)
 
 		data = np.array([ske_clus, ske_lin, ske_cover, fibre_waviness, net_waviness, ske_solid, mean_pix_anis, mean_reg_anis, mean_img_anis]).T
 		dataframe = pd.DataFrame(data=data, columns=['Clustering', 'Linearity', 'Coverage', 'Fibre Waviness', 'Network Waviness', 
