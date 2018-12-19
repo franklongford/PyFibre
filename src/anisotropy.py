@@ -62,6 +62,7 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 		noise = estimate_sigma(image, multichannel=False, average_sigmas=True)
 		
 		if noise >= noise_thresh: raise NoiseError(noise, noise_thresh)
+		print("Noise threshold accepted ({} < {})".format(noise, noise_thresh))
 
 		fig, ax = plt.subplots(figsize=(10, 6))
 		plt.imshow(image, cmap=cmap, interpolation='nearest')
@@ -191,7 +192,7 @@ def analyse_directory(current_dir, input_files, key=None, ow_anis=False, ow_grap
 			try:
 				res = analyse_image(current_dir, input_file_name, image, size=size, 
 								sigma=sigma, ow_anis=ow_anis, ow_graph=ow_graph, 
-								mode=mode, noise_thresh=0.05)
+								mode=mode, noise_thresh=0.1)
 
 				ske_clus = np.concatenate((ske_clus, [res[0]]))
 				ske_lin = np.concatenate((ske_lin, [res[1]]))
