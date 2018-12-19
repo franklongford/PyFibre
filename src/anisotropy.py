@@ -59,11 +59,6 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 	else:
 		image = it.prepare_image_shg(image, sigma=sigma, threshold=True, clip_limit=0.015)
 
-		noise = estimate_sigma(image, multichannel=False, average_sigmas=True)
-		
-		if noise >= noise_thresh: raise NoiseError(noise, noise_thresh)
-		print(" Noise threshold accepted ({} < {})".format(noise, noise_thresh))
-
 		fig, ax = plt.subplots(figsize=(10, 6))
 		plt.imshow(image, cmap=cmap, interpolation='nearest')
 		ax.set_axis_off()
@@ -74,6 +69,10 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 		j_tensor = it.form_structure_tensor(image, sigma=sigma)
 		H_tensor = it.form_hessian_tensor(image, sigma=sigma)
 		pix_tube = tubeness(image, sigma=sigma)
+
+		noise = estimate_sigma(pix_tube, multichannel=False, average_sigmas=True)
+		if noise >= noise_thresh: raise NoiseError(noise, noise_thresh)
+		print(" Noise threshold accepted ({} < {})".format(noise, noise_thresh))
 
 		"Perform anisotropy analysis on each pixel"
 
