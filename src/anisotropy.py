@@ -70,7 +70,8 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 		H_tensor = it.form_hessian_tensor(image, sigma=sigma)
 		pix_tube = tubeness(image, sigma=sigma)
 
-		noise = estimate_sigma(pix_tube, multichannel=False, average_sigmas=True)
+		noise = estimate_sigma(np.where(pix_n_energy > threshold_otsu(pix_n_energy), 1, 0),
+								multichannel=False, average_sigmas=True)
 		if noise >= noise_thresh: raise NoiseError(noise, noise_thresh)
 		print(" Noise threshold accepted ({} < {})".format(noise, noise_thresh))
 
