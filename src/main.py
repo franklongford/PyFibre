@@ -10,35 +10,68 @@ Last Modified: 16/08/2018
 
 import sys, os
 import utilities as ut
+import argparse
 
-current_dir = os.getcwd()
-dir_path = os.path.dirname(os.path.realpath(__file__))
+def get_args():
 
-ut.logo()
+	modules = []
 
-input_files = os.listdir(current_dir)
+	if ('learning' in sys.argv): modules.append('learning')
+	if ('anisotropy' in sys.argv): modules.append('anisotropy')
 
-modules = []
+	return modules
 
-if ('learning' in sys.argv): modules.append('learning')
-if ('anisotropy' in sys.argv): modules.append('anisotropy')
+def run_imagecol(current_dir, input_files, modules, ow_anis=False, ow_graph=False):
 
-if ('learning' in modules):
-	from machine_learning import learning
-	learning(current_dir)
 
-if ('anisotropy' in modules):
-	from anisotropy import analyse_image, analyse_directory
+	if ('learning' in modules):
+		from machine_learning import learning
+		learning(current_dir)
 
-	ow_anis = ('-ow_anis' in sys.argv)
-	ow_graph = ('-ow_graph' in sys.argv)
+	if ('anisotropy' in modules):
+		from anisotropy import analyse_image, analyse_directory
+		analyse_directory(current_dir, input_files, ow_anis=ow_anis, ow_graph=ow_graph)
+		
 
-	if ('-all' in sys.argv):
-		analyse_directory(current_dir, input_files, ow_anis=ow_anis, ow_graph=ow_graph)	
+if __name__ == '__main__':
+
+	current_dir = os.getcwd()
+	dir_path = os.path.dirname(os.path.realpath(__file__))
+
+	ut.logo()
+
+	parser = argparse.ArgumentParser(description='Image analysis of fibourous tissue samples')
+	parser.add_argument('--ow_anis', action='store_true', help='Toggles overwrite anisotropy analysis')
+	parser.add_argument('--ow_graph', action='store_true', help='Toggles overwrite graph analysis')
+	args = parser.parse_args()
+
+	input_files = os.listdir(current_dir)
+
+	modules = get_args()
+
+	if ('learning' in sys.argv): modules.append('learning')
+	if ('anisotropy' in sys.argv): modules.append('anisotropy')
+
+	removed_files = []
+
+	for file_name in input_files:
+		if not (file_name.endswith('.tif')): removed_files.append(file_name)
+		elif (file_name.find('display') != -1): removed_files.append(file_name)
+		elif (file_name.find('AVG') == -1): removed_files.append(file_name)
+
 	if ('-key' in sys.argv):
 		key = sys.argv[sys.argv.index('-key') + 1]
-		analyse_directory(current_dir, input_files, key=key, ow_anis=ow_anis, ow_graph=ow_graph)
+
+		for file_name in input_files:
+			if (file_name.find(key) == -1) and (file_name not in removed_files): 
+				removed_files.append(file_name)
+
 	elif ('-name' in sys.argv): 
 		input_file_name = sys.argv[sys.argv.index('-name') + 1]
-		analyse_directory(current_dir, [input_file_name], ow_anis=ow_anis, ow_graph=ow_graph)
+		input_files = [input_file_name]
+		
+	for file_name in removed_files: input_files.remove(file_name)
+
+	run_imagecol(current_dir, input_files, modules, args.ow_anis, args.ow_graph)
+
 		

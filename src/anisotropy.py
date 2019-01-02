@@ -104,15 +104,18 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 
 		"Extract main collagen network using mean curvature"
 
-		(label_image, sorted_areas, regions, networks) = it.network_extraction(data_dir + fig_name, image, pix_n_energy, n_clusters, ow_graph)
+		net = it.network_extraction(data_dir + fig_name, image, pix_n_energy, n_clusters, ow_graph) 
+		(label_image, sorted_areas, regions, networks) = net
 	
 		plot_network(fig_dir, fig_name, image, regions, networks)
 		plot_labeled_figure(fig_dir, fig_name, image, label_image, sorted_areas, mode)
 
-		(net_area, region_anis, net_linear, net_cluster,
-		fibre_waviness, net_waviness, pix_anis, coverage, solidity) = it.network_analysis(label_image, sorted_areas, networks, j_tensor, pix_j_anis)
+		net_res = it.network_analysis(label_image, sorted_areas, networks, j_tensor, pix_j_anis)
+		(net_area, region_anis, net_linear, net_cluster, net_degree,
+		fibre_waviness, net_waviness, pix_anis, coverage, solidity) = net_res
 
 		clustering = ut.nanmean(net_cluster, weights=net_area)
+		degree = ut.nanmean(net_degree, weights=net_area)
 		linearity = ut.nanmean(net_linear, weights=net_area)
 		region_anis = ut.nanmean(region_anis, weights=net_area)
 		solidity = ut.nanmean(solidity, weights=net_area)
@@ -121,7 +124,7 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 
 		pix_anis = np.mean(pix_anis)
 
-		averages = (clustering, linearity, coverage, fibre_waviness, 
+		averages = (clustering, degree, linearity, coverage, fibre_waviness, 
 					net_waviness, solidity, pix_anis, region_anis, img_anis[0])
 
 		ut.save_npy(data_dir + fig_name, averages)
@@ -149,19 +152,6 @@ def analyse_directory(current_dir, input_files, key=None, ow_anis=False, ow_grap
 	if not os.path.exists(fig_dir): os.mkdir(fig_dir)
 	if not os.path.exists(data_dir): os.mkdir(data_dir)
 
-	removed_files = []
-
-	for file_name in input_files:
-		if not (file_name.endswith('.tif')): removed_files.append(file_name)
-		elif (file_name.find('display') != -1): removed_files.append(file_name)
-		elif (file_name.find('AVG') == -1): removed_files.append(file_name)
-		
-		if key != None:
-			if (file_name.find(key) == -1) and (file_name not in removed_files): 
-				removed_files.append(file_name)
-
-	for file_name in removed_files: input_files.remove(file_name)
-
 	SHG_files = []
 	PL_files = []
 	for file_name in input_files:
@@ -176,6 +166,7 @@ def analyse_directory(current_dir, input_files, key=None, ow_anis=False, ow_grap
 		removed_files = []
 
 		ske_clus = np.empty((0,), dtype=float)
+		ske_deg = np.empty((0,), dtype=float)
 		ske_path = np.empty((0,), dtype=float)
 		ske_solid = np.empty((0,), dtype=float)
 		ske_lin = np.empty((0,), dtype=float)
@@ -195,16 +186,18 @@ def analyse_directory(current_dir, input_files, key=None, ow_anis=False, ow_grap
 								mode=mode, noise_thresh=0.18)
 
 				ske_clus = np.concatenate((ske_clus, [res[0]]))
-				ske_lin = np.concatenate((ske_lin, [res[1]]))
-				ske_cover = np.concatenate((ske_cover, [res[2]]))
-				fibre_waviness = np.concatenate((fibre_waviness, [res[3]]))
-				net_waviness = np.concatenate((net_waviness, [res[4]]))
-				ske_solid = np.concatenate((ske_solid, [res[5]]))
-				mean_pix_anis = np.concatenate((mean_pix_anis, [res[6]]))
-				mean_reg_anis = np.concatenate((mean_reg_anis, [res[7]]))
-				mean_img_anis = np.concatenate((mean_img_anis, [res[8]]))
+				ske_deg = np.concatenate((ske_deg, [res[1]]))
+				ske_lin = np.concatenate((ske_lin, [res[2]]))
+				ske_cover = np.concatenate((ske_cover, [res[3]]))
+				fibre_waviness = np.concatenate((fibre_waviness, [res[4]]))
+				net_waviness = np.concatenate((net_waviness, [res[5]]))
+				ske_solid = np.concatenate((ske_solid, [res[6]]))
+				mean_pix_anis = np.concatenate((mean_pix_anis, [res[7]]))
+				mean_reg_anis = np.concatenate((mean_reg_anis, [res[8]]))
+				mean_img_anis = np.concatenate((mean_img_anis, [res[9]]))
 
 				print(' Network Clustering = {:>6.4f}'.format(ske_clus[-1]))
+				print(' Network Degree = {:>6.4f}'.format(ske_deg[-1]))
 				print(' Network Linearity = {:>6.4f}'.format(ske_lin[-1]))
 				print(' Network Coverage = {:>6.4f}'.format(ske_cover[-1]))
 				print(' Network Solidity = {:>6.4f}'.format(ske_solid[-1]))
@@ -221,12 +214,16 @@ def analyse_directory(current_dir, input_files, key=None, ow_anis=False, ow_grap
 
 		for file_name in removed_files: input_files.remove(file_name)
 
-		data = np.array([ske_clus, ske_lin, ske_cover, fibre_waviness, net_waviness, ske_solid, mean_pix_anis, mean_reg_anis, mean_img_anis]).T
-		dataframe = pd.DataFrame(data=data, columns=['Clustering', 'Linearity', 'Coverage', 'Fibre Waviness', 'Network Waviness', 
-							     'Solidity', 'Pixel Anis', 'Region Anis', 'Image Anis'],
+		data = np.array([ske_clus, ske_deg, ske_lin, ske_cover, fibre_waviness, net_waviness, 
+						 ske_solid, mean_pix_anis, mean_reg_anis, mean_img_anis]).T
+
+		dataframe = pd.DataFrame(data=data, columns=['Clustering', 'Degree', 'Linearity', 'Coverage', 
+									'Fibre Waviness', 'Network Waviness', 'Solidity', 'Pixel Anis', 
+									'Region Anis', 'Image Anis'],
 					 index = input_files)
 		dataframe.to_pickle(data_dir + 'tif_image_database.pkl')
 
+		"""
 		x_labels = [ut.check_file_name(image_name, extension='tif') for image_name in input_files]
 		col_len = len(max(x_labels, key=len))
 
@@ -251,3 +248,4 @@ def analyse_directory(current_dir, input_files, key=None, ow_anis=False, ow_grap
 			print(' {:{col_len}s} | {:10.3f} | {:10d}'.format(name, predictor[i], i, col_len=col_len))
 
 		print('\n')
+		"""

@@ -490,6 +490,7 @@ def network_analysis(label_image, sorted_areas, networks, n_tensor, anis_map):
 	net_area = np.zeros(len(sorted_areas))
 	net_anis = np.zeros(len(sorted_areas))
 	net_linear = np.zeros(len(sorted_areas))
+	net_degree = np.zeros(len(sorted_areas))
 	fibre_waviness = np.zeros(len(sorted_areas))
 	network_waviness = np.zeros(len(sorted_areas))
 	net_cluster = np.zeros(len(sorted_areas))
@@ -526,11 +527,15 @@ def network_analysis(label_image, sorted_areas, networks, n_tensor, anis_map):
 		try: net_cluster[i] = nx.average_clustering(networks[i])
 		except: net_cluster[i] = None
 
+		try: net_degree[i] = nx.degree_pearson_correlation_coefficient(networks[i])**2
+		except: net_degree[i] = None
+
 	coverage = np.count_nonzero(main_network) / main_network.size
 
 	#sys.exit()
 
-	return net_area, net_anis, net_linear, net_cluster, fibre_waviness, network_waviness, pix_anis, coverage, solidity
+	return (net_area, net_anis, net_linear, net_cluster, net_degree, fibre_waviness, 
+			network_waviness, pix_anis, coverage, solidity)
 
 
 def smart_nematic_tensor_analysis(nem_vector, precision=1E-1):
