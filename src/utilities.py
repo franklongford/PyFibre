@@ -29,7 +29,7 @@ def logo():
 	logo_text += "  |_|_|                             ___/                            |_|_|" + '\n'
 	logo_text += " /_____\\" + ' ' * 15 + "/_____\\"  + ' ' * 15 + "/_____\\"  + ' ' * 15 + "/_____\\" + '\n'
 	logo_text += "|_______|" + '_' * 13 + "|_______|" + '_' * 13 + "|_______|" + '_' * 13 + "|_______|" + '  v1.0.1' + '\n'
-	logo_text += "\n              Collagen ECM Simulation\n"
+	logo_text += "\n              Fibrous Tissue Image Toolkit\n"
 
 	return logo_text
 

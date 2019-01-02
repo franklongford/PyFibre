@@ -17,7 +17,7 @@ class imagecol_gui:
 		self.input_files = []
 
 		self.master = master
-		self.master.title("ImageCol - Fiborours Tissue Image Toolkit")
+		self.master.title("FITI - Fibrous Tissue Image Toolkit")
 
 		self.text_title = Text(self.master, height=18, width=100)
 		self.text_title.tag_configure('bold_italics', font=('Arial', 12, 'bold', 'italic'))
@@ -46,7 +46,11 @@ class imagecol_gui:
 		self.frame_display.pack()
 
 		self.image_display = Frame(self.master)
-		self.image_display.canvas = Canvas(self.image_display, width=600, height=550)
+		self.image_display.canvas = Canvas(self.image_display, width=600, height=550,
+							scrollregion=(0,0,650,600))
+		self.image_display.scrollbar = Scrollbar(self.image_display, orient=VERTICAL, command=self.image_display.canvas.yview)
+		self.image_display.scrollbar.pack(side=RIGHT,fill=Y)
+		self.image_display.canvas['yscrollcommand'] = self.image_display.scrollbar.set
 		self.image_display.pack()
 
 
@@ -126,8 +130,8 @@ class imagecol_gui:
 
 		#frame.grid(row=0, columnspan=3, sticky=(N,W,E,S))
 		frame.canvas.create_image(40, 20, image=image, anchor=NW)
-		frame.canvas.pack(fill = "both", expand = "yes")
 		frame.canvas.image = image
+		frame.canvas.pack(side = LEFT, fill = "both", expand = "yes")
 
 		self.master.update_idletasks()
 
