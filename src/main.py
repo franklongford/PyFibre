@@ -11,6 +11,7 @@ Last Modified: 16/08/2018
 import sys, os
 import utilities as ut
 import argparse
+from anisotropy import analyse_image
 
 def get_args():
 
@@ -21,16 +22,9 @@ def get_args():
 
 	return modules
 
-def run_imagecol(current_dir, input_files, modules, ow_anis=False, ow_graph=False):
+def run_imagecol(input_files, modules, ow_anis=False, ow_graph=False):
 
-
-	if ('learning' in modules):
-		from machine_learning import learning
-		learning(current_dir)
-
-	if ('anisotropy' in modules):
-		from anisotropy import analyse_image, analyse_directory
-		analyse_directory(current_dir, input_files, ow_anis=ow_anis, ow_graph=ow_graph)
+	analyse_directory(input_files, ow_anis=ow_anis, ow_graph=ow_graph)
 		
 
 if __name__ == '__main__':
@@ -38,7 +32,7 @@ if __name__ == '__main__':
 	current_dir = os.getcwd()
 	dir_path = os.path.dirname(os.path.realpath(__file__))
 
-	ut.logo()
+	print(ut.logo())
 
 	parser = argparse.ArgumentParser(description='Image analysis of fibourous tissue samples')
 	parser.add_argument('--ow_anis', action='store_true', help='Toggles overwrite anisotropy analysis')
@@ -48,9 +42,6 @@ if __name__ == '__main__':
 	input_files = os.listdir(current_dir)
 
 	modules = get_args()
-
-	if ('learning' in sys.argv): modules.append('learning')
-	if ('anisotropy' in sys.argv): modules.append('anisotropy')
 
 	removed_files = []
 
@@ -72,6 +63,6 @@ if __name__ == '__main__':
 		
 	for file_name in removed_files: input_files.remove(file_name)
 
-	run_imagecol(current_dir, input_files, modules, args.ow_anis, args.ow_graph)
+	analyse_directory(input_files, args.ow_anis, args.ow_graph)
 
 		

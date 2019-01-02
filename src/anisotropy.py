@@ -40,16 +40,20 @@ class NoiseError(Exception):
     	self.message = "Image too noisy ({} > {})".format(noise, thresh)
 
 
-def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_clusters=10, 
+def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=10, 
 				ow_anis=False, ow_graph=False, mode='SHG', noise_thresh=1.0):
 
 	cmap = 'viridis'
 
 	fig_dir = current_dir + '/fig/'
 	data_dir = current_dir + '/data/'
-	image_name = input_file_name
+	image_name = input_file_name.split('/')[-1]
+
+	print(fig_dir, data_dir, image_name)
 
 	fig_name = ut.check_file_name(image_name, extension='tif')
+	image = it.load_tif(input_file_name)
+	image = rescale(image, scale)
 
 	print(' {}'.format(fig_name))
 
@@ -57,7 +61,8 @@ def analyse_image(current_dir, input_file_name, image, size=None, sigma=None, n_
 		averages = ut.load_npy(data_dir + fig_name)
 
 	else:
-		image = it.prepare_image_shg(image, sigma=sigma, threshold=True, clip_limit=0.015)
+		if mode == 'SHG': image = it.prepare_image_shg(image, sigma=sigma, threshold=True, clip_limit=0.015)
+		else: image = it.prepare_image_shg(image, sigma=sigma, threshold=True, clip_limit=0.015)
 
 		fig, ax = plt.subplots(figsize=(10, 6))
 		plt.imshow(image, cmap=cmap, interpolation='nearest')
@@ -139,11 +144,11 @@ def predictor_metric(clus, lin, cover, solid, fibre_waviness, net_waviness, pix_
 	return predictor
 
 
-def analyse_directory(current_dir, input_files, key=None, ow_anis=False, ow_graph=False):
+def analyse_directory(input_files, key=None, ow_anis=False, ow_graph=False):
 
-	print()
+	current_dir = os.getcwd()
 
-	size = 2
+	scale = 1
 	sigma = 0.5
 
 	fig_dir = current_dir + '/fig/'
@@ -159,7 +164,7 @@ def analyse_directory(current_dir, input_files, key=None, ow_anis=False, ow_grap
 		elif (file_name.find('PL') != -1): PL_files.append(file_name)
 
 	input_list = [SHG_files, PL_files]
-	modes = ['SHG']#, 'PL']
+	modes = ['SHG', 'PL']
 
 	for n, mode in enumerate(modes):
 		input_files = input_list[n]
@@ -178,10 +183,8 @@ def analyse_directory(current_dir, input_files, key=None, ow_anis=False, ow_grap
 		net_waviness = np.empty((0,), dtype=float)
 
 		for i, input_file_name in enumerate(input_files):
-			image = it.load_tif(input_file_name)
-			#image = rescale(image, 2)
 			try:
-				res = analyse_image(current_dir, input_file_name, image, size=size, 
+				res = analyse_image(current_dir, input_file_name, scale=scale, 
 								sigma=sigma, ow_anis=ow_anis, ow_graph=ow_graph, 
 								mode=mode, noise_thresh=0.18)
 
@@ -221,7 +224,7 @@ def analyse_directory(current_dir, input_files, key=None, ow_anis=False, ow_grap
 									'Fibre Waviness', 'Network Waviness', 'Solidity', 'Pixel Anis', 
 									'Region Anis', 'Image Anis'],
 					 index = input_files)
-		dataframe.to_pickle(data_dir + 'tif_image_database.pkl')
+		dataframe.to_pickle(data_dir + 'tif_image_database_{}.pkl'.format(mode))
 
 		"""
 		x_labels = [ut.check_file_name(image_name, extension='tif') for image_name in input_files]

@@ -283,7 +283,7 @@ def form_nematic_tensor(image, sigma=None, size=None):
 	return n_tensor
 
 
-def form_structure_tensor(image, sigma=None, size=None):
+def form_structure_tensor(image, sigma=0.0001, size=None):
 	"""
 	form_structure_tensor(image)
 

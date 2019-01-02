@@ -298,3 +298,5 @@ def plot_network(fig_dir, fig_name, image, regions, networks):
 
 	plt.savefig('{}{}_networks.png'.format(fig_dir, fig_name), bbox_inches='tight')
 	plt.close()
+
+		
