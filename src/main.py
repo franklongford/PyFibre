@@ -11,7 +11,7 @@ Last Modified: 16/08/2018
 import sys, os
 import utilities as ut
 import argparse
-from anisotropy import analyse_image
+from anisotropy import analyse_image, analyse_directory
 
 def get_args():
 

@@ -261,7 +261,7 @@ def plot_labeled_figure(fig_dir, fig_name, image, label_image, labels, mode):
 	ax.imshow(image_label_overlay, cmap='Greys')
 	#for r in rect: ax.add_patch(r)
 	ax.set_axis_off()
-	plt.savefig('{}{}_{}_labels.png'.format(fig_dir, fig_name, mode), bbox_inches='tight')
+	plt.savefig('{}{}_labels.png'.format(fig_dir, fig_name), bbox_inches='tight')
 	plt.close()
 
 
@@ -279,8 +279,8 @@ def plot_network(fig_dir, fig_name, image, regions, networks):
 	colours = list(BASE_COLOURS.keys())
 	
 
-	plt.figure(0, (10,10))
-	plt.imshow(image, cmap='Greys')
+	fig, ax = plt.subplots(figsize=(10, 6))
+	ax.imshow(image, cmap='Greys_r')
 
 	for j, Aij in enumerate(networks):
 
@@ -296,6 +296,7 @@ def plot_network(fig_dir, fig_name, image, regions, networks):
 				plt.plot([node_coord[n][1], node_coord[m][1]], 
 					 	 [node_coord[n][0], node_coord[m][0]], c=colour)
 
+	ax.set_axis_off()
 	plt.savefig('{}{}_networks.png'.format(fig_dir, fig_name), bbox_inches='tight')
 	plt.close()
 

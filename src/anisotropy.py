@@ -41,7 +41,7 @@ class NoiseError(Exception):
 
 
 def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=10, 
-				ow_anis=False, ow_graph=False, mode='SHG', noise_thresh=1.0):
+				ow_anis=False, ow_graph=False, mode='SHG', snr_thresh=1.0):
 
 	cmap = 'viridis'
 
@@ -61,6 +61,7 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 		averages = ut.load_npy(data_dir + fig_name)
 
 	else:
+
 		if mode == 'SHG': image = it.prepare_image_shg(image, sigma=sigma, threshold=True, clip_limit=0.015)
 		else: image = it.prepare_image_shg(image, sigma=sigma, threshold=True, clip_limit=0.015)
 
@@ -81,15 +82,20 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 		pix_j_anis, pix_j_angle, pix_j_energy = it.tensor_analysis(j_tensor)
 		pix_H_anis, pix_H_angle, pix_H_energy = it.tensor_analysis(H_tensor)
 
-		noise = estimate_sigma(np.where(pix_n_energy > threshold_otsu(pix_n_energy), 1, 0),
-								multichannel=False, average_sigmas=True)
-		if noise >= noise_thresh: raise NoiseError(noise, noise_thresh)
-		print(" Noise threshold accepted ({} < {})".format(noise, noise_thresh))
+		filtered_energy = np.where(pix_n_energy > threshold_otsu(pix_n_energy), 1, 0)
+		noise = estimate_sigma(filtered_energy, multichannel=False, average_sigmas=True)
+		noise = pix_n_energy.std()
+		signal = pix_n_energy.mean()
+
+		print(signal / noise)
+
+		if signal / noise <= snr_thresh: raise NoiseError(signal / noise, snr_thresh)
+		print(" Noise threshold accepted ({} > {})".format(signal / noise, snr_thresh))
 
 		#plot_figures(fig_dir, fig_name, image, pix_j_anis, pix_j_angle, pix_j_energy, cmap='viridis')
 
 		fig, ax = plt.subplots(figsize=(10, 6))
-		plt.imshow(np.where(pix_n_energy > threshold_otsu(pix_n_energy), 1, 0), cmap='Greys', interpolation='nearest')
+		plt.imshow(filtered_energy, cmap='Greys', interpolation='nearest')
 		plt.colorbar()
 		ax.set_axis_off()
 		plt.savefig('{}{}_pix_n_energy.png'.format(fig_dir, fig_name), bbox_inches='tight')
@@ -186,7 +192,7 @@ def analyse_directory(input_files, key=None, ow_anis=False, ow_graph=False):
 			try:
 				res = analyse_image(current_dir, input_file_name, scale=scale, 
 								sigma=sigma, ow_anis=ow_anis, ow_graph=ow_graph, 
-								mode=mode, noise_thresh=0.18)
+								mode=mode)
 
 				ske_clus = np.concatenate((ske_clus, [res[0]]))
 				ske_deg = np.concatenate((ske_deg, [res[1]]))
