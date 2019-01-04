@@ -1,6 +1,8 @@
-import os, sys
+import os, sys, time
 from tkinter import *
 from tkinter import ttk, filedialog
+import queue, threading
+from multiprocessing import Process, JoinableQueue, Queue
 
 from PIL import ImageTk, Image
 import networkx as nx
@@ -26,14 +28,13 @@ class imagecol_gui:
 		self.input_files = []
 		self.dir_path = os.path.dirname(os.path.realpath(__file__))
 		self.current_dir = os.getcwd()
-		self.fig_dir = self.current_dir + '/fig/'
-		self.data_dir = self.current_dir + '/data/'
 
 		self.master = master
 		self.master.title("PyFibre - Python Fibrous Image Toolkit")
 		img = ImageTk.PhotoImage(file=self.dir_path + '/icon.ico')
 		self.master.tk.call('wm', 'iconphoto', self.master._w, img)
 		self.master.geometry("1100x620")
+		#self.master.protocol('WM_DELETE_WINDOW', self.exit_app)
 
 		self.title = Frame(self.master)
 		self.create_title(self.title)
@@ -56,6 +57,11 @@ class imagecol_gui:
 		self.image_display.place(x=450, y=10, width=625, height=600)
 
 		self.master.bind('<Double-1>', lambda e: self.display_notebook())
+
+	def exit_app(self): 
+
+		self.process.join()
+		sys.exit()
 
 
 	def create_title(self, frame):
@@ -272,18 +278,20 @@ class imagecol_gui:
 							 for idx in self.frame_display.image_box.curselection()][0]
 
 		image_name = selected_file.split('/')[-1]
+		image_path = '/'.join(selected_file.split('/')[:-1])
 		fig_name = ut.check_file_name(image_name, extension='tif')
+		data_dir = image_path + '/data/'
 
 		image_tk = ImageTk.PhotoImage(Image.open(selected_file))
 		self.display_image(self.image_display.frame1.canvas, image_tk)
 		try:
-			Aij = nx.read_gpickle(self.data_dir + fig_name + ".pkl")
+			Aij = nx.read_gpickle(data_dir + fig_name + ".pkl")
 			self.display_image(self.image_display.frame2.canvas, image_tk)
 			self.display_network(self.image_display.frame2.canvas, Aij)
 		except IOError: pass
 
 		try:
-			self.image_display.metrics = ut.load_npy(self.data_dir + fig_name)
+			self.image_display.metrics = ut.load_npy(data_dir + fig_name)
 			self.image_display.clustering.set(self.image_display.metrics[0])
 			self.image_display.degree.set(self.image_display.metrics[1])
 			self.image_display.linearity.set(self.image_display.metrics[2])
@@ -302,39 +310,81 @@ class imagecol_gui:
 
 	def write_run(self):
 
+		self.frame_display.run_button.config(state=DISABLED)
+		self.task_queue = queue.Queue()
+		self.result_queue = queue.Queue()
+
+		self.process = Consumer(self.task_queue, self.result_queue)
+		self.process.daemon = True
+		self.process.start()
+
 		self.frame_display.progress['value'] = 0
 		snr_thresh = 2.0
 		values = 100 // len(self.input_files)
 
 		for i, input_file_name in enumerate(self.input_files):
-
 			self.frame_display.progress['value'] = (i + 1) * values
 			self.frame_display.progress.update()
-			image_name = input_file_name.split('/')[-1]
-			fig_name = ut.check_file_name(image_name, extension='tif')
+			
+			#self.process = Process(target=self.image_analysis, args=(input_file_name))
+			self.task_queue.put(self.image_analysis(input_file_name))
+	
+		print(self.task_queue.qsize())
+		self.task_queue.put(None)
 
-			"""
-			snr = 0.1
-			clip_limit = 0.2
+		while not self.result_queue.empty():
+			print(self.result_queue.get())
 
-			while snr < snr_thresh:
-				#image = np.where(image_orig >= threshold_otsu(image_orig), image_orig, 0)
-				image = equalize_adapthist(image_orig, clip_limit=clip_limit)
-				image = image / image.max()
-
-				noise = estimate_sigma(image, multichannel=False, average_sigmas=True)#image.std()
-				signal = image.mean()
-				snr = signal / noise
-				clip_limit += 0.001
-
-				print(signal, noise, image.std(), snr, snr_thresh, clip_limit)
-			"""
-
-			averages = analyse_image(self.current_dir, input_file_name, ow_anis=self.ow_anis.get(), 
-					ow_graph=self.ow_graph.get(), sigma=0.5, mode='test', snr_thresh=0.18)
+		self.frame_display.run_button.config(state=NORMAL)
+		print("Run Complete")
 
 
-		print("Analysis Ended")
+	def image_analysis(self, input_file_name):
+
+		image_name = input_file_name.split('/')[-1]
+		image_path = '/'.join(input_file_name.split('/')[:-1])
+		fig_name = ut.check_file_name(image_name, extension='tif')
+
+		analyse_image(image_path, input_file_name, ow_anis=self.ow_anis.get(), 
+				ow_graph=self.ow_graph.get(), sigma=0.5, mode='test', snr_thresh=0.18)
+
+
+	def process_queue(self):
+
+		if self.process.is_alive():
+			print("Still running") 
+			self.master.after(100, self.process_queue)
+		else:
+			print("Process {} complete".format(self.process))
+			try:
+				msg = self.queue.get(0)
+				print(msg)
+			except queue.Empty: print("queue is empty")
+		
+
+
+class Consumer(threading.Thread):
+    
+	def __init__(self, task_queue, result_queue):
+		threading.Thread.__init__(self)
+		self.task_queue = task_queue
+		self.result_queue = result_queue
+
+	def run(self):
+		proc_name = self.name
+		while True:
+			next_task = self.task_queue.get()
+			if next_task is None:
+				# Poison pill means shutdown
+				print('%s: Exiting' % proc_name)
+				self.task_queue.task_done()
+				break
+			print('%s: %s' % (proc_name, next_task))
+			answer = next_task()
+			self.task_queue.task_done()
+			self.result_queue.put(answer)
+		return
+
 
 side = LEFT
 anchor = W

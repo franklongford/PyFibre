@@ -49,13 +49,9 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 	data_dir = current_dir + '/data/'
 	image_name = input_file_name.split('/')[-1]
 
-	print(fig_dir, data_dir, image_name)
-
 	fig_name = ut.check_file_name(image_name, extension='tif')
 	image = it.load_tif(input_file_name)
 	image = rescale(image, scale)
-
-	print(' {}'.format(fig_name))
 
 	if not ow_anis and os.path.exists(data_dir + fig_name + '.npy'):
 		averages = ut.load_npy(data_dir + fig_name)
@@ -65,11 +61,13 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 		if mode == 'SHG': image = it.prepare_image_shg(image, sigma=sigma, threshold=True, clip_limit=0.015)
 		else: image = it.prepare_image_shg(image, sigma=sigma, threshold=True, clip_limit=0.015)
 
+		"""
 		fig, ax = plt.subplots(figsize=(10, 6))
 		plt.imshow(image, cmap=cmap, interpolation='nearest')
 		ax.set_axis_off()
 		plt.savefig('{}{}_orig.png'.format(fig_dir, fig_name), bbox_inches='tight')
 		plt.close()
+		"""
 
 		n_tensor = it.form_nematic_tensor(image, sigma=sigma)
 		j_tensor = it.form_structure_tensor(image, sigma=sigma)
@@ -94,6 +92,7 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 
 		#plot_figures(fig_dir, fig_name, image, pix_j_anis, pix_j_angle, pix_j_energy, cmap='viridis')
 
+		"""
 		fig, ax = plt.subplots(figsize=(10, 6))
 		plt.imshow(filtered_energy, cmap='Greys', interpolation='nearest')
 		plt.colorbar()
@@ -107,6 +106,7 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 		ax.set_axis_off()
 		plt.savefig('{}{}_pix_tube.png'.format(fig_dir, fig_name), bbox_inches='tight')
 		plt.close()
+		"""
 
 		"Perform anisotropy analysis on whole image"
 
@@ -118,8 +118,8 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 		net = it.network_extraction(data_dir + fig_name, image, pix_n_energy, n_clusters, ow_graph) 
 		(label_image, sorted_areas, regions, networks) = net
 	
-		plot_network(fig_dir, fig_name, image, regions, networks)
-		plot_labeled_figure(fig_dir, fig_name, image, label_image, sorted_areas, mode)
+		#plot_network(fig_dir, fig_name, image, regions, networks)
+		#plot_labeled_figure(fig_dir, fig_name, image, label_image, sorted_areas, mode)
 
 		net_res = it.network_analysis(label_image, sorted_areas, networks, j_tensor, pix_j_anis)
 		(net_area, region_anis, net_linear, net_cluster, net_degree,
