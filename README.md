@@ -1,5 +1,8 @@
-# ImageCol
-Image analysis library for collagen fibres
+# PyFibre
+Python image analysis library for fibrous tissue
+
+Can be run either in a terminal or GUI
+
 
 Parameters
 
