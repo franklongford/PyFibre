@@ -11,7 +11,7 @@ Last Modified: 16/08/2018
 import sys, os
 import utilities as ut
 import argparse
-from anisotropy import analyse_image, analyse_directory
+from analysis import analyse_directory
 
 
 if __name__ == '__main__':
