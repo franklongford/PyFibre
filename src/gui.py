@@ -2,11 +2,18 @@ import os, sys, time
 from tkinter import *
 from tkinter import ttk, filedialog
 import queue, threading
-from multiprocessing import Process, JoinableQueue, Queue
+from multiprocessing import Pool, Process, JoinableQueue, Queue, current_process
+
+import matplotlib
+matplotlib.use("TkAgg")
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 
 from PIL import ImageTk, Image
 import networkx as nx
 import numpy as np
+import pandas as pd
 
 from scipy.ndimage import imread
 from scipy.ndimage.filters import gaussian_filter
@@ -19,74 +26,76 @@ from skimage.restoration import (estimate_sigma, denoise_tv_chambolle, denoise_b
 
 from main import *
 import utilities as ut
-from anisotropy import analyse_image
+from analysis import analyse_image, NoiseError
 
 class imagecol_gui:
 
-	def __init__(self, master):
+	def __init__(self, master, n_proc):
 
-		self.input_files = []
+		"Set file locations"
 		self.dir_path = os.path.dirname(os.path.realpath(__file__))
 		self.current_dir = os.getcwd()
+		"Initiatise program log, queue and input file list"
+		self.Log = "Initiating PyFibre GUI\n"
+		self.queue = Queue()
+		self.input_files = []
+		self.n_proc = n_proc
 
+		"Define GUI objects"
 		self.master = master
-		self.master.title("PyFibre - Python Fibrous Image Toolkit")
-		img = ImageTk.PhotoImage(file=self.dir_path + '/icon.ico')
-		self.master.tk.call('wm', 'iconphoto', self.master._w, img)
 		self.master.geometry("1100x620")
-		#self.master.protocol('WM_DELETE_WINDOW', self.exit_app)
+		self.master.protocol("WM_DELETE_WINDOW", lambda: quit())
 
 		self.title = Frame(self.master)
 		self.create_title(self.title)
-		#self.title.pack()
 		self.title.place(bordermode=OUTSIDE, height=200, width=300)
 
-		self.frame_options = Frame(self.master)
-		self.create_options(self.frame_options)
-		#self.frame_options.pack()
-		self.frame_options.place(x=300, y=1, height=200, width=200)
+		self.options = Frame(self.master)
+		self.create_options(self.options)
+		self.options.place(x=300, y=1, height=200, width=200)
 
-		self.frame_display = Frame(self.master)
-		self.display_image_files(self.frame_display)
-		#self.frame_display.pack()
-		self.frame_display.place(x=5, y=220, height=600, width=500)
+		self.file_display = Frame(self.master)
+		self.create_file_display(self.file_display)
+		self.file_display.place(x=5, y=220, height=600, width=500)
 
 		self.image_display = ttk.Notebook(self.master)
-		self.create_notebook(self.image_display)
-		#self.image_display.pack()
-		self.image_display.place(x=450, y=10, width=625, height=600)
-
+		self.create_image_display(self.image_display)
 		self.master.bind('<Double-1>', lambda e: self.display_notebook())
-
-	def exit_app(self): 
-
-		self.process.join()
-		sys.exit()
+		self.image_display.place(x=450, y=10, width=625, height=600)
 
 
 	def create_title(self, frame):
 
+		self.master.title("PyFibre - Python Fibrous Image Toolkit")
+
 		image = Image.open(self.dir_path + '/icon.ico')
 		image = image.resize((300,200))
 		image_tk = ImageTk.PhotoImage(image)
+
+		self.master.tk.call('wm', 'iconphoto', self.master._w, image_tk)
 		frame.text_title = Label(frame, image=image_tk)
 		frame.image = image_tk
 		frame.text_title.pack(side = TOP, fill = "both", expand = "yes")
 
+
 	def create_options(self, frame):
 
-		self.ow_anis = IntVar()
-		frame.chk_anis = Checkbutton(frame, text="o/w anisotropy", variable=self.ow_anis)
+		self.ow_metric = IntVar()
+		frame.chk_anis = Checkbutton(frame, text="o/w metrics", variable=self.ow_metric)
 		frame.chk_anis.grid(column=0, row=0, sticky=(N,W,E,S))
 		#frame.chk_anis.pack(side=LEFT)
 
-		self.ow_graph = IntVar()
-		frame.chk_graph = Checkbutton(frame, text="o/w graph", variable=self.ow_graph)
+		self.ow_network = IntVar()
+		frame.chk_graph = Checkbutton(frame, text="o/w graph", variable=self.ow_network)
 		frame.chk_graph.grid(column=0, row=1, sticky=(N,W,E,S))
 		#frame.chk_graph.pack(side=LEFT)
 
+		self.save_db = IntVar()
+		frame.chk_db = Checkbutton(frame, text="Save Database", variable=self.save_db)
+		frame.chk_db.grid(column=0, row=2, sticky=(N,W,E,S))
 
-	def display_image_files(self, frame):
+
+	def create_file_display(self, frame):
 
 		frame.select_im_button = Button(frame, width=15,
 				   text="Select files",
@@ -103,12 +112,12 @@ class imagecol_gui:
 				   command=self.del_images)
 		frame.delete_im_button.grid(column=2, row=0)
 
-		frame.image_box = Listbox(frame, height=20, width=40, selectmode="extended")
-		frame.image_box.grid(column=0, row=1, columnspan=3, sticky=(N,W,E,S))
+		frame.file_box = Listbox(frame, height=20, width=40, selectmode="extended")
+		frame.file_box.grid(column=0, row=1, columnspan=3, sticky=(N,W,E,S))
 
-		frame.scrollbar = ttk.Scrollbar(frame, orient=VERTICAL, command=frame.image_box.yview)
+		frame.scrollbar = ttk.Scrollbar(frame, orient=VERTICAL, command=frame.file_box.yview)
 		frame.scrollbar.grid(column=3, row=1, sticky=(N,S))
-		frame.image_box['yscrollcommand'] = frame.scrollbar.set
+		frame.file_box['yscrollcommand'] = frame.scrollbar.set
 
 		#frame.grid_columnconfigure(1, weight=1)
 		#frame.grid_rowconfigure(1, weight=1)
@@ -118,15 +127,13 @@ class imagecol_gui:
 				   command=self.write_run)
 		frame.run_button.grid(column=0, row=2, columnspan=2)
 
-		frame.quit_button = Button(frame, width=15,
-				   text="QUIT",
-				   command=self.master.quit)
-		frame.quit_button.grid(column=2, row=2)
+		frame.stop_button = Button(frame, width=15,
+				   text="STOP",
+				   command=self.stop_run, state=DISABLED)
+		frame.stop_button.grid(column=2, row=2)
 
-		frame.progress = ttk.Progressbar(frame, orient=HORIZONTAL, length=300, mode='determinate')
+		frame.progress = ttk.Progressbar(frame, orient=HORIZONTAL, length=400, mode='determinate')
 		frame.progress.grid(column=0, row=3, columnspan=3)
-
-		frame.pack()
 
 
 	def add_images(self):
@@ -135,7 +142,9 @@ class imagecol_gui:
 		new_files = list(set(new_files).difference(set(self.input_files)))
 
 		self.input_files += new_files
-		for filename in new_files: self.frame_display.image_box.insert(END, filename)
+		for filename in new_files: 
+			self.file_display.file_box.insert(END, filename)
+			self.update_log("Adding {}".format(filename))
 
 
 	def add_directory(self):
@@ -146,21 +155,24 @@ class imagecol_gui:
 
 		self.input_files += new_files
 
-		for filename in new_files: self.frame_display.image_box.insert(END, filename)
+		for filename in new_files: 
+			self.file_display.file_box.insert(END, filename)
+			self.update_log("Adding {}".format(filename))
 
 
 	def del_images(self):
 		
-		selected_files = [self.frame_display.image_box.get(idx)\
-							 for idx in self.frame_display.image_box.curselection()]
+		selected_files = [self.file_display.file_box.get(idx)\
+							 for idx in self.file_display.file_box.curselection()]
 
 		for filename in selected_files:
 			index = self.input_files.index(filename)
 			self.input_files.remove(filename)
-			self.frame_display.image_box.delete(index)
+			self.file_display.file_box.delete(index)
+			self.update_log("Removing {}".format(filename))
 
 
-	def create_notebook(self, notebook):
+	def create_image_display(self, notebook):
 
 		#frame.grid(row=0, columnspan=3, sticky=(N,W,E,S))
 
@@ -187,6 +199,10 @@ class imagecol_gui:
 		notebook.frame3 = ttk.Frame(notebook)
 		notebook.add(notebook.frame3, text='Metrics')
 
+		notebook.frame3.titles = ["Clustering", "Degree", "Linearity", "Coverage",
+								"Fibre Waviness", "Network Waviness", "Solidity",
+								"Pixel Anisotropy", "Region Anisotropy", "Image Anisotropy"]
+		"""
 		notebook.clustering = DoubleVar()
 		notebook.degree = DoubleVar()
 		notebook.linearity = DoubleVar()
@@ -239,6 +255,39 @@ class imagecol_gui:
 		notebook.frame3.region_anis.grid(column=1, row=8)
 		notebook.frame3.img_anis_title.grid(column=0, row=9)
 		notebook.frame3.img_anis.grid(column=1, row=9)
+		"""
+
+		notebook.frame3.fig, notebook.frame3.ax = plt.subplots(nrows=3, ncols=3, figsize=(3, 3), dpi=100)
+		notebook.frame3.canvas = FigureCanvasTkAgg(notebook.frame3.fig, notebook.frame3)
+		notebook.frame3.canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
+
+		notebook.frame3.toolbar = NavigationToolbar2Tk(notebook.frame3.canvas, notebook.frame3)
+		notebook.frame3.toolbar.update()
+		notebook.frame3.canvas._tkcanvas.pack(side=TOP, fill=BOTH, expand=1)
+
+		notebook.frame4 = ttk.Frame(notebook)
+		notebook.add(notebook.frame4, text='Log')
+		notebook.frame4.text = Text(notebook.frame4, width=650, height=550)
+		notebook.frame4.text.insert(END, self.Log)
+		notebook.frame4.text.config(state=DISABLED)
+		notebook.frame4.text.pack()
+
+
+	def update_dashboard(self):
+
+		for i, title in enumerate(self.image_display.frame3.titles[:9]):
+			self.image_display.frame3.ax[i // 3][i % 3].clear()
+			self.image_display.frame3.ax[i // 3][i % 3].set_title(title)
+			self.image_display.frame3.ax[i // 3][i % 3].boxplot(self.database[title])
+		self.image_display.frame3.canvas.draw()
+
+
+	def update_log(self, text):
+
+		self.image_display.frame4.text.config(state=NORMAL)
+		self.Log += text + '\n'
+		self.image_display.frame4.text.insert(END, text + '\n')
+		self.image_display.frame4.text.config(state=DISABLED)
 
 
 	def display_image(self, canvas, image):
@@ -274,8 +323,8 @@ class imagecol_gui:
 
 	def display_notebook(self):
 
-		selected_file = [self.frame_display.image_box.get(idx)\
-							 for idx in self.frame_display.image_box.curselection()][0]
+		selected_file = [self.file_display.file_box.get(idx)\
+							 for idx in self.file_display.file_box.curselection()][0]
 
 		image_name = selected_file.split('/')[-1]
 		image_path = '/'.join(selected_file.split('/')[:-1])
@@ -284,12 +333,17 @@ class imagecol_gui:
 
 		image_tk = ImageTk.PhotoImage(Image.open(selected_file))
 		self.display_image(self.image_display.frame1.canvas, image_tk)
+		self.update_log("Displaying image {}".format(fig_name))
+
 		try:
 			Aij = nx.read_gpickle(data_dir + fig_name + ".pkl")
 			self.display_image(self.image_display.frame2.canvas, image_tk)
 			self.display_network(self.image_display.frame2.canvas, Aij)
-		except IOError: pass
+			self.update_log("Displaying network for {}".format(fig_name))
+		except IOError:
+			self.update_log("Unable to display network for {}".format(fig_name))
 
+		"""
 		try:
 			self.image_display.metrics = ut.load_npy(data_dir + fig_name)
 			self.image_display.clustering.set(self.image_display.metrics[0])
@@ -302,94 +356,126 @@ class imagecol_gui:
 			self.image_display.pix_anis.set(self.image_display.metrics[7])
 			self.image_display.region_anis.set(self.image_display.metrics[8])
 			self.image_display.img_anis.set(self.image_display.metrics[9])
-			print("Updated Metrics")
 
 		except IOError: pass
-
+		"""
 		self.master.update_idletasks()
+
+
+	def generate_db(self):
+
+		database_array = np.empty((0, 10), dtype=float)
+		database_index = []
+
+		for i, input_file_name in enumerate(self.input_files):
+
+			image_name = input_file_name.split('/')[-1]
+			image_path = '/'.join(input_file_name.split('/')[:-1])
+			data_dir = image_path + '/data/'
+			metric_name = data_dir + ut.check_file_name(image_name, extension='tif')
+			
+			self.update_log("Loading metrics for {}".format(input_file_name))
+
+			try: 
+				database_array = np.concatenate((database_array, 
+											np.expand_dims(ut.load_npy(metric_name), axis=0)))
+				database_index.append(input_file_name)
+			except IOError:
+				self.update_log("{} database not generated - check log")
+				return
+
+		print(database_array.shape)
+
+		self.database = pd.DataFrame(data=database_array, columns=self.image_display.frame3.titles,
+					 index = self.input_files)
+
+		self.update_dashboard()
+
+
+	def save_db(self):
+
+		db_filename = filedialog.asksaveasfilename(defaultextension=".pkl")
+		self.database.to_pickle(db_filename)
+		self.update_log("Saving Database file {}".format(db_filename))
+
 
 	def write_run(self):
 
-		self.frame_display.run_button.config(state=DISABLED)
-		self.task_queue = queue.Queue()
-		self.result_queue = queue.Queue()
+		self.file_display.run_button.config(state=DISABLED)	
+		self.file_display.stop_button.config(state=NORMAL)
+		self.file_display.progress['maximum'] = len(self.input_files)
 
-		self.process = Consumer(self.task_queue, self.result_queue)
+		"""
+		ow_metric = [self.ow_metric.get()] * len(self.input_files)
+		ow_network = [self.ow_network.get()] * len(self.input_files)
+		queue = [self.queue] * len(self.input_files)
+		args = zip(ow_metric, ow_network, queue)
+		for arg in args: print(arg)
+
+		self.process = Pool(self.n_proc)
+		self.process.daemon = True
+		self.process.map(image_analysis, args)
+		"""
+
+		self.process = Process(target=image_analysis, args=(self.input_files, self.ow_metric.get(),
+														self.ow_network.get(), self.queue))
 		self.process.daemon = True
 		self.process.start()
-
-		self.frame_display.progress['value'] = 0
-		snr_thresh = 2.0
-		values = 100 // len(self.input_files)
-
-		for i, input_file_name in enumerate(self.input_files):
-			self.frame_display.progress['value'] = (i + 1) * values
-			self.frame_display.progress.update()
-			
-			#self.process = Process(target=self.image_analysis, args=(input_file_name))
-			self.task_queue.put(self.image_analysis(input_file_name))
-	
-		print(self.task_queue.qsize())
-		self.task_queue.put(None)
-
-		while not self.result_queue.empty():
-			print(self.result_queue.get())
-
-		self.frame_display.run_button.config(state=NORMAL)
-		print("Run Complete")
+		self.process_check()
 
 
-	def image_analysis(self, input_file_name):
+	def process_check(self):
+		"""
+		Check if there is something in the queue
+		"""
+		self.queue_check()
+
+		if self.process.exitcode is None:
+			self.master.after(500, self.process_check)
+		else: 
+			self.file_display.progress['value'] = 0
+			self.file_display.run_button.config(state=NORMAL)
+			self.file_display.stop_button.config(state=DISABLED)
+			self.generate_db()
+			if self.save_db.get(): self.save_db()
+
+
+	def queue_check(self):
+
+		while not self.queue.empty():
+			try:
+				msg = self.queue.get(0)
+				self.update_log(msg)
+				self.file_display.progress.configure(value=self.file_display.progress['value'] + 1)
+				self.file_display.progress.update()
+			except queue.Empty: pass
+
+
+	def stop_run(self):
+
+		self.update_log("Stopping Analysis")
+		self.process.terminate()
+
+
+def image_analysis(input_files, ow_metric, ow_network, queue):
+
+	for input_file_name in input_files:
 
 		image_name = input_file_name.split('/')[-1]
 		image_path = '/'.join(input_file_name.split('/')[:-1])
 		fig_name = ut.check_file_name(image_name, extension='tif')
 
-		analyse_image(image_path, input_file_name, ow_anis=self.ow_anis.get(), 
-				ow_graph=self.ow_graph.get(), sigma=0.5, mode='test', snr_thresh=0.18)
+		try:
+			analyse_image(image_path, input_file_name, ow_metric=ow_metric, 
+					ow_network=ow_network, sigma=0.5, snr_thresh=0.18)
+			queue.put("Analysis of {} complete".format(input_file_name))
+
+		except NoiseError as err: queue.put("{} {}".format(err.message, input_file_name))
 
 
-	def process_queue(self):
-
-		if self.process.is_alive():
-			print("Still running") 
-			self.master.after(100, self.process_queue)
-		else:
-			print("Process {} complete".format(self.process))
-			try:
-				msg = self.queue.get(0)
-				print(msg)
-			except queue.Empty: print("queue is empty")
-		
-
-
-class Consumer(threading.Thread):
-    
-	def __init__(self, task_queue, result_queue):
-		threading.Thread.__init__(self)
-		self.task_queue = task_queue
-		self.result_queue = result_queue
-
-	def run(self):
-		proc_name = self.name
-		while True:
-			next_task = self.task_queue.get()
-			if next_task is None:
-				# Poison pill means shutdown
-				print('%s: Exiting' % proc_name)
-				self.task_queue.task_done()
-				break
-			print('%s: %s' % (proc_name, next_task))
-			answer = next_task()
-			self.task_queue.task_done()
-			self.result_queue.put(answer)
-		return
-
-
-side = LEFT
-anchor = W
+N_PROC = os.cpu_count() - 1
 
 root = Tk()
-GUI = imagecol_gui(root)
+GUI = imagecol_gui(root, N_PROC)
 
 root.mainloop()

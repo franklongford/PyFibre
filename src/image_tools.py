@@ -13,16 +13,14 @@ import numpy as np
 import scipy as sp
 import networkx as nx
 
-from scipy import interpolate
 from scipy.misc import derivative
-from scipy.ndimage import filters, imread, sobel, distance_transform_edt
+from scipy.ndimage import filters, imread
 from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
 
-from skimage import measure, transform, img_as_float, exposure, feature
-from skimage.morphology import (square, disk, ball, closing, binary_closing, 
-									skeletonize, thin, dilation, erosion, medial_axis)
-from skimage.filters import rank, threshold_otsu, try_all_threshold
-from skimage.color import label2rgb, rgb2hsv, hsv2rgb
+from skimage import measure, img_as_float, exposure, feature
+from skimage.morphology import (disk, dilation)
+from skimage.filters import rank, threshold_otsu
+from skimage.color import rgb2hsv, hsv2rgb
 from skimage.restoration import denoise_tv_chambolle, estimate_sigma
 from skimage.feature import ORB
 
@@ -47,6 +45,7 @@ def load_tif(image_name):
 
 	return image
 
+
 def set_HSB(image, hue, saturation=1, brightness=1):
 	""" Add color of the given hue to an RGB image.
 
@@ -61,7 +60,7 @@ def set_HSB(image, hue, saturation=1, brightness=1):
 	return hsv2rgb(hsv)
 
 
-def prepare_image_shg(image, size=None, sigma=None, weight=None, clip_limit=None, 
+def preprocess_image(image, size=None, sigma=None, weight=None, clip_limit=None, 
 						threshold=False, n_components=None):
 
 	if sigma != None: image = filters.gaussian_filter(image, sigma=sigma)
@@ -74,88 +73,6 @@ def prepare_image_shg(image, size=None, sigma=None, weight=None, clip_limit=None
 	image = image / image.max()
 
 	return image
-
-
-def print_anis_results(fig_dir, fig_name, tot_q, tot_angle, av_q, av_angle):
-
-	nframe = tot_q.shape[0]
-	nxy = tot_q.shape[1]
-	print('\n Mean image anistoropy = {:>6.4f}'.format(np.mean(av_q)))
-	print('Mean pixel anistoropy = {:>6.4f}\n'.format(np.mean(tot_q)))
-
-	plt.figure()
-	plt.hist(av_q, bins='auto', density=True, label=fig_name, range=[0, 1])
-	plt.xlabel(r'Anisotropy')
-	plt.xlim(0, 1)
-	plt.legend()
-	plt.savefig('{}{}_av_aniso_hist.png'.format(fig_dir, fig_name), bbox_inches='tight')
-	plt.close()
-
-	plt.figure()
-	plt.hist(av_angle, bins='auto', density=True, label=fig_name, range=[-45, 45])
-	plt.xlabel(r'Anisotropy')
-	plt.xlim(-45, 45)
-	plt.legend()
-	plt.savefig('{}{}_av_angle_hist.png'.format(fig_dir, fig_name), bbox_inches='tight')
-	plt.close()
-
-	"""
-	plt.figure()
-	plt.imshow(tot_q[0], cmap='binary_r', interpolation='nearest', origin='lower', vmin=0, vmax=1)
-	plt.colorbar()
-	plt.savefig('{}{}_anisomap.png'.format(fig_dir, fig_name), bbox_inches='tight')
-	plt.close()
-
-	plt.figure()
-	plt.imshow(tot_angle[0], cmap='nipy_spectral', interpolation='nearest', origin='lower', vmin=-45, vmax=45)
-	plt.colorbar()
-	plt.savefig('{}{}_anglemap.png'.format(fig_dir, fig_name), bbox_inches='tight')
-	plt.close()
-	"""
-	q_hist = np.zeros(100)
-	angle_hist = np.zeros(100)
-
-	for frame in range(nframe):
-		q_hist += np.histogram(tot_q[frame].flatten(), bins=100, density=True, range=[0, 1])[0] / nframe
-		angle_hist += np.histogram(tot_angle[frame].flatten(), bins=100, density=True, range=[-45, 45])[0] / nframe
-
-	plt.figure()
-	plt.title('Anisotropy Histogram')
-	plt.plot(np.linspace(0, 1, 100), q_hist, label=fig_name)
-	plt.xlabel(r'Anisotropy')
-	plt.xlim(0, 1)
-	plt.legend()
-	plt.savefig('{}{}_tot_aniso_hist.png'.format(fig_dir, fig_name), bbox_inches='tight')
-	plt.close()
-
-	plt.figure()
-	plt.title('Angular Histogram')
-	plt.plot(np.linspace(-45, 45, 100), angle_hist, label=fig_name)
-	plt.xlabel(r'Angle')
-	plt.xlim(-45, 45)
-	plt.legend()
-	plt.savefig('{}{}_tot_angle_hist.png'.format(fig_dir, fig_name), bbox_inches='tight')
-	plt.close()
-
-
-def print_fourier_results(fig_dir, fig_name, angles, fourier_spec, sdi):
-
-	print('\n Modal Fourier Amplitude  = {:>6.4f}'.format(angles[np.argmax(fourier_spec)]))
-	print(' Fourier Amplitudes Range   = {:>6.4f}'.format(np.max(fourier_spec)-np.min(fourier_spec)))
-	print(' Fourier Amplitudes Std Dev = {:>6.4f}'.format(np.std(fourier_spec)))
-	print(' Fourier SDI = {:>6.4f}'.format(sdi))
-
-	print(' Creating Fouier Angle Spectrum figure {}{}_fourier.png'.format(fig_dir, fig_name))
-	plt.figure(11)
-	plt.title('Fourier Angle Spectrum')
-	plt.plot(angles, fourier_spec, label=fig_name)
-	plt.xlabel(r'Angle (deg)')
-	plt.ylabel(r'Amplitude')
-	plt.xlim(-180, 180)
-	plt.ylim(0, 1)
-	plt.legend()
-	plt.savefig('{}{}_fourier.png'.format(fig_dir, fig_name), bbox_inches='tight')
-	plt.close('all')
 
 
 def select_samples(full_set, area, n_sample):
@@ -216,6 +133,9 @@ def select_samples(full_set, area, n_sample):
 
 
 def derivatives(image, rank=1, mode='cd'):
+	"""
+	Returns derivates of order "rank" for imput image at each pixel
+	"""
 
 	derivative = np.zeros(((2,) + image.shape))
 	derivative[0] += np.nan_to_num(np.gradient(image, edge_order=1, axis=-2))
@@ -287,7 +207,7 @@ def form_structure_tensor(image, sigma=0.0001, size=None):
 	"""
 	form_structure_tensor(image)
 
-	Create local nematic tensor n for each pixel in image
+	Create local structure tensor n for each pixel in image
 
 	Parameters
 	----------
@@ -323,7 +243,27 @@ def form_structure_tensor(image, sigma=0.0001, size=None):
 
 
 def form_hessian_tensor(image, sigma=None, size=None):
+	"""
+	form_hessian_tensor(image)
 
+	Create local hessian tensor n for each pixel in image
+
+	Parameters
+	----------
+
+	dx_grid:  array_like (float); shape=(nframe, n_y, n_x)
+		Matrix of derivative of image intensity with respect to x axis for each pixel
+
+	dy_grid:  array_like (float); shape=(nframe, n_y, n_x)
+		Matrix of derivative of image intensity with respect to y axis for each pixel
+
+	Returns
+	-------
+
+	H_tensor:  array_like (float); shape(nframe, n_y, n_x, 2, 2)
+		2x2 hessian tensor for each pixel in image stack	
+
+	"""
 
 	if image.ndim == 2: image = image.reshape((1,) + image.shape)
 	nframe = image.shape[0]
@@ -387,6 +327,27 @@ def tensor_analysis(tensor):
 
 
 def get_curvature(j_tensor, H_tensor):
+	"""
+	Return Gaussian and Mean curvature at each pixel from structure and hessian tensors
+
+	Parameters
+	----------
+
+	j_tensor:  array_like (float); shape(nframe, n_y, n_x, 2, 2)
+		2x2 structure tensor for each pixel in image stack
+
+	H_tensor:  array_like (float); shape(nframe, n_y, n_x, 2, 2)
+		2x2 hessian tensor for each pixel in image stack
+
+	Returns
+	-------
+
+	gauss_curvature: array_like (float); shape(nframe, n_y, n_x)
+		Gaussian curvature at each image pixel
+
+	mean_curvature: array_like (float); shape(nframe, n_y, n_x)
+		Mean curvature at each image pixel
+	"""
 
 	ad_H_tensor = ut.adjoint_mat(H_tensor)
 
@@ -402,51 +363,19 @@ def get_curvature(j_tensor, H_tensor):
 	return np.nan_to_num(gauss_curvature), np.nan_to_num(mean_curvature)
 
 
-def network_extraction_old(image, filtered, n_clusters=3):
-
-	binary = np.where(filtered > threshold_otsu(filtered), 1, 0)#np.where(pix_n_energy > 0, 1, 0)
-	cleared = ut.clear_border(binary)
-
-	label_image, num_features = measure.label(cleared, return_num=True, connectivity=2)
-	label_image = np.array(label_image, dtype=int)
-
-	areas = np.empty((0,), dtype=float)
-	regions = []
-
-	for region in measure.regionprops(label_image): 
-	    areas = np.concatenate((areas, [region.filled_area]))
-	    regions.append(region.bbox)
-	
-	sort_areas = np.argsort(areas)[-n_clusters:]
-
-	networks = []
-	sort_regions = []
-
-	for index in sort_areas:
-
-		minr, minc, maxr, maxc = regions[index]
-		indices = np.mgrid[minr:maxr, minc:maxc]
-
-		try: equalised = exposure.equalize_adapthist(image[(indices[0], indices[1])], clip_limit=0.05)
-		except ZeroDivisionError: equalised = image[(indices[0], indices[1])]
-		image_TB = tubeness(equalised, 1)
-		networks.append(FIRE(image_TB, sigma=1))
-
-		sort_regions.append(regions[index])
-
-	return label_image, sort_areas, sort_regions, networks
-
-
 def network_extraction(graph_name, image, filtered, n_clusters=3, ow_graph=False):
+	"""
+	Extract fibre network using modified FIRE algorithm
+	"""
 
 	try: Aij = nx.read_gpickle(graph_name + ".pkl")
 	except IOError: ow_graph = True
 
-	if ow_graph:		
-			#equalised = exposure.equalize_adapthist(image, clip_limit=0.05)
-			image_TB = tubeness(image, 1)
-			Aij = FIRE(image_TB, sigma=1)
-			nx.write_gpickle(Aij, graph_name + ".pkl")
+	if ow_graph:
+		print("Extracting fibre network using modified FIRE algorithm")	
+		image_TB = tubeness(image, 1)
+		Aij = FIRE(image_TB, sigma=1)
+		nx.write_gpickle(Aij, graph_name + ".pkl")
 
 	label_image = np.zeros(image.shape)
 	networks = []
@@ -485,6 +414,9 @@ def network_area(label, iterations=10):
 
 
 def network_analysis(label_image, sorted_areas, networks, n_tensor, anis_map):
+	"""
+	Analyse extracted fibre network
+	"""
 
 	main_network = np.zeros(label_image.shape, dtype=int)
 	net_area = np.zeros(len(sorted_areas))
