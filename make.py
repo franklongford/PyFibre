@@ -4,6 +4,7 @@ task = sys.argv[1]
 program_name = sys.argv[2]
 speed_test_name = "speed_test"
 bin_dir = sys.argv[3]
+desktop_dir = sys.argv[4]
 if '--python' in sys.argv: python_command = sys.argv[sys.argv.index('--python') + 1]
 else: python_command = 'python'
 python_version = sys.version_info
@@ -40,18 +41,26 @@ if task in ['install', 'install_mpi']:
 	if task == 'install':
 		with open(current_dir + '/bin/' + program_name, 'w') as outfile:
 			outfile.write('#!/bin/bash\n\n')
-			outfile.write(f'{python_command} {current_dir}/src/main.py "$@"')
+			outfile.write(f"{python_command} {current_dir}/src/main.py \"$@\"")
 
 	else:
 		with open(current_dir + '/bin/' + program_name, 'w') as outfile:
 			outfile.write('#!/bin/bash\n\n')
-			outfile.write(f'{python_command} {current_dir}/src/main_mpi.py "$@"')
+			outfile.write(f"{python_command} {current_dir}/src/main_mpi.py \"$@\"")
 
 		bashCommand = f"chmod +x {current_dir + '/bin/' + speed_test_name}"
 		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		output, error = process.communicate()
 
+	with open(current_dir + '/bin/' + program_name + '_GUI', 'w') as outfile:
+		outfile.write('#!/bin/bash\n\n')
+		outfile.write(f"{python_command} {current_dir}/src/gui.py")
+
 	bashCommand = f"chmod +x {current_dir + '/bin/' + program_name}"
+	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	output, error = process.communicate()
+
+	bashCommand = f"chmod +x {current_dir + '/bin/' + program_name}_GUI.sh"
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	output, error = process.communicate()
 
@@ -65,16 +74,42 @@ if task in ['install', 'install_mpi']:
 		print(f"{error}\nUnable to add ImageCol to {bin_dir}\n\nPlease manually create an alias to {current_dir}/{program_name}\n")
 		print('!' * 67 + '\n')
 
+	print(f"Creating {program_name} desktop icon\n")
+
+	desktop_file =  f"""[Desktop Entry]\nVersion=1.01\nName=PyFibre\nComment=Python Fibrous Image Toolkit
+Exec={current_dir}/bin/{program_name}_GUI.sh\nIcon={current_dir}/src/icon.ico\nTerminal=false
+Type=Application\nCategories=Utility;Application;
+			"""
+
+	with open(desktop_dir + program_name + '.desktop', 'w') as outfile:
+		outfile.write(desktop_file)
+
+	#bashCommand = f"chmod +x {current_dir}/bin/{program_name}_GUI"
+	#process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	#output, error = process.communicate()
+
 
 if task in ['uninstall', 'uninstall_mpi']:
 
-	bashCommand = f"rm {program_name}"
+	bashCommand = f"rm -r {current_dir}/bin/"
 	try: 
 		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		output, error = process.communicate()
 	except: sys.exit(1)
 	
 	bashCommand = f"rm {bin_dir}/{program_name}"
+	try: 
+		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		output, error = process.communicate()
+	except: sys.exit(1)
+
+	bashCommand = f"rm {bin_dir}/{program_name}_GUI"
+	try: 
+		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		output, error = process.communicate()
+	except: sys.exit(1)
+
+	bashCommand = f"rm {desktop_dir}/{program_name}.desktop"
 	try: 
 		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		output, error = process.communicate()

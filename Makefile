@@ -2,8 +2,9 @@ PYTHON=python
 PIP=pip
 
 BIN=$(firstword $(subst :, " ", $(PATH)))
-NAME=ImageCol
-NAME_MPI=ImageCol_mpi
+NAME=PyFibre
+NAME_MPI=PyFibre_mpi
+DESKTOP=$(HOME)/Desktop/
 
 
 init: check install test
@@ -25,14 +26,14 @@ install:
 	@echo "Installing ${NAME}"
 	@echo
 	@$(PIP) install -r requirements.txt
-	@$(PYTHON) make.py install $(NAME) $(BIN) || (echo "Installation failed"; exit 1)
+	@$(PYTHON) make.py install $(NAME) $(BIN) $(DESKTOP) || (echo "Installation failed"; exit 1)
 
 install_mpi:
 	@echo
 	@echo "Installing ${NAME_MPI}"
 	@echo
 	@$(PIP) install -r requirements_mpi.txt
-	@$(PYTHON) make.py install_mpi $(NAME_MPI) $(BIN) || (echo "Installation failed"; exit 1)
+	@$(PYTHON) make.py install_mpi $(NAME_MPI) $(BIN) $(DESKTOP) || (echo "Installation failed"; exit 1)
 
 test:
 	@echo
@@ -42,11 +43,11 @@ test:
 
 
 uninstall:
-	@$(PYTHON) make.py uninstall $(NAME) $(BIN) || (echo "Uninstallation failed"; exit 1)
+	@$(PYTHON) make.py uninstall $(NAME) $(BIN) $(DESKTOP) || (echo "Uninstallation failed"; exit 1)
 		
 
 uninstall_mpi:
-	@$(PYTHON) make.py uninstall_mpi $(NAME) $(BIN) || (echo "Uninstallation failed"; exit 1)
+	@$(PYTHON) make.py uninstall_mpi $(NAME) $(BIN) $(DESKTOP) || (echo "Uninstallation failed"; exit 1)
 
 clean:
 	@rm -f -r bin
