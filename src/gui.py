@@ -5,7 +5,7 @@ import queue, threading
 from multiprocessing import Pool, Process, JoinableQueue, Queue, current_process
 
 import matplotlib
-matplotlib.use("TkAgg")
+matplotlib.use("Agg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
