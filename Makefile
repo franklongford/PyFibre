@@ -13,7 +13,7 @@ NAME_MPI=PyFibre_mpi
 DESKTOP=$(HOME)/Desktop/
 
 
-init: check install test
+init: check install #test
 
 
 check:	
@@ -29,7 +29,7 @@ check:
 	@$(PIP) --version || (echo "No pip distribution detected"; exit 1)
 
 
-install: check
+install:
 	@echo
 	@echo "Installing ${NAME}"
 	@echo
