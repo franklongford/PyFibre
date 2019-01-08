@@ -44,7 +44,7 @@ class imagecol_gui:
 
 		"Define GUI objects"
 		self.master = master
-		self.master.geometry("1055x620")
+		self.master.geometry("1080x620")
 		self.master.configure(background='#d8baa9')
 		self.master.protocol("WM_DELETE_WINDOW", lambda: quit())
 
@@ -147,6 +147,7 @@ class imagecol_gui:
 		frame.progress.grid(column=0, row=3, columnspan=3)
 
 		frame.configure(background='#d8baa9')
+
 
 	def add_images(self):
 		
@@ -283,6 +284,8 @@ class imagecol_gui:
 		notebook.frame4.text.insert(END, self.Log)
 		notebook.frame4.text.config(state=DISABLED)
 		notebook.frame4.text.pack()
+
+		#notebook.BFrame.configure(background='#d8baa9')
 
 
 	def update_dashboard(self):
