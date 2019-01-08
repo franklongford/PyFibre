@@ -1,6 +1,6 @@
 # PyFibre
 
-PyFibre is an open source image analysis toolkit for fibrous tissue that can be run either in a terminal or GUI. It is designed to make the quantification of fibrous tissue automated and standardised for non-technical users whilst remaining transparent as possible.
+PyFibre is an open source image analysis toolkit for fibrous tissue that can be run either in a terminal or GUI. It is designed to make the quantification of fibrous tissue automated, standardised and efficient whilst remaining as transparent as possible for non-technical users.
  
 ![PyFibre logo](src/icon.ico)
 
@@ -8,14 +8,22 @@ PyFibre is an open source image analysis toolkit for fibrous tissue that can be 
 Installation
 ------
 
-PyFibre requires a local distributions of python >= 3.6 and pip >= 9.0 in order to run. Either anaconda or miniconda distributions are recommended, as well as the use of a virtual environment, since creating local binaries may require root access.
+PyFibre requires a local distributions of python >= 3.6 and pip >= 9.0 in order to run. Either [anaconda](https://www.anaconda.com/download/) or [miniconda](https://conda.io/miniconda.html) distributions are recommended.
 
-Once downloaded, run `make install` in the PyFibre directory to install all required libraries and create the `PyFibre` and `PyFibre_GUI` binaries.
+The use of a virtual environment, such as [conda](https://conda.io/docs/), is optional, but also recommended. If using anaconda or miniconda python distribution, this can be easily initiated set up using the commands:
+
+`conda create -n PyFibre python=3.6`
+
+`source activate PyFibre`
+
+Once a suitable distribution of python is installed, download the Pyfibre repository and run `make` in the PyFibre directory. This will install all required libraries and create the local `PyFibre` and `PyFibre_GUI` binaries.
 
 Running the PyFibre GUI
 ----
 
-Once installed, calling the executable `PyFibre_GUI` will initiate a graphical user interface.
+Once installed, calling the executable `PyFibre_GUI` from the command line will initiate a graphical user interface.
+
+
 
 PyFibre is set by default to detect Tagged Image Format (tif) files. To load in individual files to analyse, use the `Select File` button and use the pop up window to navigate through your file tree. Alternatively, you can load in all tif files within a single directory by using the `Select Folder` button.
 
