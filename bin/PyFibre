@@ -1,0 +1,3 @@
+#!/bin/bash
+
+python /Users/frank/Documents/Postdoc/PyFibre/src/main.py "$@"
