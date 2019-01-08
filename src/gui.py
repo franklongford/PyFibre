@@ -44,7 +44,8 @@ class imagecol_gui:
 
 		"Define GUI objects"
 		self.master = master
-		self.master.geometry("1100x620")
+		self.master.geometry("1055x620")
+		self.master.configure(background='#d8baa9')
 		self.master.protocol("WM_DELETE_WINDOW", lambda: quit())
 
 		self.title = Frame(self.master)
@@ -53,11 +54,11 @@ class imagecol_gui:
 
 		self.options = Frame(self.master)
 		self.create_options(self.options)
-		self.options.place(x=300, y=1, height=200, width=200)
+		self.options.place(x=300, y=1, height=200, width=150)
 
 		self.file_display = Frame(self.master)
 		self.create_file_display(self.file_display)
-		self.file_display.place(x=5, y=220, height=600, width=500)
+		self.file_display.place(x=5, y=220, height=600, width=445)
 
 		self.image_display = ttk.Notebook(self.master)
 		self.create_image_display(self.image_display)
@@ -67,7 +68,7 @@ class imagecol_gui:
 
 	def create_title(self, frame):
 
-		self.master.title("PyFibre - Python Fibrous Image Toolkit")
+		self.master.title("PyFibre - Python Fibrous Image Analysis Toolkit")
 
 		image = Image.open(self.dir_path + '/icon.ico')
 		image = image.resize((300,200))
@@ -81,19 +82,28 @@ class imagecol_gui:
 
 	def create_options(self, frame):
 
+		frame.title = Label(frame, text="Options")
+		frame.title.configure(background='#d8baa9')
+		frame.title.grid(column=0, row=0, rowspan=2)
+
 		self.ow_metric = IntVar()
 		frame.chk_anis = Checkbutton(frame, text="o/w metrics", variable=self.ow_metric)
-		frame.chk_anis.grid(column=0, row=0, sticky=(N,W,E,S))
+		frame.chk_anis.configure(background='#d8baa9')
+		frame.chk_anis.grid(column=0, row=2, sticky=(N,W,E,S))
 		#frame.chk_anis.pack(side=LEFT)
 
 		self.ow_network = IntVar()
 		frame.chk_graph = Checkbutton(frame, text="o/w graph", variable=self.ow_network)
-		frame.chk_graph.grid(column=0, row=1, sticky=(N,W,E,S))
+		frame.chk_graph.configure(background='#d8baa9')
+		frame.chk_graph.grid(column=0, row=3, sticky=(N,W,E,S))
 		#frame.chk_graph.pack(side=LEFT)
 
 		self.save_db = IntVar()
 		frame.chk_db = Checkbutton(frame, text="Save Database", variable=self.save_db)
-		frame.chk_db.grid(column=0, row=2, sticky=(N,W,E,S))
+		frame.chk_db.configure(background='#d8baa9')
+		frame.chk_db.grid(column=0, row=4, sticky=(N,W,E,S))
+
+		frame.configure(background='#d8baa9')
 
 
 	def create_file_display(self, frame):
@@ -136,6 +146,7 @@ class imagecol_gui:
 		frame.progress = ttk.Progressbar(frame, orient=HORIZONTAL, length=400, mode='determinate')
 		frame.progress.grid(column=0, row=3, columnspan=3)
 
+		frame.configure(background='#d8baa9')
 
 	def add_images(self):
 		
