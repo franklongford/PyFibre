@@ -29,6 +29,7 @@ PyFibre is set by default to detect Tagged Image Format (tif) files. To load in 
 
 Once loaded, the files are visible in a scrollable list on the left hand side. They can be removed from here at any time by highlighting and clicking the `Delete` button. However, clicking the `GO` button at the bottom will begin a batch analysis of all the files listed within the box at the time of execution.
 
+### --- (Under Development) ---
 
 Running in the Terminal
 ----
