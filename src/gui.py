@@ -103,6 +103,11 @@ class imagecol_gui:
 		frame.chk_db.configure(background='#d8baa9')
 		frame.chk_db.grid(column=0, row=4, sticky=(N,W,E,S))
 
+		self.ext = StringVar()
+		frame.chk_ext = Checkbutton(frame, text="Extension", variable=self.save_db)
+		frame.chk_ext.configure(background='#d8baa9')
+		frame.chk_ext.grid(column=0, row=5, sticky=(N,W,E,S))
+
 		frame.configure(background='#d8baa9')
 
 

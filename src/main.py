@@ -22,9 +22,9 @@ if __name__ == '__main__':
 	print(ut.logo())
 
 	parser = argparse.ArgumentParser(description='Image analysis of fibourous tissue samples')
-	parser.add_argument('--name', nargs='?', help='Tif file names to load', default=[])
-	parser.add_argument('--dir', nargs='?', help='Directories to load tif files', default=[current_dir])
-	parser.add_argument('--key', nargs='?', help='Keywords to filter file names', default=[])
+	parser.add_argument('--name', nargs='?', help='Tif file names to load', default="")
+	parser.add_argument('--dir', nargs='?', help='Directories to load tif files', default="")
+	parser.add_argument('--key', nargs='?', help='Keywords to filter file names', default="")
 	parser.add_argument('--ow_metric', action='store_true', help='Toggles overwrite analytic metrics')
 	parser.add_argument('--ow_network', action='store_true', help='Toggles overwrite network extraction')
 	parser.add_argument('--save_db', nargs='?', help='Output database filename', default=None)
@@ -33,7 +33,10 @@ if __name__ == '__main__':
 	print(args)
 
 	input_files = args.name.split(',')
-	for directory in args.dir.split(','): input_files += os.listdir(directory)
+
+	if len(args.dir) != 0:
+		for directory in args.dir.split(','): 
+			for file_name in os.listdir(directory): input_files += [directory + '/' + file_name]
 
 	removed_files = []
 
@@ -42,7 +45,7 @@ if __name__ == '__main__':
 		elif (file_name.find('display') != -1): removed_files.append(file_name)
 		elif (file_name.find('AVG') == -1): removed_files.append(file_name)
 
-	for keys in args.key.split(','):
+	for key in args.key.split(','):
 		for file_name in input_files:
 			if (file_name.find(key) == -1) and (file_name not in removed_files): 
 				removed_files.append(file_name)

@@ -13,6 +13,8 @@ import numpy as np
 import scipy as sp
 import networkx as nx
 
+from PIL import Image
+
 from scipy.misc import derivative
 from scipy.ndimage import filters, imread
 from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
@@ -35,13 +37,14 @@ from filters import tubeness
 from extraction import FIRE, adj_analysis
 
 
-def load_tif(image_name):
+def load_image(image_name):
 
-	image_orig = img_as_float(imread(image_name)).astype(np.float32)
+
+	image_orig = np.asarray(Image.open(image_name)).astype(np.float32)
 
 	if image_orig.ndim > 2: 
 		image = np.sum(image_orig / image_orig.max(axis=-1), axis=0)
-	else: image = image_orig
+	else: image = image_orig / image_orig.max()
 
 	return image
 

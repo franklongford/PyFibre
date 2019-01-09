@@ -1,0 +1,3 @@
+#!/bin/bash
+
+python /home/fgjl1d17/PyFibre/src/gui.py
