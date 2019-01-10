@@ -311,12 +311,12 @@ def FIRE(image, sigma = 1.5, lambda_=0.5, nuc_thresh=2, lmp_thresh=0.2,
 		tot_node_coord = np.stack((Aij.nodes[i]['xy'] for i in Aij.nodes()))
 		fibre_indices = np.argwhere(fibre_grow).flatten()
 
-		#"""Serial Version
+		"""Serial Version
 		for fibre in fibre_indices:
 			grow(tot_fibres[fibre], smoothed, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh)
-		#"""
+		"""
 
-		"""Multithreading Version
+		#"""Multithreading Version
 		thread_pool = []
 
 		for fibre in fibre_indices:
@@ -326,7 +326,7 @@ def FIRE(image, sigma = 1.5, lambda_=0.5, nuc_thresh=2, lmp_thresh=0.2,
 	
 		for thread in thread_pool: thread.start()
 		for thread in thread_pool: thread.join()
-		"""
+		#"""
 
 		fibre_grow = [fibre.growing for fibre in tot_fibres]
 		it += 1

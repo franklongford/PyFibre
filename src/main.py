@@ -60,7 +60,7 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 		if snr <= snr_thresh: raise NoiseError(snr, snr_thresh)
 		print(" Noise threshold accepted ({} > {})".format(snr, snr_thresh))
 		
-		pre_image = it.preprocess_image(image, sigma=sigma, threshold=False, clip_limit=clip_limit)
+		pre_image = it.preprocess_image(image, sigma=sigma, threshold=True, clip_limit=clip_limit)
 
 		net = it.network_extraction(data_dir + fig_name, pre_image, ow_network) 
 		(label_image, sorted_areas, regions, networks) = net

@@ -24,7 +24,7 @@ from skimage.transform import rescale
 from skimage.morphology import (disk, dilation)
 from skimage.filters import rank, threshold_otsu, hessian
 from skimage.color import rgb2hsv, hsv2rgb
-from skimage.restoration import denoise_tv_chambolle, estimate_sigma
+from skimage.restoration import denoise_tv_chambolle, denoise_tv_bregman, estimate_sigma
 from skimage.feature import ORB
 
 from sklearn.decomposition import NMF
@@ -64,16 +64,12 @@ def set_HSB(image, hue, saturation=1, brightness=1):
 	return hsv2rgb(hsv)
 
 
-def preprocess_image(image, size=None, sigma=None, weight=None, clip_limit=None, 
-						threshold=False, n_components=None):
+def preprocess_image(image, clip_limit=None, weight=None, threshold=False):
 
-	if sigma != None: image = filters.gaussian_filter(image, sigma=sigma)
-	if size != None: image = rank.noise_filter(image, disk(size))
-	if n_components != None: image = nmf_reconstuction(image, n_components)
 	if clip_limit != None: image = exposure.equalize_adapthist(image, clip_limit=clip_limit)
+	if weight != None: image = denoise_tv_bregman(image, weight=weight)
 	if threshold: image = np.where(image >= threshold_otsu(image), image, 0)
-	if weight != None: image = denoise_tv_chambolle(image, weight=weight)
-
+	
 	image = image / image.max()
 
 	return image
@@ -474,28 +470,28 @@ def network_analysis(label_image, sorted_areas, networks, n_tensor, anis_map):
 			network_waviness, pix_anis, coverage, solidity)
 
 
-def get_snr_estimates(image, sigma, guess):
+def get_snr_estimates(image, guess_cl, guess_w, inc = 1E-3):
 
-	clip_limit = [guess - 0.001, guess, guess + 0.001]
-	snr = []
+	clip_limit = [guess_cl - inc, guess_cl, guess_cl + inc]
+	weight = [guess_w - inc, guess_w, guess_w + inc]
+	snr = np.zeros((3, 3))
+	jacobian = np.zeros(2)
+	hessian = np.zeros((2, 2))
 
-	for cl in clip_limit: 
-		img = preprocess_image(image, sigma=sigma, threshold=False, clip_limit=cl)
-		snr.append(get_snr(img))
+	for i, cl in enumerate(clip_limit):
+		for j, w in enumerate(weight):
+			img = preprocess_image(image, clip_limit=guess_cl, weight=w, threshold=True, )
+			snr[i][j] = get_snr(img)
 
-	d_cl = clip_limit[-1] - clip_limit[0]
-	d_snr = snr[-1] - snr[0]
-	snr_grad = d_snr / d_cl
+	jacobian[0] = 0.5 * (snr[2][1] - snr[0][1]) / inc
+	jacobian[1] = 0.5 * (snr[1][2] - snr[1][0]) / inc
 
-	first_derivative = snr_grad
+	hessian[0][0] = 0.25 * (snr[2][1] - 2 * snr[1][1] - snr[0][1]) / inc
+	hessian[0][1] = 0.25 * (snr[2][2] - snr[0][2] + snr[2][0] - snr[0][0]) / inc
+	hessian[1][0] = 0.25 * (snr[2][2] - snr[2][0] + snr[0][2] - snr[0][0]) / inc
+	hessian[1][1] = 0.25 * (snr[1][2] - 2 * snr[1][1] - snr[1][0]) / inc
 
-	d_cl = [clip_limit[1] - clip_limit[0], clip_limit[2] - clip_limit[1]]
-	d_snr = [snr[1] - snr[0], snr[2] - snr[1]]
-	snr_grad = [d_snr[0] / d_cl[0], d_snr[1] / d_cl[1]]
-
-	second_derivative = 0.5 * (snr_grad[-1] - snr_grad[0]) / (clip_limit[-1] - clip_limit[0])
-
-	return snr[1], first_derivative, second_derivative
+	return snr[1][1], jacobian, hessian
 
 def get_snr(image):
 
@@ -505,48 +501,57 @@ def get_snr(image):
 	return signal / noise
 
 
-def optimise_equalisation(image, sigma, guess=0.1, alpha = 1.0, precision = 2E-1, max_it=100):
+def optimise_equalisation(image, sigma, guess=[0.1, 1.0], alpha = 1.0, precision = 2E-1, max_it=100):
 
 	iteration = 1
-	clip_limit = [guess]
+	clip_limit = [guess[0], guess[0]+0.0001]
+	weight = [guess[1], guess[1]+0.0001]
 	snr = []
 	snr_grad = []
 
-	snr_n, d_snr, dd_snr = get_snr_estimates(image, sigma, clip_limit[-1])
+	snr_n, d_snr, dd_snr = get_snr_estimates(image, clip_limit[0], weight[0])
 	snr.append(snr_n)
 	snr_grad.append(d_snr)
 
+	snr_n, d_snr, dd_snr = get_snr_estimates(image, clip_limit[1], weight[1])
+	snr.append(snr_n)
+	snr_grad.append(d_snr)
+
+
 	check = False
 	while not check:
-		gamma = alpha * d_snr / dd_snr
-		new_clip_limit = clip_limit[-1] + gamma
+		gamma = d_snr * np.array((clip_limit[-1] - clip_limit[-2], weight[-1] - weight[-2])).T \
+				 * (snr_grad[-1] - snr_grad[-2]) / ((snr_grad[-1] - snr_grad[-2])**2).sum()
+
+		new_clip_limit = clip_limit[-1] + (alpha * gamma[0])
+		new_weight = weight[-1] + (alpha * gamma[1])
+
 		check = (new_clip_limit >= 0) * (new_clip_limit < 0.5)
 		alpha *= 0.9
 
-	print(iteration, d_snr, dd_snr, clip_limit[-1], snr[-1], snr_grad[-1], gamma)
-	clip_limit.append(clip_limit[-1] + gamma)
-
+	clip_limit.append(new_clip_limit)
+	weight.append(new_weight)
 	
 	while True:
 		snr_n, d_snr, dd_snr = get_snr_estimates(image, sigma, clip_limit[-1])
 		snr.append(snr_n)
 		snr_grad.append(d_snr)
 		
-		gamma = d_snr * (clip_limit[-1] - clip_limit[-2]) * (snr_grad[-1] - snr_grad[-2]) / abs(snr_grad[-1] - snr_grad[-2])**2
+		gamma = d_snr * np.array((clip_limit[-1] - clip_limit[-2], weight[-1] - weight[-2])).T \
+				 * (snr_grad[-1] - snr_grad[-2]) / ((snr_grad[-1] - snr_grad[-2])**2).sum()
 		new_clip_limit = clip_limit[-1] + gamma 
-		check = (new_clip_limit >= 0) * (new_clip_limit < 0.5) * (iteration <= max_it) * (abs(d_snr) >= precision)
+		check = (new_clip_limit >= 0) * (new_clip_limit < 0.5) * \
+			(iteration <= max_it) * (abs(d_snr).sum() >= precision)
 		print(new_clip_limit, check)
 		if not check:
 
-			#plt.figure(0)
-			#plt.scatter(clip_limit, snr)
-			#plt.figure(1)
-			
 			clip_limit = clip_limit[np.argmax(snr)]
+
+			eq_image = preprocess_image(image, sigma=sigma, threshold=True, clip_limit=clip_limit)
 
 			plt.clf()
 			plt.figure(0)
-			plt.imshow(preprocess_image(image, sigma=sigma, threshold=False, clip_limit=clip_limit))
+			plt.imshow(eq_image)
 			plt.savefig("equalised_image.png")
 
 			return clip_limit, np.max(snr)
@@ -556,7 +561,7 @@ def optimise_equalisation(image, sigma, guess=0.1, alpha = 1.0, precision = 2E-1
 
 		iteration += 1
 
-
+"""Deprecated"""
 
 def smart_nematic_tensor_analysis(nem_vector, precision=1E-1):
 	"""

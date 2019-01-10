@@ -403,16 +403,13 @@ class imagecol_gui:
 
 			try: 
 				database_array = np.concatenate((database_array, 
-											np.expand_dims(ut.load_npy(metric_name), axis=0)))
+								np.expand_dims(ut.load_npy(metric_name), axis=0)))
 				database_index.append(input_file_name)
-			except IOError:
-				self.update_log(f"{input_file_name} database not generated - check log")
-				raise IOError
-
-		print(database_array.shape)
+			except (ValueError, IOError):
+				self.update_log(f"{input_file_name} database not imported - skipping")
 
 		self.database = pd.DataFrame(data=database_array, columns=self.image_display.frame3.titles,
-					 index = self.input_files)
+					 index = database_index)
 
 		self.update_dashboard()
 
@@ -467,9 +464,7 @@ class imagecol_gui:
 			self.file_display.run_button.config(state=NORMAL)
 			self.file_display.stop_button.config(state=DISABLED)
 			self.generate_db()
-			try:
-				if self.save_db.get(): self.save_database()
-			except IOError as err: queue.put(f"{err.message}")
+			if self.save_db.get(): self.save_database()
 
 
 	def queue_check(self):
