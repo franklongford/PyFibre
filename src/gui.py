@@ -103,10 +103,12 @@ class imagecol_gui:
 		frame.chk_db.configure(background='#d8baa9')
 		frame.chk_db.grid(column=0, row=4, sticky=(N,W,E,S))
 
-		self.ext = StringVar()
-		frame.chk_ext = Checkbutton(frame, text="Extension", variable=self.save_db)
-		frame.chk_ext.configure(background='#d8baa9')
-		frame.chk_ext.grid(column=0, row=5, sticky=(N,W,E,S))
+		text = Label(frame, text="Keyword")
+		frame.chk_db.configure(background='#d8baa9')
+		text.grid(column=0, row=5)
+		frame.key = Entry(frame)
+		frame.key.configure(background='#d8baa9')
+		frame.key.grid(column=1, row=5, sticky=(N,W,E,S))
 
 		frame.configure(background='#d8baa9')
 
@@ -169,6 +171,7 @@ class imagecol_gui:
 		
 		directory = filedialog.askdirectory()
 		new_files = [directory + '/' + filename for filename in os.listdir(directory) if filename.endswith('.tif')]
+		new_files = [filename for filename in new_files if (filename.find(self.options.key.get()) != -1)]
 		new_files = list(set(new_files).difference(set(self.input_files)))
 
 		self.input_files += new_files
