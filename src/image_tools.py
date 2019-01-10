@@ -19,9 +19,10 @@ from scipy.misc import derivative
 from scipy.ndimage import filters, imread
 from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
 
-from skimage import measure, img_as_float, exposure, feature
+from skimage import data, measure, img_as_float, exposure, feature
+from skimage.transform import rescale
 from skimage.morphology import (disk, dilation)
-from skimage.filters import rank, threshold_otsu
+from skimage.filters import rank, threshold_otsu, hessian
 from skimage.color import rgb2hsv, hsv2rgb
 from skimage.restoration import denoise_tv_chambolle, estimate_sigma
 from skimage.feature import ORB
@@ -471,6 +472,92 @@ def network_analysis(label_image, sorted_areas, networks, n_tensor, anis_map):
 
 	return (net_area, net_anis, net_linear, net_cluster, net_degree, fibre_waviness, 
 			network_waviness, pix_anis, coverage, solidity)
+
+
+class NoiseError(Exception):
+    
+    def __init__(self, noise, thresh):
+
+    	self.noise = noise
+    	self.thresh = thresh
+    	self.message = "Image too noisy ({} > {})".format(noise, thresh)
+
+
+def get_snr_estimates(image, sigma, guess):
+
+	clip_limit = [guess - 0.001, guess, guess + 0.001]
+	snr = []
+
+	for cl in clip_limit: 
+		img = it.preprocess_image(image, sigma=sigma, threshold=True, clip_limit=cl)
+		snr.append(get_snr(img))
+
+	d_cl = clip_limit[-1] - clip_limit[0]
+	d_snr = snr[-1] - snr[0]
+	snr_grad = d_snr / d_cl
+
+	first_derivative = snr_grad
+
+	d_cl = [clip_limit[1] - clip_limit[0], clip_limit[2] - clip_limit[1]]
+	d_snr = [snr[1] - snr[0], snr[2] - snr[1]]
+	snr_grad = [d_snr[0] / d_cl[0], d_snr[1] / d_cl[1]]
+
+	second_derivative = 0.5 * (snr_grad[-1] - snr_grad[0]) / (clip_limit[-1] - clip_limit[0])
+
+	return snr[1], first_derivative, second_derivative
+
+def get_snr(image):
+
+	noise = estimate_sigma(image, multichannel=False, average_sigmas=True)
+	signal = image.sum() / np.count_nonzero(image)
+
+	return signal / noise
+
+
+def optimise_equalisation(image, sigma, guess=0.1, alpha = 1.0, precision = 2E-1, max_it=100):
+
+	iteration = 1
+	clip_limit = [guess]
+	snr = []
+	snr_grad = []
+
+	img = preprocess_image(image, sigma=sigma, threshold=True, clip_limit=clip_limit[-1])
+	snr_n, d_snr, dd_snr = get_snr_estimates(image, sigma, clip_limit[-1])
+	snr.append(snr_n)
+	snr_grad.append(d_snr)
+
+	gamma = alpha * d_snr / dd_snr
+	print(iteration, d_snr, dd_snr, clip_limit[-1], snr[-1], snr_grad[-1], gamma)
+	clip_limit.append(clip_limit[-1] + gamma)
+	
+	while True:
+		img = preprocess_image(image, sigma=sigma, threshold=True, clip_limit=clip_limit[-1])
+		snr_n, d_snr, dd_snr = get_snr_estimates(image, sigma, clip_limit[-1])
+		snr.append(snr_n)
+		snr_grad.append(d_snr)
+		
+		gamma = d_snr * (clip_limit[-1] - clip_limit[-2]) * (snr_grad[-1] - snr_grad[-2]) / abs(snr_grad[-1] - snr_grad[-2])**2
+		new_clip_limit = clip_limit[-1] + gamma 
+		check = (new_clip_limit >= 0) * (new_clip_limit < 0.5) * (iteration <= max_it) * (abs(d_snr) >= precision)
+
+		if not check:
+
+			#plt.figure(0)
+			#plt.scatter(clip_limit, snr)
+			#plt.figure(1)
+			
+			clip_limit = clip_limit[np.argmax(snr)]
+
+			#plt.imshow(it.preprocess_image(image, sigma=sigma, threshold=True, clip_limit=clip_limit))
+			#plt.show()
+
+			return clip_limit
+
+		print(iteration, d_snr, dd_snr, (clip_limit[-1] - clip_limit[-2]) , (snr_grad[-1] - snr_grad[-2]) , abs(snr_grad[-1] - snr_grad[-2])**2, gamma)
+		clip_limit.append(new_clip_limit)
+
+		iteration += 1
+
 
 
 def smart_nematic_tensor_analysis(nem_vector, precision=1E-1):

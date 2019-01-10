@@ -25,9 +25,9 @@ from skimage.filters import threshold_otsu
 from skimage.color import gray2rgb
 from skimage.restoration import (estimate_sigma, denoise_tv_chambolle, denoise_bilateral)
 
-from main import *
+from main import analyse_image
 import utilities as ut
-from analysis import analyse_image, NoiseError
+from image_tools import NoiseError
 
 class imagecol_gui:
 
