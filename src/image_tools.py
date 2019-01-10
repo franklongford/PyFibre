@@ -367,7 +367,7 @@ def get_curvature(j_tensor, H_tensor):
 	return np.nan_to_num(gauss_curvature), np.nan_to_num(mean_curvature)
 
 
-def network_extraction(graph_name, image, filtered, n_clusters=3, ow_graph=False):
+def network_extraction(graph_name, image, ow_graph=False):
 	"""
 	Extract fibre network using modified FIRE algorithm
 	"""
@@ -474,22 +474,13 @@ def network_analysis(label_image, sorted_areas, networks, n_tensor, anis_map):
 			network_waviness, pix_anis, coverage, solidity)
 
 
-class NoiseError(Exception):
-    
-    def __init__(self, noise, thresh):
-
-    	self.noise = noise
-    	self.thresh = thresh
-    	self.message = "Image too noisy ({} > {})".format(noise, thresh)
-
-
 def get_snr_estimates(image, sigma, guess):
 
 	clip_limit = [guess - 0.001, guess, guess + 0.001]
 	snr = []
 
 	for cl in clip_limit: 
-		img = it.preprocess_image(image, sigma=sigma, threshold=True, clip_limit=cl)
+		img = preprocess_image(image, sigma=sigma, threshold=False, clip_limit=cl)
 		snr.append(get_snr(img))
 
 	d_cl = clip_limit[-1] - clip_limit[0]
@@ -521,17 +512,22 @@ def optimise_equalisation(image, sigma, guess=0.1, alpha = 1.0, precision = 2E-1
 	snr = []
 	snr_grad = []
 
-	img = preprocess_image(image, sigma=sigma, threshold=True, clip_limit=clip_limit[-1])
 	snr_n, d_snr, dd_snr = get_snr_estimates(image, sigma, clip_limit[-1])
 	snr.append(snr_n)
 	snr_grad.append(d_snr)
 
-	gamma = alpha * d_snr / dd_snr
+	check = False
+	while not check:
+		gamma = alpha * d_snr / dd_snr
+		new_clip_limit = clip_limit[-1] + gamma
+		check = (new_clip_limit >= 0) * (new_clip_limit < 0.5)
+		alpha *= 0.9
+
 	print(iteration, d_snr, dd_snr, clip_limit[-1], snr[-1], snr_grad[-1], gamma)
 	clip_limit.append(clip_limit[-1] + gamma)
+
 	
 	while True:
-		img = preprocess_image(image, sigma=sigma, threshold=True, clip_limit=clip_limit[-1])
 		snr_n, d_snr, dd_snr = get_snr_estimates(image, sigma, clip_limit[-1])
 		snr.append(snr_n)
 		snr_grad.append(d_snr)
@@ -539,7 +535,7 @@ def optimise_equalisation(image, sigma, guess=0.1, alpha = 1.0, precision = 2E-1
 		gamma = d_snr * (clip_limit[-1] - clip_limit[-2]) * (snr_grad[-1] - snr_grad[-2]) / abs(snr_grad[-1] - snr_grad[-2])**2
 		new_clip_limit = clip_limit[-1] + gamma 
 		check = (new_clip_limit >= 0) * (new_clip_limit < 0.5) * (iteration <= max_it) * (abs(d_snr) >= precision)
-
+		print(new_clip_limit, check)
 		if not check:
 
 			#plt.figure(0)
@@ -548,10 +544,12 @@ def optimise_equalisation(image, sigma, guess=0.1, alpha = 1.0, precision = 2E-1
 			
 			clip_limit = clip_limit[np.argmax(snr)]
 
-			#plt.imshow(it.preprocess_image(image, sigma=sigma, threshold=True, clip_limit=clip_limit))
-			#plt.show()
+			plt.clf()
+			plt.figure(0)
+			plt.imshow(preprocess_image(image, sigma=sigma, threshold=False, clip_limit=clip_limit))
+			plt.savefig("equalised_image.png")
 
-			return clip_limit
+			return clip_limit, np.max(snr)
 
 		print(iteration, d_snr, dd_snr, (clip_limit[-1] - clip_limit[-2]) , (snr_grad[-1] - snr_grad[-2]) , abs(snr_grad[-1] - snr_grad[-2])**2, gamma)
 		clip_limit.append(new_clip_limit)

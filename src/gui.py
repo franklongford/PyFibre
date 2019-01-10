@@ -27,7 +27,7 @@ from skimage.restoration import (estimate_sigma, denoise_tv_chambolle, denoise_b
 
 from main import analyse_image
 import utilities as ut
-from image_tools import NoiseError
+from utilities import NoiseError
 
 class imagecol_gui:
 
@@ -44,7 +44,7 @@ class imagecol_gui:
 
 		"Define GUI objects"
 		self.master = master
-		self.master.geometry("1080x620")
+		self.master.geometry("1180x620")
 		self.master.configure(background='#d8baa9')
 		self.master.protocol("WM_DELETE_WINDOW", lambda: quit())
 
@@ -54,16 +54,16 @@ class imagecol_gui:
 
 		self.options = Frame(self.master)
 		self.create_options(self.options)
-		self.options.place(x=300, y=1, height=200, width=150)
+		self.options.place(x=300, y=1, height=200, width=250)
 
 		self.file_display = Frame(self.master)
 		self.create_file_display(self.file_display)
-		self.file_display.place(x=5, y=220, height=600, width=445)
+		self.file_display.place(x=5, y=220, height=600, width=545)
 
 		self.image_display = ttk.Notebook(self.master)
 		self.create_image_display(self.image_display)
 		self.master.bind('<Double-1>', lambda e: self.display_notebook())
-		self.image_display.place(x=450, y=10, width=625, height=600)
+		self.image_display.place(x=550, y=10, width=625, height=600)
 
 
 	def create_title(self, frame):
@@ -103,38 +103,43 @@ class imagecol_gui:
 		frame.chk_db.configure(background='#d8baa9')
 		frame.chk_db.grid(column=0, row=4, sticky=(N,W,E,S))
 
-		text = Label(frame, text="Keyword")
-		frame.chk_db.configure(background='#d8baa9')
-		text.grid(column=0, row=5)
-		frame.key = Entry(frame)
-		frame.key.configure(background='#d8baa9')
-		frame.key.grid(column=1, row=5, sticky=(N,W,E,S))
-
 		frame.configure(background='#d8baa9')
 
 
 	def create_file_display(self, frame):
 
-		frame.select_im_button = Button(frame, width=15,
-				   text="Select files",
+		frame.select_im_button = Button(frame, width=10,
+				   text="Load Files",
 				   command=self.add_images)
 		frame.select_im_button.grid(column=0, row=0)
 
-		frame.select_dir_button = Button(frame, width=15,
-				   text="Select directory",
+		frame.select_dir_button = Button(frame, width=10,
+				   text="Load Folder",
 				   command=self.add_directory)
 		frame.select_dir_button.grid(column=1, row=0)
 
-		frame.delete_im_button = Button(frame, width=15,
-				   text="Delete",
-				   command=self.del_images)
-		frame.delete_im_button.grid(column=2, row=0)
+		frame.key = Entry(frame, width=10)
+		frame.key.configure(background='#d8baa9')
+		frame.key.grid(column=3, row=0, sticky=(N,W,E,S))
+
+		frame.select_dir_button = Button(frame, width=10,
+				   text="Filter",
+				   command=lambda : self.del_images([filename for filename in self.input_files \
+							if (filename.find(frame.key.get()) == -1)]))
+		frame.select_dir_button.grid(column=2, row=0)
+
 
 		frame.file_box = Listbox(frame, height=20, width=40, selectmode="extended")
-		frame.file_box.grid(column=0, row=1, columnspan=3, sticky=(N,W,E,S))
+		frame.file_box.grid(column=0, row=1, columnspan=5, sticky=(N,W,E,S))
+
+		frame.delete_im_button = Button(frame, width=10,
+				   text="Delete",
+				   command=lambda : self.del_images([self.file_display.file_box.get(idx)\
+							 for idx in self.file_display.file_box.curselection()]))
+		frame.delete_im_button.grid(column=4, row=0)
 
 		frame.scrollbar = ttk.Scrollbar(frame, orient=VERTICAL, command=frame.file_box.yview)
-		frame.scrollbar.grid(column=3, row=1, sticky=(N,S))
+		frame.scrollbar.grid(column=5, row=1, sticky=(N,S))
 		frame.file_box['yscrollcommand'] = frame.scrollbar.set
 
 		#frame.grid_columnconfigure(1, weight=1)
@@ -143,15 +148,15 @@ class imagecol_gui:
 		frame.run_button = Button(frame, width=30,
 				   text="GO",
 				   command=self.write_run)
-		frame.run_button.grid(column=0, row=2, columnspan=2)
+		frame.run_button.grid(column=0, row=2, columnspan=3)
 
 		frame.stop_button = Button(frame, width=15,
 				   text="STOP",
 				   command=self.stop_run, state=DISABLED)
-		frame.stop_button.grid(column=2, row=2)
+		frame.stop_button.grid(column=2, row=2, columnspan=3)
 
 		frame.progress = ttk.Progressbar(frame, orient=HORIZONTAL, length=400, mode='determinate')
-		frame.progress.grid(column=0, row=3, columnspan=3)
+		frame.progress.grid(column=0, row=3, columnspan=5)
 
 		frame.configure(background='#d8baa9')
 
@@ -170,8 +175,8 @@ class imagecol_gui:
 	def add_directory(self):
 		
 		directory = filedialog.askdirectory()
-		new_files = [directory + '/' + filename for filename in os.listdir(directory) if filename.endswith('.tif')]
-		new_files = [filename for filename in new_files if (filename.find(self.options.key.get()) != -1)]
+		new_files = [directory + '/' + filename for filename in os.listdir(directory) \
+				 if filename.endswith('.tif')]
 		new_files = list(set(new_files).difference(set(self.input_files)))
 
 		self.input_files += new_files
@@ -181,12 +186,9 @@ class imagecol_gui:
 			self.update_log("Adding {}".format(filename))
 
 
-	def del_images(self):
-		
-		selected_files = [self.file_display.file_box.get(idx)\
-							 for idx in self.file_display.file_box.curselection()]
+	def del_images(self, file_list):
 
-		for filename in selected_files:
+		for filename in file_list:
 			index = self.input_files.index(filename)
 			self.input_files.remove(filename)
 			self.file_display.file_box.delete(index)
@@ -200,9 +202,9 @@ class imagecol_gui:
 		notebook.frame1 = ttk.Frame(notebook)
 		notebook.add(notebook.frame1, text='Image')
 		notebook.frame1.canvas = Canvas(notebook.frame1, width=650, height=550,
-								scrollregion=(0,0,650,600))   # first page, which would get widgets gridded into it
+								scrollregion=(0,0,650,600))  
 		notebook.frame1.scrollbar = Scrollbar(notebook.frame1, orient=VERTICAL, 
-											command=notebook.frame1.canvas.yview)
+							command=notebook.frame1.canvas.yview)
 		notebook.frame1.scrollbar.pack(side=RIGHT,fill=Y)
 		notebook.frame1.canvas['yscrollcommand'] = notebook.frame1.scrollbar.set
 		notebook.frame1.canvas.pack(side = LEFT, fill = "both", expand = "yes")
@@ -210,9 +212,9 @@ class imagecol_gui:
 		notebook.frame2 = ttk.Frame(notebook)
 		notebook.add(notebook.frame2, text='Network')
 		notebook.frame2.canvas = Canvas(notebook.frame2, width=650, height=550,
-								scrollregion=(0,0,650,600))   # first page, which would get widgets gridded into it
+								scrollregion=(0,0,650,600))  
 		notebook.frame2.scrollbar = Scrollbar(notebook.frame2, orient=VERTICAL, 
-											command=notebook.frame2.canvas.yview)
+							command=notebook.frame2.canvas.yview)
 		notebook.frame2.scrollbar.pack(side=RIGHT,fill=Y)
 		notebook.frame2.canvas['yscrollcommand'] = notebook.frame2.scrollbar.set
 		notebook.frame2.canvas.pack(side = LEFT, fill = "both", expand = "yes")
@@ -221,8 +223,8 @@ class imagecol_gui:
 		notebook.add(notebook.frame3, text='Metrics')
 
 		notebook.frame3.titles = ["Clustering", "Degree", "Linearity", "Coverage",
-								"Fibre Waviness", "Network Waviness", "Solidity",
-								"Pixel Anisotropy", "Region Anisotropy", "Image Anisotropy"]
+					"Fibre Waviness", "Network Waviness", "Solidity",
+					"Pixel Anisotropy", "Region Anisotropy", "Image Anisotropy"]
 		"""
 		notebook.clustering = DoubleVar()
 		notebook.degree = DoubleVar()
@@ -404,8 +406,8 @@ class imagecol_gui:
 											np.expand_dims(ut.load_npy(metric_name), axis=0)))
 				database_index.append(input_file_name)
 			except IOError:
-				self.update_log("{} database not generated - check log")
-				return
+				self.update_log(f"{input_file_name} database not generated - check log")
+				raise IOError
 
 		print(database_array.shape)
 
@@ -415,7 +417,7 @@ class imagecol_gui:
 		self.update_dashboard()
 
 
-	def save_db(self):
+	def save_database(self):
 
 		db_filename = filedialog.asksaveasfilename(defaultextension=".pkl")
 		self.database.to_pickle(db_filename)
@@ -428,22 +430,26 @@ class imagecol_gui:
 		self.file_display.stop_button.config(state=NORMAL)
 		self.file_display.progress['maximum'] = len(self.input_files)
 
-		"""
-		ow_metric = [self.ow_metric.get()] * len(self.input_files)
-		ow_network = [self.ow_network.get()] * len(self.input_files)
-		queue = [self.queue] * len(self.input_files)
-		args = zip(ow_metric, ow_network, queue)
-		for arg in args: print(arg)
+		#"""
+		proc_count = np.min((self.n_proc, len(self.input_files)))
+		batch_files = np.array_split(self.input_files, proc_count)
+		self.processes = []
+		for batch in batch_files:
+			print(batch)
+			process = Process(target=image_analysis, args=(batch, self.ow_metric.get(),
+					self.ow_network.get(), self.queue))
+			process.daemon = True
+			self.processes.append(process)
 
-		self.process = Pool(self.n_proc)
-		self.process.daemon = True
-		self.process.map(image_analysis, args)
-		"""
+		for process in self.processes: process.start()
+		#"""
 
+		"""
 		self.process = Process(target=image_analysis, args=(self.input_files, self.ow_metric.get(),
 														self.ow_network.get(), self.queue))
 		self.process.daemon = True
 		self.process.start()
+		"""
 		self.process_check()
 
 
@@ -453,14 +459,17 @@ class imagecol_gui:
 		"""
 		self.queue_check()
 
-		if self.process.exitcode is None:
+		#if self.process.exitcode is None:
+		if np.any([process.is_alive() for process in self.processes]):
 			self.master.after(500, self.process_check)
 		else: 
 			self.file_display.progress['value'] = 0
 			self.file_display.run_button.config(state=NORMAL)
 			self.file_display.stop_button.config(state=DISABLED)
 			self.generate_db()
-			if self.save_db.get(): self.save_db()
+			try:
+				if self.save_db.get(): self.save_database()
+			except IOError as err: queue.put(f"{err.message}")
 
 
 	def queue_check(self):
@@ -477,7 +486,7 @@ class imagecol_gui:
 	def stop_run(self):
 
 		self.update_log("Stopping Analysis")
-		self.process.terminate()
+		for process in self.processes: process.terminate()
 
 
 def image_analysis(input_files, ow_metric, ow_network, queue):
@@ -490,7 +499,7 @@ def image_analysis(input_files, ow_metric, ow_network, queue):
 
 		try:
 			analyse_image(image_path, input_file_name, ow_metric=ow_metric, 
-					ow_network=ow_network, sigma=0.5, snr_thresh=0.18)
+					ow_network=ow_network, sigma=0.5)
 			queue.put("Analysis of {} complete".format(input_file_name))
 
 		except NoiseError as err: queue.put("{} {}".format(err.message, input_file_name))

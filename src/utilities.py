@@ -16,6 +16,16 @@ SQRT3 = np.sqrt(3)
 SQRT2 = np.sqrt(2)
 SQRTPI = np.sqrt(np.pi)
 
+
+class NoiseError(Exception):
+    
+    def __init__(self, noise, thresh):
+
+    	self.noise = noise
+    	self.thresh = thresh
+    	self.message = "Image too noisy ({} > {})".format(noise, thresh)
+
+
 def logo():
 
 	logo_text = ' ' + '_' * 73 + '\n'

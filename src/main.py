@@ -17,11 +17,12 @@ import pandas as pd
 from skimage.transform import rescale
 
 import utilities as ut
+from utilities import NoiseError
 import image_tools as it
 
 
 def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=10, 
-				ow_metric=False, ow_network=False, snr_thresh=1.0):
+				ow_metric=False, ow_network=False, snr_thresh=4.0):
 
 	cmap = 'viridis'
 
@@ -37,13 +38,9 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 		metrics = ut.load_npy(data_dir + fig_name)
 
 	else:
-		clip_limit = it.optimise_equalisation(image, sigma)
-		image = it.preprocess_image(image, sigma=sigma, threshold=True, clip_limit=clip_limit)
-
 		n_tensor = it.form_nematic_tensor(image, sigma=sigma)
 		j_tensor = it.form_structure_tensor(image, sigma=sigma)
 		H_tensor = it.form_hessian_tensor(image, sigma=sigma)
-		pix_tube = tubeness(image, sigma=sigma)
 
 		"Perform anisotropy analysis on each pixel"
 
@@ -51,25 +48,21 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 		pix_j_anis, pix_j_angle, pix_j_energy = it.tensor_analysis(j_tensor)
 		pix_H_anis, pix_H_angle, pix_H_energy = it.tensor_analysis(H_tensor)
 
-		"""
-		filtered_energy = np.where(pix_n_energy > threshold_otsu(pix_n_energy), 1, 0)
-		noise = estimate_sigma(filtered_energy, multichannel=False, average_sigmas=True)
-		noise = pix_n_energy.std()
-		signal = pix_n_energy.mean()
-
-		print(signal / noise)
-
-		if signal / noise <= snr_thresh: raise NoiseError(signal / noise, snr_thresh)
-		print(" Noise threshold accepted ({} > {})".format(signal / noise, snr_thresh))
-		"""
-
 		"Perform anisotropy analysis on whole image"
 
 		img_anis, _ , _ = it.tensor_analysis(np.mean(n_tensor, axis=(0, 1)))
 		img_H_anis, _ , _ = it.tensor_analysis(np.mean(H_tensor, axis=(0, 1)))
 
 		"Extract fibre network"
-		net = it.network_extraction(data_dir + fig_name, image, pix_n_energy, n_clusters, ow_network) 
+		clip_limit, snr = it.optimise_equalisation(image, sigma)
+		print(f"clip_limit = {clip_limit}, signal / noise = {snr}")
+
+		if snr <= snr_thresh: raise NoiseError(snr, snr_thresh)
+		print(" Noise threshold accepted ({} > {})".format(snr, snr_thresh))
+		
+		pre_image = it.preprocess_image(image, sigma=sigma, threshold=False, clip_limit=clip_limit)
+
+		net = it.network_extraction(data_dir + fig_name, pre_image, ow_network) 
 		(label_image, sorted_areas, regions, networks) = net
 	
 		"Analyse fibre network"

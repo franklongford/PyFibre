@@ -12,6 +12,7 @@ import numpy as np
 import sys
 import time
 import itertools
+import threading
 
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import imread
@@ -168,71 +169,71 @@ class Fibre:
 		self.direction = direction
 
 	    
-	def grow(self, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
+def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 
-		start_coord = Aij.nodes[self.nodes[0]]['xy']
-		end_coord = Aij.nodes[self.nodes[-1]]['xy']
+	start_coord = Aij.nodes[fibre.nodes[0]]['xy']
+	end_coord = Aij.nodes[fibre.nodes[-1]]['xy']
 
-		ring_filter = ring(np.zeros(image.shape), end_coord, np.arange(2, 3), 1)
-		branch_coord, branch_vector, branch_r = new_branches(image, end_coord, 
-				                                 ring_filter, lmp_thresh)
-		cos_the = branch_angles(self.direction, branch_vector, branch_r)
-		indices = np.argwhere(abs(cos_the + 1) <= theta_thresh)
+	ring_filter = ring(np.zeros(image.shape), end_coord, np.arange(2, 3), 1)
+	branch_coord, branch_vector, branch_r = new_branches(image, end_coord, 
+			                                 ring_filter, lmp_thresh)
+	cos_the = branch_angles(fibre.direction, branch_vector, branch_r)
+	indices = np.argwhere(abs(cos_the + 1) <= theta_thresh)
 
-		if indices.size == 0: 
-			self.growing = False
-			if Aij[self.nodes[-1]][self.nodes[-2]]['r'] <= 2:
-				transfer_edges(Aij, self.nodes[-1], self.nodes[-2])
-			return
+	if indices.size == 0: 
+		fibre.growing = False
+		if Aij[fibre.nodes[-1]][fibre.nodes[-2]]['r'] <= 2:
+			transfer_edges(Aij, fibre.nodes[-1], fibre.nodes[-2])
+		return
 
-		branch_coord = branch_coord[indices]
-		branch_vector = branch_vector[indices]
-		branch_r = branch_r[indices]
+	branch_coord = branch_coord[indices]
+	branch_vector = branch_vector[indices]
+	branch_r = branch_r[indices]
 
-		close_nodes, _ = check_2D_arrays(tot_node_coord, branch_coord, 2)
-		close_nodes = numpy_remove(close_nodes, self.nodes)
+	close_nodes, _ = check_2D_arrays(tot_node_coord, branch_coord, 2)
+	close_nodes = numpy_remove(close_nodes, fibre.nodes)
 
-		if close_nodes.size != 0:
+	if close_nodes.size != 0:
 
-			new_end = close_nodes.min()
+		new_end = close_nodes.min()
 
-			end_coord = Aij.nodes[self.nodes[-2]]['xy']
-			new_end_coord = Aij.nodes[new_end]['xy']
+		end_coord = Aij.nodes[fibre.nodes[-2]]['xy']
+		new_end_coord = Aij.nodes[new_end]['xy']
 
-			transfer_edges(Aij, self.nodes[-1], new_end)
+		transfer_edges(Aij, fibre.nodes[-1], new_end)
 
-			new_dir_vector = new_end_coord - start_coord
-			new_dir_r = np.sqrt((new_dir_vector**2).sum())
+		new_dir_vector = new_end_coord - start_coord
+		new_dir_r = np.sqrt((new_dir_vector**2).sum())
 
-			self.growing = False
-			self.add_node(new_end, (new_dir_vector / new_dir_r))
+		fibre.growing = False
+		fibre.add_node(new_end, (new_dir_vector / new_dir_r))
 
-		else:
-			index = branch_r.argmax()
+	else:
+		index = branch_r.argmax()
 
-			new_end_coord = branch_coord[index].flatten()
-			new_end_vector = new_end_coord - Aij.nodes[self.nodes[-2]]['xy']
-			new_end_r = np.sqrt((new_end_vector**2).sum())
+		new_end_coord = branch_coord[index].flatten()
+		new_end_vector = new_end_coord - Aij.nodes[fibre.nodes[-2]]['xy']
+		new_end_r = np.sqrt((new_end_vector**2).sum())
 
-			new_dir_vector = new_end_coord - start_coord
-			new_dir_r = np.sqrt((new_dir_vector**2).sum())
+		new_dir_vector = new_end_coord - start_coord
+		new_dir_r = np.sqrt((new_dir_vector**2).sum())
 
-			if new_end_r >= r_thresh:
+		if new_end_r >= r_thresh:
 
-				new_end = Aij.number_of_nodes()
-				Aij.add_node(new_end)
-				Aij.add_edge(self.nodes[-1], new_end)
-				Aij.nodes[new_end]['xy'] = new_end_coord
-				Aij.nodes[new_end]['fibres'] = set({self.index})
-				Aij[self.nodes[-1]][new_end]['r'] = np.sqrt(((new_end_coord - end_coord)**2).sum())
+			new_end = Aij.number_of_nodes()
+			Aij.add_node(new_end)
+			Aij.add_edge(fibre.nodes[-1], new_end)
+			Aij.nodes[new_end]['xy'] = new_end_coord
+			Aij.nodes[new_end]['fibres'] = set({fibre.index})
+			Aij[fibre.nodes[-1]][new_end]['r'] = np.sqrt(((new_end_coord - end_coord)**2).sum())
 
-				self.add_node(new_end, (new_dir_vector / new_dir_r))
+			fibre.add_node(new_end, (new_dir_vector / new_dir_r))
 
-			else: 
-				Aij.nodes[self.nodes[-1]]['xy'] = new_end_coord
-				Aij[self.nodes[-1]][self.nodes[-2]]['r'] = new_end_r
+		else: 
+			Aij.nodes[fibre.nodes[-1]]['xy'] = new_end_coord
+			Aij[fibre.nodes[-1]][fibre.nodes[-2]]['r'] = new_end_r
 
-				self.direction = (new_dir_vector / new_dir_r)
+			fibre.direction = (new_dir_vector / new_dir_r)
 
 
 def FIRE(image, sigma = 1.5, lambda_=0.5, nuc_thresh=2, lmp_thresh=0.2, 
@@ -304,22 +305,35 @@ def FIRE(image, sigma = 1.5, lambda_=0.5, nuc_thresh=2, lmp_thresh=0.2,
 
 	it = 0
 	while np.any(fibre_grow):
+		start = time.time()
 		n_node = Aij.number_of_nodes()
 
-		print("Iteration {}, {} nodes  {}/{} fibres left to grow".format(
-			it, n_node, int(np.sum(fibre_grow)), n_fibres))
-
 		tot_node_coord = np.stack((Aij.nodes[i]['xy'] for i in Aij.nodes()))
+		fibre_indices = np.argwhere(fibre_grow).flatten()
 
-		for fibre in tot_fibres:
-		    
-			if fibre.growing:
-				fibre.grow(smoothed, Aij, tot_node_coord, lmp_thresh, 
-					 theta_thresh, r_thresh)
+		#"""Serial Version
+		for fibre in fibre_indices:
+			grow(tot_fibres[fibre], smoothed, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh)
+		#"""
+
+		"""Multithreading Version
+		thread_pool = []
+
+		for fibre in fibre_indices:
+			thread = threading.Thread(target=grow, args=(tot_fibres[fibre], smoothed, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh))
+			thread.daemon = True
+			thread_pool.append(thread)			
 	
-		fibre_grow = [fibre.growing for fibre in tot_fibres]
+		for thread in thread_pool: thread.start()
+		for thread in thread_pool: thread.join()
+		"""
 
+		fibre_grow = [fibre.growing for fibre in tot_fibres]
 		it += 1
+		end = time.time()
+
+		print("Iteration {} time = {} s, {} nodes  {}/{} fibres left to grow".format(
+			it, round(end - start, 3), n_node, int(np.sum(fibre_grow)), n_fibres))
 
 	#Aij.remove_nodes_from(list(nx.isolates(Aij)))
 
