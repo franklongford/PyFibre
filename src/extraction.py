@@ -234,7 +234,7 @@ def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 
 
 def FIRE(image, sigma = 1.5, lambda_=0.5, nuc_thresh=2, lmp_thresh=0.2, 
-             angle_thresh=70, r_thresh=8, max_threads=30):
+             angle_thresh=70, r_thresh=10, max_threads=8):
 
 	"Prepare input image to gain distance matrix of foreground from background"
 	cleared = clear_border(image)
@@ -301,6 +301,7 @@ def FIRE(image, sigma = 1.5, lambda_=0.5, nuc_thresh=2, lmp_thresh=0.2,
 	print("No. fibres to grow = {}".format(n_fibres))
 
 	it = 0
+	total_time = 0
 	while np.any(fibre_grow):
 		start = time.time()
 		n_node = Aij.number_of_nodes()
@@ -313,7 +314,7 @@ def FIRE(image, sigma = 1.5, lambda_=0.5, nuc_thresh=2, lmp_thresh=0.2,
 			grow(tot_fibres[fibre], smoothed, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh)
 		"""
 
-		#"""Multithreading Version
+		#"""Multi Threading Version
 		n_batches = fibre_indices.size // max_threads + 1
 		thread_batches = np.array_split(fibre_indices, n_batches)
 
@@ -332,10 +333,12 @@ def FIRE(image, sigma = 1.5, lambda_=0.5, nuc_thresh=2, lmp_thresh=0.2,
 		fibre_grow = [fibre.growing for fibre in tot_fibres]
 		it += 1
 		end = time.time()
+		total_time += end - start
 
 		print("Iteration {} time = {} s, {} nodes  {}/{} fibres left to grow".format(
 			it, round(end - start, 3), n_node, int(np.sum(fibre_grow)), n_fibres))
 
+	print(f"TOTAL TIME = {round(total_time, 3)} s")
 	#Aij.remove_nodes_from(list(nx.isolates(Aij)))
 
 	return Aij

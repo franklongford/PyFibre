@@ -22,7 +22,7 @@ from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
 from skimage import data, measure, img_as_float, exposure, feature
 from skimage.transform import rescale
 from skimage.morphology import (disk, dilation)
-from skimage.filters import rank, threshold_otsu, hessian
+from skimage.filters import rank, threshold_mean, hessian, threshold_otsu
 from skimage.color import rgb2hsv, hsv2rgb
 from skimage.restoration import denoise_tv_chambolle, denoise_tv_bregman, estimate_sigma
 from skimage.feature import ORB
@@ -43,7 +43,7 @@ def load_image(image_name):
 
 	if image_orig.ndim > 2: 
 		image = np.sum(image_orig / image_orig.max(axis=-1), axis=0)
-	else: image = image_orig / image_orig.max()
+	else: image = image_orig# / image_orig.max()
 
 	return image
 
@@ -62,11 +62,18 @@ def set_HSB(image, hue, saturation=1, brightness=1):
 	return hsv2rgb(hsv)
 
 
-def preprocess_image(image, clip_limit=None, weight=None, threshold=False):
+def preprocess_image(image, clip_limit=None, sigma=None, threshold=False):
 
-	if clip_limit != None: image = exposure.equalize_adapthist(image, clip_limit=clip_limit)
-	if weight != None: image = denoise_tv_bregman(image, weight=weight)
-	if threshold: image = np.where(image >= threshold_otsu(image), image, 0)
+	if threshold:
+		std = np.std(image[np.nonzero(image)])
+		if std**2 < image.max(): clip = std**2
+		else: clip = 2 * std
+
+		image = np.where(image <= clip, image, clip)
+		image = np.where(image >= threshold_mean(image), image, 0)
+
+	if clip_limit != None: image = exposure.equalize_adapthist(image / image.max(), clip_limit=clip_limit)
+	if sigma != None: image = filters.gaussian_filter(image, sigma=sigma)
 	
 	image = image / image.max()
 
@@ -361,7 +368,7 @@ def get_curvature(j_tensor, H_tensor):
 	return np.nan_to_num(gauss_curvature), np.nan_to_num(mean_curvature)
 
 
-def network_extraction(graph_name, image, ow_graph=False):
+def network_extraction(graph_name, image, ow_graph=False, threads=8):
 	"""
 	Extract fibre network using modified FIRE algorithm
 	"""
@@ -372,7 +379,7 @@ def network_extraction(graph_name, image, ow_graph=False):
 	if ow_graph:
 		print("Extracting fibre network using modified FIRE algorithm")	
 		image_TB = tubeness(image, 1)
-		Aij = FIRE(image_TB, sigma=1)
+		Aij = FIRE(image_TB, sigma=1, max_threads=threads)
 		nx.write_gpickle(Aij, graph_name + ".pkl")
 
 	label_image = np.zeros(image.shape)
@@ -470,20 +477,25 @@ def network_analysis(label_image, sorted_areas, networks, n_tensor, anis_map):
 
 def get_snr_estimates(image, guess, inc = 1E-3):
 
-	clip_limit = [guess[0] - inc, guess[0], guess[0] + inc]
-	weight = [guess[1] - inc, guess[1], guess[1] + inc]
+	clip_limit = [guess[0] - inc, guess[0] + inc]
+	sigma = [guess[1] - inc, guess[1] + inc]
 
-	snr = np.zeros((3, 3))
+	snr = np.zeros((2, 2))
 	jacobian = np.zeros(2)
-	hessian = np.zeros((2, 2))
+	#hessian = np.zeros((2, 2))
 
 	for i, cl in enumerate(clip_limit):
-		for j, w in enumerate(weight):
-			img = preprocess_image(image, clip_limit=cl, weight=w, threshold=True)
-			snr[i][j] = get_snr(img)
+		print(clip_limit)
+		img = preprocess_image(image, clip_limit=cl, sigma=guess[1], threshold=True)
+		snr[0][i] = get_snr(img)
+	for j, w in enumerate(sigma):
+		img = preprocess_image(image, clip_limit=guess[0], sigma=w, threshold=True)
+		snr[1][j] = get_snr(img)
 
-	jacobian[0] = 0.5 * (snr[2][1] - snr[0][1]) / inc
-	jacobian[1] = 0.5 * (snr[1][2] - snr[1][0]) / inc
+	print(snr)
+
+	jacobian[0] = 0.5 * (snr[0][1] - snr[0][0]) / inc
+	jacobian[1] = 0.5 * (snr[1][1] - snr[1][0]) / inc
 
 	"""
 	hessian[0][0] = 0.25 * (snr[2][1] - 2 * snr[1][1] - snr[0][1]) / inc
@@ -492,7 +504,10 @@ def get_snr_estimates(image, guess, inc = 1E-3):
 	hessian[1][1] = 0.25 * (snr[1][2] - 2 * snr[1][1] - snr[1][0]) / inc
 	"""
 
-	return snr[1][1], jacobian, hessian
+	img = preprocess_image(image, clip_limit=guess[0], sigma=guess[1], threshold=True)
+	snr = get_snr(img)
+
+	return snr, jacobian, hessian
 
 def get_snr(image):
 
@@ -502,7 +517,7 @@ def get_snr(image):
 	return signal / noise
 
 
-def optimise_equalisation(image, guess=[0.1, 7.5], alpha = 1.0, precision = 5E-6, max_it=100):
+def optimise_equalisation(image, guess=[0.01, 1.0], alpha = 1.0, precision = 5E-6, max_it=100):
 
 	iteration = 1
 	x = np.array([guess, [guess[0]+0.0001, guess[1]+0.0001]])
@@ -517,6 +532,7 @@ def optimise_equalisation(image, guess=[0.1, 7.5], alpha = 1.0, precision = 5E-6
 	snr.append(snr_n)
 	snr_grad.append(d_snr)
 
+	print(snr, snr_grad)
 
 	check = False
 	while not check:
@@ -525,10 +541,10 @@ def optimise_equalisation(image, guess=[0.1, 7.5], alpha = 1.0, precision = 5E-6
 
 		new_x = x[-1] + (alpha * gamma)
 
-		check = (new_x[0] >= 0) * (new_x[0] < 0.5)
+		check = np.all(new_x >= 0) * (new_x[0] < 0.5)
 		alpha *= 0.9
 
-		print(new_x, check)
+		print(new_x, check, d_snr, gamma)
 
 	x = np.concatenate((x, np.expand_dims(new_x, axis=0)))
 	
@@ -542,15 +558,18 @@ def optimise_equalisation(image, guess=[0.1, 7.5], alpha = 1.0, precision = 5E-6
 
 		new_x = x[-1] + gamma
 
-		check = (new_x[0] >= 0) * (new_x[0] < 0.5) * \
+		check = np.all(new_x >= 0) * (new_x[0] < 0.5) * \
 			(iteration <= max_it) * (abs(gamma).sum() >= precision)
 
 		print(new_x, check)
-		print(iteration, d_snr, abs(gamma).sum())
+		print(iteration, d_snr, gamma)
 
 		if not check:
 
-			"""
+			clip_limit = x[np.argmax(snr)][0]
+			sigma = x[np.argmax(snr)][1]
+
+			#"""
 			import matplotlib
 			matplotlib.use("TkAgg")
 			import matplotlib.pyplot as plt
@@ -562,19 +581,16 @@ def optimise_equalisation(image, guess=[0.1, 7.5], alpha = 1.0, precision = 5E-6
 			plt.scatter(X[0], snr[0])
 			plt.scatter(X[-1], snr[-1])
 			plt.plot(X, snr)
-			plt.savefig("gradient_descent.png")
-			"""
-			clip_limit = x[np.argmax(snr)][0]
-			weight = x[np.argmax(snr)][1]
+			plt.savefig("gradient_ascent.png")
+			
+			eq_image = preprocess_image(image, threshold=True, clip_limit=clip_limit, sigma=sigma)
 
-			"""
-			eq_image = preprocess_image(image, threshold=True, clip_limit=clip_limit, weight=weight)
 			plt.clf()
 			plt.figure(0)
 			plt.imshow(eq_image)
 			plt.savefig("equalised_image.png")
-			"""
-			return clip_limit, weight, np.max(snr)
+			#"""
+			return clip_limit, sigma, np.max(snr)
 
 		x = np.concatenate((x, np.expand_dims(new_x, axis=0)))
 

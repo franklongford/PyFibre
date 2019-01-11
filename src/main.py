@@ -22,12 +22,16 @@ import image_tools as it
 
 
 def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=10, 
-				ow_metric=False, ow_network=False, snr_thresh=4.0):
+				ow_metric=False, ow_network=False, snr_thresh=4.0, threads=8):
 
 	cmap = 'viridis'
 
 	fig_dir = current_dir + '/fig/'
 	data_dir = current_dir + '/data/'
+	
+	if not os.path.exists(fig_dir): os.mkdir(fig_dir)
+	if not os.path.exists(data_dir): os.mkdir(data_dir)
+
 	image_name = input_file_name.split('/')[-1]
 
 	fig_name = ut.check_file_name(image_name, extension='tif')
@@ -54,15 +58,15 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 		img_H_anis, _ , _ = it.tensor_analysis(np.mean(H_tensor, axis=(0, 1)))
 
 		"Extract fibre network"
+		"""
 		clip_limit, weight, snr = it.optimise_equalisation(image)
-		print(f"clip_limit = {clip_limit}, signal / noise = {snr}")
-
+		print(f"clip_limit = {clip_limit}, sigma = {weight}, signal / noise = {snr}")
 		if snr <= snr_thresh: raise NoiseError(snr, snr_thresh)
 		print(" Noise threshold accepted ({} > {})".format(snr, snr_thresh))
-		
-		pre_image = it.preprocess_image(image, threshold=True, clip_limit=clip_limit, weight=weight)
+		"""
+		pre_image = it.preprocess_image(image, threshold=True, clip_limit=0.01, sigma=1.0)
 
-		net = it.network_extraction(data_dir + fig_name, pre_image, ow_network) 
+		net = it.network_extraction(data_dir + fig_name, pre_image, ow_network, threads) 
 		(label_image, sorted_areas, regions, networks) = net
 	
 		"Analyse fibre network"
@@ -89,18 +93,10 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 
 
 
-def analyse_directory(input_files, ow_metric=False, ow_network=False, save_db=None):
-
-	current_dir = os.getcwd()
+def analyse_directory(input_files, ow_metric=False, ow_network=False, save_db=None, threads=8):
 
 	scale = 1
 	sigma = 0.5
-
-	fig_dir = current_dir + '/fig/'
-	data_dir = current_dir + '/data/'
-
-	if not os.path.exists(fig_dir): os.mkdir(fig_dir)
-	if not os.path.exists(data_dir): os.mkdir(data_dir)
 
 	removed_files = []
 
@@ -109,7 +105,8 @@ def analyse_directory(input_files, ow_metric=False, ow_network=False, save_db=No
 	for i, input_file_name in enumerate(input_files):
 		try:
 			res = analyse_image(current_dir, input_file_name, scale=scale, 
-							sigma=sigma, ow_metric=ow_metric, ow_network=ow_network)
+					  sigma=sigma, ow_metric=ow_metric, ow_network=ow_network, 
+					  threads=threads)
 
 			database_array = np.concatenate((database_array, np.expand_dims(res, axis=0)))
 
@@ -152,6 +149,7 @@ if __name__ == '__main__':
 	parser.add_argument('--ow_metric', action='store_true', help='Toggles overwrite analytic metrics')
 	parser.add_argument('--ow_network', action='store_true', help='Toggles overwrite network extraction')
 	parser.add_argument('--save_db', nargs='?', help='Output database filename', default=None)
+	parser.add_argument('--threads', type=int, nargs='?', help='Number of threads per processor', default=8)
 	args = parser.parse_args()
 
 	print(args)
@@ -176,6 +174,6 @@ if __name__ == '__main__':
 		
 	for file_name in removed_files: input_files.remove(file_name)
 
-	analyse_directory(input_files, args.ow_metric, args.ow_network, args.save_db)
+	analyse_directory(input_files, args.ow_metric, args.ow_network, args.save_db, args.threads)
 
 		

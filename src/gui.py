@@ -31,7 +31,7 @@ from utilities import NoiseError
 
 class imagecol_gui:
 
-	def __init__(self, master, n_proc):
+	def __init__(self, master, n_proc, n_thread):
 
 		"Set file locations"
 		self.dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -41,6 +41,7 @@ class imagecol_gui:
 		self.queue = Queue()
 		self.input_files = []
 		self.n_proc = n_proc
+		self.n_thread = n_thread
 
 		"Define GUI objects"
 		self.master = master
@@ -108,12 +109,12 @@ class imagecol_gui:
 
 	def create_file_display(self, frame):
 
-		frame.select_im_button = Button(frame, width=10,
+		frame.select_im_button = Button(frame, width=12,
 				   text="Load Files",
 				   command=self.add_images)
 		frame.select_im_button.grid(column=0, row=0)
 
-		frame.select_dir_button = Button(frame, width=10,
+		frame.select_dir_button = Button(frame, width=12,
 				   text="Load Folder",
 				   command=self.add_directory)
 		frame.select_dir_button.grid(column=1, row=0)
@@ -122,17 +123,17 @@ class imagecol_gui:
 		frame.key.configure(background='#d8baa9')
 		frame.key.grid(column=3, row=0, sticky=(N,W,E,S))
 
-		frame.select_dir_button = Button(frame, width=10,
+		frame.select_dir_button = Button(frame, width=12,
 				   text="Filter",
 				   command=lambda : self.del_images([filename for filename in self.input_files \
 							if (filename.find(frame.key.get()) == -1)]))
 		frame.select_dir_button.grid(column=2, row=0)
 
 
-		frame.file_box = Listbox(frame, height=20, width=40, selectmode="extended")
+		frame.file_box = Listbox(frame, height=20, width=50, selectmode="extended")
 		frame.file_box.grid(column=0, row=1, columnspan=5, sticky=(N,W,E,S))
 
-		frame.delete_im_button = Button(frame, width=10,
+		frame.delete_im_button = Button(frame, width=12,
 				   text="Delete",
 				   command=lambda : self.del_images([self.file_display.file_box.get(idx)\
 							 for idx in self.file_display.file_box.curselection()]))
@@ -145,12 +146,12 @@ class imagecol_gui:
 		#frame.grid_columnconfigure(1, weight=1)
 		#frame.grid_rowconfigure(1, weight=1)
 
-		frame.run_button = Button(frame, width=30,
+		frame.run_button = Button(frame, width=40,
 				   text="GO",
 				   command=self.write_run)
 		frame.run_button.grid(column=0, row=2, columnspan=3)
 
-		frame.stop_button = Button(frame, width=15,
+		frame.stop_button = Button(frame, width=20,
 				   text="STOP",
 				   command=self.stop_run, state=DISABLED)
 		frame.stop_button.grid(column=2, row=2, columnspan=3)
@@ -293,7 +294,15 @@ class imagecol_gui:
 		notebook.frame4.text = Text(notebook.frame4, width=650, height=550)
 		notebook.frame4.text.insert(END, self.Log)
 		notebook.frame4.text.config(state=DISABLED)
+
+		notebook.frame4.scrollbar = Scrollbar(notebook.frame4, orient=VERTICAL, 
+							command=notebook.frame4.text.yview)
+		notebook.frame4.scrollbar.pack(side=RIGHT,fill=Y)
+		notebook.frame4.text['yscrollcommand'] = notebook.frame4.scrollbar.set
+
 		notebook.frame4.text.pack()
+
+		
 
 		#notebook.BFrame.configure(background='#d8baa9')
 
@@ -427,21 +436,21 @@ class imagecol_gui:
 		self.file_display.stop_button.config(state=NORMAL)
 		self.file_display.progress['maximum'] = len(self.input_files)
 
-		#"""
+		#"""Multi Processor version
 		proc_count = np.min((self.n_proc, len(self.input_files)))
 		batch_files = np.array_split(self.input_files, proc_count)
 		self.processes = []
 		for batch in batch_files:
 			print(batch)
 			process = Process(target=image_analysis, args=(batch, self.ow_metric.get(),
-					self.ow_network.get(), self.queue))
+					self.ow_network.get(), self.queue, self.n_thread))
 			process.daemon = True
 			self.processes.append(process)
 
 		for process in self.processes: process.start()
 		#"""
 
-		"""
+		"""Serial Version
 		self.process = Process(target=image_analysis, args=(self.input_files, self.ow_metric.get(),
 														self.ow_network.get(), self.queue))
 		self.process.daemon = True
@@ -484,7 +493,7 @@ class imagecol_gui:
 		for process in self.processes: process.terminate()
 
 
-def image_analysis(input_files, ow_metric, ow_network, queue):
+def image_analysis(input_files, ow_metric, ow_network, queue, threads):
 
 	for input_file_name in input_files:
 
@@ -494,15 +503,16 @@ def image_analysis(input_files, ow_metric, ow_network, queue):
 
 		try:
 			analyse_image(image_path, input_file_name, ow_metric=ow_metric, 
-					ow_network=ow_network, sigma=0.5)
+					ow_network=ow_network, sigma=0.5, threads=threads)
 			queue.put("Analysis of {} complete".format(input_file_name))
 
 		except NoiseError as err: queue.put("{} {}".format(err.message, input_file_name))
 
 
 N_PROC = os.cpu_count() - 1
+N_THREAD = 8
 
 root = Tk()
-GUI = imagecol_gui(root, N_PROC)
+GUI = imagecol_gui(root, N_PROC, N_THREAD)
 
 root.mainloop()
