@@ -54,13 +54,13 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 		img_H_anis, _ , _ = it.tensor_analysis(np.mean(H_tensor, axis=(0, 1)))
 
 		"Extract fibre network"
-		clip_limit, snr = it.optimise_equalisation(image, sigma)
+		clip_limit, weight, snr = it.optimise_equalisation(image)
 		print(f"clip_limit = {clip_limit}, signal / noise = {snr}")
 
 		if snr <= snr_thresh: raise NoiseError(snr, snr_thresh)
 		print(" Noise threshold accepted ({} > {})".format(snr, snr_thresh))
 		
-		pre_image = it.preprocess_image(image, sigma=sigma, threshold=True, clip_limit=clip_limit)
+		pre_image = it.preprocess_image(image, threshold=True, clip_limit=clip_limit, weight=weight)
 
 		net = it.network_extraction(data_dir + fig_name, pre_image, ow_network) 
 		(label_image, sorted_areas, regions, networks) = net

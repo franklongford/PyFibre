@@ -14,9 +14,6 @@ import time
 import itertools
 import threading
 
-import matplotlib.pyplot as plt
-from matplotlib.pyplot import imread
-
 from scipy.spatial.distance import cdist
 from scipy.ndimage import distance_transform_edt
 from scipy.ndimage.filters import gaussian_filter
@@ -237,7 +234,7 @@ def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 
 
 def FIRE(image, sigma = 1.5, lambda_=0.5, nuc_thresh=2, lmp_thresh=0.2, 
-             angle_thresh=70, r_thresh=8):
+             angle_thresh=70, r_thresh=8, max_threads=30):
 
 	"Prepare input image to gain distance matrix of foreground from background"
 	cleared = clear_border(image)
@@ -317,15 +314,19 @@ def FIRE(image, sigma = 1.5, lambda_=0.5, nuc_thresh=2, lmp_thresh=0.2,
 		"""
 
 		#"""Multithreading Version
-		thread_pool = []
+		n_batches = fibre_indices.size // max_threads + 1
+		thread_batches = np.array_split(fibre_indices, n_batches)
 
-		for fibre in fibre_indices:
-			thread = threading.Thread(target=grow, args=(tot_fibres[fibre], smoothed, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh))
-			thread.daemon = True
-			thread_pool.append(thread)			
-	
-		for thread in thread_pool: thread.start()
-		for thread in thread_pool: thread.join()
+		for batch in thread_batches:
+			thread_pool = []
+
+			for fibre in batch:
+				thread = threading.Thread(target=grow, args=(tot_fibres[fibre], smoothed, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh))
+				thread.daemon = True
+				thread_pool.append(thread)			
+		
+			for thread in thread_pool: thread.start()
+			for thread in thread_pool: thread.join()
 		#"""
 
 		fibre_grow = [fibre.growing for fibre in tot_fibres]

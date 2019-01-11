@@ -31,8 +31,6 @@ from sklearn.decomposition import NMF
 from sklearn.feature_extraction.image import img_to_graph
 from sklearn.cluster import spectral_clustering
 
-import matplotlib.pyplot as plt
-
 import utilities as ut
 from filters import tubeness
 from extraction import FIRE, adj_analysis
@@ -470,26 +468,29 @@ def network_analysis(label_image, sorted_areas, networks, n_tensor, anis_map):
 			network_waviness, pix_anis, coverage, solidity)
 
 
-def get_snr_estimates(image, guess_cl, guess_w, inc = 1E-3):
+def get_snr_estimates(image, guess, inc = 1E-3):
 
-	clip_limit = [guess_cl - inc, guess_cl, guess_cl + inc]
-	weight = [guess_w - inc, guess_w, guess_w + inc]
+	clip_limit = [guess[0] - inc, guess[0], guess[0] + inc]
+	weight = [guess[1] - inc, guess[1], guess[1] + inc]
+
 	snr = np.zeros((3, 3))
 	jacobian = np.zeros(2)
 	hessian = np.zeros((2, 2))
 
 	for i, cl in enumerate(clip_limit):
 		for j, w in enumerate(weight):
-			img = preprocess_image(image, clip_limit=guess_cl, weight=w, threshold=True, )
+			img = preprocess_image(image, clip_limit=cl, weight=w, threshold=True)
 			snr[i][j] = get_snr(img)
 
 	jacobian[0] = 0.5 * (snr[2][1] - snr[0][1]) / inc
 	jacobian[1] = 0.5 * (snr[1][2] - snr[1][0]) / inc
 
+	"""
 	hessian[0][0] = 0.25 * (snr[2][1] - 2 * snr[1][1] - snr[0][1]) / inc
 	hessian[0][1] = 0.25 * (snr[2][2] - snr[0][2] + snr[2][0] - snr[0][0]) / inc
 	hessian[1][0] = 0.25 * (snr[2][2] - snr[2][0] + snr[0][2] - snr[0][0]) / inc
 	hessian[1][1] = 0.25 * (snr[1][2] - 2 * snr[1][1] - snr[1][0]) / inc
+	"""
 
 	return snr[1][1], jacobian, hessian
 
@@ -501,63 +502,81 @@ def get_snr(image):
 	return signal / noise
 
 
-def optimise_equalisation(image, sigma, guess=[0.1, 1.0], alpha = 1.0, precision = 2E-1, max_it=100):
+def optimise_equalisation(image, guess=[0.1, 7.5], alpha = 1.0, precision = 5E-6, max_it=100):
 
 	iteration = 1
-	clip_limit = [guess[0], guess[0]+0.0001]
-	weight = [guess[1], guess[1]+0.0001]
+	x = np.array([guess, [guess[0]+0.0001, guess[1]+0.0001]])
 	snr = []
 	snr_grad = []
 
-	snr_n, d_snr, dd_snr = get_snr_estimates(image, clip_limit[0], weight[0])
+	snr_n, d_snr, dd_snr = get_snr_estimates(image, x[0])
 	snr.append(snr_n)
 	snr_grad.append(d_snr)
 
-	snr_n, d_snr, dd_snr = get_snr_estimates(image, clip_limit[1], weight[1])
+	snr_n, d_snr, dd_snr = get_snr_estimates(image, x[1])
 	snr.append(snr_n)
 	snr_grad.append(d_snr)
 
 
 	check = False
 	while not check:
-		gamma = d_snr * np.array((clip_limit[-1] - clip_limit[-2], weight[-1] - weight[-2])).T \
-				 * (snr_grad[-1] - snr_grad[-2]) / ((snr_grad[-1] - snr_grad[-2])**2).sum()
+		gamma = d_snr * (x[-1] - x[-2]).T * (snr_grad[-1] - snr_grad[-2]) \
+				/ ((snr_grad[-1] - snr_grad[-2])**2).sum()
 
-		new_clip_limit = clip_limit[-1] + (alpha * gamma[0])
-		new_weight = weight[-1] + (alpha * gamma[1])
+		new_x = x[-1] + (alpha * gamma)
 
-		check = (new_clip_limit >= 0) * (new_clip_limit < 0.5)
+		check = (new_x[0] >= 0) * (new_x[0] < 0.5)
 		alpha *= 0.9
 
-	clip_limit.append(new_clip_limit)
-	weight.append(new_weight)
+		print(new_x, check)
+
+	x = np.concatenate((x, np.expand_dims(new_x, axis=0)))
 	
 	while True:
-		snr_n, d_snr, dd_snr = get_snr_estimates(image, sigma, clip_limit[-1])
+		snr_n, d_snr, dd_snr = get_snr_estimates(image, x[-1])
 		snr.append(snr_n)
 		snr_grad.append(d_snr)
-		
-		gamma = d_snr * np.array((clip_limit[-1] - clip_limit[-2], weight[-1] - weight[-2])).T \
-				 * (snr_grad[-1] - snr_grad[-2]) / ((snr_grad[-1] - snr_grad[-2])**2).sum()
-		new_clip_limit = clip_limit[-1] + gamma 
-		check = (new_clip_limit >= 0) * (new_clip_limit < 0.5) * \
-			(iteration <= max_it) * (abs(d_snr).sum() >= precision)
-		print(new_clip_limit, check)
+
+		gamma = d_snr * (x[-1] - x[-2]).T * (snr_grad[-1] - snr_grad[-2]) \
+				/ ((snr_grad[-1] - snr_grad[-2])**2).sum()
+
+		new_x = x[-1] + gamma
+
+		check = (new_x[0] >= 0) * (new_x[0] < 0.5) * \
+			(iteration <= max_it) * (abs(gamma).sum() >= precision)
+
+		print(new_x, check)
+		print(iteration, d_snr, abs(gamma).sum())
+
 		if not check:
 
-			clip_limit = clip_limit[np.argmax(snr)]
+			"""
+			import matplotlib
+			matplotlib.use("TkAgg")
+			import matplotlib.pyplot as plt
+			
+			X = np.sqrt((x**2).sum(axis=-1))
 
-			eq_image = preprocess_image(image, sigma=sigma, threshold=True, clip_limit=clip_limit)
+			plt.clf()
+			plt.figure(0)
+			plt.scatter(X[0], snr[0])
+			plt.scatter(X[-1], snr[-1])
+			plt.plot(X, snr)
+			plt.savefig("gradient_descent.png")
+			"""
+			clip_limit = x[np.argmax(snr)][0]
+			weight = x[np.argmax(snr)][1]
 
+			"""
+			eq_image = preprocess_image(image, threshold=True, clip_limit=clip_limit, weight=weight)
 			plt.clf()
 			plt.figure(0)
 			plt.imshow(eq_image)
 			plt.savefig("equalised_image.png")
+			"""
+			return clip_limit, weight, np.max(snr)
 
-			return clip_limit, np.max(snr)
-
-		print(iteration, d_snr, dd_snr, (clip_limit[-1] - clip_limit[-2]) , (snr_grad[-1] - snr_grad[-2]) , abs(snr_grad[-1] - snr_grad[-2])**2, gamma)
-		clip_limit.append(new_clip_limit)
+		x = np.concatenate((x, np.expand_dims(new_x, axis=0)))
 
 		iteration += 1
 
