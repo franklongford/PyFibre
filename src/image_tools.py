@@ -18,6 +18,8 @@ from PIL import Image
 from scipy.misc import derivative
 from scipy.ndimage import filters, imread
 from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
+from scipy.optimize import curve_fit
+from scipy.stats import norminvgauss
 
 from skimage import data, measure, img_as_float, exposure, feature
 from skimage.transform import rescale
@@ -62,20 +64,71 @@ def set_HSB(image, hue, saturation=1, brightness=1):
 	return hsv2rgb(hsv)
 
 
+def dist_func_inv(x, alpha, beta): return alpha / x**beta
+
+
+def dist_func_exp(x, alpha, lam): return alpha * np.exp(-lam * x)
+
+
+def dist_func_rec(x, alpha, gamma, lam): 
+
+	return alpha * norminvgauss.pdf(x, gamma, lam)
+
 def preprocess_image(image, clip_limit=None, sigma=None, threshold=False):
 
-	if threshold:
-		std = np.std(image[np.nonzero(image)])
-		if std**2 < image.max(): clip = std**2
-		else: clip = 2 * std
+	import matplotlib
+	matplotlib.use("TkAgg")
+	import matplotlib.pyplot as plt
 
+	if threshold:
+		median = np.median(image[np.nonzero(image)])
+		lam_median = np.log(2) / median
+
+		hist, X = np.histogram(image[np.nonzero(image)].flatten(), bins=400)
+		X = X[1:]
+
+		coeff_median  = hist.max() / np.exp(-lam_median * X).max()
+		popt_inv, pcov  = curve_fit(dist_func_inv, X, hist, [hist.max(), 1])
+		popt_exp, pcov  = curve_fit(dist_func_exp, X, hist, [coeff_median, lam_median])
+		popt_rec, pcov  = curve_fit(dist_func_rec, X, hist)
+
+		print(popt_exp, popt_inv, popt_rec, lam_median)
+
+		dist_med = dist_func_exp(X, coeff_median, lam_median)
+		dist_opt_exp = dist_func_exp(X, *popt_exp)
+		dist_opt_inv = dist_func_inv(X, *popt_inv)
+		dist_opt_rec = dist_func_rec(X, *popt_rec)
+
+		print(dist_opt_rec)
+
+		tukey_med = 2 * (np.log(4) / lam_median + 1.5 * np.log(3) / lam_median)
+		tukey_opt = 2 * (np.log(4) / popt_exp[1] + 1.5 * np.log(3) / popt_exp[1])
+
+		plt.figure(0)
+		plt.plot(X, hist)
+		plt.plot(X,  dist_med, label='median')
+		plt.plot(X,  dist_opt_exp, label='optimum exp')
+		plt.plot(X,  dist_opt_inv, label='optimum inv')
+		plt.plot(X,  dist_opt_rec, label='optimum rec')
+		plt.plot([tukey_med, tukey_med], [0, hist.max()])
+		plt.plot([tukey_opt, tukey_opt], [0, hist.max()])
+		plt.axis([0, 0.25 * image.max(), 0, 10000])
+		plt.legend()
+		plt.savefig("image_histogram.png")
+
+		clip = tukey_opt
 		image = np.where(image <= clip, image, clip)
-		image = np.where(image >= threshold_mean(image), image, 0)
+		image = np.where(image >= threshold_otsu(image), image, 0)
 
 	if clip_limit != None: image = exposure.equalize_adapthist(image / image.max(), clip_limit=clip_limit)
 	if sigma != None: image = filters.gaussian_filter(image, sigma=sigma)
 	
 	image = image / image.max()
+
+	plt.clf()
+	plt.figure(0)
+	plt.imshow(image)
+	plt.savefig("preprocessed_image.png")
 
 	return image
 
