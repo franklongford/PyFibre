@@ -19,12 +19,12 @@ from scipy.misc import derivative
 from scipy.ndimage import filters, imread
 from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
 from scipy.optimize import curve_fit
-from scipy.stats import norminvgauss
+from scipy.stats import invgauss
 
 from skimage import data, measure, img_as_float, exposure, feature
 from skimage.transform import rescale
 from skimage.morphology import (disk, dilation)
-from skimage.filters import rank, threshold_mean, hessian, threshold_otsu
+from skimage.filters import rank, threshold_li, threshold_mean, hessian, threshold_otsu
 from skimage.color import rgb2hsv, hsv2rgb
 from skimage.restoration import denoise_tv_chambolle, denoise_tv_bregman, estimate_sigma
 from skimage.feature import ORB
@@ -64,73 +64,36 @@ def set_HSB(image, hue, saturation=1, brightness=1):
 	return hsv2rgb(hsv)
 
 
-def dist_func_inv(x, alpha, beta): return alpha / x**beta
+def dist_func_invgauss(x, mu, loc, scale): return invgauss.pdf(x, mu, loc, scale)
 
 
-def dist_func_exp(x, alpha, lam): return alpha * np.exp(-lam * x)
+def preprocess_image(image, clip_limit=0.01, sigma=0.5, interval=0.9, threshold=False):
 
+	if sigma != None: image = filters.gaussian_filter(image, sigma=sigma)
+	image = np.where(image >= 1, image, 0)
 
-def dist_func_rec(x, alpha, gamma, lam): 
-
-	return alpha * norminvgauss.pdf(x, gamma, lam)
-
-def preprocess_image(image, clip_limit=None, sigma=None, threshold=False):
-
-	import matplotlib
-	matplotlib.use("TkAgg")
-	import matplotlib.pyplot as plt
+	hist, X = np.histogram(image[np.nonzero(image)].flatten(), bins=5 * int(image.max()))
+	X = X[1:]
+	dX = X[1] - X[0]
+	hist = hist / (np.sum(hist) * dX)
 
 	if threshold:
 		median = np.median(image[np.nonzero(image)])
-		lam_median = np.log(2) / median
+		popt_iga, pcov  = curve_fit(dist_func_invgauss, X, hist, [1, median, 1])
+		mu, loc, scale = popt_iga
+		mean, var, skew, kurt = invgauss.stats(mu, loc=loc, scale=scale, moments='mvsk')
 
-		hist, X = np.histogram(image[np.nonzero(image)].flatten(), bins=400)
-		X = X[1:]
+		clip_high = invgauss.interval(interval, mu=mu, loc=loc, scale=scale)[1]
+		clip_low = threshold_mean(image)
 
-		coeff_median  = hist.max() / np.exp(-lam_median * X).max()
-		popt_inv, pcov  = curve_fit(dist_func_inv, X, hist, [hist.max(), 1])
-		popt_exp, pcov  = curve_fit(dist_func_exp, X, hist, [coeff_median, lam_median])
-		popt_rec, pcov  = curve_fit(dist_func_rec, X, hist)
-
-		print(popt_exp, popt_inv, popt_rec, lam_median)
-
-		dist_med = dist_func_exp(X, coeff_median, lam_median)
-		dist_opt_exp = dist_func_exp(X, *popt_exp)
-		dist_opt_inv = dist_func_inv(X, *popt_inv)
-		dist_opt_rec = dist_func_rec(X, *popt_rec)
-
-		print(dist_opt_rec)
-
-		tukey_med = 2 * (np.log(4) / lam_median + 1.5 * np.log(3) / lam_median)
-		tukey_opt = 2 * (np.log(4) / popt_exp[1] + 1.5 * np.log(3) / popt_exp[1])
-
-		plt.figure(0)
-		plt.plot(X, hist)
-		plt.plot(X,  dist_med, label='median')
-		plt.plot(X,  dist_opt_exp, label='optimum exp')
-		plt.plot(X,  dist_opt_inv, label='optimum inv')
-		plt.plot(X,  dist_opt_rec, label='optimum rec')
-		plt.plot([tukey_med, tukey_med], [0, hist.max()])
-		plt.plot([tukey_opt, tukey_opt], [0, hist.max()])
-		plt.axis([0, 0.25 * image.max(), 0, 10000])
-		plt.legend()
-		plt.savefig("image_histogram.png")
-
-		clip = tukey_opt
-		image = np.where(image <= clip, image, clip)
-		image = np.where(image >= threshold_otsu(image), image, 0)
+		image = np.where(image <= clip_high, image, clip_high)
+		image = np.where(image >= clip_low, image, 0)
 
 	if clip_limit != None: image = exposure.equalize_adapthist(image / image.max(), clip_limit=clip_limit)
-	if sigma != None: image = filters.gaussian_filter(image, sigma=sigma)
-	
 	image = image / image.max()
+	noise = estimate_sigma(image)
 
-	plt.clf()
-	plt.figure(0)
-	plt.imshow(image)
-	plt.savefig("preprocessed_image.png")
-
-	return image
+	return image, noise
 
 
 def select_samples(full_set, area, n_sample):
@@ -539,10 +502,10 @@ def get_snr_estimates(image, guess, inc = 1E-3):
 
 	for i, cl in enumerate(clip_limit):
 		print(clip_limit)
-		img = preprocess_image(image, clip_limit=cl, sigma=guess[1], threshold=True)
+		img = preprocess_image(image, clip_limit=cl, interval=guess[1], threshold=True)
 		snr[0][i] = get_snr(img)
 	for j, w in enumerate(sigma):
-		img = preprocess_image(image, clip_limit=guess[0], sigma=w, threshold=True)
+		img = preprocess_image(image, clip_limit=guess[0], interval=w, threshold=True)
 		snr[1][j] = get_snr(img)
 
 	print(snr)
@@ -570,7 +533,7 @@ def get_snr(image):
 	return signal / noise
 
 
-def optimise_equalisation(image, guess=[0.01, 1.0], alpha = 1.0, precision = 5E-6, max_it=100):
+def optimise_equalisation(image, guess=[0.01, 0.9], alpha = 1.0, precision = 5E-6, max_it=100):
 
 	iteration = 1
 	x = np.array([guess, [guess[0]+0.0001, guess[1]+0.0001]])
@@ -594,7 +557,7 @@ def optimise_equalisation(image, guess=[0.01, 1.0], alpha = 1.0, precision = 5E-
 
 		new_x = x[-1] + (alpha * gamma)
 
-		check = np.all(new_x >= 0) * (new_x[0] < 0.5)
+		check = np.all(new_x >= 0) * np.all(new_x < 1.0)
 		alpha *= 0.9
 
 		print(new_x, check, d_snr, gamma)
@@ -611,7 +574,7 @@ def optimise_equalisation(image, guess=[0.01, 1.0], alpha = 1.0, precision = 5E-
 
 		new_x = x[-1] + gamma
 
-		check = np.all(new_x >= 0) * (new_x[0] < 0.5) * \
+		check = np.all(new_x >= 0) * np.all(new_x < 1.0) * \
 			(iteration <= max_it) * (abs(gamma).sum() >= precision)
 
 		print(new_x, check)

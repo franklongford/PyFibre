@@ -22,7 +22,7 @@ import image_tools as it
 
 
 def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=10, 
-				ow_metric=False, ow_network=False, snr_thresh=4.0, threads=8):
+				ow_metric=False, ow_network=False, noise_thresh=0.15, threads=8):
 
 	cmap = 'viridis'
 
@@ -63,8 +63,10 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 		print(f"clip_limit = {clip_limit}, sigma = {weight}, signal / noise = {snr}")
 		if snr <= snr_thresh: raise NoiseError(snr, snr_thresh)
 		print(" Noise threshold accepted ({} > {})".format(snr, snr_thresh))
-		"""
-		pre_image = it.preprocess_image(image, threshold=True, clip_limit=0.01, sigma=1.0)
+		#"""
+		pre_image, noise = it.preprocess_image(image, threshold=True, sigma=0.5, interval=0.9, clip_limit=0.01)
+		if noise >= noise_thresh: raise NoiseError(noise, noise_thresh)
+		print(" Noise threshold accepted ({} > {})".format(noise, noise_thresh))
 
 		net = it.network_extraction(data_dir + fig_name, pre_image, ow_network, threads) 
 		(label_image, sorted_areas, regions, networks) = net
