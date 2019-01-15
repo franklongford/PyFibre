@@ -8,8 +8,6 @@ python_version_patch := $(word 3,${python_version_full})
 
 BIN=$(firstword $(subst :, " ", $(PATH)))
 NAME=PyFibre
-NAME_MPI=PyFibre_mpi
-
 DESKTOP=$(HOME)/Desktop/
 
 
@@ -36,12 +34,6 @@ install:
 	@$(PIP) install -r requirements.txt
 	@$(PYTHON) make.py install $(NAME) $(BIN) $(DESKTOP) || (echo "Installation failed"; exit 1)
 
-install_mpi:
-	@echo
-	@echo "Installing ${NAME_MPI}"
-	@echo
-	@$(PIP) install -r requirements_mpi.txt
-	@$(PYTHON) make.py install_mpi $(NAME_MPI) $(BIN) $(DESKTOP) || (echo "Installation failed"; exit 1)
 
 test:
 	@echo
@@ -53,9 +45,6 @@ test:
 uninstall:
 	@$(PYTHON) make.py uninstall $(NAME) $(BIN) $(DESKTOP) || (echo "Uninstallation failed"; exit 1)
 		
-
-uninstall_mpi:
-	@$(PYTHON) make.py uninstall_mpi $(NAME) $(BIN) $(DESKTOP) || (echo "Uninstallation failed"; exit 1)
 
 clean:
 	@rm -f -r bin
