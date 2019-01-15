@@ -24,7 +24,7 @@ from scipy.stats import invgauss
 from skimage import data, measure, img_as_float, exposure, feature
 from skimage.transform import rescale
 from skimage.morphology import (disk, dilation)
-from skimage.filters import rank, threshold_li, threshold_mean, hessian, threshold_otsu
+from skimage.filters import rank, threshold_li, threshold_mean, hessian, threshold_otsu, median
 from skimage.color import rgb2hsv, hsv2rgb
 from skimage.restoration import denoise_tv_chambolle, denoise_tv_bregman, estimate_sigma
 from skimage.feature import ORB
@@ -64,36 +64,38 @@ def set_HSB(image, hue, saturation=1, brightness=1):
 	return hsv2rgb(hsv)
 
 
-def dist_func_invgauss(x, mu, loc, scale): return invgauss.pdf(x, mu, loc, scale)
+def func_invgauss(x, mu, loc, scale): return invgauss.pdf(x, mu, loc, scale)
 
 
-def preprocess_image(image, clip_limit=0.01, sigma=0.5, interval=0.9, threshold=False):
+def preprocess_image(image, clip_limit=0.015, sigma=0.5, interval=0.95, threshold=False):
 
-	if sigma != None: image = filters.gaussian_filter(image, sigma=sigma)
-	image = np.where(image >= 1, image, 0)
+    "Median blur"
+    image = image / image.max()
+    image = median(image, disk(3))
+    
+    "Gaussian blur"
+    noise = estimate_sigma(image)
+    image = filters.gaussian_filter(image, sigma=noise)
 
-	hist, X = np.histogram(image[np.nonzero(image)].flatten(), bins=5 * int(image.max()))
-	X = X[1:]
-	dX = X[1] - X[0]
-	hist = hist / (np.sum(hist) * dX)
+    hist, X = np.histogram(image[np.nonzero(image)].flatten())
+    X = X[1:]
+    dX = X[1] - X[0]
+    hist = hist / (np.sum(hist) * dX)
 
-	if threshold:
-		median = np.median(image[np.nonzero(image)])
-		popt_iga, pcov  = curve_fit(dist_func_invgauss, X, hist, [1, median, 1])
-		mu, loc, scale = popt_iga
-		mean, var, skew, kurt = invgauss.stats(mu, loc=loc, scale=scale, moments='mvsk')
+    if threshold:
+        popt_iga, pcov  = curve_fit(func_invgauss, X, hist, [1, np.median(image[np.nonzero(image)]), 1])
+        mu, loc, scale = popt_iga
+        mean, var, skew, kurt = invgauss.stats(mu, loc=loc, scale=scale, moments='mvsk')
+    
+        clip_high = invgauss.interval(interval, mu=mu, loc=loc, scale=scale)[1]
+        clip_low = threshold_mean(image)
 
-		clip_high = invgauss.interval(interval, mu=mu, loc=loc, scale=scale)[1]
-		clip_low = threshold_mean(image)
+        image = np.where(image <= clip_high, image, clip_high)
+        image = np.where(image >= clip_low, image, 0)
 
-		image = np.where(image <= clip_high, image, clip_high)
-		image = np.where(image >= clip_low, image, 0)
+    if clip_limit != None: image = exposure.equalize_adapthist(image / image.max(), clip_limit=clip_limit)
 
-	if clip_limit != None: image = exposure.equalize_adapthist(image / image.max(), clip_limit=clip_limit)
-	image = image / image.max()
-	noise = estimate_sigma(image)
-
-	return image, noise
+    return image, (mu, loc, scale)
 
 
 def select_samples(full_set, area, n_sample):
