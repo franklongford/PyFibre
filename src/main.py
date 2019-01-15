@@ -37,6 +37,7 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 	fig_name = ut.check_file_name(image_name, extension='tif')
 	image = it.load_image(input_file_name)
 	image = rescale(image, scale)
+	image = it.preprocess_image(image, clip_limit=0.01)
 
 	if not np.any([ow_metric, ow_network]) and os.path.exists(data_dir + fig_name + '.npy'):
 		metrics = ut.load_npy(data_dir + fig_name)
@@ -64,11 +65,8 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 		if snr <= snr_thresh: raise NoiseError(snr, snr_thresh)
 		print(" Noise threshold accepted ({} > {})".format(snr, snr_thresh))
 		#"""
-		pre_image, param = it.preprocess_image(image, threshold=True, sigma=0.5, interval=0.9, clip_limit=0.01)
-		#if noise >= noise_thresh: raise NoiseError(noise, noise_thresh)
-		#print(" Noise threshold accepted ({} > {})".format(noise, noise_thresh))
 
-		net = it.network_extraction(data_dir + fig_name, pre_image, ow_network, threads) 
+		net = it.network_extraction(data_dir + fig_name, image, ow_network, threads) 
 		(label_image, sorted_areas, regions, networks) = net
 	
 		"Analyse fibre network"

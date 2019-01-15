@@ -40,7 +40,6 @@ from extraction import FIRE, adj_analysis
 
 def load_image(image_name):
 
-
 	image_orig = np.asarray(Image.open(image_name)).astype(np.float32)
 
 	if image_orig.ndim > 2: 
@@ -63,39 +62,63 @@ def set_HSB(image, hue, saturation=1, brightness=1):
 
 	return hsv2rgb(hsv)
 
+def optimise_histogram(image, func, precision = 1E-10, max_it=100):
+    
+	bins = [25]
+	error = []
+	optimising = True
+	iteration = 1
+
+	while optimising:
+
+		try: 
+			hist, X = np.histogram(image[np.nonzero(image)].flatten(), density=True, bins=bins[-1])
+			X = X[1:]
+			popt_iga, pcov  = curve_fit(func, X, hist)
+			error.append(((hist - func(X, *popt_iga))**2).sum() / bins[-1]**2)
+
+			if len(error) >= 2: optimising = (error[-1] >= precision) * (iteration < max_it)
+			if optimising: bins.append(bins[-1] + 1)
+		    
+		except RuntimeError: bins[-1] += 1
+		    
+		iteration += 1
+	    
+	hist, X = np.histogram(image[np.nonzero(image)].flatten(), density=True, bins=bins[np.argmin(error)])
+	X = X[1:]
+	popt_iga, pcov  = curve_fit(func, X, hist)
+
+	return X, hist, popt_iga
+
 
 def func_invgauss(x, mu, loc, scale): return invgauss.pdf(x, mu, loc, scale)
 
 
-def preprocess_image(image, clip_limit=0.015, sigma=0.5, interval=0.95, threshold=False):
+def preprocess_image(image, clip_limit=None, interval=0.95, threshold=False):
 
-    "Median blur"
-    image = image / image.max()
-    image = median(image, disk(3))
-    
-    "Gaussian blur"
-    noise = estimate_sigma(image)
-    image = filters.gaussian_filter(image, sigma=noise)
+	"Median averaging to remove shot noise"
+	image = image / image.max()
+	image = median(image, disk(3))
 
-    hist, X = np.histogram(image[np.nonzero(image)].flatten())
-    X = X[1:]
-    dX = X[1] - X[0]
-    hist = hist / (np.sum(hist) * dX)
+	"Gaussian blur to remove gaussian noise"
+	noise = estimate_sigma(image)
+	image = filters.gaussian_filter(image, sigma=noise)
 
-    if threshold:
-        popt_iga, pcov  = curve_fit(func_invgauss, X, hist, [1, np.median(image[np.nonzero(image)]), 1])
-        mu, loc, scale = popt_iga
-        mean, var, skew, kurt = invgauss.stats(mu, loc=loc, scale=scale, moments='mvsk')
-    
-        clip_high = invgauss.interval(interval, mu=mu, loc=loc, scale=scale)[1]
-        clip_low = threshold_mean(image)
+	if threshold:
 
-        image = np.where(image <= clip_high, image, clip_high)
-        image = np.where(image >= clip_low, image, 0)
+		X, hist, popt_iga = optimise_histogram(image, func_invgauss)
+		mu, loc, scale = popt_iga
+		mean, var, skew, kurt = invgauss.stats(mu, loc=loc, scale=scale, moments='mvsk')
 
-    if clip_limit != None: image = exposure.equalize_adapthist(image / image.max(), clip_limit=clip_limit)
+		clip_high = invgauss.interval(interval, mu=mu, loc=loc, scale=scale)[1]
+		clip_low = threshold_mean(image)
 
-    return image, (mu, loc, scale)
+		image = np.where(image <= clip_high, image, clip_high)
+		image = np.where(image >= clip_low, image, 0)
+
+	if clip_limit != None: image = exposure.equalize_adapthist(image / image.max(), clip_limit=clip_limit)
+
+	return image
 
 
 def select_samples(full_set, area, n_sample):
