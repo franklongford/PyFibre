@@ -21,7 +21,7 @@ from utilities import NoiseError
 import image_tools as it
 
 
-def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=10, 
+def analyse_image(current_dir, input_file_name, scale=1, sigma=None, clip_limit=0.01, 
 				ow_metric=False, ow_network=False, noise_thresh=0.15, threads=8):
 
 	cmap = 'viridis'
@@ -37,7 +37,7 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, n_clusters=
 	fig_name = ut.check_file_name(image_name, extension='tif')
 	image = it.load_image(input_file_name)
 	image = rescale(image, scale)
-	image = it.preprocess_image(image, clip_limit=0.01)
+	image = it.preprocess_image(image, sigma=sigma, clip_limit=clip_limit)
 
 	if not np.any([ow_metric, ow_network]) and os.path.exists(data_dir + fig_name + '.npy'):
 		metrics = ut.load_npy(data_dir + fig_name)

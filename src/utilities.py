@@ -226,6 +226,7 @@ def adjoint_mat(matrix):
 
 	return mat_ad
 
+
 def ring(image, index, sizes, value):
     
     index = np.array(index)

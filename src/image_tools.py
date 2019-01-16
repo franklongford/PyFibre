@@ -26,7 +26,7 @@ from skimage.transform import rescale
 from skimage.morphology import (disk, dilation)
 from skimage.filters import rank, threshold_li, threshold_mean, hessian, threshold_otsu, median
 from skimage.color import rgb2hsv, hsv2rgb
-from skimage.restoration import denoise_tv_chambolle, denoise_tv_bregman, estimate_sigma
+from skimage.restoration import denoise_nl_means, estimate_sigma
 from skimage.feature import ORB
 
 from sklearn.decomposition import NMF
@@ -94,29 +94,18 @@ def optimise_histogram(image, func, precision = 1E-10, max_it=100):
 def func_invgauss(x, mu, loc, scale): return invgauss.pdf(x, mu, loc, scale)
 
 
-def preprocess_image(image, clip_limit=None, interval=0.95, threshold=False):
+def preprocess_image(image, sigma=None, clip_limit=None, threshold=None):
 
-	"Median averaging to remove shot noise"
+
 	image = image / image.max()
-	image = median(image, disk(3))
 
-	"Gaussian blur to remove gaussian noise"
-	noise = estimate_sigma(image)
-	image = filters.gaussian_filter(image, sigma=noise)
+	if sigma != None:
+		image = denoise_nl_means(image, patch_size=6, patch_distance=2, fast_mode=True, 
+						h = 0.8 * sigma, sigma=sigma, multichannel=False)
 
-	if threshold:
+	if clip_limit != None: image = exposure.equalize_adapthist(image, clip_limit=clip_limit)
 
-		X, hist, popt_iga = optimise_histogram(image, func_invgauss)
-		mu, loc, scale = popt_iga
-		mean, var, skew, kurt = invgauss.stats(mu, loc=loc, scale=scale, moments='mvsk')
-
-		clip_high = invgauss.interval(interval, mu=mu, loc=loc, scale=scale)[1]
-		clip_low = threshold_mean(image)
-
-		image = np.where(image <= clip_high, image, clip_high)
-		image = np.where(image >= clip_low, image, 0)
-
-	if clip_limit != None: image = exposure.equalize_adapthist(image / image.max(), clip_limit=clip_limit)
+	if threshold != None:image = np.where(image >= threshold, image, 0)
 
 	return image
 

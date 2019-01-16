@@ -85,24 +85,34 @@ class imagecol_gui:
 
 		frame.title = Label(frame, text="Options")
 		frame.title.configure(background='#d8baa9')
-		frame.title.grid(column=0, row=0, rowspan=2)
+		frame.title.grid(column=0, row=0, rowspan=1)
+
+		frame.sigma = Entry(frame, width=10)
+		frame.sigma.configure(background='#d8baa9')
+		frame.sigma.grid(column=0, row=1, sticky=(N,W,E,S))
+		#frame.chk_anis.pack(side=LEFT)
+
+		frame.clip_limit = Entry(frame, width=10)
+		frame.clip_limit.configure(background='#d8baa9')
+		frame.clip_limit.grid(column=0, row=2, sticky=(N,W,E,S))
+		#frame.chk_anis.pack(side=LEFT)
 
 		self.ow_metric = IntVar()
 		frame.chk_anis = Checkbutton(frame, text="o/w metrics", variable=self.ow_metric)
 		frame.chk_anis.configure(background='#d8baa9')
-		frame.chk_anis.grid(column=0, row=2, sticky=(N,W,E,S))
+		frame.chk_anis.grid(column=0, row=3, sticky=(N,W,E,S))
 		#frame.chk_anis.pack(side=LEFT)
 
 		self.ow_network = IntVar()
 		frame.chk_graph = Checkbutton(frame, text="o/w graph", variable=self.ow_network)
 		frame.chk_graph.configure(background='#d8baa9')
-		frame.chk_graph.grid(column=0, row=3, sticky=(N,W,E,S))
+		frame.chk_graph.grid(column=0, row=4, sticky=(N,W,E,S))
 		#frame.chk_graph.pack(side=LEFT)
 
 		self.save_db = IntVar()
 		frame.chk_db = Checkbutton(frame, text="Save Database", variable=self.save_db)
 		frame.chk_db.configure(background='#d8baa9')
-		frame.chk_db.grid(column=0, row=4, sticky=(N,W,E,S))
+		frame.chk_db.grid(column=0, row=5, sticky=(N,W,E,S))
 
 		frame.configure(background='#d8baa9')
 
@@ -442,8 +452,11 @@ class imagecol_gui:
 		self.processes = []
 		for batch in batch_files:
 			print(batch)
-			process = Process(target=image_analysis, args=(batch, self.ow_metric.get(),
-					self.ow_network.get(), self.queue, self.n_thread))
+			process = Process(target=image_analysis, 
+					args=(batch, eval(self.options.sigma.get()),
+					eval(self.options.clip_limit.get()),
+					self.ow_metric.get(), self.ow_network.get(), 
+					self.queue, self.n_thread))
 			process.daemon = True
 			self.processes.append(process)
 
@@ -493,7 +506,7 @@ class imagecol_gui:
 		for process in self.processes: process.terminate()
 
 
-def image_analysis(input_files, ow_metric, ow_network, queue, threads):
+def image_analysis(input_files, sigma, clip_limit, ow_metric, ow_network, queue, threads):
 
 	for input_file_name in input_files:
 
@@ -502,8 +515,10 @@ def image_analysis(input_files, ow_metric, ow_network, queue, threads):
 		fig_name = ut.check_file_name(image_name, extension='tif')
 
 		try:
-			analyse_image(image_path, input_file_name, ow_metric=ow_metric, 
-					ow_network=ow_network, sigma=0.5, threads=threads)
+			analyse_image(image_path, input_file_name,
+					sigma=sigma, clip_limit=clip_limit, 
+					ow_metric=ow_metric, ow_network=ow_network,
+					threads=threads)
 			queue.put("Analysis of {} complete".format(input_file_name))
 
 		except NoiseError as err: queue.put("{} {}".format(err.message, input_file_name))
