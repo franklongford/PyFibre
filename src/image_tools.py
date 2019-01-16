@@ -18,7 +18,7 @@ from PIL import Image
 from scipy.misc import derivative
 from scipy.ndimage import filters, imread
 from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, minimize
 from scipy.stats import invgauss
 
 from skimage import data, measure, img_as_float, exposure, feature
@@ -94,21 +94,36 @@ def optimise_histogram(image, func, precision = 1E-10, max_it=100):
 def func_invgauss(x, mu, loc, scale): return invgauss.pdf(x, mu, loc, scale)
 
 
-def preprocess_image(image, sigma=None, clip_limit=None, threshold=None):
-
+def preprocess_image(image, sigma=None, clip_limit=None, threshold=None, tol=1E-4):
 
 	image = image / image.max()
 
-	if sigma != None:
-		image = denoise_nl_means(image, patch_size=6, patch_distance=2, fast_mode=True, 
-						h = 0.8 * sigma, sigma=sigma, multichannel=False)
+	def process(sigma, clip_limit, threshold):
 
-	if clip_limit != None: image = exposure.equalize_adapthist(image, clip_limit=clip_limit)
+		image_opt = np.copy(image)
 
-	if threshold != None:image = np.where(image >= threshold, image, 0)
+		if sigma != None:
+		    image_opt = denoise_nl_means(image_opt, patch_size=6, patch_distance=2, fast_mode=True, 
+				h = 0.8 * sigma, sigma=sigma, multichannel=False)
+		if clip_limit != None: image_opt = exposure.equalize_adapthist(image_opt, clip_limit=clip_limit)
+		if threshold != None: image_opt = np.where(image_opt >= threshold, image_opt, 0)
 
-	return image
+		return image_opt
 
+	def opt_func(x):
+		image_opt = process(sigma=x[0], clip_limit=x[1], threshold=x[2])
+		noise = estimate_sigma(image_opt)
+		error = noise / image[np.nonzero(image_opt)].mean()
+		return error
+
+
+	opt = minimize(opt_func, [sigma, clip_limit, threshold], method='Nelder-Mead', tol=tol, 
+		bounds=[[0.01, 0.5], [0.01, 0.2], [0.01, 0.5]])
+
+	print(opt)
+	image = process(*opt.x)
+
+	return image, estimate_sigma(image)
 
 def select_samples(full_set, area, n_sample):
 	"""
