@@ -233,26 +233,28 @@ def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 			fibre.direction = (new_dir_vector / new_dir_r)
 
 
-def FIRE(image, sigma = 1.5, lambda_=0.5, nuc_thresh=2, lmp_thresh=0.2, 
-             angle_thresh=70, r_thresh=10, max_threads=8):
+def FIRE(image, sigma = 0.5, nuc_thresh=2, nuc_rad=15, lmp_thresh=0.2, 
+             angle_thresh=70, r_thresh=12, max_threads=8):
 
 	"Prepare input image to gain distance matrix of foreground from background"
+
 	cleared = clear_border(image)
 	threshold = cleared > threshold_otsu(cleared)
 	distance = distance_transform_edt(threshold)
 	smoothed = gaussian_filter(distance, sigma=sigma)
 
 	"Set distance and angle thresholds for fibre iterator"
-	nuc_thresh = np.min([nuc_thresh, 0.4 * smoothed.max()])
-	lmp_thresh = np.min([lmp_thresh, 0.1 * smoothed.max()])
+	nuc_thresh = np.min([nuc_thresh, 2E-1 * smoothed.max()])
+	lmp_thresh = np.min([lmp_thresh, 2E-2 * smoothed[np.nonzero(smoothed)].mean()])
 	theta_thresh = np.cos((180-angle_thresh) * np.pi / 180) + 1
 
 	print("Maximum distance = {}".format(smoothed.max()))
+	print("Mean distance = {}".format(smoothed[np.nonzero(smoothed)].mean()))
 	print("Using thresholds:\n nuc = {} pix  lmp = {} pix\n angle = {} deg".format(
 		    nuc_thresh, lmp_thresh, angle_thresh))
 
 	"Get global maxima for smoothed distance matrix"
-	maxima = local_maxima(smoothed, selem=square(11))
+	maxima = local_maxima(smoothed, selem=square(nuc_rad))
 	nuc_node_coord = reduce_coord(np.argwhere(maxima * smoothed >= nuc_thresh),
 		            smoothed[np.where(maxima * smoothed >= nuc_thresh)], r_thresh)
 

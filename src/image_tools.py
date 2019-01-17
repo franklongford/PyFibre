@@ -19,15 +19,14 @@ from scipy.misc import derivative
 from scipy.ndimage import filters, imread
 from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
 from scipy.optimize import curve_fit, minimize
-from scipy.stats import invgauss
 
-from skimage import data, measure, img_as_float, exposure, feature
+from skimage import data, measure, img_as_float
 from skimage.transform import rescale
 from skimage.morphology import (disk, dilation)
-from skimage.filters import rank, threshold_li, threshold_mean, hessian, threshold_otsu, median
 from skimage.color import rgb2hsv, hsv2rgb
 from skimage.restoration import denoise_nl_means, estimate_sigma
-from skimage.feature import ORB
+from skimage.feature import structure_tensor, hessian_matrix
+from skimage.exposure import rescale_intensity
 
 from sklearn.decomposition import NMF
 from sklearn.feature_extraction.image import img_to_graph
@@ -62,73 +61,47 @@ def set_HSB(image, hue, saturation=1, brightness=1):
 
 	return hsv2rgb(hsv)
 
-def optimise_histogram(image, func, precision = 1E-10, max_it=100):
-    
-	bins = [25]
-	error = []
-	optimising = True
-	iteration = 1
 
-	while optimising:
+def preprocess_image(image, scale=1, p_intensity=(1, 98), p_denoise=(12, 35)):
+	"""
+	Pre-process image to remove outliers, reduce noise and rescale
 
-		try: 
-			hist, X = np.histogram(image[np.nonzero(image)].flatten(), density=True, bins=bins[-1])
-			X = X[1:]
-			popt_iga, pcov  = curve_fit(func, X, hist)
-			error.append(((hist - func(X, *popt_iga))**2).sum() / bins[-1]**2)
+	Parameters
+	----------
 
-			if len(error) >= 2: optimising = (error[-1] >= precision) * (iteration < max_it)
-			if optimising: bins.append(bins[-1] + 1)
-		    
-		except RuntimeError: bins[-1] += 1
-		    
-		iteration += 1
-	    
-	hist, X = np.histogram(image[np.nonzero(image)].flatten(), density=True, bins=bins[np.argmin(error)])
-	X = X[1:]
-	popt_iga, pcov  = curve_fit(func, X, hist)
+	image:  array_like (float); shape=(n_y, n_x)
+		Image to pre-process
 
-	return X, hist, popt_iga
+	scale:  float
+		Metric indicating image rescaling required
 
+	p_intensity: tuple (float); shape=(2,)
+		Percentile range for intensity rescaling (used to remove outliers)
+	
+	p_denoise: tuple (float); shape=(2,)
+		Parameters for non-linear means denoise algorithm (used to remove noise)
 
-def func_invgauss(x, mu, loc, scale): return invgauss.pdf(x, mu, loc, scale)
+	Returns
+	-------
 
+	image:  array_like (float); shape=(n_y, n_x)
+		Pre-processed image
 
-def preprocess_image(image, sigma=None, clip_limit=None, threshold=None, tol=1E-4):
+	"""
 
-	image = image / image.max()
+	low, high = np.percentile(image, p_intensity)
+	image = rescale_intensity(image, in_range=(low, high))
 
-	def process(sigma, clip_limit, threshold):
+	sigma = estimate_sigma(image)
+	image = denoise_nl_means(image, patch_size=p_denoise[0], patch_distance=p_denoise[1],
+				fast_mode=True, h = 1.2 * sigma, sigma=sigma, multichannel=False)
+	image = rescale(image, scale)
 
-		image_opt = np.copy(image)
+	return image
 
-		if sigma != None:
-		    image_opt = denoise_nl_means(image_opt, patch_size=6, patch_distance=2, fast_mode=True, 
-				h = 0.8 * sigma, sigma=sigma, multichannel=False)
-		if clip_limit != None: image_opt = exposure.equalize_adapthist(image_opt, clip_limit=clip_limit)
-		if threshold != None: image_opt = np.where(image_opt >= threshold, image_opt, 0)
-
-		return image_opt
-
-	def opt_func(x):
-		image_opt = process(sigma=x[0], clip_limit=x[1], threshold=x[2])
-		noise = estimate_sigma(image_opt)
-		error = noise / image[np.nonzero(image_opt)].mean()
-		return error
-
-
-	opt = minimize(opt_func, [sigma, clip_limit, threshold], method='Nelder-Mead', tol=tol, 
-		bounds=[[0.01, 0.5], [0.01, 0.2], [0.01, 0.5]])
-
-	print(opt)
-	image = process(*opt.x)
-
-	return image, estimate_sigma(image)
 
 def select_samples(full_set, area, n_sample):
 	"""
-	select_samples(full_set, area, n_sample)
-
 	Selects n_sample random sections of image stack full_set
 
 	Parameters
@@ -284,7 +257,7 @@ def form_structure_tensor(image, sigma=0.0001, size=None):
 	jyy = np.zeros(image.shape)
 
 	for frame in range(nframe):
-		jxx[frame], jxy[frame], jyy[frame] = feature.structure_tensor(image[frame], sigma=sigma)
+		jxx[frame], jxy[frame], jyy[frame] = structure_tensor(image[frame], sigma=sigma)
 
 	j_tensor = np.stack((jxx, jxy, jxy, jyy), -1).reshape(jxx.shape + (2,2))
 	if nframe == 1: j_tensor = j_tensor.reshape(j_tensor.shape[1:])
@@ -324,7 +297,7 @@ def form_hessian_tensor(image, sigma=None, size=None):
 
 	#dxdx, dxdy, dydx, dyy = derivatives(image, rank=2)
 	for frame in range(nframe):
-		dxdx[frame], dxdy[frame], dydy[frame] = feature.hessian_matrix(image[frame], order="xy", sigma=sigma)
+		dxdx[frame], dxdy[frame], dydy[frame] = hessian_matrix(image[frame], order="xy", sigma=sigma)
 
 	H_tensor = np.stack((dxdx, dxdy, dxdy, dydy), -1).reshape(dxdx.shape + (2,2))
 	if nframe == 1: H_tensor = H_tensor.reshape(H_tensor.shape[1:])
@@ -413,7 +386,7 @@ def get_curvature(j_tensor, H_tensor):
 	return np.nan_to_num(gauss_curvature), np.nan_to_num(mean_curvature)
 
 
-def network_extraction(graph_name, image, ow_graph=False, threads=8):
+def network_extraction(graph_name, image, sigma=1.0, ow_graph=False, threads=8):
 	"""
 	Extract fibre network using modified FIRE algorithm
 	"""
@@ -423,8 +396,8 @@ def network_extraction(graph_name, image, ow_graph=False, threads=8):
 
 	if ow_graph:
 		print("Extracting fibre network using modified FIRE algorithm")	
-		image_TB = tubeness(image, 1)
-		Aij = FIRE(image_TB, sigma=1, max_threads=threads)
+		image_TB = tubeness(image, sigma)
+		Aij = FIRE(image_TB, sigma=sigma, max_threads=threads)
 		nx.write_gpickle(Aij, graph_name + ".pkl")
 
 	label_image = np.zeros(image.shape)
@@ -518,128 +491,6 @@ def network_analysis(label_image, sorted_areas, networks, n_tensor, anis_map):
 
 	return (net_area, net_anis, net_linear, net_cluster, net_degree, fibre_waviness, 
 			network_waviness, pix_anis, coverage, solidity)
-
-
-def get_snr_estimates(image, guess, inc = 1E-3):
-
-	clip_limit = [guess[0] - inc, guess[0] + inc]
-	sigma = [guess[1] - inc, guess[1] + inc]
-
-	snr = np.zeros((2, 2))
-	jacobian = np.zeros(2)
-	#hessian = np.zeros((2, 2))
-
-	for i, cl in enumerate(clip_limit):
-		print(clip_limit)
-		img = preprocess_image(image, clip_limit=cl, interval=guess[1], threshold=True)
-		snr[0][i] = get_snr(img)
-	for j, w in enumerate(sigma):
-		img = preprocess_image(image, clip_limit=guess[0], interval=w, threshold=True)
-		snr[1][j] = get_snr(img)
-
-	print(snr)
-
-	jacobian[0] = 0.5 * (snr[0][1] - snr[0][0]) / inc
-	jacobian[1] = 0.5 * (snr[1][1] - snr[1][0]) / inc
-
-	"""
-	hessian[0][0] = 0.25 * (snr[2][1] - 2 * snr[1][1] - snr[0][1]) / inc
-	hessian[0][1] = 0.25 * (snr[2][2] - snr[0][2] + snr[2][0] - snr[0][0]) / inc
-	hessian[1][0] = 0.25 * (snr[2][2] - snr[2][0] + snr[0][2] - snr[0][0]) / inc
-	hessian[1][1] = 0.25 * (snr[1][2] - 2 * snr[1][1] - snr[1][0]) / inc
-	"""
-
-	img = preprocess_image(image, clip_limit=guess[0], sigma=guess[1], threshold=True)
-	snr = get_snr(img)
-
-	return snr, jacobian, hessian
-
-def get_snr(image):
-
-	noise = estimate_sigma(image, multichannel=False, average_sigmas=True)
-	signal = image.sum() / np.count_nonzero(image)
-
-	return signal / noise
-
-
-def optimise_equalisation(image, guess=[0.01, 0.9], alpha = 1.0, precision = 5E-6, max_it=100):
-
-	iteration = 1
-	x = np.array([guess, [guess[0]+0.0001, guess[1]+0.0001]])
-	snr = []
-	snr_grad = []
-
-	snr_n, d_snr, dd_snr = get_snr_estimates(image, x[0])
-	snr.append(snr_n)
-	snr_grad.append(d_snr)
-
-	snr_n, d_snr, dd_snr = get_snr_estimates(image, x[1])
-	snr.append(snr_n)
-	snr_grad.append(d_snr)
-
-	print(snr, snr_grad)
-
-	check = False
-	while not check:
-		gamma = d_snr * (x[-1] - x[-2]).T * (snr_grad[-1] - snr_grad[-2]) \
-				/ ((snr_grad[-1] - snr_grad[-2])**2).sum()
-
-		new_x = x[-1] + (alpha * gamma)
-
-		check = np.all(new_x >= 0) * np.all(new_x < 1.0)
-		alpha *= 0.9
-
-		print(new_x, check, d_snr, gamma)
-
-	x = np.concatenate((x, np.expand_dims(new_x, axis=0)))
-	
-	while True:
-		snr_n, d_snr, dd_snr = get_snr_estimates(image, x[-1])
-		snr.append(snr_n)
-		snr_grad.append(d_snr)
-
-		gamma = d_snr * (x[-1] - x[-2]).T * (snr_grad[-1] - snr_grad[-2]) \
-				/ ((snr_grad[-1] - snr_grad[-2])**2).sum()
-
-		new_x = x[-1] + gamma
-
-		check = np.all(new_x >= 0) * np.all(new_x < 1.0) * \
-			(iteration <= max_it) * (abs(gamma).sum() >= precision)
-
-		print(new_x, check)
-		print(iteration, d_snr, gamma)
-
-		if not check:
-
-			clip_limit = x[np.argmax(snr)][0]
-			sigma = x[np.argmax(snr)][1]
-
-			#"""
-			import matplotlib
-			matplotlib.use("TkAgg")
-			import matplotlib.pyplot as plt
-			
-			X = np.sqrt((x**2).sum(axis=-1))
-
-			plt.clf()
-			plt.figure(0)
-			plt.scatter(X[0], snr[0])
-			plt.scatter(X[-1], snr[-1])
-			plt.plot(X, snr)
-			plt.savefig("gradient_ascent.png")
-			
-			eq_image = preprocess_image(image, threshold=True, clip_limit=clip_limit, sigma=sigma)
-
-			plt.clf()
-			plt.figure(0)
-			plt.imshow(eq_image)
-			plt.savefig("equalised_image.png")
-			#"""
-			return clip_limit, sigma, np.max(snr)
-
-		x = np.concatenate((x, np.expand_dims(new_x, axis=0)))
-
-		iteration += 1
 
 """Deprecated"""
 

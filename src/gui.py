@@ -92,11 +92,6 @@ class imagecol_gui:
 		frame.sigma.grid(column=0, row=1, sticky=(N,W,E,S))
 		#frame.chk_anis.pack(side=LEFT)
 
-		frame.clip_limit = Entry(frame, width=10)
-		frame.clip_limit.configure(background='#d8baa9')
-		frame.clip_limit.grid(column=0, row=2, sticky=(N,W,E,S))
-		#frame.chk_anis.pack(side=LEFT)
-
 		self.ow_metric = IntVar()
 		frame.chk_anis = Checkbutton(frame, text="o/w metrics", variable=self.ow_metric)
 		frame.chk_anis.configure(background='#d8baa9')
@@ -451,10 +446,8 @@ class imagecol_gui:
 		batch_files = np.array_split(self.input_files, proc_count)
 		self.processes = []
 		for batch in batch_files:
-			print(batch)
 			process = Process(target=image_analysis, 
 					args=(batch, eval(self.options.sigma.get()),
-					eval(self.options.clip_limit.get()),
 					self.ow_metric.get(), self.ow_network.get(), 
 					self.queue, self.n_thread))
 			process.daemon = True
@@ -482,9 +475,7 @@ class imagecol_gui:
 		if np.any([process.is_alive() for process in self.processes]):
 			self.master.after(500, self.process_check)
 		else: 
-			self.file_display.progress['value'] = 0
-			self.file_display.run_button.config(state=NORMAL)
-			self.file_display.stop_button.config(state=DISABLED)
+			self.stop_run()
 			self.generate_db()
 			if self.save_db.get(): self.save_database()
 
@@ -504,9 +495,12 @@ class imagecol_gui:
 
 		self.update_log("Stopping Analysis")
 		for process in self.processes: process.terminate()
+		self.file_display.progress['value'] = 0
+		self.file_display.run_button.config(state=NORMAL)
+		self.file_display.stop_button.config(state=DISABLED)
 
 
-def image_analysis(input_files, sigma, clip_limit, ow_metric, ow_network, queue, threads):
+def image_analysis(input_files, sigma, ow_metric, ow_network, queue, threads):
 
 	for input_file_name in input_files:
 
@@ -516,7 +510,7 @@ def image_analysis(input_files, sigma, clip_limit, ow_metric, ow_network, queue,
 
 		try:
 			analyse_image(image_path, input_file_name,
-					sigma=sigma, clip_limit=clip_limit, 
+					sigma=sigma, 
 					ow_metric=ow_metric, ow_network=ow_network,
 					threads=threads)
 			queue.put("Analysis of {} complete".format(input_file_name))

@@ -14,15 +14,13 @@ import argparse
 import numpy as np
 import pandas as pd
 
-from skimage.transform import rescale
-
 import utilities as ut
 from utilities import NoiseError
 import image_tools as it
 
 
-def analyse_image(current_dir, input_file_name, scale=1, sigma=None, clip_limit=0.01, 
-				ow_metric=False, ow_network=False, noise_thresh=0.15, threads=8):
+def analyse_image(current_dir, input_file_name, scale=1, sigma=None, 
+				ow_metric=False, ow_network=False, threads=8):
 
 	cmap = 'viridis'
 
@@ -33,22 +31,22 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, clip_limit=
 	if not os.path.exists(data_dir): os.mkdir(data_dir)
 
 	image_name = input_file_name.split('/')[-1]
-
 	fig_name = ut.check_file_name(image_name, extension='tif')
-	image = it.load_image(input_file_name)
-	image = rescale(image, scale)
-	image = it.preprocess_image(image, sigma=sigma, clip_limit=clip_limit)
 
 	if not np.any([ow_metric, ow_network]) and os.path.exists(data_dir + fig_name + '.npy'):
 		metrics = ut.load_npy(data_dir + fig_name)
 
 	else:
+		"Load and preprocess image"
+		image = it.load_image(input_file_name)
+		image = it.preprocess_image(image)
+
+		"Form nematic, structure and hessian tensors for each pixel"
 		n_tensor = it.form_nematic_tensor(image, sigma=sigma)
 		j_tensor = it.form_structure_tensor(image, sigma=sigma)
 		H_tensor = it.form_hessian_tensor(image, sigma=sigma)
 
 		"Perform anisotropy analysis on each pixel"
-
 		pix_n_anis, pix_n_angle, pix_n_energy = it.tensor_analysis(n_tensor)
 		pix_j_anis, pix_j_angle, pix_j_energy = it.tensor_analysis(j_tensor)
 		pix_H_anis, pix_H_angle, pix_H_energy = it.tensor_analysis(H_tensor)
@@ -59,13 +57,6 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None, clip_limit=
 		img_H_anis, _ , _ = it.tensor_analysis(np.mean(H_tensor, axis=(0, 1)))
 
 		"Extract fibre network"
-		"""
-		clip_limit, weight, snr = it.optimise_equalisation(image)
-		print(f"clip_limit = {clip_limit}, sigma = {weight}, signal / noise = {snr}")
-		if snr <= snr_thresh: raise NoiseError(snr, snr_thresh)
-		print(" Noise threshold accepted ({} > {})".format(snr, snr_thresh))
-		#"""
-
 		net = it.network_extraction(data_dir + fig_name, image, ow_network, threads) 
 		(label_image, sorted_areas, regions, networks) = net
 	
