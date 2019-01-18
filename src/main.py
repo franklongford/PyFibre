@@ -39,7 +39,9 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None,
 	else:
 		"Load and preprocess image"
 		image = it.load_image(input_file_name)
-		image = it.preprocess_image(image)
+
+		"Perform fourier analysis to obtain spectrum and sdi metric"
+		angles, fourier_spec, sdi = it.fourier_transform_analysis(image)
 
 		"Form nematic, structure and hessian tensors for each pixel"
 		n_tensor = it.form_nematic_tensor(image, sigma=sigma)
@@ -56,8 +58,11 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None,
 		img_anis, _ , _ = it.tensor_analysis(np.mean(n_tensor, axis=(0, 1)))
 		img_H_anis, _ , _ = it.tensor_analysis(np.mean(H_tensor, axis=(0, 1)))
 
+		"Pre-process image to extract network"
+		image_fire = it.preprocess_image(image)
+
 		"Extract fibre network"
-		net = it.network_extraction(data_dir + fig_name, image, ow_network, threads) 
+		net = it.network_extraction(data_dir + fig_name, image_fire, ow_network, threads) 
 		(label_image, sorted_areas, regions, networks) = net
 	
 		"Analyse fibre network"

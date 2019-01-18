@@ -16,7 +16,7 @@ import networkx as nx
 from PIL import Image
 
 from scipy.misc import derivative
-from scipy.ndimage import filters, imread
+from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
 from scipy.optimize import curve_fit, minimize
 
@@ -27,10 +27,6 @@ from skimage.color import rgb2hsv, hsv2rgb
 from skimage.restoration import denoise_nl_means, estimate_sigma
 from skimage.feature import structure_tensor, hessian_matrix
 from skimage.exposure import rescale_intensity
-
-from sklearn.decomposition import NMF
-from sklearn.feature_extraction.image import img_to_graph
-from sklearn.cluster import spectral_clustering
 
 import utilities as ut
 from filters import tubeness
@@ -216,9 +212,9 @@ def form_nematic_tensor(image, sigma=None, size=None):
 
 	if sigma != None:
 		for frame in range(nframe):
-			nxx[frame] = filters.gaussian_filter(nxx[frame], sigma=sigma)
-			nyy[frame] = filters.gaussian_filter(nyy[frame], sigma=sigma)
-			nxy[frame] = filters.gaussian_filter(nxy[frame], sigma=sigma)
+			nxx[frame] = gaussian_filter(nxx[frame], sigma=sigma)
+			nyy[frame] = gaussian_filter(nyy[frame], sigma=sigma)
+			nxy[frame] = gaussian_filter(nxy[frame], sigma=sigma)
 
 	n_tensor = np.stack((nxx, nxy, nxy, nyy), -1).reshape(nxx.shape + (2,2))
 	if nframe == 1: n_tensor = n_tensor.reshape(n_tensor.shape[1:])
@@ -570,23 +566,15 @@ def smart_nematic_tensor_analysis(nem_vector, precision=1E-1):
 	return tot_q
 
 
-def fourier_transform_analysis(image_shg):
+def fourier_transform_analysis(image, sigma=None):
 	"""
-	fourier_transform_analysis(image_shg, area, n_sample)
-
-	Calculates fourier amplitude spectrum of over area^2 pixels for n_samples
+	Calculates fourier amplitude spectrum for image
 
 	Parameters
 	----------
 
-	image_shg:  array_like (float); shape=(n_images, n_x, n_y)
-		Array of images corresponding to each trajectory configuration
-
-	area:  int
-		Unit length of sample area
-
-	n_sample:  int
-		Number of randomly selected areas to sample
+	image:  array_like (float); shape=(n_x, n_y)
+		Image to analyse
 
 	Returns
 	-------
@@ -599,12 +587,11 @@ def fourier_transform_analysis(image_shg):
 
 	"""
 
-	n_sample = image_shg.shape[0]
+	if sigma != None: image = filters.gaussian_filter(image, sigma)
 
-	image_fft = np.fft.fft2(image_shg[0])
+	image_fft = np.fft.fft2(image)
 	image_fft[0][0] = 0
 	image_fft = np.fft.fftshift(image_fft)
-	average_fft = np.zeros(image_fft.shape, dtype=complex)
 
 	fft_angle = np.angle(image_fft, deg=True)
 	fft_freqs = np.fft.fftfreq(image_fft.size)
@@ -613,14 +600,9 @@ def fourier_transform_analysis(image_shg):
 	
 	n_bins = fourier_spec.size
 
-	for n in range(n_sample):
-		image_fft = np.fft.fft2(image_shg[n])
-		image_fft[0][0] = 0
-		average_fft += np.fft.fftshift(image_fft) / n_sample	
-
 	for i in range(n_bins):
 		indices = np.where(fft_angle == angles[i])
-		fourier_spec[i] += np.sum(np.abs(average_fft[indices])) / 360
+		fourier_spec[i] += np.sum(np.abs(image_fft[indices])) / 360
 
 	#A = np.sqrt(average_fft * fft_angle.size * fft_freqs**2 * (np.cos(fft_angle)**2 + np.sin(fft_angle)**2))
 
