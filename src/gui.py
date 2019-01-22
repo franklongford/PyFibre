@@ -411,7 +411,7 @@ class imagecol_gui:
 
 			image_name = input_file_name.split('/')[-1]
 			image_path = '/'.join(input_file_name.split('/')[:-1])
-			data_dir = image_path + '/data/'
+			data_dir = image_path + 'data/'
 			metric_name = data_dir + ut.check_file_name(image_name, extension='tif')
 			
 			self.update_log("Loading metrics for {}".format(input_file_name))

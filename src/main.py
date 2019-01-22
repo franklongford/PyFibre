@@ -28,6 +28,8 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None,
 
 	fig_dir = current_dir + '/fig/'
 	data_dir = current_dir + '/data/'
+
+	print(fig_dir, data_dir)
 	
 	if not os.path.exists(fig_dir): os.mkdir(fig_dir)
 	if not os.path.exists(data_dir): os.mkdir(data_dir)
@@ -87,66 +89,6 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None,
 	return metrics
 
 
-def analyse_directory(input_files, ow_metric=False, ow_network=False, save_db=None, threads=8):
-
-	scale = 1
-	sigma = 0.5
-
-	removed_files = []
-
-	database_array = np.empty((0, 10), dtype=float)
-
-	for i, input_file_name in enumerate(input_files):
-		try:
-			res = analyse_image(current_dir, input_file_name, scale=scale, 
-					  sigma=sigma, ow_metric=ow_metric, ow_network=ow_network, 
-					  threads=threads)
-
-			database_array = np.concatenate((database_array, np.expand_dims(res, axis=0)))
-
-			print(' Network Clustering = {:>6.4f}'.format(database_array[-1][0]))
-			print(' Network Degree = {:>6.4f}'.format(database_array[-1][1]))
-			print(' Network Linearity = {:>6.4f}'.format(database_array[-1][2]))
-			print(' Network Coverage = {:>6.4f}'.format(database_array[-1][3]))
-			print(' Network Solidity = {:>6.4f}'.format(database_array[-1][4]))
-			print(' Network Waviness = {:>6.4f}'.format(database_array[-1][5]))
-			print(' Av. Fibre Waviness = {:>6.4f}'.format(database_array[-1][6]))
-			
-			print(' Average Pixel anistoropy = {:>6.4f}'.format(database_array[-1][7]))
-			print(' Average Region Anistoropy = {:>6.4f}'.format(database_array[-1][8]))
-			print(' Total Image anistoropy = {:>6.4f}\n'.format(database_array[-1][9]))
-
-		except NoiseError as err:
-			print(err.message)
-			removed_files.append(input_file_name)
-
-	for file_name in removed_files: input_files.remove(file_name)
-
-	dataframe = pd.DataFrame(data=database_array, columns=['Clustering', 'Degree', 'Linearity', 'Coverage', 
-								'Fibre Waviness', 'Network Waviness', 'Solidity', 'Pixel Anis', 
-								'Region Anis', 'Image Anis'], index = input_files)
-
-	if save_db != None: dataframe.to_pickle(data_dir + '{}.pkl'.format(save_db))
-
-
-def image_analysis(input_files, sigma, ow_metric, ow_network, queue, threads):
-
-	for input_file_name in input_files:
-
-		image_name = input_file_name.split('/')[-1]
-		image_path = '/'.join(input_file_name.split('/')[:-1])
-		fig_name = ut.check_file_name(image_name, extension='tif')
-
-		try:
-			analyse_image(image_path, input_file_name,
-					sigma=sigma, 
-					ow_metric=ow_metric, ow_network=ow_network,
-					threads=threads)
-			queue.put("Analysis of {} complete".format(input_file_name))
-
-		except NoiseError as err: queue.put("{} {}".format(err.message, input_file_name))
-
-
 if __name__ == '__main__':
 
 	current_dir = os.getcwd()
@@ -158,16 +100,18 @@ if __name__ == '__main__':
 	parser.add_argument('--name', nargs='?', help='Tif file names to load', default="")
 	parser.add_argument('--dir', nargs='?', help='Directories to load tif files', default="")
 	parser.add_argument('--key', nargs='?', help='Keywords to filter file names', default="")
+	parser.add_argument('--sigma', type=float, nargs='?', help='Gaussian smoothing standard deviation', default=0.5)
 	parser.add_argument('--ow_metric', action='store_true', help='Toggles overwrite analytic metrics')
 	parser.add_argument('--ow_network', action='store_true', help='Toggles overwrite network extraction')
 	parser.add_argument('--save_db', nargs='?', help='Output database filename', default=None)
-	parser.add_argument('--processor', type=int, nargs='?', help='Number of threads per processor', default=os.cpu_count() - 1)
 	parser.add_argument('--threads', type=int, nargs='?', help='Number of threads per processor', default=8)
 	args = parser.parse_args()
 
-	print(args)
+	input_files = []
 
-	input_files = args.name.split(',')
+	for file_name in args.name.split(','):
+		if (file_name.find('/') == -1): file_name = current_dir + '/' + file_name
+		input_files.append(file_name)
 
 	if len(args.dir) != 0:
 		for directory in args.dir.split(','): 
@@ -187,22 +131,49 @@ if __name__ == '__main__':
 		
 	for file_name in removed_files: input_files.remove(file_name)
 
-	#"""Multi Processor version
-	proc_count = np.min((args.processor, len(input_files)))
-	batch_files = np.array_split(input_files, proc_count)
+	print(input_files)
 
-	processes = []
-	for batch in batch_files:
-		process = Process(target=image_analysis, 
-				args=(batch, eval(self.options.sigma.get()),
-				self.ow_metric.get(), self.ow_network.get(), 
-				self.queue, self.n_thread))
-		process.daemon = True
-		self.processes.append(process)
+	database_array = np.empty((0, 10), dtype=float)
 
-	for process in processes: process.start()
-		#"""
+	for i, input_file_name in enumerate(input_files):
 
-	analyse_directory(input_files, args.ow_metric, args.ow_network, args.save_db, args.threads)
+		image_name = input_file_name.split('/')[-1]
+		image_path = '/'.join(input_file_name.split('/')[:-1])
+		fig_name = ut.check_file_name(image_name, extension='tif')
+
+		print(image_name, image_path)
+		sys.exit()
+
+		try:
+			res = analyse_image(image_path, input_file_name,  sigma=args.sigma, 
+				ow_metric=args.ow_metric, ow_network=args.ow_network, threads=args.threads)
+			database_array = np.concatenate((database_array, np.expand_dims(res, axis=0)))
+	
+			print(input_file_name)
+			print(' Network Clustering = {:>6.4f}'.format(database_array[-1][0]))
+			print(' Network Degree = {:>6.4f}'.format(database_array[-1][1]))
+			print(' Network Linearity = {:>6.4f}'.format(database_array[-1][2]))
+			print(' Network Coverage = {:>6.4f}'.format(database_array[-1][3]))
+			print(' Network Solidity = {:>6.4f}'.format(database_array[-1][4]))
+			print(' Network Waviness = {:>6.4f}'.format(database_array[-1][5]))
+			print(' Av. Fibre Waviness = {:>6.4f}'.format(database_array[-1][6]))
+			
+			print(' Average Pixel anistoropy = {:>6.4f}'.format(database_array[-1][7]))
+			print(' Average Region Anistoropy = {:>6.4f}'.format(database_array[-1][8]))
+			print(' Total Image anistoropy = {:>6.4f}\n'.format(database_array[-1][9]))
+
+		except NoiseError as err:
+			print(err.message)
+			removed_files.append(input_file_name)
+
+	for file_name in removed_files: input_files.remove(file_name)
+
+	dataframe = pd.DataFrame(data=database_array, columns=['Clustering', 'Degree', 'Linearity', 'Coverage', 
+								'Fibre Waviness', 'Network Waviness', 'Solidity',
+								'Pixel Anis', 'Region Anis', 'Image Anis'], 
+				index = input_files)
+
+	if save_db != None: dataframe.to_pickle(data_dir + '{}.pkl'.format(save_db))
+
 
 		
