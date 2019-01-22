@@ -14,6 +14,8 @@ import argparse
 import numpy as np
 import pandas as pd
 
+from multiprocessing import Pool, Process, JoinableQueue, Queue, current_process
+
 import utilities as ut
 from utilities import NoiseError
 import image_tools as it
@@ -85,7 +87,6 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None,
 	return metrics
 
 
-
 def analyse_directory(input_files, ow_metric=False, ow_network=False, save_db=None, threads=8):
 
 	scale = 1
@@ -142,6 +143,7 @@ if __name__ == '__main__':
 	parser.add_argument('--ow_metric', action='store_true', help='Toggles overwrite analytic metrics')
 	parser.add_argument('--ow_network', action='store_true', help='Toggles overwrite network extraction')
 	parser.add_argument('--save_db', nargs='?', help='Output database filename', default=None)
+	parser.add_argument('--processor', type=int, nargs='?', help='Number of threads per processor', default=os.cpu_count() - 1)
 	parser.add_argument('--threads', type=int, nargs='?', help='Number of threads per processor', default=8)
 	args = parser.parse_args()
 
@@ -166,6 +168,22 @@ if __name__ == '__main__':
 				removed_files.append(file_name)
 		
 	for file_name in removed_files: input_files.remove(file_name)
+
+	#"""Multi Processor version
+	proc_count = np.min((args.processor, len(input_files)))
+	batch_files = np.array_split(input_files, proc_count)
+
+	processes = []
+	for batch in batch_files:
+		process = Process(target=image_analysis, 
+				args=(batch, eval(self.options.sigma.get()),
+				self.ow_metric.get(), self.ow_network.get(), 
+				self.queue, self.n_thread))
+		process.daemon = True
+		self.processes.append(process)
+
+	for process in processes: process.start()
+		#"""
 
 	analyse_directory(input_files, args.ow_metric, args.ow_network, args.save_db, args.threads)
 
