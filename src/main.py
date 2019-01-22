@@ -129,6 +129,24 @@ def analyse_directory(input_files, ow_metric=False, ow_network=False, save_db=No
 	if save_db != None: dataframe.to_pickle(data_dir + '{}.pkl'.format(save_db))
 
 
+def image_analysis(input_files, sigma, ow_metric, ow_network, queue, threads):
+
+	for input_file_name in input_files:
+
+		image_name = input_file_name.split('/')[-1]
+		image_path = '/'.join(input_file_name.split('/')[:-1])
+		fig_name = ut.check_file_name(image_name, extension='tif')
+
+		try:
+			analyse_image(image_path, input_file_name,
+					sigma=sigma, 
+					ow_metric=ow_metric, ow_network=ow_network,
+					threads=threads)
+			queue.put("Analysis of {} complete".format(input_file_name))
+
+		except NoiseError as err: queue.put("{} {}".format(err.message, input_file_name))
+
+
 if __name__ == '__main__':
 
 	current_dir = os.getcwd()
