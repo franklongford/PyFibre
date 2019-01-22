@@ -34,7 +34,8 @@ class imagecol_gui:
 	def __init__(self, master, n_proc, n_thread):
 
 		"Set file locations"
-		self.dir_path = os.path.dirname(os.path.realpath(__file__))
+		self.source_dir = os.path.dirname(os.path.realpath(__file__))
+		self.pyfibre_dir = self.source_dir[:self.source_dir.rfind(os.path.sep)]
 		self.current_dir = os.getcwd()
 		"Initiatise program log, queue and input file list"
 		self.Log = "Initiating PyFibre GUI\n"
@@ -71,7 +72,7 @@ class imagecol_gui:
 
 		self.master.title("PyFibre - Python Fibrous Image Analysis Toolkit")
 
-		image = Image.open(self.dir_path + '/icon.ico')
+		image = Image.open(self.pyfibre_dir + '/img/icon.ico')
 		image = image.resize((300,200))
 		image_tk = ImageTk.PhotoImage(image)
 

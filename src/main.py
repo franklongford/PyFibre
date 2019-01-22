@@ -43,20 +43,17 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None,
 		"Perform fourier analysis to obtain spectrum and sdi metric"
 		angles, fourier_spec, sdi = it.fourier_transform_analysis(image)
 
-		"Form nematic, structure and hessian tensors for each pixel"
+		"Form nematic and structure tensors for each pixel"
 		n_tensor = it.form_nematic_tensor(image, sigma=sigma)
 		j_tensor = it.form_structure_tensor(image, sigma=sigma)
-		H_tensor = it.form_hessian_tensor(image, sigma=sigma)
 
 		"Perform anisotropy analysis on each pixel"
 		pix_n_anis, pix_n_angle, pix_n_energy = it.tensor_analysis(n_tensor)
 		pix_j_anis, pix_j_angle, pix_j_energy = it.tensor_analysis(j_tensor)
-		pix_H_anis, pix_H_angle, pix_H_energy = it.tensor_analysis(H_tensor)
 
 		"Perform anisotropy analysis on whole image"
-
-		img_anis, _ , _ = it.tensor_analysis(np.mean(n_tensor, axis=(0, 1)))
-		img_H_anis, _ , _ = it.tensor_analysis(np.mean(H_tensor, axis=(0, 1)))
+		img_n_anis, _ , _ = it.tensor_analysis(np.mean(n_tensor, axis=(0, 1)))
+		img_j_anis, _ , _ = it.tensor_analysis(np.mean(j_tensor, axis=(0, 1)))
 
 		"Pre-process image to extract network"
 		image_fire = it.preprocess_image(image)
@@ -81,7 +78,7 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None,
 		pix_anis = np.mean(pix_anis)
 
 		metrics = (clustering, degree, linearity, coverage, fibre_waviness, 
-					net_waviness, solidity, pix_anis, region_anis, img_anis[0])
+					net_waviness, solidity, pix_anis, region_anis, img_j_anis[0])
 
 		ut.save_npy(data_dir + fig_name, metrics)
 

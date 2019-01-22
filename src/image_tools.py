@@ -151,9 +151,24 @@ def select_samples(full_set, area, n_sample):
 	return data_set.reshape(n_sample * n_frame, area, area), indices
 
 
-def derivatives(image, rank=1, mode='cd'):
+def derivatives(image, rank=1):
 	"""
 	Returns derivates of order "rank" for imput image at each pixel
+
+	Parameters
+	----------
+
+	image:  array_like (float); shape(n_y, n_x)
+		Image to analyse
+
+	rank:  int (optional)
+		Order of derivatives to return (1 = first order, 2 = second order)
+
+	Returns
+	-------
+
+	derivative:  array_like (float); shape=(2 or 4, n_y, n_x)
+		First or second order derivatives at each image pixel
 	"""
 
 	derivative = np.zeros(((2,) + image.shape))
