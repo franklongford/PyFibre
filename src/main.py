@@ -102,7 +102,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		print(f"Preprocessing image {image_name}")
 
 		"Extract fibre network"
-		net = it.network_extraction(image, data_dir + image_name, ow_network, threads) 
+		net = it.network_extraction(image, data_dir + image_name, ow_network=ow_network, threads=threads) 
 		(segmented_image, networks, areas, regions, segments) = net
 	
 		"Analyse fibre network"

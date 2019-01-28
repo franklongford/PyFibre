@@ -440,7 +440,7 @@ def network_extraction(image, network_name='network', sigma=1.0, scale=1,
 
 	"Try loading saved graph opbject"
 	try: Aij = nx.read_gpickle(network_name + ".pkl")
-	except IOError: ow_graph = True
+	except IOError: ow_network = True
 
 	"Else, use modified FIRE algorithm to extract network"
 	if ow_network:

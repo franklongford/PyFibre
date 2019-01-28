@@ -337,7 +337,7 @@ class imagecol_gui:
 		notebook.frame3.img_anis.grid(column=1, row=9)
 		"""
 
-		notebook.frame3.fig, notebook.frame3.ax = plt.subplots(nrows=3, ncols=3, figsize=(3, 3), dpi=100)
+		notebook.frame3.fig, notebook.frame3.ax = plt.subplots(nrows=4, ncols=4, figsize=(2, 2), dpi=100)
 		notebook.frame3.canvas = FigureCanvasTkAgg(notebook.frame3.fig, notebook.frame3)
 		notebook.frame3.canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
 
@@ -365,10 +365,10 @@ class imagecol_gui:
 
 	def update_dashboard(self):
 
-		for i, title in enumerate(self.image_display.frame3.titles[:9]):
-			self.image_display.frame3.ax[i // 3][i % 3].clear()
-			self.image_display.frame3.ax[i // 3][i % 3].set_title(title)
-			self.image_display.frame3.ax[i // 3][i % 3].boxplot(self.database[title])
+		for i, title in enumerate(self.image_display.frame3.titles[:16]):
+			self.image_display.frame3.ax[i // 4][i % 4].clear()
+			self.image_display.frame3.ax[i // 4][i % 4].set_title(title)
+			self.image_display.frame3.ax[i // 4][i % 4].boxplot(self.database[title])
 		self.image_display.frame3.canvas.draw()
 
 
@@ -461,15 +461,16 @@ class imagecol_gui:
 
 			image_name = input_file_name.split('/')[-1]
 			image_path = '/'.join(input_file_name.split('/')[:-1])
-			data_dir = image_path + 'data/'
+			data_dir = image_path + '/data/'
 			metric_name = data_dir + ut.check_file_name(image_name, extension='tif')
 			
-			self.update_log("Loading metrics for {}".format(input_file_name))
+			self.update_log("Loading metrics for {}".format(metric_name))
 
 			try: 
 				database_array = np.concatenate((database_array, 
 								np.expand_dims(ut.load_npy(metric_name), axis=0)))
 				database_index.append(input_file_name)
+
 			except (ValueError, IOError):
 				self.update_log(f"{input_file_name} database not imported - skipping")
 
