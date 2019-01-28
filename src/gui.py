@@ -37,12 +37,28 @@ class imagecol_gui:
 		self.source_dir = os.path.dirname(os.path.realpath(__file__))
 		self.pyfibre_dir = self.source_dir[:self.source_dir.rfind(os.path.sep)]
 		self.current_dir = os.getcwd()
+
 		"Initiatise program log, queue and input file list"
 		self.Log = "Initiating PyFibre GUI\n"
 		self.queue = Queue()
 		self.input_files = []
 		self.n_proc = n_proc
 		self.n_thread = n_thread
+
+		"Initialise option variables"
+		self.ow_metric = IntVar()
+		self.ow_network = IntVar()
+		self.save_db = IntVar()
+		self.sigma = DoubleVar()
+		self.sigma.set(0.5)
+		self.p0 = IntVar()
+		self.p0.set(1)
+		self.p1 = IntVar()
+		self.p1.set(98)
+		self.n = IntVar()
+		self.n.set(12)
+		self.m = IntVar()
+		self.m.set(35)
 
 		"Define GUI objects"
 		self.master = master
@@ -55,7 +71,11 @@ class imagecol_gui:
 		self.title.place(bordermode=OUTSIDE, height=200, width=300)
 
 		self.options = Frame(self.master)
-		self.create_options(self.options)
+		self.options.configure(background='#d8baa9')
+		self.options.options_button = Button(self.options, width=15,
+				   text="Options",
+				   command=self.create_options)
+		self.options.options_button.pack()
 		self.options.place(x=300, y=1, height=200, width=250)
 
 		self.file_display = Frame(self.master)
@@ -82,33 +102,62 @@ class imagecol_gui:
 		frame.text_title.pack(side = TOP, fill = "both", expand = "yes")
 
 
-	def create_options(self, frame):
+	def create_options(self):
 
-		frame.title = Label(frame, text="Options")
-		frame.title.configure(background='#d8baa9')
-		frame.title.grid(column=0, row=0, rowspan=1)
+		"Initialise option parameters"
+		frame = Toplevel(self.master)
+		frame.title('PyFibre - Options')
+		frame.geometry('310x500-100+40')
 
-		frame.sigma = Entry(frame, width=10)
-		frame.sigma.configure(background='#d8baa9')
-		frame.sigma.grid(column=0, row=1, sticky=(N,W,E,S))
-		#frame.chk_anis.pack(side=LEFT)
+		frame.title_sigma = Label(frame, text="Gaussian Std Dev (pix)")
+		frame.title_sigma.configure(background='#d8baa9')
+		frame.sigma = Scale(frame, from_=0, to=10, tickinterval=1, resolution=0.1, 
+						length=300, orient=HORIZONTAL, variable=self.sigma)#,text='Low Clip Intensity (%)')
 
-		self.ow_metric = IntVar()
+		frame.title_sigma.grid(column=0, row=2, rowspan=1)
+		frame.sigma.grid(column=0, row=3, sticky=(N,W,E,S))
+
+		frame.title_p0 = Label(frame, text="Low Clip Intensity (%)")
+		frame.title_p0.configure(background='#d8baa9')
+		frame.p0 = Scale(frame, from_=0, to=100, tickinterval=10, 
+						length=300, orient=HORIZONTAL, variable=self.p0)#,text='Low Clip Intensity (%)')
+		frame.title_p1 = Label(frame, text="High Clip Intensity (%)")
+		frame.title_p1.configure(background='#d8baa9')
+		frame.p1 = Scale(frame, from_=0, to=100,tickinterval=10, 
+							length=300, orient=HORIZONTAL, variable=self.p1)#, text='High Clip Intensity (%)')
+
+		frame.title_p0.grid(column=0, row=4, rowspan=1)
+		frame.p0.grid(column=0, row=5)
+		frame.title_p1.grid(column=0, row=6, rowspan=1)
+		frame.p1.grid(column=0, row=7)
+
+		frame.title_n = Label(frame, text="NL-Mean Neighbourhood 1 (pix)")
+		frame.title_n.configure(background='#d8baa9')
+		frame.n = Scale(frame, from_=0, to=100, tickinterval=10, 
+						length=300, orient=HORIZONTAL, variable=self.n)
+		frame.title_m = Label(frame, text="NL-Mean Neighbourhood 2 (pix)")
+		frame.title_m.configure(background='#d8baa9')
+		frame.m = Scale(frame, from_=0, to=100,tickinterval=10,
+						length=300, orient=HORIZONTAL, variable=self.m)
+
+		frame.title_n.grid(column=0, row=8, rowspan=1)
+		frame.n.grid(column=0, row=9)
+		frame.title_m.grid(column=0, row=10, rowspan=1)
+		frame.m.grid(column=0, row=11)
+
 		frame.chk_anis = Checkbutton(frame, text="o/w metrics", variable=self.ow_metric)
 		frame.chk_anis.configure(background='#d8baa9')
-		frame.chk_anis.grid(column=0, row=3, sticky=(N,W,E,S))
+		frame.chk_anis.grid(column=0, row=12, sticky=(N,W,E,S))
 		#frame.chk_anis.pack(side=LEFT)
 
-		self.ow_network = IntVar()
 		frame.chk_graph = Checkbutton(frame, text="o/w graph", variable=self.ow_network)
 		frame.chk_graph.configure(background='#d8baa9')
-		frame.chk_graph.grid(column=0, row=4, sticky=(N,W,E,S))
+		frame.chk_graph.grid(column=0, row=13, sticky=(N,W,E,S))
 		#frame.chk_graph.pack(side=LEFT)
 
-		self.save_db = IntVar()
 		frame.chk_db = Checkbutton(frame, text="Save Database", variable=self.save_db)
 		frame.chk_db.configure(background='#d8baa9')
-		frame.chk_db.grid(column=0, row=5, sticky=(N,W,E,S))
+		frame.chk_db.grid(column=0, row=14, sticky=(N,W,E,S))
 
 		frame.configure(background='#d8baa9')
 
@@ -229,9 +278,10 @@ class imagecol_gui:
 		notebook.frame3 = ttk.Frame(notebook)
 		notebook.add(notebook.frame3, text='Metrics')
 
-		notebook.frame3.titles = ["Clustering", "Degree", "Linearity", "Coverage",
-					"Fibre Waviness", "Network Waviness", "Solidity",
-					"Pixel Anisotropy", "Region Anisotropy", "Image Anisotropy"]
+		notebook.frame3.titles = ['Image SDI', 'Image Pixel Anisotropy', 'Image Anisotropy', 'Image Coverage',
+				'Region SDI', 'Region Pixel Anisotropy', 'Region Anisotropy', 'Region Solidity',
+				'Segment SDI', 'Segment Pixel Anisotropy', 'Segment Anisotropy', 'Segment Linearity',
+				'Fibre Waviness', 'Network Waviness', 'Network Degree', 'Network Clustering']
 		"""
 		notebook.clustering = DoubleVar()
 		notebook.degree = DoubleVar()
@@ -404,7 +454,7 @@ class imagecol_gui:
 
 	def generate_db(self):
 
-		database_array = np.empty((0, 10), dtype=float)
+		database_array = np.empty((0, len(self.image_display.frame3.titles)), dtype=float)
 		database_index = []
 
 		for i, input_file_name in enumerate(self.input_files):
@@ -448,7 +498,10 @@ class imagecol_gui:
 		self.processes = []
 		for batch in batch_files:
 			process = Process(target=image_analysis, 
-					args=(batch, eval(self.options.sigma.get()),
+					args=(batch, 
+					(self.p0.get(), self.p1.get()),
+					(self.n.get(), self.m.get()),
+					self.sigma.get(),
 					self.ow_metric.get(), self.ow_network.get(), 
 					self.queue, self.n_thread))
 			process.daemon = True
@@ -501,17 +554,16 @@ class imagecol_gui:
 		self.file_display.stop_button.config(state=DISABLED)
 
 
-def image_analysis(input_files, sigma, ow_metric, ow_network, queue, threads):
+def image_analysis(input_files, p_intensity, p_denoise, sigma, ow_metric, ow_network, queue, threads):
 
 	for input_file_name in input_files:
 
-		image_name = input_file_name.split('/')[-1]
 		image_path = '/'.join(input_file_name.split('/')[:-1])
-		fig_name = ut.check_file_name(image_name, extension='tif')
 
 		try:
-			analyse_image(image_path, input_file_name,
-					sigma=sigma, 
+			analyse_image(input_file_name, image_path,
+					scale=1, p_intensity=p_intensity,
+					p_denoise=p_denoise, sigma=sigma, 
 					ow_metric=ow_metric, ow_network=ow_network,
 					threads=threads)
 			queue.put("Analysis of {} complete".format(input_file_name))

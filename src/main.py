@@ -21,31 +21,69 @@ from utilities import NoiseError
 import image_tools as it
 
 
-def analyse_image(current_dir, input_file_name, scale=1, sigma=None, 
+def analyse_image(input_file_name, working_dir=None, scale=1, 
+				p_intensity=(1, 98), p_denoise=(12, 35), sigma=0.5, 
 				ow_metric=False, ow_network=False, threads=8):
+	"""
+	Analyse imput image by calculating metrics and sgenmenting via FIRE algorithm
+
+	Parameters
+	----------
+
+	input_file_name: str
+		Full file path of image
+
+	working_dir: str (optional)
+		Working directory
+
+	scale: float (optional)
+		Unit of scale to resize image
+
+	p_intensity: tuple (float); shape=(2,)
+		Percentile range for intensity rescaling (used to remove outliers)
+	
+	p_denoise: tuple (float); shape=(2,)
+		Parameters for non-linear means denoise algorithm (used to remove noise)
+
+	sigma: float (optional)
+		Standard deviation of Gaussian smoothing
+
+	ow_metric: bool (optional)
+		Force over-write of image metrics
+
+	ow_network: bool (optional)
+		Force over-write of image network
+
+	threads: int (optional)
+		Maximum number of threads to use for FIRE algorithm
+
+	Returns
+	-------
+
+	metrics: array_like, shape=(11,)
+		Calculated metrics for further analysis
+	"""
 
 	cmap = 'viridis'
+	if working_dir == None: working_dir = os.getcwd()
 
-	fig_dir = current_dir + '/fig/'
-	data_dir = current_dir + '/data/'
-
-	print(fig_dir, data_dir)
-	
-	if not os.path.exists(fig_dir): os.mkdir(fig_dir)
+	data_dir = working_dir + '/data/'	
 	if not os.path.exists(data_dir): os.mkdir(data_dir)
 
-	image_name = input_file_name.split('/')[-1]
-	fig_name = ut.check_file_name(image_name, extension='tif')
+	file_name = input_file_name.split('/')[-1]
+	image_name = ut.check_file_name(file_name, extension='tif')
 
-	if not np.any([ow_metric, ow_network]) and os.path.exists(data_dir + fig_name + '.npy'):
-		metrics = ut.load_npy(data_dir + fig_name)
+	if not np.any([ow_metric, ow_network]) and os.path.exists(data_dir + image_name + '.npy'):
+		print(f"Loading metrics {data_dir + image_name}")
+		metrics = ut.load_npy(data_dir + image_name)
 
 	else:
 		"Load and preprocess image"
 		image = it.load_image(input_file_name)
 
 		"Perform fourier analysis to obtain spectrum and sdi metric"
-		angles, fourier_spec, sdi = it.fourier_transform_analysis(image)
+		print("Performing Fourier analysis")
+		angles, fourier_spec, img_sdi = it.fourier_transform_analysis(image)
 
 		"Form nematic and structure tensors for each pixel"
 		n_tensor = it.form_nematic_tensor(image, sigma=sigma)
@@ -58,33 +96,45 @@ def analyse_image(current_dir, input_file_name, scale=1, sigma=None,
 		"Perform anisotropy analysis on whole image"
 		img_n_anis, _ , _ = it.tensor_analysis(np.mean(n_tensor, axis=(0, 1)))
 		img_j_anis, _ , _ = it.tensor_analysis(np.mean(j_tensor, axis=(0, 1)))
+		img_anis = img_n_anis[0]
 
 		"Pre-process image to extract network"
-		image_fire = it.preprocess_image(image)
+		print(f"Preprocessing image {image_name}")
 
 		"Extract fibre network"
-		net = it.network_extraction(data_dir + fig_name, image_fire, ow_network, threads) 
-		(label_image, sorted_areas, regions, networks) = net
+		net = it.network_extraction(image, data_dir + image_name, ow_network, threads) 
+		(segmented_image, networks, areas, regions, segments) = net
 	
 		"Analyse fibre network"
-		net_res = it.network_analysis(label_image, sorted_areas, networks, j_tensor, pix_j_anis)
-		(net_area, region_anis, net_linear, net_cluster, net_degree,
-		fibre_waviness, net_waviness, pix_anis, coverage, solidity) = net_res
+		net_res = it.network_analysis(image, segmented_image, networks, regions, segments, j_tensor, pix_j_anis)
+		(region_sdi, region_anis, region_pix_anis, region_solidity, 
+		segment_sdi, segment_anis, segment_pix_anis, segment_linear,
+		fibre_waviness, network_waviness, network_degree, network_cluster, coverage) = net_res
 
-		clustering = ut.nanmean(net_cluster, weights=net_area)
-		degree = ut.nanmean(net_degree, weights=net_area)
-		linearity = ut.nanmean(net_linear, weights=net_area)
-		region_anis = ut.nanmean(region_anis, weights=net_area)
-		solidity = ut.nanmean(solidity, weights=net_area)
-		fibre_waviness = ut.nanmean(fibre_waviness, weights=net_area)
-		net_waviness = ut.nanmean(net_waviness, weights=net_area)
+		"Calculate area-weighted metrics for segmented image"
+		region_sdi = ut.nanmean(region_sdi, weights=areas)
+		region_anis = ut.nanmean(region_anis, weights=areas)
+		region_pix_anis = ut.nanmean(region_pix_anis, weights=areas)
+		region_solidity = ut.nanmean(region_solidity, weights=areas)
 
-		pix_anis = np.mean(pix_anis)
+		segment_sdi = ut.nanmean(segment_sdi, weights=areas)
+		segment_anis = ut.nanmean(segment_anis, weights=areas)
+		segment_pix_anis = ut.nanmean(segment_pix_anis, weights=areas)
+		segment_linear = ut.nanmean(segment_linear, weights=areas)
 
-		metrics = (clustering, degree, linearity, coverage, fibre_waviness, 
-					net_waviness, solidity, pix_anis, region_anis, img_j_anis[0])
+		fibre_waviness = ut.nanmean(fibre_waviness, weights=areas)
+		network_waviness = ut.nanmean(network_waviness, weights=areas)
+		network_degree = ut.nanmean(network_degree, weights=areas)
+		network_cluster = ut.nanmean(network_cluster, weights=areas)
 
-		ut.save_npy(data_dir + fig_name, metrics)
+		img_pix_anis = np.mean(pix_n_anis)
+
+		metrics = (img_sdi, img_anis, img_pix_anis, coverage,
+					region_sdi, region_anis, region_pix_anis, region_solidity, 
+					segment_sdi, segment_anis, segment_pix_anis, segment_linear,
+					fibre_waviness, network_waviness, network_degree, network_cluster)
+
+		ut.save_npy(data_dir + image_name, metrics)
 
 	return metrics
 
@@ -133,34 +183,24 @@ if __name__ == '__main__':
 
 	print(input_files)
 
-	database_array = np.empty((0, 10), dtype=float)
+	columns = ['Image SDI', 'Image Pixel Anisotropy', 'Image Anisotropy', 'Image Coverage',
+				'Region SDI', 'Region Pixel Anisotropy', 'Region Anisotropy', 'Region Solidity',
+				'Segment SDI', 'Segment Pixel Anisotropy', 'Segment Anisotropy', 'Segment Linearity',
+				'Fibre Waviness', 'Network Waviness', 'Network Degree', 'Network Clustering']
+	database_array = np.empty((0, len(columns)), dtype=float)
 
 	for i, input_file_name in enumerate(input_files):
 
-		image_name = input_file_name.split('/')[-1]
 		image_path = '/'.join(input_file_name.split('/')[:-1])
-		fig_name = ut.check_file_name(image_name, extension='tif')
-
-		print(image_name, image_path)
-		sys.exit()
 
 		try:
-			res = analyse_image(image_path, input_file_name,  sigma=args.sigma, 
+			res = analyse_image(input_file_name, image_path, sigma=args.sigma, 
 				ow_metric=args.ow_metric, ow_network=args.ow_network, threads=args.threads)
 			database_array = np.concatenate((database_array, np.expand_dims(res, axis=0)))
-	
+
 			print(input_file_name)
-			print(' Network Clustering = {:>6.4f}'.format(database_array[-1][0]))
-			print(' Network Degree = {:>6.4f}'.format(database_array[-1][1]))
-			print(' Network Linearity = {:>6.4f}'.format(database_array[-1][2]))
-			print(' Network Coverage = {:>6.4f}'.format(database_array[-1][3]))
-			print(' Network Solidity = {:>6.4f}'.format(database_array[-1][4]))
-			print(' Network Waviness = {:>6.4f}'.format(database_array[-1][5]))
-			print(' Av. Fibre Waviness = {:>6.4f}'.format(database_array[-1][6]))
-			
-			print(' Average Pixel anistoropy = {:>6.4f}'.format(database_array[-1][7]))
-			print(' Average Region Anistoropy = {:>6.4f}'.format(database_array[-1][8]))
-			print(' Total Image anistoropy = {:>6.4f}\n'.format(database_array[-1][9]))
+			for i, title in enumerate(columns): 
+				print(' {} = {:>6.4f}'.format(title, database_array[-1][i]))
 
 		except NoiseError as err:
 			print(err.message)
@@ -168,12 +208,10 @@ if __name__ == '__main__':
 
 	for file_name in removed_files: input_files.remove(file_name)
 
-	dataframe = pd.DataFrame(data=database_array, columns=['Clustering', 'Degree', 'Linearity', 'Coverage', 
-								'Fibre Waviness', 'Network Waviness', 'Solidity',
-								'Pixel Anis', 'Region Anis', 'Image Anis'], 
+	dataframe = pd.DataFrame(data=database_array, columns=columns, 
 				index = input_files)
 
-	if save_db != None: dataframe.to_pickle(data_dir + '{}.pkl'.format(save_db))
+	if args.save_db != None: dataframe.to_pickle(data_dir + '{}.pkl'.format(args.save_db))
 
 
 		

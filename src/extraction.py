@@ -233,7 +233,7 @@ def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 			fibre.direction = (new_dir_vector / new_dir_r)
 
 
-def FIRE(image, sigma = 0.5, nuc_thresh=2, nuc_rad=15, lmp_thresh=0.2, 
+def FIRE(image, sigma = 0.5, nuc_thresh=2, nuc_rad=11, lmp_thresh=0.2, 
              angle_thresh=70, r_thresh=12, max_threads=8):
 
 	"Prepare input image to gain distance matrix of foreground from background"

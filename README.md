@@ -24,7 +24,7 @@ Once installed, calling the executable `PyFibre_GUI` from the command line will 
 
 ![GUI](img/label.png)
 
-### File Display
+### File Viewer
 
 PyFibre is set by default to detect Tagged Image Format (tif) files. To load in individual files to analyse, use the `Load Files` button and use the pop up window to navigate through your file tree. Alternatively, you can load in all tif files within a single directory by using the `Load Folder` button.
 
@@ -32,7 +32,7 @@ Once loaded, the files are visible in a scrollable list on the left hand side. T
 
 Clicking the `GO` button at the bottom will begin a batch analysis of all the files listed within the box at the time of execution. This can be interrupted at any point using the `STOP` button.
 
-### Image Display
+### Image Viewer
 
 The image display notebook on the right hand side of the GUI can display individual images as well as overlay the extracted fibre network once complete. There is also a tab to display a dashboard of metrics for the selected images in the file list.
 

@@ -151,6 +151,41 @@ def select_samples(full_set, area, n_sample):
 	return data_set.reshape(n_sample * n_frame, area, area), indices
 
 
+def fourier_transform_analysis(image, sigma=None, n_sample=100, size=100, nbins=200):
+    """
+    Calculates fourier amplitude spectrum for image
+
+    Parameters
+    ----------
+
+    image:  array_like (float); shape=(n_x, n_y)
+        Image to analyse
+
+    Returns
+    -------
+
+    angles:  array_like (float); shape=(n_bins)
+        Angles corresponding to fourier amplitudes
+
+    fourier_spec:  array_like (float); shape=(n_bins)
+        Average Fouier amplitudes of FT of image_shg
+
+    """
+
+    if sigma != None: image = filters.gaussian_filter(image, sigma)
+    
+    image_fft = np.fft.fft2(image)
+    image_ifft =  np.fft.ifft2(image_fft)
+    
+    fft_angle = np.angle(image_fft, deg=True)
+    fft_magnitude = np.where(fft_angle == 0, 0, np.abs(image_fft))
+    fft_order = np.argsort(fft_angle.flatten())
+    
+    sdi = np.mean(fft_magnitude) / np.max(fft_magnitude)
+
+    return fft_angle.flatten()[fft_order], fft_magnitude.flatten()[fft_order], sdi
+
+
 def derivatives(image, rank=1):
 	"""
 	Returns derivates of order "rank" for imput image at each pixel
@@ -397,23 +432,30 @@ def get_curvature(j_tensor, H_tensor):
 	return np.nan_to_num(gauss_curvature), np.nan_to_num(mean_curvature)
 
 
-def network_extraction(graph_name, image, sigma=1.0, ow_graph=False, threads=8):
+def network_extraction(image, network_name='network', sigma=1.0, scale=1,
+				p_intensity=(1, 98), p_denoise=(12, 35), ow_network=False, threads=8):
 	"""
 	Extract fibre network using modified FIRE algorithm
 	"""
 
-	try: Aij = nx.read_gpickle(graph_name + ".pkl")
+	"Try loading saved graph opbject"
+	try: Aij = nx.read_gpickle(network_name + ".pkl")
 	except IOError: ow_graph = True
 
-	if ow_graph:
-		print("Extracting fibre network using modified FIRE algorithm")	
-		image_TB = tubeness(image, sigma)
+	"Else, use modified FIRE algorithm to extract network"
+	if ow_network:
+		image_fire = preprocess_image(image, scale=scale, p_intensity=p_intensity,
+										p_denoise=p_denoise)
+		"Apply tubeness transform to enhance image fibres"
+		image_TB = tubeness(image_fire, sigma)
+		"Call FIRE algorithm to extract full image network"
 		Aij = FIRE(image_TB, sigma=sigma, max_threads=threads)
-		nx.write_gpickle(Aij, graph_name + ".pkl")
+		nx.write_gpickle(Aij, network_name + ".pkl")
 
 	label_image = np.zeros(image.shape)
 	networks = []
 
+	"Segment image based on connected components in network"
 	for i, component in enumerate(nx.connected_components(Aij)):
 		subgraph = Aij.subgraph(component)
 		if subgraph.number_of_nodes() > 3:
@@ -423,19 +465,37 @@ def network_extraction(graph_name, image, sigma=1.0, ow_graph=False, threads=8):
 
 	n_clusters = len(networks)
 	label_image = np.array(label_image, dtype=int)
+	segmented_image = np.zeros(image.shape, dtype=int)
 	areas = np.empty((0,), dtype=float)
 	regions = []
+	segments = []
 
-	for region in measure.regionprops(label_image): 
-	    areas = np.concatenate((areas, [region.filled_area]))
-	    regions.append(region.bbox)
+	"Measure pixel areas of each segment"
+	for region in measure.regionprops(label_image):
+		minr, minc, maxr, maxc = region.bbox
+		indices = np.mgrid[minr:maxr, minc:maxc]
 
-	sort_areas = np.argsort(areas)[-n_clusters:]
-	sort_regions = []
+		area, segment = network_area(region.image)
+		segmented_image[(indices[0], indices[1])] += segment * region.label
 
-	for index in sort_areas: sort_regions.append(regions[index])
+		areas = np.concatenate((areas, [area]))
+		#areas = np.concatenate((areas, [segment.filled_area]))
+		regions.append(region)
+		segments.append(segment)
 
-	return label_image, sort_areas, sort_regions, networks
+	"Sort segments ranked by area"
+	indices = np.argsort(areas)
+	sorted_areas = areas[indices]
+	sorted_regions = []
+	sorted_segments = []
+	sorted_networks = []
+
+	for index in indices: 
+		sorted_regions.append(regions[index])
+		sorted_segments.append(segments[index])
+		sorted_networks.append(networks[index])
+
+	return segmented_image, sorted_networks, sorted_areas, sorted_regions, sorted_segments
 
 
 def network_area(label, iterations=10):
@@ -447,61 +507,71 @@ def network_area(label, iterations=10):
 	return net_area, filled_image
 
 
-def network_analysis(label_image, sorted_areas, networks, n_tensor, anis_map):
+def network_analysis(image, segmented_image, networks, regions, segments, n_tensor, anis_map):
 	"""
 	Analyse extracted fibre network
 	"""
+	l_regions = len(regions)
 
-	main_network = np.zeros(label_image.shape, dtype=int)
-	net_area = np.zeros(len(sorted_areas))
-	net_anis = np.zeros(len(sorted_areas))
-	net_linear = np.zeros(len(sorted_areas))
-	net_degree = np.zeros(len(sorted_areas))
-	fibre_waviness = np.zeros(len(sorted_areas))
-	network_waviness = np.zeros(len(sorted_areas))
-	net_cluster = np.zeros(len(sorted_areas))
-	pix_anis = np.zeros(len(sorted_areas))
-	solidity = np.zeros(len(sorted_areas))
+	region_sdi = np.zeros(l_regions)
+	region_anis = np.zeros(l_regions)
+	region_pix_anis = np.zeros(l_regions)
+	region_solidity = np.zeros(l_regions)
 
-	for i, n in enumerate(sorted_areas):
-		network_matrix = np.zeros(label_image.shape, dtype=int)
+	segment_sdi = np.zeros(l_regions)
+	segment_anis = np.zeros(l_regions)
+	segment_pix_anis = np.zeros(l_regions)
+	segment_linear = np.zeros(l_regions)
+	
+	fibre_waviness = np.zeros(l_regions)
+	network_waviness = np.zeros(l_regions)
+	network_degree = np.zeros(l_regions)
+	network_cluster = np.zeros(l_regions)
 
-		region = measure.regionprops(label_image)[n]
-		solidity[i] = region.solidity
+	iterator = zip(np.arange(l_regions), networks, regions, segments)
+
+	for i, network, region, segment in iterator:
+
+		region_solidity[i] = region.solidity
 		minr, minc, maxr, maxc = region.bbox
 		indices = np.mgrid[minr:maxr, minc:maxc]
 
-		region_anis = anis_map[(indices[0], indices[1])]
-		region_tensor = n_tensor[(indices[0], indices[1])]
-		network_matrix[(indices[0], indices[1])] += region.image * (i+1)
+		_, _, sdi = fourier_transform_analysis(image[(indices[0], indices[1])])
+		region_sdi[i] = sdi
 
-		net_area[i], network = network_area(region.image)
-		indices = np.where(network)
-		region_tensor = region_tensor[(indices[0], indices[1])]
-		region_anis = region_anis[(indices[0], indices[1])]
+		region_anis_map = anis_map[(indices[0], indices[1])]
+		region_n_tensor = n_tensor[(indices[0], indices[1])]
 
-		net_anis[i], _ , _ = tensor_analysis(np.mean(region_tensor, axis=(0)))
-		pix_anis[i] = np.mean(region_anis)
+		region_anis[i], _ , _ = tensor_analysis(np.mean(region_n_tensor, axis=(0, 1)))
+		region_pix_anis[i] = np.mean(region_anis_map)
 
-		if network.shape[0] > 1 and network.shape[1] > 1:
-			region = measure.regionprops(np.array(network, dtype=int))[0]
-			net_linear[i] += 1 - region.equivalent_diameter / region.perimeter
-		main_network += network_matrix
+		_, _, sdi = fourier_transform_analysis(image[(indices[0], indices[1])] * segment)
+		segment_sdi[i] = sdi
 
-		fibre_waviness[i], network_waviness[i] = adj_analysis(networks[i])
+		indices = np.where(segment)
+		segment_anis_map = region_anis_map[indices]
+		segment_n_tensor = region_n_tensor[indices]
+
+		segment_anis[i], _ , _ = tensor_analysis(np.mean(segment_n_tensor, axis=(0)))
+		segment_pix_anis[i] = np.mean(segment_anis_map)
+
+		if segment.shape[0] > 1 and segment.shape[1] > 1:
+			seg_region = measure.regionprops(np.array(segment, dtype=int))[0]
+			segment_linear[i] += 1 - seg_region.equivalent_diameter / seg_region.perimeter
+
+		fibre_waviness[i], network_waviness[i] = adj_analysis(network)
 				
-		try: net_cluster[i] = nx.average_clustering(networks[i])
-		except: net_cluster[i] = None
+		try: network_cluster[i] = nx.average_clustering(network)
+		except: network_cluster[i] = None
 
-		try: net_degree[i] = nx.degree_pearson_correlation_coefficient(networks[i])**2
-		except: net_degree[i] = None
+		try: network_degree[i] = nx.degree_pearson_correlation_coefficient(network)**2
+		except: network_degree[i] = None
 
-	coverage = np.count_nonzero(main_network) / main_network.size
+	coverage = np.count_nonzero(segmented_image) / segmented_image.size
 
-	#sys.exit()
-
-	return (net_area, net_anis, net_linear, net_cluster, net_degree, fibre_waviness, 
-			network_waviness, pix_anis, coverage, solidity)
+	return (region_sdi, region_anis, region_pix_anis, region_solidity, 
+			segment_sdi, segment_anis, segment_pix_anis, segment_linear,
+			fibre_waviness, network_waviness, network_degree, network_cluster, coverage)
 
 """Deprecated"""
 
@@ -579,48 +649,3 @@ def smart_nematic_tensor_analysis(nem_vector, precision=1E-1):
 		tot_q[n] = np.mean(np.unique(q1))
 
 	return tot_q
-
-
-def fourier_transform_analysis(image, sigma=None):
-	"""
-	Calculates fourier amplitude spectrum for image
-
-	Parameters
-	----------
-
-	image:  array_like (float); shape=(n_x, n_y)
-		Image to analyse
-
-	Returns
-	-------
-
-	angles:  array_like (float); shape=(n_bins)
-		Angles corresponding to fourier amplitudes
-
-	fourier_spec:  array_like (float); shape=(n_bins)
-		Average Fouier amplitudes of FT of image_shg
-
-	"""
-
-	if sigma != None: image = filters.gaussian_filter(image, sigma)
-
-	image_fft = np.fft.fft2(image)
-	image_fft[0][0] = 0
-	image_fft = np.fft.fftshift(image_fft)
-
-	fft_angle = np.angle(image_fft, deg=True)
-	fft_freqs = np.fft.fftfreq(image_fft.size)
-	angles = np.unique(fft_angle)
-	fourier_spec = np.zeros(angles.shape)
-	
-	n_bins = fourier_spec.size
-
-	for i in range(n_bins):
-		indices = np.where(fft_angle == angles[i])
-		fourier_spec[i] += np.sum(np.abs(image_fft[indices])) / 360
-
-	#A = np.sqrt(average_fft * fft_angle.size * fft_freqs**2 * (np.cos(fft_angle)**2 + np.sin(fft_angle)**2))
-
-	sdi = np.mean(fourier_spec) / np.max(fourier_spec)
-
-	return angles, fourier_spec, sdi
