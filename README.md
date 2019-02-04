@@ -59,6 +59,19 @@ At the moment the terminal version has
 
 ## Metrics
 
-	Image Anisotropy : Anisotropy of nematic tensor for whole image
-	Pixel Anisotropy : Average anisotropy of nematic tensor for each pixel in the image
-	Network Clustering : Clustering coefficient of extracted fibre network
+	Global SDI : Fourier analysis SDI for global image
+	Global Anisotropy : Anisotropy of nematic tensor for global image
+	Global Pixel Anisotropy : Average anisotropy of nematic tensor for each pixel in global image
+	
+	Local SDI : Average Fourier analysis SDI for all local segments in global image
+	Local Anisotropy : Average anisotropy of nematic tensor for all segments in global image
+	Local Pixel Anisotropy : Average anisotropy of nematic tensor for each pixel in all segments in global image
+	
+	Global Coverage : Measure of global segment coverage - ratio of segmented pixels with number pf pixels in whole image
+	Local Coverage : Measure of local segment coverage - average ratio of pixels in the segment to pixels of the segment convex hull image.
+	
+	Linearity : Measure of segment shape linearity - ratio of segment diameter to that of a circle with the same area as the segment
+	
+	Fibre Waviness : Measure of waviness of extracted fibres - ratio of fibre diameter to its euclidean displacement
+	Network Degree : Average number of edges per node for fibre network
+	Network Clustering 

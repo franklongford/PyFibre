@@ -278,10 +278,9 @@ class imagecol_gui:
 		notebook.frame3 = ttk.Frame(notebook)
 		notebook.add(notebook.frame3, text='Metrics')
 
-		notebook.frame3.titles = ['Image SDI', 'Image Pixel Anisotropy', 'Image Anisotropy', 'Image Coverage',
-				'Region SDI', 'Region Pixel Anisotropy', 'Region Anisotropy', 'Region Solidity',
-				'Segment SDI', 'Segment Pixel Anisotropy', 'Segment Anisotropy', 'Segment Linearity',
-				'Fibre Waviness', 'Network Waviness', 'Network Degree', 'Network Clustering']
+		notebook.frame3.titles = ['Global SDI', 'Global Pixel Anisotropy', 'Global Anisotropy', 'Global Coverage',
+				'Local SDI', 'Local Pixel Anisotropy', 'Local Anisotropy', 'Local Coverage',
+				'Linearity', 'Fibre Waviness', 'Network Waviness', 'Network Degree', 'Network Clustering']
 		"""
 		notebook.clustering = DoubleVar()
 		notebook.degree = DoubleVar()

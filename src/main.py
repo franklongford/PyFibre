@@ -98,9 +98,6 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		img_j_anis, _ , _ = it.tensor_analysis(np.mean(j_tensor, axis=(0, 1)))
 		img_anis = img_n_anis[0]
 
-		"Pre-process image to extract network"
-		print(f"Preprocessing image {image_name}")
-
 		"Extract fibre network"
 		net = it.network_extraction(image, data_dir + image_name, ow_network=ow_network, threads=threads) 
 		(segmented_image, networks, areas, regions, segments) = net
@@ -112,9 +109,6 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		fibre_waviness, network_waviness, network_degree, network_cluster, coverage) = net_res
 
 		"Calculate area-weighted metrics for segmented image"
-		region_sdi = ut.nanmean(region_sdi, weights=areas)
-		region_anis = ut.nanmean(region_anis, weights=areas)
-		region_pix_anis = ut.nanmean(region_pix_anis, weights=areas)
 		region_solidity = ut.nanmean(region_solidity, weights=areas)
 
 		segment_sdi = ut.nanmean(segment_sdi, weights=areas)
@@ -129,9 +123,8 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 
 		img_pix_anis = np.mean(pix_n_anis)
 
-		metrics = (img_sdi, img_anis, img_pix_anis, coverage,
-					region_sdi, region_anis, region_pix_anis, region_solidity, 
-					segment_sdi, segment_anis, segment_pix_anis, segment_linear,
+		metrics = (img_sdi, img_anis, img_pix_anis, coverage, 
+					segment_sdi, segment_anis, segment_pix_anis, region_solidity, segment_linear,
 					fibre_waviness, network_waviness, network_degree, network_cluster)
 
 		ut.save_npy(data_dir + image_name, metrics)
@@ -183,11 +176,11 @@ if __name__ == '__main__':
 
 	print(input_files)
 
-	columns = ['Image SDI', 'Image Pixel Anisotropy', 'Image Anisotropy', 'Image Coverage',
-				'Region SDI', 'Region Pixel Anisotropy', 'Region Anisotropy', 'Region Solidity',
-				'Segment SDI', 'Segment Pixel Anisotropy', 'Segment Anisotropy', 'Segment Linearity',
-				'Fibre Waviness', 'Network Waviness', 'Network Degree', 'Network Clustering']
+	columns = ['Global SDI', 'Global Pixel Anisotropy', 'Global Anisotropy', 'Global Coverage',
+				'Local SDI', 'Local Pixel Anisotropy', 'Local Anisotropy', 'Local Coverage',
+				'Linearity', 'Fibre Waviness', 'Network Waviness', 'Network Degree', 'Network Clustering']
 	database_array = np.empty((0, len(columns)), dtype=float)
+	removed_files = []
 
 	for i, input_file_name in enumerate(input_files):
 
@@ -211,7 +204,7 @@ if __name__ == '__main__':
 	dataframe = pd.DataFrame(data=database_array, columns=columns, 
 				index = input_files)
 
-	if args.save_db != None: dataframe.to_pickle(data_dir + '{}.pkl'.format(args.save_db))
+	if args.save_db != None: dataframe.to_pickle('{}.pkl'.format(args.save_db))
 
 
 		

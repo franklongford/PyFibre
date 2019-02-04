@@ -444,6 +444,7 @@ def network_extraction(image, network_name='network', sigma=1.0, scale=1,
 
 	"Else, use modified FIRE algorithm to extract network"
 	if ow_network:
+		"Pre-process image to extract network"
 		image_fire = preprocess_image(image, scale=scale, p_intensity=p_intensity,
 										p_denoise=p_denoise)
 		"Apply tubeness transform to enhance image fibres"
