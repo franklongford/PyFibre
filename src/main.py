@@ -64,6 +64,12 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		Calculated metrics for further analysis
 	"""
 
+	columns = ['Global SDI', 'Global Pixel Anisotropy', 'Global Anisotropy', 'Global Coverage',
+				'Local SDI', 'Local Pixel Anisotropy', 'Local Anisotropy',
+				'Linearity', 'Eccentricity', 'Density',
+				'Network Waviness', 'Network Degree', 'Network Centrality',
+				'Network Connectivity', 'Network Local Efficiency']
+
 	cmap = 'viridis'
 	if working_dir == None: working_dir = os.getcwd()
 
@@ -73,17 +79,20 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 	file_name = input_file_name.split('/')[-1]
 	image_name = ut.check_file_name(file_name, extension='tif')
 
-	if not np.any([ow_metric, ow_network]) and os.path.exists(data_dir + image_name + '.npy'):
-		print(f"Loading metrics {data_dir + image_name}")
-		metrics = ut.load_npy(data_dir + image_name)
+	if not np.any([ow_metric, ow_network]) and os.path.exists(data_dir + image_name + '_metric.pkl'):
+		dataframe = pd.read_pickle('{}_metric.pkl'.format(data_dir + image_name))
 
 	else:
+		print(f"Loading image {data_dir + image_name}")
 		"Load and preprocess image"
 		image = it.load_image(input_file_name)
+		"Pre-process image to remove noise"
+		image = it.preprocess_image(image, scale=scale, p_intensity=p_intensity,
+										p_denoise=p_denoise)
 
 		"Perform fourier analysis to obtain spectrum and sdi metric"
 		print("Performing Fourier analysis")
-		angles, fourier_spec, img_sdi = it.fourier_transform_analysis(image)
+		angles, fourier_spec, global_sdi = it.fourier_transform_analysis(image)
 
 		"Form nematic and structure tensors for each pixel"
 		n_tensor = it.form_nematic_tensor(image, sigma=sigma)
@@ -96,40 +105,49 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		"Perform anisotropy analysis on whole image"
 		img_n_anis, _ , _ = it.tensor_analysis(np.mean(n_tensor, axis=(0, 1)))
 		img_j_anis, _ , _ = it.tensor_analysis(np.mean(j_tensor, axis=(0, 1)))
-		img_anis = img_n_anis[0]
+
+		global_anis = img_n_anis[0]
+		global_pix_anis = np.mean(pix_n_anis)
 
 		"Extract fibre network"
 		net = it.network_extraction(image, data_dir + image_name, ow_network=ow_network, threads=threads) 
 		(segmented_image, networks, areas, regions, segments) = net
 	
 		"Analyse fibre network"
-		net_res = it.network_analysis(image, segmented_image, networks, regions, segments, j_tensor, pix_j_anis)
-		(region_sdi, region_anis, region_pix_anis, region_solidity, 
-		segment_sdi, segment_anis, segment_pix_anis, segment_linear,
-		fibre_waviness, network_waviness, network_degree, network_cluster, coverage) = net_res
+		net_res = it.network_analysis(image, segmented_image, networks, regions, segments, n_tensor, pix_n_anis)
+		(global_coverage, region_sdi, region_anis, region_pix_anis, 
+		segment_linear, segment_eccent, segment_density,
+		network_waviness, network_degree, network_central, 
+		network_connect, network_loc_eff) = net_res
 
 		"Calculate area-weighted metrics for segmented image"
-		region_solidity = ut.nanmean(region_solidity, weights=areas)
+		local_sdi = ut.nanmean(region_sdi, weights=areas)
+		local_anis = ut.nanmean(region_anis, weights=areas)
+		local_pix_anis = ut.nanmean(region_pix_anis, weights=areas)
 
-		segment_sdi = ut.nanmean(segment_sdi, weights=areas)
-		segment_anis = ut.nanmean(segment_anis, weights=areas)
-		segment_pix_anis = ut.nanmean(segment_pix_anis, weights=areas)
 		segment_linear = ut.nanmean(segment_linear, weights=areas)
+		segment_eccent = ut.nanmean(segment_eccent, weights=areas)
+		segment_density = ut.nanmean(segment_density, weights=areas)
 
-		fibre_waviness = ut.nanmean(fibre_waviness, weights=areas)
 		network_waviness = ut.nanmean(network_waviness, weights=areas)
 		network_degree = ut.nanmean(network_degree, weights=areas)
-		network_cluster = ut.nanmean(network_cluster, weights=areas)
+		network_central = ut.nanmean(network_central, weights=areas)
+		network_connect = ut.nanmean(network_connect, weights=areas)
+		network_loc_eff = ut.nanmean(network_loc_eff, weights=areas)
 
-		img_pix_anis = np.mean(pix_n_anis)
+		metrics = np.array([global_sdi, global_anis, global_pix_anis, global_coverage, 
+					local_sdi, local_anis, local_pix_anis, 
+					segment_linear, segment_eccent, segment_density,
+					network_waviness, network_degree, network_central, 
+					network_connect, network_loc_eff])
 
-		metrics = (img_sdi, img_anis, img_pix_anis, coverage, 
-					segment_sdi, segment_anis, segment_pix_anis, region_solidity, segment_linear,
-					fibre_waviness, network_waviness, network_degree, network_cluster)
+		dataframe = pd.DataFrame(data=[metrics], columns=columns, 
+				index = [input_file_name])
+ 
+		dataframe.to_pickle('{}_metric.pkl'.format(data_dir + image_name))
 
-		ut.save_npy(data_dir + image_name, metrics)
 
-	return metrics
+	return dataframe
 
 
 if __name__ == '__main__':
@@ -177,23 +195,27 @@ if __name__ == '__main__':
 	print(input_files)
 
 	columns = ['Global SDI', 'Global Pixel Anisotropy', 'Global Anisotropy', 'Global Coverage',
-				'Local SDI', 'Local Pixel Anisotropy', 'Local Anisotropy', 'Local Coverage',
-				'Linearity', 'Fibre Waviness', 'Network Waviness', 'Network Degree', 'Network Clustering']
-	database_array = np.empty((0, len(columns)), dtype=float)
-	removed_files = []
+				'Local SDI', 'Local Pixel Anisotropy', 'Local Anisotropy',
+				'Linearity', 'Eccentricity', 'Density',
+				'Network Waviness', 'Network Degree', 'Network Centrality',
+				'Network Connectivity', 'Network Local Efficiency']
 
+	removed_files = []
+	database = pd.DataFrame()
+   
 	for i, input_file_name in enumerate(input_files):
 
 		image_path = '/'.join(input_file_name.split('/')[:-1])
 
 		try:
-			res = analyse_image(input_file_name, image_path, sigma=args.sigma, 
+			data = analyse_image(input_file_name, image_path, sigma=args.sigma, 
 				ow_metric=args.ow_metric, ow_network=args.ow_network, threads=args.threads)
-			database_array = np.concatenate((database_array, np.expand_dims(res, axis=0)))
+
+			database = pd.concat([database, data])
 
 			print(input_file_name)
 			for i, title in enumerate(columns): 
-				print(' {} = {:>6.4f}'.format(title, database_array[-1][i]))
+				print(' {} = {:>6.4f}'.format(title, database.loc[input_file_name][title]))
 
 		except NoiseError as err:
 			print(err.message)
@@ -201,10 +223,9 @@ if __name__ == '__main__':
 
 	for file_name in removed_files: input_files.remove(file_name)
 
-	dataframe = pd.DataFrame(data=database_array, columns=columns, 
-				index = input_files)
-
-	if args.save_db != None: dataframe.to_pickle('{}.pkl'.format(args.save_db))
+	if args.save_db != None: 
+		database.to_pickle('{}.pkl'.format(args.save_db))
+		database.to_excel('{}.xls'.format(args.save_db))
 
 
 		

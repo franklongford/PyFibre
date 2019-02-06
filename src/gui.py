@@ -278,64 +278,42 @@ class imagecol_gui:
 		notebook.frame3 = ttk.Frame(notebook)
 		notebook.add(notebook.frame3, text='Metrics')
 
-		notebook.frame3.titles = ['Global SDI', 'Global Pixel Anisotropy', 'Global Anisotropy', 'Global Coverage',
-				'Local SDI', 'Local Pixel Anisotropy', 'Local Anisotropy', 'Local Coverage',
-				'Linearity', 'Fibre Waviness', 'Network Waviness', 'Network Degree', 'Network Clustering']
+		notebook.frame3.metric_dict = {'Global SDI' : {"info" : "Fourier spectrum SDI of total image", "metric" : DoubleVar()}, 
+										'Global Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar()},
+										'Global Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar()}, 
+										'Global Coverage' : {"info" : "Ratio of total image covered by collagen fibres", "metric" : DoubleVar()},
+										'Local SDI' : {"info" : "Average Fourier spectrum SDI of segmented image", "metric" : DoubleVar()}, 
+										'Local Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in segmented image", "metric" : DoubleVar()},
+										'Local Anisotropy' : {"info" : "Average Anisotropy of segented image", "metric" : DoubleVar()}, 
+										'Linearity' : {"info" : "Average segment shape linearity", "metric" : DoubleVar()}, 
+										'Eccentricity' : {"info" : "Average segment shape eccentricity", "metric" : DoubleVar()},
+										'Density' : {"info" : "Average segment density", "metric" : DoubleVar()},
+										'Network Waviness' : {"info" : "Average fibre network fibre waviness", "metric" : DoubleVar()},
+										'Network Degree' : {"info" : "Average fibre network number of edges per node", "metric" : DoubleVar()},
+										'Network Centrality' : {"info" : "Average fibre network centrality", "metric" : DoubleVar()},
+										'Network Connectivity' : {"info" : "Average fibre network wiener connectivity", "metric" : DoubleVar()},
+										'Network Local Efficiency' : {"info" : "Average fibre network local efficiency", "metric" : DoubleVar()}
+										}
+
+		notebook.frame3.titles = list(notebook.frame3.metric_dict.keys())
+
+		#"""
+		notebook.metrics = [DoubleVar() for i in range(len(notebook.frame3.titles))]
+		notebook.frame3.headings = []
+		notebook.frame3.info = []
+		notebook.frame3.metrics = []
+
+		for i, metric in enumerate(notebook.frame3.titles):
+			notebook.frame3.headings += [Label(notebook.frame3, text="{}:".format(metric))]
+			notebook.frame3.info += [Label(notebook.frame3, text=notebook.frame3.metric_dict[metric]["info"])]
+			notebook.frame3.metrics += [Label(notebook.frame3, textvariable=notebook.frame3.metric_dict[metric]["metric"])]
+			notebook.frame3.headings[i].grid(column=0, row=i)
+			notebook.frame3.info[i].grid(column=1, row=i)
+			notebook.frame3.metrics[i].grid(column=2, row=i)
+
+		#"""
+
 		"""
-		notebook.clustering = DoubleVar()
-		notebook.degree = DoubleVar()
-		notebook.linearity = DoubleVar()
-		notebook.coverage = DoubleVar()
-		notebook.fibre_waviness = DoubleVar()
-		notebook.net_waviness = DoubleVar()
-		notebook.solidity = DoubleVar()
-		notebook.pix_anis = DoubleVar()
-		notebook.region_anis = DoubleVar()
-		notebook.img_anis = DoubleVar()
-
-		notebook.frame3.cluster_title = Label(notebook.frame3, text="Clustering:")
-		notebook.frame3.cluster = Label(notebook.frame3, textvariable=notebook.clustering)
-		notebook.frame3.degree_title = Label(notebook.frame3, text="Degree:")
-		notebook.frame3.degree = Label(notebook.frame3, textvariable=notebook.degree)
-		notebook.frame3.linearity_title = Label(notebook.frame3, text="Linearity:")
-		notebook.frame3.linearity = Label(notebook.frame3, textvariable=notebook.linearity)
-		notebook.frame3.coverage_title = Label(notebook.frame3, text="Coverage:")
-		notebook.frame3.coverage = Label(notebook.frame3, textvariable=notebook.coverage)
-		notebook.frame3.f_wav_title = Label(notebook.frame3, text="Fibre Waviness:")
-		notebook.frame3.f_wav = Label(notebook.frame3, textvariable=notebook.fibre_waviness)
-		notebook.frame3.n_wav_title = Label(notebook.frame3, text="Network Waviness:")
-		notebook.frame3.n_wav = Label(notebook.frame3, textvariable=notebook.net_waviness)
-		notebook.frame3.solidity_title = Label(notebook.frame3, text="Solidity:")
-		notebook.frame3.solidity = Label(notebook.frame3, textvariable=notebook.solidity)
-		notebook.frame3.pix_anis_title = Label(notebook.frame3, text="Pixel Anisotropy:")
-		notebook.frame3.pix_anis = Label(notebook.frame3, textvariable=notebook.pix_anis)
-		notebook.frame3.region_anis_title = Label(notebook.frame3, text="Region Anisotropy:")
-		notebook.frame3.region_anis = Label(notebook.frame3, textvariable=notebook.region_anis)
-		notebook.frame3.img_anis_title = Label(notebook.frame3, text="Image Anisotropy:")
-		notebook.frame3.img_anis = Label(notebook.frame3, textvariable=notebook.img_anis)
-
-		notebook.frame3.cluster_title.grid(column=0, row=0)
-		notebook.frame3.cluster.grid(column=1, row=0)
-		notebook.frame3.degree_title.grid(column=0, row=1)
-		notebook.frame3.degree.grid(column=1, row=1)
-		notebook.frame3.linearity_title.grid(column=0, row=2)
-		notebook.frame3.linearity.grid(column=1, row=2)
-		notebook.frame3.coverage_title.grid(column=0, row=3)
-		notebook.frame3.coverage.grid(column=1, row=3)
-		notebook.frame3.f_wav_title.grid(column=0, row=4)
-		notebook.frame3.f_wav.grid(column=1, row=4)
-		notebook.frame3.n_wav_title.grid(column=0, row=5)
-		notebook.frame3.n_wav.grid(column=1, row=5)
-		notebook.frame3.solidity_title.grid(column=0, row=6)
-		notebook.frame3.solidity.grid(column=1, row=6)
-		notebook.frame3.pix_anis_title.grid(column=0, row=7)
-		notebook.frame3.pix_anis.grid(column=1, row=7)
-		notebook.frame3.region_anis_title.grid(column=0, row=8)
-		notebook.frame3.region_anis.grid(column=1, row=8)
-		notebook.frame3.img_anis_title.grid(column=0, row=9)
-		notebook.frame3.img_anis.grid(column=1, row=9)
-		"""
-
 		notebook.frame3.fig, notebook.frame3.ax = plt.subplots(nrows=4, ncols=4, figsize=(2, 2), dpi=100)
 		notebook.frame3.canvas = FigureCanvasTkAgg(notebook.frame3.fig, notebook.frame3)
 		notebook.frame3.canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
@@ -343,6 +321,7 @@ class imagecol_gui:
 		notebook.frame3.toolbar = NavigationToolbar2Tk(notebook.frame3.canvas, notebook.frame3)
 		notebook.frame3.toolbar.update()
 		notebook.frame3.canvas._tkcanvas.pack(side=TOP, fill=BOTH, expand=1)
+		"""
 
 		notebook.frame4 = ttk.Frame(notebook)
 		notebook.add(notebook.frame4, text='Log')
@@ -356,7 +335,6 @@ class imagecol_gui:
 		notebook.frame4.text['yscrollcommand'] = notebook.frame4.scrollbar.set
 
 		notebook.frame4.text.pack()
-
 		
 
 		#notebook.BFrame.configure(background='#d8baa9')
@@ -368,6 +346,7 @@ class imagecol_gui:
 			self.image_display.frame3.ax[i // 4][i % 4].clear()
 			self.image_display.frame3.ax[i // 4][i % 4].set_title(title)
 			self.image_display.frame3.ax[i // 4][i % 4].boxplot(self.database[title])
+
 		self.image_display.frame3.canvas.draw()
 
 
@@ -432,28 +411,23 @@ class imagecol_gui:
 		except IOError:
 			self.update_log("Unable to display network for {}".format(fig_name))
 
-		"""
+		#"""
 		try:
-			self.image_display.metrics = ut.load_npy(data_dir + fig_name)
-			self.image_display.clustering.set(self.image_display.metrics[0])
-			self.image_display.degree.set(self.image_display.metrics[1])
-			self.image_display.linearity.set(self.image_display.metrics[2])
-			self.image_display.coverage.set(self.image_display.metrics[3])
-			self.image_display.fibre_waviness.set(self.image_display.metrics[4])
-			self.image_display.net_waviness.set(self.image_display.metrics[5])
-			self.image_display.solidity.set(self.image_display.metrics[6])
-			self.image_display.pix_anis.set(self.image_display.metrics[7])
-			self.image_display.region_anis.set(self.image_display.metrics[8])
-			self.image_display.img_anis.set(self.image_display.metrics[9])
+			loaded_metrics = ut.load_npy(data_dir + fig_name)
+			self.update_log("Displaying metrics for {}".format(fig_name))
+		except IOError:
+			self.update_log("Unable to display metrics for {}".format(fig_name))
+			loaded_metrics = np.zeros(len(self.image_display.frame3.titles))
 
-		except IOError: pass
-		"""
+		for i, metric in enumerate(self.image_display.frame3.titles):
+			self.image_display.frame3.metric_dict[metric]["metric"].set(loaded_metrics[i])
+		#"""
 		self.master.update_idletasks()
 
 
 	def generate_db(self):
 
-		database_array = np.empty((0, len(self.image_display.frame3.titles)), dtype=float)
+		database = pd.DataFrame()
 		database_index = []
 
 		for i, input_file_name in enumerate(self.input_files):
@@ -466,23 +440,25 @@ class imagecol_gui:
 			self.update_log("Loading metrics for {}".format(metric_name))
 
 			try: 
-				database_array = np.concatenate((database_array, 
-								np.expand_dims(ut.load_npy(metric_name), axis=0)))
-				database_index.append(input_file_name)
+				database = pd.concat((database, pd.read_pickle('{}_metric.pkl'.format(metric_name))))
 
 			except (ValueError, IOError):
 				self.update_log(f"{input_file_name} database not imported - skipping")
 
-		self.database = pd.DataFrame(data=database_array, columns=self.image_display.frame3.titles,
-					 index = database_index)
+		self.database = database
 
-		self.update_dashboard()
+		#self.update_dashboard()
 
 
 	def save_database(self):
 
-		db_filename = filedialog.asksaveasfilename(defaultextension=".pkl")
-		self.database.to_pickle(db_filename)
+		db_filename = filedialog.asksaveasfilename()
+		db_filename = ut.check_file_name(db_filename, extension='pkl')
+		db_filename = ut.check_file_name(db_filename, extension='xls')
+
+		self.database.to_pickle(db_filename + '.pkl')
+		self.database.to_excel(db_filename + '.xls')
+
 		self.update_log("Saving Database file {}".format(db_filename))
 
 
@@ -571,7 +547,7 @@ def image_analysis(input_files, p_intensity, p_denoise, sigma, ow_metric, ow_net
 		except NoiseError as err: queue.put("{} {}".format(err.message, input_file_name))
 
 
-N_PROC = os.cpu_count() - 1
+N_PROC = 1#os.cpu_count() - 1
 N_THREAD = 8
 
 root = Tk()
