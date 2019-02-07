@@ -602,11 +602,11 @@ def network_analysis(image, segmented_image, networks, regions, segments, n_tens
 		stop5 = time.time()
 		loc_eff_time += stop5-stop4
 
-	print('Network Waviness = {} s'.format(waviness_time))
-	print('Network Degree = {} s'.format(degree_time))
-	print('Network Centrality = {} s'.format(central_time))
-	print('Network Conectivity = {} s'.format(connect_time))
-	print('Network Local Efficiency = {} s'.format(loc_eff_time))
+	#print('Network Waviness = {} s'.format(waviness_time))
+	#print('Network Degree = {} s'.format(degree_time))
+	#print('Network Centrality = {} s'.format(central_time))
+	#print('Network Conectivity = {} s'.format(connect_time))
+	#print('Network Local Efficiency = {} s'.format(loc_eff_time))
 
 	return (global_coverage, region_sdi, region_anis, region_pix_anis, 
 			segment_linear, segment_eccent, segment_density,

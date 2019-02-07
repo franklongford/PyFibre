@@ -340,13 +340,36 @@ def FIRE(image, sigma = 0.5, nuc_thresh=2, nuc_rad=11, lmp_thresh=0.2,
 		print("Iteration {} time = {} s, {} nodes  {}/{} fibres left to grow".format(
 			it, round(end - start, 3), n_node, int(np.sum(fibre_grow)), n_fibres))
 
+
+	print("Checking for redundant nodes")
+
+	"Calculate distances between each node"
+	node_coord = np.stack((Aij.nodes[i]['xy'] for i in Aij.nodes()))
+	d_coord, r2_coord = distance_matrix(node_coord)
+
+	"Deal with one set of coordinates"
+	upper_diag = np.triu_indices(r2_coord.shape[0])
+	r2_coord[upper_diag] = 1
+
+	"Find nodes in the same location"
+	duplicate_nodes = np.where(r2_coord == 0)
+
+	"Iterate through each duplicate and transfer edges on to most connected"
+	for node1, node2 in zip(*duplicate_nodes):
+		if Aij.degree[node1] > Aij.degree[node2]: transfer_edges(Aij, node1, node2)
+		else: transfer_edges(Aij, node2, node1)
+
+	"Remove all nodes with no edges"
+	Aij.remove_nodes_from(list(nx.isolates(Aij)))
+	mapping = dict(zip(Aij.nodes, np.arange(Aij.number_of_nodes())))
+	Aij = nx.relabel_nodes(Aij, mapping)
+
 	print(f"TOTAL TIME = {round(total_time, 3)} s")
-	#Aij.remove_nodes_from(list(nx.isolates(Aij)))
 
 	return Aij
 
 
-def adj_analysis(Aij, angle_thresh=70, verbose=False):
+def adj_analysis(Aij, angle_thresh=70, verbose=True):
 
 
 	mapping = dict(zip(Aij.nodes, np.arange(Aij.number_of_nodes())))
@@ -388,27 +411,29 @@ def adj_analysis(Aij, angle_thresh=70, verbose=False):
 
 			fibre_l = coord_r
 			if verbose:
-				print("Start node = ", node, node_coord[node], coord_r)
-				print("Next fibre node = ", new_node, node_coord[new_node])
+				print("Start node = ", node, "  coord: ", node_coord[node])
+				print("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
 				print("Fibre length = ", coord_r)
+				print("Fibre direction = ", fibre.direction)
 
 			while fibre.growing:
 		
 				fibre.add_node(new_node, direction)
 				new_connect = np.array(list(Aij.adj[fibre.nodes[-1]]))#np.argwhere(Aij[new_node]).flatten()
 
-				if verbose: print("New connect = ", new_connect, nx.edges(Aij, fibre.nodes[-1]))
+				if verbose: print("Nodes connected to fibre end = {}".format(new_connect))
 
 				new_connect = numpy_remove(new_connect, fibre.nodes)
 				n_edges = new_connect.shape[0]
 
 				if verbose: 
-					print("New connect = ", new_connect, n_edges)
-					print(node_coord[new_node], node_coord[new_connect])
+					print("{} possible candidates for next fibre node: {}".format(n_edges, new_connect))
+					print("Coords = ", *node_coord[new_connect])
 	
 				if n_edges > 1:
 					new_coord_vec = d_coord[new_node][new_connect]
 					new_coord_r = np.array([Aij[new_node][n]['r'] for n in new_connect])
+
 					assert np.all(new_coord_r > 0), print(new_node, new_connect, new_coord_vec, new_coord_r, fibre.nodes)
 
 					cos_the = branch_angles(fibre.direction, new_coord_vec, new_coord_r)
@@ -417,10 +442,9 @@ def adj_analysis(Aij, angle_thresh=70, verbose=False):
 
 					try:   
 						indices = np.argwhere(cos_the + 1 <= theta_thresh).flatten()
-						if verbose: print("Possible fibre nodes ", indices)
+						if verbose: print("Nodes lying in fibre growth direction: ", new_connect[indices])
 						straight = (cos_the[indices] + 1).argmin()
 						index = indices[straight]
-						if verbose: print(index, indices[straight], cos_the[index], new_coord_r[index])
 
 						new_node = new_connect[index]
 						coord_vec = - new_coord_vec[index]
@@ -430,8 +454,10 @@ def adj_analysis(Aij, angle_thresh=70, verbose=False):
 						fibre_l += coord_r
 						
 						if verbose: 
-							print("Next fibre node = ", new_node, node_coord[new_node])
-							print("New fibre length = ", fibre_l, coord_r)
+							print("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
+							print("New fibre length = ", fibre_l, "(+{})".format(coord_r))
+							print("New fibre direction = ", fibre.direction)
+
 
 					except (ValueError, IndexError):
 						fibre.growing = False
@@ -448,8 +474,8 @@ def adj_analysis(Aij, angle_thresh=70, verbose=False):
 					fibre_l += coord_r
 
 					if verbose: 
-						print("Next fibre node = ", new_node, node_coord[new_node])
-						print("New fibre length = ", fibre_l, coord_r)
+						print("New fibre length = ", fibre_l, "(+{})".format(coord_r))
+						print("New fibre direction = ", direction)
 				    
 				else:
 					fibre.growing = False
@@ -464,7 +490,7 @@ def adj_analysis(Aij, angle_thresh=70, verbose=False):
 										  node_coord[fibre.nodes[0]] - node_coord[fibre.nodes[-1]],
 										  d_coord[fibre.nodes[0]][fibre.nodes[-1]],
 										  d_coord[fibre.nodes[0]][fibre.nodes[-1]]**2)
-					print("Length", fibre_l, "Displacement", euclid_dist)
+					print("Length", fibre_l, "Displacement", euclid_dist, "\n")
 
 				fibre_waviness = np.concatenate((fibre_waviness, [euclid_dist / fibre_l]))
 	#"""

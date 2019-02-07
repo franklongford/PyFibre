@@ -194,12 +194,6 @@ if __name__ == '__main__':
 
 	print(input_files)
 
-	columns = ['Global SDI', 'Global Pixel Anisotropy', 'Global Anisotropy', 'Global Coverage',
-				'Local SDI', 'Local Pixel Anisotropy', 'Local Anisotropy',
-				'Linearity', 'Eccentricity', 'Density',
-				'Network Waviness', 'Network Degree', 'Network Centrality',
-				'Network Connectivity', 'Network Local Efficiency']
-
 	removed_files = []
 	database = pd.DataFrame()
    
@@ -214,7 +208,7 @@ if __name__ == '__main__':
 			database = pd.concat([database, data])
 
 			print(input_file_name)
-			for i, title in enumerate(columns): 
+			for i, title in enumerate(database.columns): 
 				print(' {} = {:>6.4f}'.format(title, database.loc[input_file_name][title]))
 
 		except NoiseError as err:

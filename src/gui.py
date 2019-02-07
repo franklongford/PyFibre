@@ -62,7 +62,7 @@ class imagecol_gui:
 
 		"Define GUI objects"
 		self.master = master
-		self.master.geometry("1180x620")
+		self.master.geometry("1230x620")
 		self.master.configure(background='#d8baa9')
 		self.master.protocol("WM_DELETE_WINDOW", lambda: quit())
 
@@ -85,7 +85,7 @@ class imagecol_gui:
 		self.image_display = ttk.Notebook(self.master)
 		self.create_image_display(self.image_display)
 		self.master.bind('<Double-1>', lambda e: self.display_notebook())
-		self.image_display.place(x=550, y=10, width=625, height=600)
+		self.image_display.place(x=550, y=10, width=675, height=600)
 
 
 	def create_title(self, frame):
@@ -257,8 +257,8 @@ class imagecol_gui:
 
 		notebook.frame1 = ttk.Frame(notebook)
 		notebook.add(notebook.frame1, text='Image')
-		notebook.frame1.canvas = Canvas(notebook.frame1, width=650, height=550,
-								scrollregion=(0,0,650,600))  
+		notebook.frame1.canvas = Canvas(notebook.frame1, width=675, height=550,
+								scrollregion=(0,0,675,600))  
 		notebook.frame1.scrollbar = Scrollbar(notebook.frame1, orient=VERTICAL, 
 							command=notebook.frame1.canvas.yview)
 		notebook.frame1.scrollbar.pack(side=RIGHT,fill=Y)
@@ -267,8 +267,8 @@ class imagecol_gui:
 
 		notebook.frame2 = ttk.Frame(notebook)
 		notebook.add(notebook.frame2, text='Network')
-		notebook.frame2.canvas = Canvas(notebook.frame2, width=650, height=550,
-								scrollregion=(0,0,650,600))  
+		notebook.frame2.canvas = Canvas(notebook.frame2, width=675, height=550,
+								scrollregion=(0,0,675,600))  
 		notebook.frame2.scrollbar = Scrollbar(notebook.frame2, orient=VERTICAL, 
 							command=notebook.frame2.canvas.yview)
 		notebook.frame2.scrollbar.pack(side=RIGHT,fill=Y)
@@ -291,7 +291,7 @@ class imagecol_gui:
 										'Network Waviness' : {"info" : "Average fibre network fibre waviness", "metric" : DoubleVar()},
 										'Network Degree' : {"info" : "Average fibre network number of edges per node", "metric" : DoubleVar()},
 										'Network Centrality' : {"info" : "Average fibre network centrality", "metric" : DoubleVar()},
-										'Network Connectivity' : {"info" : "Average fibre network wiener connectivity", "metric" : DoubleVar()},
+										'Network Connectivity' : {"info" : "Average fibre network connectivity", "metric" : DoubleVar()},
 										'Network Local Efficiency' : {"info" : "Average fibre network local efficiency", "metric" : DoubleVar()}
 										}
 
@@ -325,7 +325,7 @@ class imagecol_gui:
 
 		notebook.frame4 = ttk.Frame(notebook)
 		notebook.add(notebook.frame4, text='Log')
-		notebook.frame4.text = Text(notebook.frame4, width=650, height=550)
+		notebook.frame4.text = Text(notebook.frame4, width=675, height=550)
 		notebook.frame4.text.insert(END, self.Log)
 		notebook.frame4.text.config(state=DISABLED)
 
@@ -404,7 +404,7 @@ class imagecol_gui:
 		self.update_log("Displaying image {}".format(fig_name))
 
 		try:
-			Aij = nx.read_gpickle(data_dir + fig_name + ".pkl")
+			Aij = nx.read_gpickle(data_dir + fig_name + "_network.pkl")
 			self.display_image(self.image_display.frame2.canvas, image_tk)
 			self.display_network(self.image_display.frame2.canvas, Aij)
 			self.update_log("Displaying network for {}".format(fig_name))
@@ -413,14 +413,16 @@ class imagecol_gui:
 
 		#"""
 		try:
-			loaded_metrics = ut.load_npy(data_dir + fig_name)
+			#loaded_metrics = ut.load_npy(data_dir + fig_name)
+			loaded_metrics = pd.read_pickle('{}_metric.pkl'.format(data_dir + fig_name))
+			for i, metric in enumerate(self.image_display.frame3.titles):
+				self.image_display.frame3.metric_dict[metric]["metric"].set(loaded_metrics.loc[selected_file][metric])
 			self.update_log("Displaying metrics for {}".format(fig_name))
+
 		except IOError:
 			self.update_log("Unable to display metrics for {}".format(fig_name))
-			loaded_metrics = np.zeros(len(self.image_display.frame3.titles))
-
-		for i, metric in enumerate(self.image_display.frame3.titles):
-			self.image_display.frame3.metric_dict[metric]["metric"].set(loaded_metrics[i])
+			for i, metric in enumerate(self.image_display.frame3.titles):
+				self.image_display.frame3.metric_dict[metric]["metric"].set(0)
 		#"""
 		self.master.update_idletasks()
 
