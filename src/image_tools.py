@@ -482,7 +482,7 @@ def network_extraction(image, network_name='network', sigma=1.0, scale=1,
 
 		area, segment = network_area(region.image)
 
-		if region.area >= 1E-3 * image.size:
+		if region.area >= 4E-4 * image.size:
 			segmented_image[(indices[0], indices[1])] += segment * region.label
 			areas = np.concatenate((areas, [area]))
 			regions.append(region)
@@ -518,7 +518,7 @@ def draw_network(network, label_image, index):
 	return label_image
 
 
-def network_area(label, iterations=5):
+def network_area(label, iterations=6):
 
 	dilated_image = binary_dilation(label, iterations=iterations)
 	filled_image = dilated_image#binary_fill_holes(dilated_image)

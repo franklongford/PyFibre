@@ -385,6 +385,7 @@ class imagecol_gui:
 	def display_segments(self, canvas, image, Aij):
 
 		networks = []
+		image *= 100 / image.max()
 		label_image = np.zeros(image.shape, dtype=int)
 
 		for i, component in enumerate(nx.connected_components(Aij)):
@@ -403,14 +404,12 @@ class imagecol_gui:
 			indices = np.mgrid[minr:maxr, minc:maxc]
 			area, segment = network_area(region.image)
 
-			if region.area >= 1E-3 * image.size:
+			if region.area >= 4E-4 * image.size:
 				segmented_image[(indices[0], indices[1])] += segment * (i + 1)
 
-		image_label_overlay = label2rgb(segmented_image, image=image, bg_label=0)
-		image_label_overlay *= 255.9999 / image_label_overlay.max()
-
-		image_label_overlay = segmented_image * 255.9999 / segmented_image.max()
-
+		image_label_overlay = label2rgb(segmented_image, image=image, bg_label=0,
+										image_alpha=0.9, alpha=0.9, bg_color=(0, 0, 0))
+		image_label_overlay *= 4 * 255.9999 / image_label_overlay.max()
 		image_pil = Image.fromarray(image_label_overlay.astype('uint8'))
 		image_tk = ImageTk.PhotoImage(image_pil)
 
@@ -427,7 +426,7 @@ class imagecol_gui:
 		fig_name = ut.check_file_name(image_name, extension='tif')
 		data_dir = image_path + '/data/'
 
-		image_numpy = 255.999 * load_image(selected_file)
+		image_numpy = 4 * 255.999 * load_image(selected_file)
 		image_tk = ImageTk.PhotoImage(Image.fromarray(image_numpy.astype('uint8')))
 		self.display_image(self.image_display.image_tab.canvas, image_tk)
 		self.update_log("Displaying image {}".format(fig_name))
