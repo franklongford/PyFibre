@@ -64,9 +64,8 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		Calculated metrics for further analysis
 	"""
 
-	columns = ['Global SDI', 'Global Pixel Anisotropy', 'Global Anisotropy', 'Global Coverage',
-				'Local SDI', 'Local Pixel Anisotropy', 'Local Anisotropy',
-				'Linearity', 'Eccentricity', 'Density',
+	columns = ['SDI', 'Anisotropy', 'Pixel Anisotropy',
+				'Linearity', 'Eccentricity', 'Density', 'Coverage',
 				'Network Waviness', 'Network Degree', 'Network Centrality',
 				'Network Connectivity', 'Network Local Efficiency']
 
@@ -113,10 +112,12 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		net = it.network_extraction(image, data_dir + image_name, ow_network=ow_network, threads=threads) 
 		(segmented_image, networks, areas, regions, segments) = net
 	
+		global_coverage = np.count_nonzero(segmented_image) / segmented_image.size
+
 		"Analyse fibre network"
-		net_res = it.network_analysis(image, segmented_image, networks, regions, segments, n_tensor, pix_n_anis)
-		(global_coverage, region_sdi, region_anis, region_pix_anis, 
-		segment_linear, segment_eccent, segment_density,
+		net_res = it.network_analysis(image, networks, regions, segments, n_tensor, pix_n_anis)
+		(region_sdi, region_anis, region_pix_anis, 
+		segment_linear, segment_eccent, segment_density, local_coverage,
 		network_waviness, network_degree, network_central, 
 		network_connect, network_loc_eff) = net_res
 
@@ -125,27 +126,37 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		local_anis = ut.nanmean(region_anis, weights=areas)
 		local_pix_anis = ut.nanmean(region_pix_anis, weights=areas)
 
-		segment_linear = ut.nanmean(segment_linear, weights=areas)
-		segment_eccent = ut.nanmean(segment_eccent, weights=areas)
-		segment_density = ut.nanmean(segment_density, weights=areas)
+		av_segment_linear = ut.nanmean(segment_linear, weights=areas)
+		av_segment_eccent = ut.nanmean(segment_eccent, weights=areas)
+		av_segment_density = ut.nanmean(segment_density, weights=areas)
 
-		network_waviness = ut.nanmean(network_waviness, weights=areas)
-		network_degree = ut.nanmean(network_degree, weights=areas)
-		network_central = ut.nanmean(network_central, weights=areas)
-		network_connect = ut.nanmean(network_connect, weights=areas)
-		network_loc_eff = ut.nanmean(network_loc_eff, weights=areas)
+		av_network_waviness = ut.nanmean(network_waviness, weights=areas)
+		av_network_degree = ut.nanmean(network_degree, weights=areas)
+		av_network_central = ut.nanmean(network_central, weights=areas)
+		av_network_connect = ut.nanmean(network_connect, weights=areas)
+		av_network_loc_eff = ut.nanmean(network_loc_eff, weights=areas)
 
-		metrics = np.array([global_sdi, global_anis, global_pix_anis, global_coverage, 
-					local_sdi, local_anis, local_pix_anis, 
-					segment_linear, segment_eccent, segment_density,
-					network_waviness, network_degree, network_central, 
-					network_connect, network_loc_eff])
 
-		dataframe = pd.DataFrame(data=[metrics], columns=columns, 
-				index = [input_file_name])
+		global_metrics = np.array([
+								global_sdi, global_anis, global_pix_anis,
+								av_segment_linear, av_segment_eccent, av_segment_density, global_coverage,
+								av_network_waviness, av_network_degree, av_network_central, 
+								av_network_connect, av_network_loc_eff])
+		global_metrics = np.expand_dims(global_metrics, axis=0)
+
+		segment_metrics = np.stack([
+								region_sdi, region_anis, region_pix_anis,
+								segment_linear, segment_eccent, segment_density, local_coverage,
+								network_waviness, network_degree, network_central, 
+								network_connect, network_loc_eff], axis=-1)
+
+		titles = [input_file_name]
+		for i in range(len(regions)): titles += [input_file_name + "_{}".format(i)]
+
+		dataframe = pd.DataFrame(data=np.concatenate((global_metrics, segment_metrics), axis=0), 
+								columns=columns, index=titles)
  
 		dataframe.to_pickle('{}_metric.pkl'.format(data_dir + image_name))
-
 
 	return dataframe
 
@@ -183,7 +194,7 @@ if __name__ == '__main__':
 	for file_name in input_files:
 		if not (file_name.endswith('.tif')): removed_files.append(file_name)
 		elif (file_name.find('display') != -1): removed_files.append(file_name)
-		elif (file_name.find('AVG') == -1): removed_files.append(file_name)
+		#elif (file_name.find('AVG') == -1): removed_files.append(file_name)
 
 	for key in args.key.split(','):
 		for file_name in input_files:
@@ -195,7 +206,8 @@ if __name__ == '__main__':
 	print(input_files)
 
 	removed_files = []
-	database = pd.DataFrame()
+	segment_database = pd.DataFrame()
+	global_database = pd.DataFrame()
    
 	for i, input_file_name in enumerate(input_files):
 
@@ -205,11 +217,11 @@ if __name__ == '__main__':
 			data = analyse_image(input_file_name, image_path, sigma=args.sigma, 
 				ow_metric=args.ow_metric, ow_network=args.ow_network, threads=args.threads)
 
-			database = pd.concat([database, data])
+			global_database = pd.concat([global_database, data.iloc[:1]])
+			segment_database = pd.concat([segment_database, data.iloc[1:]])
 
-			print(input_file_name)
-			for i, title in enumerate(database.columns): 
-				print(' {} = {:>6.4f}'.format(title, database.loc[input_file_name][title]))
+			for i, title in enumerate(global_database.columns): 
+				print(' {} = {:>6.4f}'.format(title, global_database.loc[input_file_name][title]))
 
 		except NoiseError as err:
 			print(err.message)
@@ -218,8 +230,9 @@ if __name__ == '__main__':
 	for file_name in removed_files: input_files.remove(file_name)
 
 	if args.save_db != None: 
-		database.to_pickle('{}.pkl'.format(args.save_db))
-		database.to_excel('{}.xls'.format(args.save_db))
-
+		global_database.to_pickle('{}_global.pkl'.format(args.save_db))
+		segment_database.to_excel('{}_segment.xls'.format(args.save_db))
+		global_database.to_pickle('{}_global.pkl'.format(args.save_db))
+		segment_database.to_excel('{}_segment.xls'.format(args.save_db))
 
 		

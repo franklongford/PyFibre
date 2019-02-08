@@ -308,7 +308,8 @@ def FIRE(image, sigma = 0.5, nuc_thresh=2, nuc_rad=11, lmp_thresh=0.2,
 		start = time.time()
 		n_node = Aij.number_of_nodes()
 
-		tot_node_coord = np.stack((Aij.nodes[i]['xy'] for i in Aij.nodes()))
+		tot_node_coord = [Aij.nodes[i]['xy'] for i in Aij.nodes()]
+		tot_node_coord = np.stack(tot_node_coord)
 		fibre_indices = np.argwhere(fibre_grow).flatten()
 
 		"""Serial Version
@@ -344,7 +345,8 @@ def FIRE(image, sigma = 0.5, nuc_thresh=2, nuc_rad=11, lmp_thresh=0.2,
 	print("Checking for redundant nodes")
 
 	"Calculate distances between each node"
-	node_coord = np.stack((Aij.nodes[i]['xy'] for i in Aij.nodes()))
+	node_coord = [Aij.nodes[i]['xy'] for i in Aij.nodes()]
+	node_coord = np.stack(node_coord)
 	d_coord, r2_coord = distance_matrix(node_coord)
 
 	"Deal with one set of coordinates"
@@ -369,8 +371,7 @@ def FIRE(image, sigma = 0.5, nuc_thresh=2, nuc_rad=11, lmp_thresh=0.2,
 	return Aij
 
 
-def adj_analysis(Aij, angle_thresh=70, verbose=True):
-
+def adj_analysis(Aij, angle_thresh=70, verbose=False):
 
 	mapping = dict(zip(Aij.nodes, np.arange(Aij.number_of_nodes())))
 	Aij = nx.relabel_nodes(Aij, mapping)
@@ -390,7 +391,8 @@ def adj_analysis(Aij, angle_thresh=70, verbose=True):
 
 	#"""
 
-	node_coord = np.stack((Aij.nodes[i]['xy'] for i in Aij.nodes()))
+	node_coord = [Aij.nodes[i]['xy'] for i in Aij.nodes()]
+	node_coord = np.stack(node_coord)
 	edge_count = np.array([Aij.degree[node] for node in Aij.nodes], dtype=int)
 	theta_thresh = np.cos((180-angle_thresh) * np.pi / 180) + 1
 	d_coord, r2_coord = distance_matrix(node_coord)
@@ -495,6 +497,6 @@ def adj_analysis(Aij, angle_thresh=70, verbose=True):
 				fibre_waviness = np.concatenate((fibre_waviness, [euclid_dist / fibre_l]))
 	#"""
 
-	return  fibre_waviness.mean()#, fibre_waviness.mean()
+	return  np.nanmean(fibre_waviness)#, fibre_waviness.mean()
 	#return  network_waviness.mean()#, fibre_waviness.mean()
 

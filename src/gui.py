@@ -9,7 +9,6 @@ from multiprocessing import Pool, Process, JoinableQueue, Queue, current_process
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
 
 from PIL import ImageTk, Image
 import networkx as nx
@@ -19,15 +18,16 @@ import pandas as pd
 from scipy.ndimage import imread
 from scipy.ndimage.filters import gaussian_filter
 
-from skimage import img_as_float
-from skimage.exposure import equalize_adapthist
+from skimage import img_as_float, measure
+from skimage.exposure import equalize_adapthist, rescale_intensity
 from skimage.filters import threshold_otsu
-from skimage.color import gray2rgb
+from skimage.color import gray2rgb, label2rgb
 from skimage.restoration import (estimate_sigma, denoise_tv_chambolle, denoise_bilateral)
 
 from main import analyse_image
 import utilities as ut
 from utilities import NoiseError
+from image_tools import load_image, draw_network, network_area
 
 class imagecol_gui:
 
@@ -255,36 +255,46 @@ class imagecol_gui:
 
 		#frame.grid(row=0, columnspan=3, sticky=(N,W,E,S))
 
-		notebook.frame1 = ttk.Frame(notebook)
-		notebook.add(notebook.frame1, text='Image')
-		notebook.frame1.canvas = Canvas(notebook.frame1, width=675, height=550,
+		notebook.image_tab = ttk.Frame(notebook)
+		notebook.add(notebook.image_tab, text='Image')
+		notebook.image_tab.canvas = Canvas(notebook.image_tab, width=675, height=550,
 								scrollregion=(0,0,675,600))  
-		notebook.frame1.scrollbar = Scrollbar(notebook.frame1, orient=VERTICAL, 
-							command=notebook.frame1.canvas.yview)
-		notebook.frame1.scrollbar.pack(side=RIGHT,fill=Y)
-		notebook.frame1.canvas['yscrollcommand'] = notebook.frame1.scrollbar.set
-		notebook.frame1.canvas.pack(side = LEFT, fill = "both", expand = "yes")
+		notebook.image_tab.scrollbar = Scrollbar(notebook.image_tab, orient=VERTICAL, 
+							command=notebook.image_tab.canvas.yview)
+		notebook.image_tab.scrollbar.pack(side=RIGHT,fill=Y)
+		notebook.image_tab.canvas['yscrollcommand'] = notebook.image_tab.scrollbar.set
+		notebook.image_tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
 
-		notebook.frame2 = ttk.Frame(notebook)
-		notebook.add(notebook.frame2, text='Network')
-		notebook.frame2.canvas = Canvas(notebook.frame2, width=675, height=550,
+		notebook.network_tab = ttk.Frame(notebook)
+		notebook.add(notebook.network_tab, text='Network')
+		notebook.network_tab.canvas = Canvas(notebook.network_tab, width=675, height=550,
 								scrollregion=(0,0,675,600))  
-		notebook.frame2.scrollbar = Scrollbar(notebook.frame2, orient=VERTICAL, 
-							command=notebook.frame2.canvas.yview)
-		notebook.frame2.scrollbar.pack(side=RIGHT,fill=Y)
-		notebook.frame2.canvas['yscrollcommand'] = notebook.frame2.scrollbar.set
-		notebook.frame2.canvas.pack(side = LEFT, fill = "both", expand = "yes")
+		notebook.network_tab.scrollbar = Scrollbar(notebook.network_tab, orient=VERTICAL, 
+							command=notebook.network_tab.canvas.yview)
+		notebook.network_tab.scrollbar.pack(side=RIGHT,fill=Y)
+		notebook.network_tab.canvas['yscrollcommand'] = notebook.network_tab.scrollbar.set
+		notebook.network_tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
 
-		notebook.frame3 = ttk.Frame(notebook)
-		notebook.add(notebook.frame3, text='Metrics')
+		notebook.segment_tab = ttk.Frame(notebook)
+		notebook.add(notebook.segment_tab, text='Segment')
+		notebook.segment_tab.canvas = Canvas(notebook.segment_tab, width=675, height=550,
+								scrollregion=(0,0,675,600))  
+		notebook.segment_tab.scrollbar = Scrollbar(notebook.segment_tab, orient=VERTICAL, 
+							command=notebook.segment_tab.canvas.yview)
+		notebook.segment_tab.scrollbar.pack(side=RIGHT,fill=Y)
+		notebook.segment_tab.canvas['yscrollcommand'] = notebook.segment_tab.scrollbar.set
+		notebook.segment_tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
 
-		notebook.frame3.metric_dict = {'Global SDI' : {"info" : "Fourier spectrum SDI of total image", "metric" : DoubleVar()}, 
-										'Global Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar()},
-										'Global Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar()}, 
-										'Global Coverage' : {"info" : "Ratio of total image covered by collagen fibres", "metric" : DoubleVar()},
-										'Local SDI' : {"info" : "Average Fourier spectrum SDI of segmented image", "metric" : DoubleVar()}, 
-										'Local Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in segmented image", "metric" : DoubleVar()},
-										'Local Anisotropy' : {"info" : "Average Anisotropy of segented image", "metric" : DoubleVar()}, 
+		notebook.metric_tab = ttk.Frame(notebook)
+		notebook.add(notebook.metric_tab, text='Metrics')
+
+		notebook.metric_tab.metric_dict = {'SDI' : {"info" : "Fourier spectrum SDI of total image", "metric" : DoubleVar()}, 
+										'Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar()},
+										'Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar()}, 
+										'Coverage' : {"info" : "Ratio of total image covered by collagen fibres", "metric" : DoubleVar()},
+										#'Local SDI' : {"info" : "Average Fourier spectrum SDI of segmented image", "metric" : DoubleVar()}, 
+										#'Local Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in segmented image", "metric" : DoubleVar()},
+										#'Local Anisotropy' : {"info" : "Average Anisotropy of segented image", "metric" : DoubleVar()}, 
 										'Linearity' : {"info" : "Average segment shape linearity", "metric" : DoubleVar()}, 
 										'Eccentricity' : {"info" : "Average segment shape eccentricity", "metric" : DoubleVar()},
 										'Density' : {"info" : "Average segment density", "metric" : DoubleVar()},
@@ -295,79 +305,59 @@ class imagecol_gui:
 										'Network Local Efficiency' : {"info" : "Average fibre network local efficiency", "metric" : DoubleVar()}
 										}
 
-		notebook.frame3.titles = list(notebook.frame3.metric_dict.keys())
+		notebook.metric_tab.titles = list(notebook.metric_tab.metric_dict.keys())
 
-		#"""
-		notebook.metrics = [DoubleVar() for i in range(len(notebook.frame3.titles))]
-		notebook.frame3.headings = []
-		notebook.frame3.info = []
-		notebook.frame3.metrics = []
+		notebook.metrics = [DoubleVar() for i in range(len(notebook.metric_tab.titles))]
+		notebook.metric_tab.headings = []
+		notebook.metric_tab.info = []
+		notebook.metric_tab.metrics = []
 
-		for i, metric in enumerate(notebook.frame3.titles):
-			notebook.frame3.headings += [Label(notebook.frame3, text="{}:".format(metric))]
-			notebook.frame3.info += [Label(notebook.frame3, text=notebook.frame3.metric_dict[metric]["info"])]
-			notebook.frame3.metrics += [Label(notebook.frame3, textvariable=notebook.frame3.metric_dict[metric]["metric"])]
-			notebook.frame3.headings[i].grid(column=0, row=i)
-			notebook.frame3.info[i].grid(column=1, row=i)
-			notebook.frame3.metrics[i].grid(column=2, row=i)
+		for i, metric in enumerate(notebook.metric_tab.titles):
+			notebook.metric_tab.headings += [Label(notebook.metric_tab, text="{}:".format(metric))]
+			notebook.metric_tab.info += [Label(notebook.metric_tab, text=notebook.metric_tab.metric_dict[metric]["info"])]
+			notebook.metric_tab.metrics += [Label(notebook.metric_tab, textvariable=notebook.metric_tab.metric_dict[metric]["metric"])]
+			notebook.metric_tab.headings[i].grid(column=0, row=i)
+			notebook.metric_tab.info[i].grid(column=1, row=i)
+			notebook.metric_tab.metrics[i].grid(column=2, row=i)
 
-		#"""
+		notebook.log_tab = ttk.Frame(notebook)
+		notebook.add(notebook.log_tab, text='Log')
+		notebook.log_tab.text = Text(notebook.log_tab, width=675, height=550)
+		notebook.log_tab.text.insert(END, self.Log)
+		notebook.log_tab.text.config(state=DISABLED)
 
-		"""
-		notebook.frame3.fig, notebook.frame3.ax = plt.subplots(nrows=4, ncols=4, figsize=(2, 2), dpi=100)
-		notebook.frame3.canvas = FigureCanvasTkAgg(notebook.frame3.fig, notebook.frame3)
-		notebook.frame3.canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
+		notebook.log_tab.scrollbar = Scrollbar(notebook.log_tab, orient=VERTICAL, 
+							command=notebook.log_tab.text.yview)
+		notebook.log_tab.scrollbar.pack(side=RIGHT,fill=Y)
+		notebook.log_tab.text['yscrollcommand'] = notebook.log_tab.scrollbar.set
 
-		notebook.frame3.toolbar = NavigationToolbar2Tk(notebook.frame3.canvas, notebook.frame3)
-		notebook.frame3.toolbar.update()
-		notebook.frame3.canvas._tkcanvas.pack(side=TOP, fill=BOTH, expand=1)
-		"""
-
-		notebook.frame4 = ttk.Frame(notebook)
-		notebook.add(notebook.frame4, text='Log')
-		notebook.frame4.text = Text(notebook.frame4, width=675, height=550)
-		notebook.frame4.text.insert(END, self.Log)
-		notebook.frame4.text.config(state=DISABLED)
-
-		notebook.frame4.scrollbar = Scrollbar(notebook.frame4, orient=VERTICAL, 
-							command=notebook.frame4.text.yview)
-		notebook.frame4.scrollbar.pack(side=RIGHT,fill=Y)
-		notebook.frame4.text['yscrollcommand'] = notebook.frame4.scrollbar.set
-
-		notebook.frame4.text.pack()
+		notebook.log_tab.text.pack()
 		
 
 		#notebook.BFrame.configure(background='#d8baa9')
 
 
-	def update_dashboard(self):
-
-		for i, title in enumerate(self.image_display.frame3.titles[:16]):
-			self.image_display.frame3.ax[i // 4][i % 4].clear()
-			self.image_display.frame3.ax[i // 4][i % 4].set_title(title)
-			self.image_display.frame3.ax[i // 4][i % 4].boxplot(self.database[title])
-
-		self.image_display.frame3.canvas.draw()
-
-
 	def update_log(self, text):
 
-		self.image_display.frame4.text.config(state=NORMAL)
+		self.image_display.log_tab.text.config(state=NORMAL)
 		self.Log += text + '\n'
-		self.image_display.frame4.text.insert(END, text + '\n')
-		self.image_display.frame4.text.config(state=DISABLED)
+		self.image_display.log_tab.text.insert(END, text + '\n')
+		self.image_display.log_tab.text.config(state=DISABLED)
 
 
 	def display_image(self, canvas, image):
 
-		canvas.create_image(40, 20, image=image, anchor=NW)
+		print(image.width(), image.height())
+		canvas.create_image(0, 0, image=image, anchor=NW)
 		canvas.image = image
 		canvas.pack(side = LEFT, fill = "both", expand = "yes")
 
 		self.master.update_idletasks()
 
 
-	def display_network(self, canvas, Aij):
+	def display_network(self, canvas, image, Aij):
+
+		self.display_image(canvas, image)
 
 		networks = []
 
@@ -375,19 +365,57 @@ class imagecol_gui:
 			subgraph = Aij.subgraph(component)
 			if subgraph.number_of_nodes() > 3:
 				networks.append(subgraph)
+				
 
 		for j, network in enumerate(networks):
 
-			node_coord = np.stack((network.nodes[i]['xy'] for i in network.nodes()))
+			node_coord = [network.nodes[i]['xy'] for i in network.nodes()]
+			node_coord = np.stack(node_coord)
 
 			mapping = dict(zip(network.nodes, np.arange(network.number_of_nodes())))
 			network = nx.relabel_nodes(network, mapping)
 			
 			for n, node in enumerate(network.nodes):
 				for m in list(network.adj[node]):
-					canvas.create_line(node_coord[n][1]+40, node_coord[n][0]+20,
-								       node_coord[m][1]+40, node_coord[m][0]+20,
-										fill="red", width=3)
+					canvas.create_line(node_coord[n][1], node_coord[n][0],
+								       node_coord[m][1], node_coord[m][0],
+										fill="red", width=2)
+
+
+	def display_segments(self, canvas, image, Aij):
+
+		networks = []
+		label_image = np.zeros(image.shape, dtype=int)
+
+		for i, component in enumerate(nx.connected_components(Aij)):
+			subgraph = Aij.subgraph(component)
+			if subgraph.number_of_nodes() > 3:
+				networks.append(subgraph)
+				label_image = draw_network(subgraph, label_image, i + 1)
+
+		print(np.unique(label_image))
+		segmented_image = np.zeros(image.shape, dtype=int)
+		rect = []
+
+		"Measure pixel areas of each segment"
+		for i, region in enumerate(measure.regionprops(label_image)):
+			minr, minc, maxr, maxc = region.bbox
+			indices = np.mgrid[minr:maxr, minc:maxc]
+			area, segment = network_area(region.image)
+
+			if region.area >= 1E-3 * image.size:
+				segmented_image[(indices[0], indices[1])] += segment * (i + 1)
+
+		image_label_overlay = label2rgb(segmented_image, image=image, bg_label=0)
+		image_label_overlay *= 255.9999 / image_label_overlay.max()
+
+		image_label_overlay = segmented_image * 255.9999 / segmented_image.max()
+
+		image_pil = Image.fromarray(image_label_overlay.astype('uint8'))
+		image_tk = ImageTk.PhotoImage(image_pil)
+
+		self.display_image(canvas, image_tk)
+
 
 	def display_notebook(self):
 
@@ -399,38 +427,39 @@ class imagecol_gui:
 		fig_name = ut.check_file_name(image_name, extension='tif')
 		data_dir = image_path + '/data/'
 
-		image_tk = ImageTk.PhotoImage(Image.open(selected_file))
-		self.display_image(self.image_display.frame1.canvas, image_tk)
+		image_numpy = 255.999 * load_image(selected_file)
+		image_tk = ImageTk.PhotoImage(Image.fromarray(image_numpy.astype('uint8')))
+		self.display_image(self.image_display.image_tab.canvas, image_tk)
 		self.update_log("Displaying image {}".format(fig_name))
 
 		try:
 			Aij = nx.read_gpickle(data_dir + fig_name + "_network.pkl")
-			self.display_image(self.image_display.frame2.canvas, image_tk)
-			self.display_network(self.image_display.frame2.canvas, Aij)
-			self.update_log("Displaying network for {}".format(fig_name))
+			self.display_network(self.image_display.network_tab.canvas, image_tk, Aij)
+			self.display_segments(self.image_display.segment_tab.canvas, image_numpy, Aij)
+			self.update_log("Displaying network and segments for {}".format(fig_name))
 		except IOError:
-			self.update_log("Unable to display network for {}".format(fig_name))
+			self.update_log("Unable to display network and segments for {}".format(fig_name))
 
 		#"""
 		try:
 			#loaded_metrics = ut.load_npy(data_dir + fig_name)
-			loaded_metrics = pd.read_pickle('{}_metric.pkl'.format(data_dir + fig_name))
-			for i, metric in enumerate(self.image_display.frame3.titles):
-				self.image_display.frame3.metric_dict[metric]["metric"].set(loaded_metrics.loc[selected_file][metric])
+			loaded_metrics = pd.read_pickle('{}_metric.pkl'.format(data_dir + fig_name)).iloc[0]
+			for i, metric in enumerate(self.image_display.metric_tab.titles):
+				self.image_display.metric_tab.metric_dict[metric]["metric"].set(loaded_metrics[metric])
 			self.update_log("Displaying metrics for {}".format(fig_name))
 
 		except IOError:
 			self.update_log("Unable to display metrics for {}".format(fig_name))
-			for i, metric in enumerate(self.image_display.frame3.titles):
-				self.image_display.frame3.metric_dict[metric]["metric"].set(0)
+			for i, metric in enumerate(self.image_display.metric_tab.titles):
+				self.image_display.metric_tab.metric_dict[metric]["metric"].set(0)
 		#"""
 		self.master.update_idletasks()
 
 
 	def generate_db(self):
 
-		database = pd.DataFrame()
-		database_index = []
+		global_database = pd.DataFrame()
+		segment_database = pd.DataFrame()
 
 		for i, input_file_name in enumerate(self.input_files):
 
@@ -442,12 +471,15 @@ class imagecol_gui:
 			self.update_log("Loading metrics for {}".format(metric_name))
 
 			try: 
-				database = pd.concat((database, pd.read_pickle('{}_metric.pkl'.format(metric_name))))
+				data = pd.read_pickle('{}_metric.pkl'.format(metric_name))
+				global_database = pd.concat([global_database, data.iloc[:1]], sort=True)
+				segment_database = pd.concat([segment_database, data.iloc[1:]], sort=True)
 
 			except (ValueError, IOError):
 				self.update_log(f"{input_file_name} database not imported - skipping")
 
-		self.database = database
+		self.global_database = global_database
+		self.segment_database = segment_database
 
 		#self.update_dashboard()
 
@@ -458,10 +490,12 @@ class imagecol_gui:
 		db_filename = ut.check_file_name(db_filename, extension='pkl')
 		db_filename = ut.check_file_name(db_filename, extension='xls')
 
-		self.database.to_pickle(db_filename + '.pkl')
-		self.database.to_excel(db_filename + '.xls')
+		self.global_database.to_pickle(db_filename + '_global.pkl')
+		self.global_database.to_excel(db_filename + '_global.xls')
+		self.segment_database.to_pickle(db_filename + '_segment.pkl')
+		self.segment_database.to_excel(db_filename + '_segment.xls')
 
-		self.update_log("Saving Database file {}".format(db_filename))
+		self.update_log("Saving Database files {}".format(db_filename))
 
 
 	def write_run(self):

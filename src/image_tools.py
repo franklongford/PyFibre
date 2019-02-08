@@ -23,10 +23,10 @@ from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
 from scipy.optimize import curve_fit, minimize
 
-from skimage import data, measure, img_as_float, draw
+from skimage import data, measure, img_as_float, draw, io
 from skimage.transform import rescale
 from skimage.morphology import (disk, dilation)
-from skimage.color import rgb2hsv, hsv2rgb
+from skimage.color import rgb2grey, rgb2hsv, hsv2rgb
 from skimage.restoration import denoise_nl_means, estimate_sigma
 from skimage.feature import structure_tensor, hessian_matrix
 from skimage.exposure import rescale_intensity
@@ -38,11 +38,14 @@ from extraction import FIRE, adj_analysis
 
 def load_image(image_name):
 
-	image_orig = np.asarray(Image.open(image_name)).astype(np.float32)
+	image_orig = io.imread(image_name).astype(float)
 
 	if image_orig.ndim > 2: 
-		image = np.sum(image_orig / image_orig.max(axis=-1), axis=0)
-	else: image = image_orig# / image_orig.max()
+		if image_orig.ndim == 4: image_orig = image_orig[0]
+		smallest_axis = np.argmin(image_orig.shape)
+		image_orig = np.sqrt(np.sum(image_orig**2, axis=smallest_axis))
+
+	image = image_orig / image_orig.max()
 
 	return image
 
@@ -478,12 +481,12 @@ def network_extraction(image, network_name='network', sigma=1.0, scale=1,
 		indices = np.mgrid[minr:maxr, minc:maxc]
 
 		area, segment = network_area(region.image)
-		segmented_image[(indices[0], indices[1])] += segment * region.label
 
-		areas = np.concatenate((areas, [area]))
-		#areas = np.concatenate((areas, [segment.filled_area]))
-		regions.append(region)
-		segments.append(segment)
+		if region.area >= 1E-3 * image.size:
+			segmented_image[(indices[0], indices[1])] += segment * region.label
+			areas = np.concatenate((areas, [area]))
+			regions.append(region)
+			segments.append(segment)
 
 	"Sort segments ranked by area"
 	indices = np.argsort(areas)
@@ -502,16 +505,17 @@ def network_extraction(image, network_name='network', sigma=1.0, scale=1,
 
 def draw_network(network, label_image, index):
 
-    nodes_coord = np.stack([network.nodes[i]['xy'] for i in network.nodes()])
-    label_image[nodes_coord[:,0],nodes_coord[:,1]] = index
-    
-    for edge in list(network.edges):
-        start = list(network.nodes[edge[1]]['xy'])
-        end = list(network.nodes[edge[0]]['xy'])
-        line = draw.line(*(start+end))
-        label_image[line] = index
-        
-    return label_image
+	nodes_coord = [network.nodes[i]['xy'] for i in network.nodes()]
+	nodes_coord = np.stack(nodes_coord)
+	label_image[nodes_coord[:,0],nodes_coord[:,1]] = index
+
+	for edge in list(network.edges):
+		start = list(network.nodes[edge[1]]['xy'])
+		end = list(network.nodes[edge[0]]['xy'])
+		line = draw.line(*(start+end))
+		label_image[line] = index
+
+	return label_image
 
 
 def network_area(label, iterations=5):
@@ -523,7 +527,7 @@ def network_area(label, iterations=5):
 	return net_area, filled_image
 
 
-def network_analysis(image, segmented_image, networks, regions, segments, n_tensor, anis_map):
+def network_analysis(image, networks, regions, segments, n_tensor, anis_map):
 	"""
 	Analyse extracted fibre network
 	"""
@@ -536,6 +540,7 @@ def network_analysis(image, segmented_image, networks, regions, segments, n_tens
 	segment_linear = np.zeros(l_regions)
 	segment_eccent = np.zeros(l_regions)
 	segment_density = np.zeros(l_regions)
+	segment_coverage = np.zeros(l_regions)
 	
 	network_waviness = np.zeros(l_regions)
 	network_degree = np.zeros(l_regions)
@@ -544,7 +549,6 @@ def network_analysis(image, segmented_image, networks, regions, segments, n_tens
 	network_loc_eff = np.zeros(l_regions)
 	network_glob_eff = np.zeros(l_regions)
 
-	global_coverage = np.count_nonzero(segmented_image) / segmented_image.size
 	waviness_time = 0
 	degree_time = 0
 	central_time = 0
@@ -569,13 +573,15 @@ def network_analysis(image, segmented_image, networks, regions, segments, n_tens
 		region_anis[i], _ , _ = tensor_analysis(np.mean(region_n_tensor, axis=(0, 1)))
 		region_pix_anis[i] = np.mean(region_anis_map)
 
-		if segment.shape[0] > 1 and segment.shape[1] > 1:
-			filter_ = np.where(segment, 1, 0)
-			seg_region = measure.regionprops(filter_)[0]
+		filter_ = np.where(segment, 1, 0)
+		seg_region = measure.regionprops(filter_)[0]
 
-			segment_linear[i] += 1 - seg_region.equivalent_diameter / seg_region.perimeter
-			segment_eccent[i] += seg_region.eccentricity
-			segment_density[i] += np.sum(region_image * filter_) / np.sum(filter_)
+		segment_linear[i] += 1 - seg_region.equivalent_diameter / seg_region.perimeter
+		segment_eccent[i] += seg_region.eccentricity
+		segment_density[i] += np.sum(region_image * filter_) / np.sum(filter_)
+		segment_coverage[i] += np.mean(filter_)
+
+		print(segment.size, image.size)
 
 		start = time.time()
 		network_waviness[i] = adj_analysis(network)
@@ -608,8 +614,8 @@ def network_analysis(image, segmented_image, networks, regions, segments, n_tens
 	#print('Network Conectivity = {} s'.format(connect_time))
 	#print('Network Local Efficiency = {} s'.format(loc_eff_time))
 
-	return (global_coverage, region_sdi, region_anis, region_pix_anis, 
-			segment_linear, segment_eccent, segment_density,
+	return (region_sdi, region_anis, region_pix_anis, 
+			segment_linear, segment_eccent, segment_density, segment_coverage,
 			network_waviness, network_degree, network_central, 
 			network_connect, network_loc_eff)
 
