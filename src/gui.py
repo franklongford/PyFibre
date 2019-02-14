@@ -56,7 +56,7 @@ class imagecol_gui:
 		self.p1 = IntVar()
 		self.p1.set(98)
 		self.n = IntVar()
-		self.n.set(12)
+		self.n.set(5)
 		self.m = IntVar()
 		self.m.set(35)
 
@@ -288,11 +288,11 @@ class imagecol_gui:
 		notebook.metric_tab = ttk.Frame(notebook)
 		notebook.add(notebook.metric_tab, text='Metrics')
 
-		notebook.metric_tab.metric_dict = {'SDI' : {"info" : "Fourier spectrum SDI of total image", "metric" : DoubleVar()}, 
+		notebook.metric_tab.metric_dict = {'SDI' : {"info" : "Fourier spectrum SDI of total image", "metric" : DoubleVar()},
+										'Entropy' : {"info" : "Average Shannon entropy of segmented image", "metric" : DoubleVar()},
 										'Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar()},
 										'Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar()}, 
-										'Coverage' : {"info" : "Ratio of total image covered by collagen fibres", "metric" : DoubleVar()},
-										#'Local SDI' : {"info" : "Average Fourier spectrum SDI of segmented image", "metric" : DoubleVar()}, 
+										'Coverage' : {"info" : "Ratio of total image covered by collagen fibres", "metric" : DoubleVar()}, 
 										#'Local Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in segmented image", "metric" : DoubleVar()},
 										#'Local Anisotropy' : {"info" : "Average Anisotropy of segented image", "metric" : DoubleVar()}, 
 										'Linearity' : {"info" : "Average segment shape linearity", "metric" : DoubleVar()}, 
@@ -347,8 +347,7 @@ class imagecol_gui:
 
 	def display_image(self, canvas, image):
 
-		print(image.width(), image.height())
-		canvas.create_image(0, 0, image=image, anchor=NW)
+		canvas.create_image(40, 20, image=image, anchor=NW)
 		canvas.image = image
 		canvas.pack(side = LEFT, fill = "both", expand = "yes")
 
@@ -377,8 +376,8 @@ class imagecol_gui:
 			
 			for n, node in enumerate(network.nodes):
 				for m in list(network.adj[node]):
-					canvas.create_line(node_coord[n][1], node_coord[n][0],
-								       node_coord[m][1], node_coord[m][0],
+					canvas.create_line(node_coord[n][1] + 40, node_coord[n][0] + 20,
+								       node_coord[m][1] + 40, node_coord[m][0] + 20,
 										fill="red", width=2)
 
 
@@ -394,7 +393,6 @@ class imagecol_gui:
 				networks.append(subgraph)
 				label_image = draw_network(subgraph, label_image, i + 1)
 
-		print(np.unique(label_image))
 		segmented_image = np.zeros(image.shape, dtype=int)
 		rect = []
 

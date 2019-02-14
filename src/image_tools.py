@@ -43,7 +43,9 @@ def load_image(image_name):
 	if image_orig.ndim > 2: 
 		if image_orig.ndim == 4: image_orig = image_orig[0]
 		smallest_axis = np.argmin(image_orig.shape)
-		image_orig = np.sqrt(np.sum(image_orig**2, axis=smallest_axis))
+		image_euclid = np.sqrt(np.sum(image_orig**2, axis=smallest_axis))
+		image_mean = np.mean(image_orig, axis=smallest_axis)
+		image_orig = np.sqrt(image_mean * image_euclid)
 
 	image = image_orig / image_orig.max()
 
@@ -534,6 +536,7 @@ def network_analysis(image, networks, regions, segments, n_tensor, anis_map):
 	l_regions = len(regions)
 
 	region_sdi = np.zeros(l_regions)
+	region_entropy = np.zeros(l_regions)
 	region_anis = np.zeros(l_regions)
 	region_pix_anis = np.zeros(l_regions)
 
@@ -566,6 +569,7 @@ def network_analysis(image, networks, regions, segments, n_tensor, anis_map):
 
 		_, _, sdi = fourier_transform_analysis(region_image)
 		region_sdi[i] = sdi
+		region_entropy[i] = measure.shannon_entropy(region_image)
 
 		region_anis_map = anis_map[(indices[0], indices[1])]
 		region_n_tensor = n_tensor[(indices[0], indices[1])]
@@ -580,8 +584,6 @@ def network_analysis(image, networks, regions, segments, n_tensor, anis_map):
 		segment_eccent[i] += seg_region.eccentricity
 		segment_density[i] += np.sum(region_image * filter_) / np.sum(filter_)
 		segment_coverage[i] += np.mean(filter_)
-
-		print(segment.size, image.size)
 
 		start = time.time()
 		network_waviness[i] = adj_analysis(network)
@@ -614,7 +616,7 @@ def network_analysis(image, networks, regions, segments, n_tensor, anis_map):
 	#print('Network Conectivity = {} s'.format(connect_time))
 	#print('Network Local Efficiency = {} s'.format(loc_eff_time))
 
-	return (region_sdi, region_anis, region_pix_anis, 
+	return (region_sdi, region_entropy, region_anis, region_pix_anis, 
 			segment_linear, segment_eccent, segment_density, segment_coverage,
 			network_waviness, network_degree, network_central, 
 			network_connect, network_loc_eff)

@@ -14,6 +14,7 @@ import argparse
 import numpy as np
 import pandas as pd
 
+from skimage.measure import shannon_entropy
 from multiprocessing import Pool, Process, JoinableQueue, Queue, current_process
 
 import utilities as ut
@@ -64,7 +65,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		Calculated metrics for further analysis
 	"""
 
-	columns = ['SDI', 'Anisotropy', 'Pixel Anisotropy',
+	columns = ['SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
 				'Linearity', 'Eccentricity', 'Density', 'Coverage',
 				'Network Waviness', 'Network Degree', 'Network Centrality',
 				'Network Connectivity', 'Network Local Efficiency']
@@ -105,6 +106,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		img_n_anis, _ , _ = it.tensor_analysis(np.mean(n_tensor, axis=(0, 1)))
 		img_j_anis, _ , _ = it.tensor_analysis(np.mean(j_tensor, axis=(0, 1)))
 
+		global_entropy = shannon_entropy(image)
 		global_anis = img_n_anis[0]
 		global_pix_anis = np.mean(pix_n_anis)
 
@@ -116,16 +118,12 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 
 		"Analyse fibre network"
 		net_res = it.network_analysis(image, networks, regions, segments, n_tensor, pix_n_anis)
-		(region_sdi, region_anis, region_pix_anis, 
+		(region_sdi, region_entropy, region_anis, region_pix_anis, 
 		segment_linear, segment_eccent, segment_density, local_coverage,
 		network_waviness, network_degree, network_central, 
 		network_connect, network_loc_eff) = net_res
 
 		"Calculate area-weighted metrics for segmented image"
-		local_sdi = ut.nanmean(region_sdi, weights=areas)
-		local_anis = ut.nanmean(region_anis, weights=areas)
-		local_pix_anis = ut.nanmean(region_pix_anis, weights=areas)
-
 		av_segment_linear = ut.nanmean(segment_linear, weights=areas)
 		av_segment_eccent = ut.nanmean(segment_eccent, weights=areas)
 		av_segment_density = ut.nanmean(segment_density, weights=areas)
@@ -138,14 +136,14 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 
 
 		global_metrics = np.array([
-								global_sdi, global_anis, global_pix_anis,
+								global_sdi, global_entropy, global_anis, global_pix_anis,
 								av_segment_linear, av_segment_eccent, av_segment_density, global_coverage,
 								av_network_waviness, av_network_degree, av_network_central, 
 								av_network_connect, av_network_loc_eff])
 		global_metrics = np.expand_dims(global_metrics, axis=0)
 
 		segment_metrics = np.stack([
-								region_sdi, region_anis, region_pix_anis,
+								region_sdi, region_entropy, region_anis, region_pix_anis,
 								segment_linear, segment_eccent, segment_density, local_coverage,
 								network_waviness, network_degree, network_central, 
 								network_connect, network_loc_eff], axis=-1)
@@ -213,19 +211,14 @@ if __name__ == '__main__':
 
 		image_path = '/'.join(input_file_name.split('/')[:-1])
 
-		try:
-			data = analyse_image(input_file_name, image_path, sigma=args.sigma, 
-				ow_metric=args.ow_metric, ow_network=args.ow_network, threads=args.threads)
+		data = analyse_image(input_file_name, image_path, sigma=args.sigma, 
+			ow_metric=args.ow_metric, ow_network=args.ow_network, threads=args.threads)
 
-			global_database = pd.concat([global_database, data.iloc[:1]])
-			segment_database = pd.concat([segment_database, data.iloc[1:]])
+		global_database = pd.concat([global_database, data.iloc[:1]])
+		segment_database = pd.concat([segment_database, data.iloc[1:]])
 
-			for i, title in enumerate(global_database.columns): 
-				print(' {} = {:>6.4f}'.format(title, global_database.loc[input_file_name][title]))
-
-		except NoiseError as err:
-			print(err.message)
-			removed_files.append(input_file_name)
+		for i, title in enumerate(global_database.columns): 
+			print(' {} = {:>6.4f}'.format(title, global_database.loc[input_file_name][title]))
 
 	for file_name in removed_files: input_files.remove(file_name)
 
