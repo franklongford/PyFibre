@@ -28,7 +28,7 @@ from skimage.transform import rescale
 from skimage.morphology import (disk, dilation)
 from skimage.color import rgb2grey, rgb2hsv, hsv2rgb
 from skimage.restoration import denoise_nl_means, estimate_sigma
-from skimage.feature import structure_tensor, hessian_matrix
+from skimage.feature import structure_tensor, hessian_matrix, greycomatrix, greycoprops
 from skimage.exposure import rescale_intensity
 
 import utilities as ut
@@ -544,6 +544,12 @@ def network_analysis(image, networks, regions, segments, n_tensor, anis_map):
 	segment_eccent = np.zeros(l_regions)
 	segment_density = np.zeros(l_regions)
 	segment_coverage = np.zeros(l_regions)
+
+	segment_contrast = np.zeros(l_regions)
+	segment_dissim = np.zeros(l_regions)
+	segment_corr = np.zeros(l_regions)
+	segment_homo = np.zeros(l_regions)
+	segment_energy = np.zeros(l_regions)
 	
 	network_waviness = np.zeros(l_regions)
 	network_degree = np.zeros(l_regions)
@@ -585,6 +591,15 @@ def network_analysis(image, networks, regions, segments, n_tensor, anis_map):
 		segment_density[i] += np.sum(region_image * filter_) / np.sum(filter_)
 		segment_coverage[i] += np.mean(filter_)
 
+		glcm = greycomatrix((image[(indices[0], indices[1])] * 255.999).astype('uint8'),
+                             [2, 3, 4, 5], [0, np.pi/2], 256, symmetric=True, normed=True)
+
+		segment_contrast[i] += greycoprops(glcm, 'contrast').mean()
+		segment_homo[i] += greycoprops(glcm, 'homogeneity').mean()
+		segment_dissim[i] += greycoprops(glcm, 'dissimilarity').mean()
+		segment_corr[i] += greycoprops(glcm, 'correlation').mean()
+		segment_energy[i] += greycoprops(glcm, 'energy').mean()
+
 		start = time.time()
 		network_waviness[i] = adj_analysis(network)
 		stop1 = time.time()
@@ -617,9 +632,10 @@ def network_analysis(image, networks, regions, segments, n_tensor, anis_map):
 	#print('Network Local Efficiency = {} s'.format(loc_eff_time))
 
 	return (region_sdi, region_entropy, region_anis, region_pix_anis, 
-			segment_linear, segment_eccent, segment_density, segment_coverage,
-			network_waviness, network_degree, network_central, 
-			network_connect, network_loc_eff)
+		segment_linear, segment_eccent, segment_density, segment_coverage,
+		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy,
+		network_waviness, network_degree, network_central, 
+		network_connect, network_loc_eff)
 
 """Deprecated"""
 
