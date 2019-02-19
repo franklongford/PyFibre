@@ -1,11 +1,11 @@
 """
-ImageCol: Collagen Image Analysis Program
+PyFibre: Fiborous Image Analysis Program
 MAIN ROUTINE 
 
 Created by: Frank Longford
 Created on: 16/08/2018
 
-Last Modified: 16/08/2018
+Last Modified: 18/02/2019
 """
 
 import sys, os
@@ -18,8 +18,10 @@ from skimage.measure import shannon_entropy
 from multiprocessing import Pool, Process, JoinableQueue, Queue, current_process
 
 import utilities as ut
-from utilities import NoiseError
-import image_tools as it
+from preprocessing import load_image, clip_intensities
+import analysis as an
+import segmentation as seg
+from filters import form_nematic_tensor, form_structure_tensor
 
 
 def analyse_image(input_file_name, working_dir=None, scale=1, 
@@ -67,6 +69,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 
 	columns = ['SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
 				'Linearity', 'Eccentricity', 'Density', 'Coverage',
+				'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy',
 				'Network Waviness', 'Network Degree', 'Network Centrality',
 				'Network Connectivity', 'Network Local Efficiency']
 
@@ -85,41 +88,44 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 	else:
 		print(f"Loading image {data_dir + image_name}")
 		"Load and preprocess image"
-		image = it.load_image(input_file_name)
+		image = load_image(input_file_name)
 		"Pre-process image to remove noise"
-		image = it.preprocess_image(image, scale=scale, p_intensity=p_intensity,
-										p_denoise=p_denoise)
+		image = clip_intensities(image, p_intensity=p_intensity)
 
 		"Perform fourier analysis to obtain spectrum and sdi metric"
 		print("Performing Fourier analysis")
-		angles, fourier_spec, global_sdi = it.fourier_transform_analysis(image)
+		angles, fourier_spec, global_sdi = an.fourier_transform_analysis(image)
 
 		"Form nematic and structure tensors for each pixel"
-		n_tensor = it.form_nematic_tensor(image, sigma=sigma)
-		j_tensor = it.form_structure_tensor(image, sigma=sigma)
+		n_tensor = form_nematic_tensor(image, sigma=sigma)
+		j_tensor = form_structure_tensor(image, sigma=sigma)
 
 		"Perform anisotropy analysis on each pixel"
-		pix_n_anis, pix_n_angle, pix_n_energy = it.tensor_analysis(n_tensor)
-		pix_j_anis, pix_j_angle, pix_j_energy = it.tensor_analysis(j_tensor)
+		pix_n_anis, pix_n_angle, pix_n_energy = an.tensor_analysis(n_tensor)
+		pix_j_anis, pix_j_angle, pix_j_energy = an.tensor_analysis(j_tensor)
+
+		"Form structure tensor image"
+		rgb_image = an.set_HSB(image, pix_j_anis, pix_j_angle, pix_j_energy)
 
 		"Perform anisotropy analysis on whole image"
-		img_n_anis, _ , _ = it.tensor_analysis(np.mean(n_tensor, axis=(0, 1)))
-		img_j_anis, _ , _ = it.tensor_analysis(np.mean(j_tensor, axis=(0, 1)))
+		img_n_anis, _ , _ = an.tensor_analysis(np.mean(n_tensor, axis=(0, 1)))
+		img_j_anis, _ , _ = an.tensor_analysis(np.mean(j_tensor, axis=(0, 1)))
 
 		global_entropy = shannon_entropy(image)
 		global_anis = img_n_anis[0]
 		global_pix_anis = np.mean(pix_n_anis)
 
 		"Extract fibre network"
-		net = it.network_extraction(image, data_dir + image_name, ow_network=ow_network, threads=threads) 
+		net = seg.network_extraction(image, data_dir + image_name, ow_network=ow_network, threads=threads) 
 		(segmented_image, networks, areas, regions, segments) = net
 	
 		global_coverage = np.count_nonzero(segmented_image) / segmented_image.size
 
 		"Analyse fibre network"
-		net_res = it.network_analysis(image, networks, regions, segments, n_tensor, pix_n_anis)
+		net_res = seg.network_analysis(image, networks, regions, segments, n_tensor, pix_n_anis)
 		(region_sdi, region_entropy, region_anis, region_pix_anis, 
 		segment_linear, segment_eccent, segment_density, local_coverage,
+		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy,
 		network_waviness, network_degree, network_central, 
 		network_connect, network_loc_eff) = net_res
 
@@ -127,6 +133,11 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		av_segment_linear = ut.nanmean(segment_linear, weights=areas)
 		av_segment_eccent = ut.nanmean(segment_eccent, weights=areas)
 		av_segment_density = ut.nanmean(segment_density, weights=areas)
+		av_segment_contrast = ut.nanmean(segment_contrast, weights=areas)
+		av_segment_homo = ut.nanmean(segment_homo, weights=areas)
+		av_segment_dissim = ut.nanmean(segment_dissim, weights=areas)
+		av_segment_corr = ut.nanmean(segment_corr, weights=areas)
+		av_segment_energy = ut.nanmean(segment_energy, weights=areas)
 
 		av_network_waviness = ut.nanmean(network_waviness, weights=areas)
 		av_network_degree = ut.nanmean(network_degree, weights=areas)
@@ -138,6 +149,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		global_metrics = np.array([
 								global_sdi, global_entropy, global_anis, global_pix_anis,
 								av_segment_linear, av_segment_eccent, av_segment_density, global_coverage,
+								av_segment_contrast, av_segment_homo, av_segment_dissim, av_segment_corr, av_segment_energy,
 								av_network_waviness, av_network_degree, av_network_central, 
 								av_network_connect, av_network_loc_eff])
 		global_metrics = np.expand_dims(global_metrics, axis=0)
@@ -145,6 +157,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		segment_metrics = np.stack([
 								region_sdi, region_entropy, region_anis, region_pix_anis,
 								segment_linear, segment_eccent, segment_density, local_coverage,
+								segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy,
 								network_waviness, network_degree, network_central, 
 								network_connect, network_loc_eff], axis=-1)
 

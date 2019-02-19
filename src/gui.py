@@ -26,8 +26,8 @@ from skimage.restoration import (estimate_sigma, denoise_tv_chambolle, denoise_b
 
 from main import analyse_image
 import utilities as ut
-from utilities import NoiseError
-from image_tools import load_image, draw_network, network_area
+from preprocessing import load_image, clip_intensities
+from segmentation import draw_network, network_area
 
 class imagecol_gui:
 
@@ -292,7 +292,12 @@ class imagecol_gui:
 										'Entropy' : {"info" : "Average Shannon entropy of segmented image", "metric" : DoubleVar()},
 										'Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar()},
 										'Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar()}, 
-										'Coverage' : {"info" : "Ratio of total image covered by collagen fibres", "metric" : DoubleVar()}, 							
+										'Coverage' : {"info" : "Ratio of total image covered by collagen fibres", "metric" : DoubleVar()},
+										'Contrast' : {"info" : "", "metric" : DoubleVar()},
+										'Homogeneity' : {"info" : "", "metric" : DoubleVar()},
+										'Dissimilarity' : {"info" : "", "metric" : DoubleVar()},
+										'Correlation' : {"info" : "", "metric" : DoubleVar()},
+										'Energy' : {"info" : "", "metric" : DoubleVar()},					
 										'Linearity' : {"info" : "Average segment shape linearity", "metric" : DoubleVar()}, 
 										'Eccentricity' : {"info" : "Average segment shape eccentricity", "metric" : DoubleVar()},
 										'Density' : {"info" : "Average segment density", "metric" : DoubleVar()},
@@ -439,7 +444,7 @@ class imagecol_gui:
 		try:
 			#loaded_metrics = ut.load_npy(data_dir + fig_name)
 			loaded_metrics = pd.read_pickle('{}_metric.pkl'.format(data_dir + fig_name)).iloc[0]
-			for i, metric in enumerate(self.image_display.metric_tab.titles):
+			for i, metric in enumerate(loaded_metrics.index):
 				self.image_display.metric_tab.metric_dict[metric]["metric"].set(loaded_metrics[metric])
 			self.update_log("Displaying metrics for {}".format(fig_name))
 
