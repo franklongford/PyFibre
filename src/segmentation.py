@@ -48,49 +48,42 @@ def network_extraction(image, network_name='network', sigma=1.0, p_denoise=(5, 3
 		Aij = FIRE(image_TB, sigma=sigma, max_threads=threads)
 		nx.write_gpickle(Aij, network_name + "_network.pkl")
 
-	label_image = np.zeros(image.shape)
+	segmented_image = np.zeros(image.shape, dtype=int)
+	areas = np.empty((0,), dtype=float)
 	networks = []
+	segments = []
 
 	"Segment image based on connected components in network"
 	for i, component in enumerate(nx.connected_components(Aij)):
 		subgraph = Aij.subgraph(component)
 		if subgraph.number_of_nodes() > 3:
-			networks.append(subgraph)
-			label_image = draw_network(subgraph, label_image, i + 1)
 
-	n_clusters = len(networks)
-	label_image = np.array(label_image, dtype=int)
-	segmented_image = np.zeros(image.shape, dtype=int)
-	areas = np.empty((0,), dtype=float)
-	regions = []
-	segments = []
+			label_image = np.zeros(image.shape, dtype=int)
+			label_image = draw_network(subgraph, label_image, 1)
+			dilated_image = binary_dilation(label_image, iterations=6)
+			filled_image = np.array(binary_fill_holes(dilated_image),
+					    dtype=int)
 
-	"Measure pixel areas of each segment"
-	for region in measure.regionprops(label_image):
-		minr, minc, maxr, maxc = region.bbox
-		indices = np.mgrid[minr:maxr, minc:maxc]
+			segment = measure.regionprops(filled_image)[0]
+			area = np.sum(segment.image)
 
-		area, segment = network_area(region.image)
+			minr, minc, maxr, maxc = segment.bbox
+			indices = np.mgrid[minr:maxr, minc:maxc]
 
-		if region.area >= 4E-4 * image.size:
-			segmented_image[(indices[0], indices[1])] += segment * region.label
-			areas = np.concatenate((areas, [area]))
-			regions.append(region)
-			segments.append(segment)
-
+			if area >= 2E-3 * image.size:
+				segmented_image[(indices[0], indices[1])] = segment.image
+				segment.label = (i + 1)
+				areas = np.concatenate((areas, [area]))
+				segments.append(segment)
+				networks.append(subgraph)
+		
 	"Sort segments ranked by area"
 	indices = np.argsort(areas)
 	sorted_areas = areas[indices]
-	sorted_regions = []
-	sorted_segments = []
-	sorted_networks = []
+	sorted_segments = [segments[i] for i in indices]
+	sorted_networks = [networks[i] for i in indices]
 
-	for index in indices: 
-		sorted_regions.append(regions[index])
-		sorted_segments.append(segments[index])
-		sorted_networks.append(networks[index])
-
-	return segmented_image, sorted_networks, sorted_areas, sorted_regions, sorted_segments
+	return segmented_image, sorted_networks, sorted_areas, sorted_segments
 
 
 def draw_network(network, label_image, index):
@@ -108,25 +101,16 @@ def draw_network(network, label_image, index):
 	return label_image
 
 
-def network_area(label, iterations=6):
-
-	dilated_image = binary_dilation(label, iterations=iterations)
-	filled_image = dilated_image#binary_fill_holes(dilated_image)
-	net_area = np.sum(filled_image)
-
-	return net_area, filled_image
-
-
-def network_analysis(image, networks, regions, segments, n_tensor, anis_map):
+def network_analysis(image, networks, segments, n_tensor, anis_map):
 	"""
 	Analyse extracted fibre network
 	"""
-	l_regions = len(regions)
+	l_regions = len(segments)
 
-	region_sdi = np.zeros(l_regions)
-	region_entropy = np.zeros(l_regions)
-	region_anis = np.zeros(l_regions)
-	region_pix_anis = np.zeros(l_regions)
+	segment_sdi = np.zeros(l_regions)
+	segment_entropy = np.zeros(l_regions)
+	segment_anis = np.zeros(l_regions)
+	segment_pix_anis = np.zeros(l_regions)
 
 	segment_linear = np.zeros(l_regions)
 	segment_eccent = np.zeros(l_regions)
@@ -153,33 +137,30 @@ def network_analysis(image, networks, regions, segments, n_tensor, anis_map):
 	loc_eff_time = 0
 	glob_eff_time = 0
 
-	iterator = zip(np.arange(l_regions), networks, regions, segments)
+	iterator = zip(np.arange(l_regions), networks, segments)
 
-	for i, network, region, segment in iterator:
+	for i, network, segment in iterator:
 
-		minr, minc, maxr, maxc = region.bbox
+		minr, minc, maxr, maxc = segment.bbox
 		indices = np.mgrid[minr:maxr, minc:maxc]
-		region_image = image[(indices[0], indices[1])]
 
-		_, _, sdi = fourier_transform_analysis(region_image)
-		region_sdi[i] = sdi
-		region_entropy[i] = measure.shannon_entropy(region_image)
+		segment_image = image[(indices[0], indices[1])]
+		segment_anis_map = anis_map[(indices[0], indices[1])]
+		segment_n_tensor = n_tensor[(indices[0], indices[1])]
 
-		region_anis_map = anis_map[(indices[0], indices[1])]
-		region_n_tensor = n_tensor[(indices[0], indices[1])]
+		_, _, sdi = fourier_transform_analysis(segment_image)
+		segment_sdi[i] = sdi
+		segment_entropy[i] = measure.shannon_entropy(segment_image)
 
-		region_anis[i], _ , _ = tensor_analysis(np.mean(region_n_tensor, axis=(0, 1)))
-		region_pix_anis[i] = np.mean(region_anis_map)
+		segment_anis[i], _ , _ = tensor_analysis(np.mean(segment_n_tensor, axis=(0, 1)))
+		segment_pix_anis[i] = np.mean(segment_anis_map)
 
-		filter_ = np.where(segment, 1, 0)
-		seg_region = measure.regionprops(filter_)[0]
+		segment_linear[i] += 1 - segment.equivalent_diameter / segment.perimeter
+		segment_eccent[i] += segment.eccentricity
+		segment_density[i] += np.sum(segment_image * segment.image) / np.sum(segment.image)
+		segment_coverage[i] += np.mean(segment.image)
 
-		segment_linear[i] += 1 - seg_region.equivalent_diameter / seg_region.perimeter
-		segment_eccent[i] += seg_region.eccentricity
-		segment_density[i] += np.sum(region_image * filter_) / np.sum(filter_)
-		segment_coverage[i] += np.mean(filter_)
-
-		glcm = greycomatrix((image[(indices[0], indices[1])] * 255.999).astype('uint8'),
+		glcm = greycomatrix((segment_image * 255.999).astype('uint8'),
                              [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256, symmetric=True, normed=True)
 
 		segment_contrast[i] += greycoprops(glcm, 'contrast').mean()
@@ -219,7 +200,7 @@ def network_analysis(image, networks, regions, segments, n_tensor, anis_map):
 	#print('Network Conectivity = {} s'.format(connect_time))
 	#print('Network Local Efficiency = {} s'.format(loc_eff_time))
 
-	return (region_sdi, region_entropy, region_anis, region_pix_anis, 
+	return (segment_sdi, segment_entropy, segment_anis, segment_pix_anis, 
 		segment_linear, segment_eccent, segment_density, segment_coverage,
 		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy,
 		network_waviness, network_degree, network_central, 

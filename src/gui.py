@@ -17,6 +17,7 @@ import pandas as pd
 
 from scipy.ndimage import imread
 from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
 
 from skimage import img_as_float, measure
 from skimage.exposure import equalize_adapthist, rescale_intensity
@@ -27,7 +28,7 @@ from skimage.restoration import (estimate_sigma, denoise_tv_chambolle, denoise_b
 from main import analyse_image
 import utilities as ut
 from preprocessing import load_image, clip_intensities
-from segmentation import draw_network, network_area
+from segmentation import draw_network
 
 class imagecol_gui:
 
@@ -106,6 +107,7 @@ class imagecol_gui:
 
 		"Initialise option parameters"
 		frame = Toplevel(self.master)
+		frame.tk.call('wm', 'iconphoto', frame._w, self.title.image)
 		frame.title('PyFibre - Options')
 		frame.geometry('310x500-100+40')
 
@@ -265,6 +267,16 @@ class imagecol_gui:
 		notebook.image_tab.canvas['yscrollcommand'] = notebook.image_tab.scrollbar.set
 		notebook.image_tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
 
+		notebook.tensor_tab = ttk.Frame(notebook)
+		notebook.add(notebook.tensor_tab, text='Tensor Image')
+		notebook.tensor_tab.canvas = Canvas(notebook.tensor_tab, width=675, height=550,
+								scrollregion=(0,0,675,600))  
+		notebook.tensor_tab.scrollbar = Scrollbar(notebook.tensor_tab, orient=VERTICAL, 
+							command=notebook.tensor_tab.canvas.yview)
+		notebook.tensor_tab.scrollbar.pack(side=RIGHT,fill=Y)
+		notebook.tensor_tab.canvas['yscrollcommand'] = notebook.tensor_tab.scrollbar.set
+		notebook.tensor_tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
+
 		notebook.network_tab = ttk.Frame(notebook)
 		notebook.add(notebook.network_tab, text='Network')
 		notebook.network_tab.canvas = Canvas(notebook.network_tab, width=675, height=550,
@@ -357,6 +369,32 @@ class imagecol_gui:
 		self.master.update_idletasks()
 
 
+	def display_tensor(self, canvas, image):
+
+		from filters import form_structure_tensor
+		from analysis import tensor_analysis, set_HSB
+
+		"Form nematic and structure tensors for each pixel"
+		j_tensor = form_structure_tensor(image, sigma=1.0)
+
+		"Perform anisotropy analysis on each pixel"
+		pix_j_anis, pix_j_angle, pix_j_energy = tensor_analysis(j_tensor)
+
+		hue = (pix_j_angle + 90) / 180
+		saturation = pix_j_anis / pix_j_anis.max()
+		brightness = image / image.max()
+
+		"Form structure tensor image"
+		rgb_image = set_HSB(image, hue, saturation, brightness) * 255.9999
+
+		image_tk = ImageTk.PhotoImage(Image.fromarray(rgb_image.astype('uint8')))
+		canvas.create_image(40, 20, image=image_tk, anchor=NW)
+		canvas.image = image_tk
+		canvas.pack(side = LEFT, fill = "both", expand = "yes")
+
+		self.master.update_idletasks()
+
+
 	def display_network(self, canvas, image, Aij):
 
 		self.display_image(canvas, image)
@@ -386,36 +424,53 @@ class imagecol_gui:
 
 	def display_segments(self, canvas, image, Aij):
 
-		networks = []
 		image *= 100 / image.max()
-		label_image = np.zeros(image.shape, dtype=int)
+		segmented_image = np.zeros(image.shape, dtype=int)
+		networks = []
 
 		for i, component in enumerate(nx.connected_components(Aij)):
 			subgraph = Aij.subgraph(component)
 			if subgraph.number_of_nodes() > 3:
-				networks.append(subgraph)
-				label_image = draw_network(subgraph, label_image, i + 1)
 
-		segmented_image = np.zeros(image.shape, dtype=int)
-		rect = []
+				label_image = np.zeros(image.shape, dtype=int)
+				label_image = draw_network(subgraph, label_image, 1)
+				dilated_image = binary_dilation(label_image, iterations=6)
+				filled_image = np.array(binary_fill_holes(dilated_image),
+					    dtype=int)
 
-		"Measure pixel areas of each segment"
-		for i, region in enumerate(measure.regionprops(label_image)):
-			minr, minc, maxr, maxc = region.bbox
-			indices = np.mgrid[minr:maxr, minc:maxc]
-			area, segment = network_area(region.image)
+				segment = measure.regionprops(filled_image)[0]
+				area = np.sum(segment.image)
 
-			if region.area >= 4E-4 * image.size:
-				segmented_image[(indices[0], indices[1])] += segment * (i + 1)
+				minr, minc, maxr, maxc = segment.bbox
+				indices = np.mgrid[minr:maxr, minc:maxc]
+
+				if area >= 2E-3 * image.size:
+					segmented_image[(indices[0], indices[1])] += segment.image * (i + 1)
+					networks.append(subgraph)
 
 		image_label_overlay = label2rgb(segmented_image, image=image, bg_label=0,
-										image_alpha=0.9, alpha=0.9, bg_color=(0, 0, 0))
-		image_label_overlay *= 4 * 255.9999 / image_label_overlay.max()
+										image_alpha=0.8, alpha=0.95, bg_color=(0, 0, 0))
+		image_label_overlay *= 255.9999 / image_label_overlay.max()
 		image_pil = Image.fromarray(image_label_overlay.astype('uint8'))
 		image_tk = ImageTk.PhotoImage(image_pil)
 
 		self.display_image(canvas, image_tk)
 
+		"""
+		for j, network in enumerate(networks):
+
+			node_coord = [network.nodes[i]['xy'] for i in network.nodes()]
+			node_coord = np.stack(node_coord)
+
+			mapping = dict(zip(network.nodes, np.arange(network.number_of_nodes())))
+			network = nx.relabel_nodes(network, mapping)
+			
+			for n, node in enumerate(network.nodes):
+				for m in list(network.adj[node]):
+					canvas.create_line(node_coord[n][1] + 40, node_coord[n][0] + 20,
+							       node_coord[m][1] + 40, node_coord[m][0] + 20,
+									fill="red", width=2)
+		"""
 
 	def display_notebook(self):
 
@@ -427,10 +482,15 @@ class imagecol_gui:
 		fig_name = ut.check_file_name(image_name, extension='tif')
 		data_dir = image_path + '/data/'
 
-		image_numpy = 4 * 255.999 * load_image(selected_file)
+		image_numpy = load_image(selected_file)
+		image_numpy = clip_intensities(image_numpy, 
+				p_intensity=(self.p0.get(), self.p1.get())) * 255.999 
 		image_tk = ImageTk.PhotoImage(Image.fromarray(image_numpy.astype('uint8')))
+
 		self.display_image(self.image_display.image_tab.canvas, image_tk)
 		self.update_log("Displaying image {}".format(fig_name))
+		self.display_tensor(self.image_display.tensor_tab.canvas, image_numpy)
+		self.update_log("Displaying image tensor {}".format(fig_name))
 
 		try:
 			Aij = nx.read_gpickle(data_dir + fig_name + "_network.pkl")

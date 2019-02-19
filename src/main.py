@@ -92,8 +92,9 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		"Pre-process image to remove noise"
 		image = clip_intensities(image, p_intensity=p_intensity)
 
+		print("Performing Global Image analysis")
+
 		"Perform fourier analysis to obtain spectrum and sdi metric"
-		print("Performing Fourier analysis")
 		angles, fourier_spec, global_sdi = an.fourier_transform_analysis(image)
 
 		"Form nematic and structure tensors for each pixel"
@@ -115,14 +116,18 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		global_anis = img_n_anis[0]
 		global_pix_anis = np.mean(pix_n_anis)
 
+		print("Segmenting Image using FIRE")
+
 		"Extract fibre network"
 		net = seg.network_extraction(image, data_dir + image_name, ow_network=ow_network, threads=threads) 
-		(segmented_image, networks, areas, regions, segments) = net
+		(segmented_image, networks, areas, segments) = net
 	
 		global_coverage = np.count_nonzero(segmented_image) / segmented_image.size
 
+		print("Performing Segmented Image analysis")
+
 		"Analyse fibre network"
-		net_res = seg.network_analysis(image, networks, regions, segments, n_tensor, pix_n_anis)
+		net_res = seg.network_analysis(image, networks, segments, n_tensor, pix_n_anis)
 		(region_sdi, region_entropy, region_anis, region_pix_anis, 
 		segment_linear, segment_eccent, segment_density, local_coverage,
 		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy,
@@ -162,7 +167,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 								network_connect, network_loc_eff], axis=-1)
 
 		titles = [input_file_name]
-		for i in range(len(regions)): titles += [input_file_name + "_{}".format(i)]
+		for i in range(len(segments)): titles += [input_file_name + "_{}".format(i)]
 
 		dataframe = pd.DataFrame(data=np.concatenate((global_metrics, segment_metrics), axis=0), 
 								columns=columns, index=titles)
