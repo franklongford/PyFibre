@@ -18,7 +18,8 @@ from scipy.ndimage import sobel
 from scipy.ndimage.filters import gaussian_filter
 
 from skimage.feature import structure_tensor, hessian_matrix, hessian_matrix_eigvals
-
+from skimage.filters import apply_hysteresis_threshold, sobel
+from skimage.filters import threshold_otsu, threshold_li, threshold_isodata, threshold_mean
 
 
 def gaussian(image, sigma=None):
@@ -52,6 +53,16 @@ def vesselness(eig1, eig2, beta1=0.1, beta2=0.1):
 	B = (1 - np.exp(- (eig1**2 + eig2**2) / (2 * beta2)))
 
 	return A * B
+
+
+def hysteresis(image):
+
+	low = np.min([0.8 * threshold_mean(image), threshold_li(image)])
+	high = threshold_isodata(image)
+
+	threshold = apply_hysteresis_threshold(image, low, high)
+
+	return threshold
 
 
 def derivatives(image, rank=1):

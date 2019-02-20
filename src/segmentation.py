@@ -21,9 +21,10 @@ from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
 
 from skimage import measure, draw
 from skimage.feature import greycomatrix, greycoprops
+from skimage.morphology import remove_small_objects
 
 import utilities as ut
-from filters import tubeness
+from filters import tubeness, hysteresis
 from extraction import FIRE, adj_analysis
 from analysis import fourier_transform_analysis, tensor_analysis
 from preprocessing import nl_means
@@ -41,8 +42,9 @@ def network_extraction(image, network_name='network', sigma=1.0, p_denoise=(5, 3
 
 	"Else, use modified FIRE algorithm to extract network"
 	if ow_network:
-		"Apply tubeness transform to enhance image fibres"
+		print("Performing NL Denoise using local windows {} {}".format(*p_denoise))
 		image_nl = nl_means(image, p_denoise=p_denoise)
+		"Apply tubeness transform to enhance image fibres"
 		image_TB = tubeness(image_nl, sigma)
 		"Call FIRE algorithm to extract full image network"
 		Aij = FIRE(image_TB, sigma=sigma, max_threads=threads)
@@ -70,7 +72,7 @@ def network_extraction(image, network_name='network', sigma=1.0, p_denoise=(5, 3
 			minr, minc, maxr, maxc = segment.bbox
 			indices = np.mgrid[minr:maxr, minc:maxc]
 
-			if area >= 2E-3 * image.size:
+			if area >= 1E-2 * image.size:
 				segmented_image[(indices[0], indices[1])] = segment.image
 				segment.label = (i + 1)
 				areas = np.concatenate((areas, [area]))
@@ -101,7 +103,7 @@ def draw_network(network, label_image, index):
 	return label_image
 
 
-def network_analysis(image, rgb_image, networks, segments, n_tensor, anis_map):
+def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map):
 	"""
 	Analyse extracted fibre network
 	"""
@@ -122,20 +124,23 @@ def network_analysis(image, rgb_image, networks, segments, n_tensor, anis_map):
 	segment_corr = np.zeros(l_regions)
 	segment_homo = np.zeros(l_regions)
 	segment_energy = np.zeros(l_regions)
+
+	hole_eccent = np.zeros(l_regions)
+	hole_ratio = np.zeros(l_regions)
 	
 	network_waviness = np.empty(l_regions)
 	network_degree = np.empty(l_regions)
-	network_central = np.empty(l_regions)
+	network_eigen = np.empty(l_regions)
 	network_connect = np.empty(l_regions)
 	network_loc_eff = np.empty(l_regions)
-	network_glob_eff = np.empty(l_regions)
+	network_cluster = np.empty(l_regions)
 
 	waviness_time = 0
 	degree_time = 0
 	central_time = 0
 	connect_time = 0
 	loc_eff_time = 0
-	glob_eff_time = 0
+	cluster_time = 0
 
 	iterator = zip(np.arange(l_regions), networks, segments)
 
@@ -144,24 +149,24 @@ def network_analysis(image, rgb_image, networks, segments, n_tensor, anis_map):
 		minr, minc, maxr, maxc = segment.bbox
 		indices = np.mgrid[minr:maxr, minc:maxc]
 
-		segment_image = image[(indices[0], indices[1])]
-		segment_rgb_image = rgb_image[(indices[0], indices[1])]
+		segment_image_shg = image_shg[(indices[0], indices[1])]
+		segment_image_pl = image_pl[(indices[0], indices[1])]
 		segment_anis_map = anis_map[(indices[0], indices[1])]
 		segment_n_tensor = n_tensor[(indices[0], indices[1])]
 
-		_, _, sdi = fourier_transform_analysis(segment_image)
+		_, _, sdi = fourier_transform_analysis(segment_image_shg)
 		segment_sdi[i] = sdi
-		segment_entropy[i] = measure.shannon_entropy(segment_image)
+		segment_entropy[i] = measure.shannon_entropy(segment_image_shg)
 
 		segment_anis[i], _ , _ = tensor_analysis(np.mean(segment_n_tensor, axis=(0, 1)))
 		segment_pix_anis[i] = np.mean(segment_anis_map)
 
 		segment_linear[i] += 1 - segment.equivalent_diameter / segment.perimeter
 		segment_eccent[i] += segment.eccentricity
-		segment_density[i] += np.sum(segment_image * segment.image) / np.sum(segment.image)
+		segment_density[i] += np.sum(segment_image_shg * segment.image) / np.sum(segment.image)
 		segment_coverage[i] += np.mean(segment.image)
 
-		glcm = greycomatrix((segment_image * 255.999).astype('uint8'),
+		glcm = greycomatrix((segment_image_pl * 255.999).astype('uint8'),
                              [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256, symmetric=True, normed=True)
 
 		segment_contrast[i] += greycoprops(glcm, 'contrast').mean()
@@ -169,6 +174,27 @@ def network_analysis(image, rgb_image, networks, segments, n_tensor, anis_map):
 		segment_dissim[i] += greycoprops(glcm, 'dissimilarity').mean()
 		segment_corr[i] += greycoprops(glcm, 'correlation').mean()
 		segment_energy[i] += greycoprops(glcm, 'energy').mean()
+
+		segment_image_comb = np.sqrt(segment_image_shg * segment_image_pl)
+		
+		edges = tubeness(segment_image_comb, sigma=1.0)
+		hyst = hysteresis(edges)
+
+		hyst = remove_small_objects(~hyst, min_size=128)
+		hyst = ~binary_fill_holes(hyst)
+		
+		holes = (~hyst).astype(int)
+		labels = measure.label(holes)
+		
+		hole_eccentricity = []
+		hole_axis = []
+		
+		for hole in measure.regionprops(labels):
+		    hole_eccentricity.append(hole.eccentricity)
+		    hole_axis.append(hole.minor_axis_length / hole.major_axis_length)
+		
+		hole_eccent[i] = np.mean(hole_eccentricity)
+		hole_ratio[i] = np.mean(hole_axis)
 
 		start = time.time()
 		network_waviness[i] = adj_analysis(network)
@@ -180,8 +206,8 @@ def network_analysis(image, rgb_image, networks, segments, n_tensor, anis_map):
 		stop2 = time.time()
 		degree_time += stop2-stop1
 
-		try: network_central[i] = np.real(nx.adjacency_spectrum(network).max())
-		except: network_central[i] = None
+		try: network_eigen[i] = np.real(nx.adjacency_spectrum(network).max())
+		except: network_eigen[i] = None
 		stop3 = time.time()
 		central_time += stop3-stop2
 
@@ -195,14 +221,20 @@ def network_analysis(image, rgb_image, networks, segments, n_tensor, anis_map):
 		stop5 = time.time()
 		loc_eff_time += stop5-stop4
 
-	#print('Network Waviness = {} s'.format(waviness_time))
-	#print('Network Degree = {} s'.format(degree_time))
-	#print('Network Centrality = {} s'.format(central_time))
-	#print('Network Conectivity = {} s'.format(connect_time))
-	#print('Network Local Efficiency = {} s'.format(loc_eff_time))
+		try: network_cluster[i] = approx.clustering_coefficient.average_clustering(network)
+		except: network_cluster[i] = None
+		stop6 = time.time()
+		cluster_time += stop6-stop5
+
+	print('Network Waviness = {} s'.format(waviness_time))
+	print('Network Degree = {} s'.format(degree_time))
+	print('Network Eigenvalue = {} s'.format(central_time))
+	print('Network Conectivity = {} s'.format(connect_time))
+	print('Network Local Efficiency = {} s'.format(loc_eff_time))
+	print('Network Clustering = {} s'.format(cluster_time))
 
 	return (segment_sdi, segment_entropy, segment_anis, segment_pix_anis, 
 		segment_linear, segment_eccent, segment_density, segment_coverage,
 		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy,
-		network_waviness, network_degree, network_central, 
-		network_connect, network_loc_eff)
+		network_waviness, network_degree, network_eigen, network_connect,
+		network_loc_eff, network_cluster, hole_eccent, hole_ratio)

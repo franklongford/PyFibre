@@ -57,7 +57,7 @@ class imagecol_gui:
 		self.p1 = IntVar()
 		self.p1.set(98)
 		self.n = IntVar()
-		self.n.set(5)
+		self.n.set(2)
 		self.m = IntVar()
 		self.m.set(35)
 
@@ -315,9 +315,12 @@ class imagecol_gui:
 										'Density' : {"info" : "Average segment density", "metric" : DoubleVar()},
 										'Network Waviness' : {"info" : "Average fibre network fibre waviness", "metric" : DoubleVar()},
 										'Network Degree' : {"info" : "Average fibre network number of edges per node", "metric" : DoubleVar()},
-										'Network Centrality' : {"info" : "Average fibre network centrality", "metric" : DoubleVar()},
+										'Network Eigenvalue' : {"info" : "Max Eigenvalue of network", "metric" : DoubleVar()},
 										'Network Connectivity' : {"info" : "Average fibre network connectivity", "metric" : DoubleVar()},
-										'Network Local Efficiency' : {"info" : "Average fibre network local efficiency", "metric" : DoubleVar()}
+										'Network Local Efficiency' : {"info" : "Average fibre network local efficiency", "metric" : DoubleVar()},
+										'Network Clustering' : {"info" : "Average fibre network clustering", "metric" : DoubleVar()},
+										'Hole Eccentricity'  : {"info" : "Average fibre network clustering", "metric" : DoubleVar()},
+										'Hole Ratio' : {"info" : "Average fibre network clustering", "metric" : DoubleVar()}
 										}
 
 		notebook.metric_tab.titles = list(notebook.metric_tab.metric_dict.keys())
@@ -419,7 +422,7 @@ class imagecol_gui:
 				for m in list(network.adj[node]):
 					canvas.create_line(node_coord[n][1] + 40, node_coord[n][0] + 20,
 								       node_coord[m][1] + 40, node_coord[m][0] + 20,
-										fill="red", width=2)
+										fill="red", width=1.5)
 
 
 	def display_segments(self, canvas, image, Aij):
@@ -482,7 +485,7 @@ class imagecol_gui:
 		fig_name = ut.check_file_name(image_name, extension='tif')
 		data_dir = image_path + '/data/'
 
-		image_numpy = load_image(selected_file)
+		image_numpy, _ = load_image(selected_file)
 		image_numpy = clip_intensities(image_numpy, 
 				p_intensity=(self.p0.get(), self.p1.get())) * 255.999 
 		image_tk = ImageTk.PhotoImage(Image.fromarray(image_numpy.astype('uint8')))
@@ -546,7 +549,7 @@ class imagecol_gui:
 
 	def save_database(self):
 
-		db_filename = filedialog.asksaveasfilename()
+		db_filename = filedialog.asksaveasfilename(defaultextension='pkl')
 		db_filename = ut.check_file_name(db_filename, extension='pkl')
 		db_filename = ut.check_file_name(db_filename, extension='xls')
 
@@ -640,7 +643,7 @@ def image_analysis(input_files, p_intensity, p_denoise, sigma, ow_metric, ow_net
 					threads=threads)
 			queue.put("Analysis of {} complete".format(input_file_name))
 
-		except NoiseError as err: queue.put("{} {}".format(err.message, input_file_name))
+		except Exception as err: queue.put("{} {}".format(err.message, input_file_name))
 
 
 N_PROC = 1#os.cpu_count() - 1

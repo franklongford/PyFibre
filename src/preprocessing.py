@@ -23,16 +23,45 @@ def load_image(image_name):
 
 	image_orig = io.imread(image_name).astype(float)
 
-	if image_orig.ndim > 2: 
-		if image_orig.ndim == 4: image_orig = image_orig[0]
-		smallest_axis = np.argmin(image_orig.shape)
-		image_euclid = np.sqrt(np.sum(image_orig**2, axis=smallest_axis))
-		image_mean = np.mean(image_orig, axis=smallest_axis)
-		image_orig = np.sqrt(image_mean * image_euclid)
+	if image_orig.ndim > 2:
 
-	image = image_orig / image_orig.max()
+		if image_orig.ndim == 4:
+			
+			image_orig_shg = image_orig[0]
+			smallest_axis = np.argmin(image_orig_shg.shape)
 
-	return image
+			image_euclid = np.sqrt(np.sum(image_orig_shg**2, axis=smallest_axis))
+			image_mean = np.mean(image_orig_shg, axis=smallest_axis)
+			image_shg = np.sqrt(image_mean * image_euclid)
+		
+			if image_orig.shape[0] == 3:
+
+				image_orig_pl = image_orig[1]
+
+				image_euclid = np.sqrt(np.sum(image_orig_pl**2, axis=smallest_axis))
+				image_mean = np.mean(image_orig_pl, axis=smallest_axis)
+				image_pl = np.sqrt(image_mean * image_euclid)
+
+			else: image_pl = image_shg
+
+		else:
+			smallest_axis = np.argmin(image_orig.shape)
+
+			image_euclid = np.sqrt(np.sum(image_orig**2, axis=smallest_axis))
+			image_mean = np.mean(image_orig, axis=smallest_axis)
+			image_mix = np.sqrt(image_mean * image_euclid)
+
+			image_shg = image_mix
+			image_pl = image_mix
+
+	else: 
+		image_shg = image_orig
+		image_pl = image_orig
+
+	image_shg = image_shg / image_shg.max()
+	image_pl = image_pl / image_pl.max()
+
+	return image_shg, image_pl
 
 
 def clip_intensities(image, p_intensity=(1, 98)):

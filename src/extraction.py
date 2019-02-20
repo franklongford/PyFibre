@@ -20,12 +20,15 @@ from scipy.ndimage.filters import gaussian_filter
 from scipy.sparse import coo_matrix, csr_matrix, csgraph
 
 from skimage.feature import (structure_tensor, hessian_matrix, hessian_matrix_eigvals)
-from skimage.filters import threshold_otsu
-from skimage.morphology import square, local_maxima, binary_erosion
+from skimage.morphology import square, local_maxima, binary_erosion, remove_small_objects
+
+from skimage.morphology import disk
+from skimage.filters import rank
 
 import networkx as nx
 
 from utilities import ring, numpy_remove, clear_border
+from filters import hysteresis
 
 
 def check_2D_arrays(array1, array2, thresh=1):
@@ -167,6 +170,27 @@ class Fibre:
 
 	    
 def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
+	"""
+	Grow fibre object along network
+
+	Parameters
+	----------
+	
+	fibre: Fibre
+	    Object of class Fibre to be grown in network
+	image:  array_like, (float); shape=(nx, ny)
+	    Image to perform FIRE upon
+	Aij: nx.Graph
+	    Networkx graph object representing fibre network
+	tot_node_coord: array_like
+	    Array of full coordinates (x, y) of nodes in graph Aij
+	lmp_thresh: float
+	    Minimum distance pixel threshold to be classed as lmp point
+	theta_thresh: float
+	    Maximum radian deviation of new lmp from fibre trajectory
+	r_thresh: float
+	    Maximum length of edges between nodes
+	"""
 
 	start_coord = Aij.nodes[fibre.nodes[0]]['xy']
 	end_coord = Aij.nodes[fibre.nodes[-1]]['xy']
@@ -233,14 +257,45 @@ def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 			fibre.direction = (new_dir_vector / new_dir_r)
 
 
-def FIRE(image, sigma = 0.5, nuc_thresh=2, nuc_rad=11, lmp_thresh=0.2, 
-             angle_thresh=70, r_thresh=12, max_threads=8):
+def FIRE(image, sigma = 0.5, nuc_thresh=2, nuc_rad=9, lmp_thresh=0.15, 
+             angle_thresh=70, r_thresh=10, max_threads=8):
+	"""
+	FIRE algorithm to extract fibre network
+
+	Parameters
+	----------
+
+	image:  array_like, (float); shape=(nx, ny)
+	    Image to perform FIRE upon
+	sigma: float
+	    Gaussian standard deviation to filter distance image
+	nuc_thresh: float
+	    Minimum distance pixel threshold to be classed as nucleation point
+	nuc_rad: float
+	    Minimum pixel radii between nucleation points
+	lmp_thresh: float
+	    Minimum distance pixel threshold to be classed as lmp point
+	angle_thresh: float
+	    Maximum angular deviation of new lmp from fibre trajectory
+	r_thresh: float
+	    Maximum length of edges between nodes
+	max_threads: ont
+	    Maximum number of threads for multithreading routine
+
+	Returns
+	-------
+
+	Aij: nx.Graph
+	    Networkx graph object representing fibre network
+
+	"""
 
 	"Prepare input image to gain distance matrix of foreground from background"
 
 	cleared = clear_border(image)
-	threshold = cleared > threshold_otsu(cleared)
-	distance = distance_transform_edt(threshold)
+	threshold = hysteresis(cleared)
+	cleaned = remove_small_objects(threshold)
+	distance = distance_transform_edt(cleaned)
 	smoothed = gaussian_filter(distance, sigma=sigma)
 
 	"Set distance and angle thresholds for fibre iterator"
