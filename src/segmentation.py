@@ -101,7 +101,7 @@ def draw_network(network, label_image, index):
 	return label_image
 
 
-def network_analysis(image, networks, segments, n_tensor, anis_map):
+def network_analysis(image, rgb_image, networks, segments, n_tensor, anis_map):
 	"""
 	Analyse extracted fibre network
 	"""
@@ -145,6 +145,7 @@ def network_analysis(image, networks, segments, n_tensor, anis_map):
 		indices = np.mgrid[minr:maxr, minc:maxc]
 
 		segment_image = image[(indices[0], indices[1])]
+		segment_rgb_image = rgb_image[(indices[0], indices[1])]
 		segment_anis_map = anis_map[(indices[0], indices[1])]
 		segment_n_tensor = n_tensor[(indices[0], indices[1])]
 

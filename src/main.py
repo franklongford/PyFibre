@@ -105,8 +105,12 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		pix_n_anis, pix_n_angle, pix_n_energy = an.tensor_analysis(n_tensor)
 		pix_j_anis, pix_j_angle, pix_j_energy = an.tensor_analysis(j_tensor)
 
+		hue = (pix_j_angle + 90) / 180
+		saturation = pix_j_anis / pix_j_anis.max()
+		brightness = image / image.max()
+
 		"Form structure tensor image"
-		rgb_image = an.set_HSB(image, pix_j_anis, pix_j_angle, pix_j_energy)
+		rgb_image = an.set_HSB(image, hue, saturation, brightness)
 
 		"Perform anisotropy analysis on whole image"
 		img_n_anis, _ , _ = an.tensor_analysis(np.mean(n_tensor, axis=(0, 1)))
@@ -127,7 +131,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		print("Performing Segmented Image analysis")
 
 		"Analyse fibre network"
-		net_res = seg.network_analysis(image, networks, segments, n_tensor, pix_n_anis)
+		net_res = seg.network_analysis(image, rgb_image, networks, segments, n_tensor, pix_n_anis)
 		(region_sdi, region_entropy, region_anis, region_pix_anis, 
 		segment_linear, segment_eccent, segment_density, local_coverage,
 		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy,
