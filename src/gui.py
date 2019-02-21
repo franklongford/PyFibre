@@ -303,8 +303,9 @@ class imagecol_gui:
 		notebook.metric_tab.metric_dict = {'SDI' : {"info" : "Fourier spectrum SDI of total image", "metric" : DoubleVar()},
 										'Entropy' : {"info" : "Average Shannon entropy of segmented image", "metric" : DoubleVar()},
 										'Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar()},
-										'Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar()}, 
-										'Coverage' : {"info" : "Ratio of total image covered by collagen fibres", "metric" : DoubleVar()},
+										'Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar()},
+										'Size' : {"info" : "Total image covered by collagen fibres", "metric" : DoubleVar()},
+										'Coverage' : {"info" : "Ratio of total image covered by collagen fibres by image size", "metric" : DoubleVar()},
 										'Contrast' : {"info" : "", "metric" : DoubleVar()},
 										'Homogeneity' : {"info" : "", "metric" : DoubleVar()},
 										'Dissimilarity' : {"info" : "", "metric" : DoubleVar()},
@@ -319,8 +320,13 @@ class imagecol_gui:
 										'Network Connectivity' : {"info" : "Average fibre network connectivity", "metric" : DoubleVar()},
 										'Network Local Efficiency' : {"info" : "Average fibre network local efficiency", "metric" : DoubleVar()},
 										'Network Clustering' : {"info" : "Average fibre network clustering", "metric" : DoubleVar()},
-										'Hole Eccentricity'  : {"info" : "Average fibre network clustering", "metric" : DoubleVar()},
-										'Hole Ratio' : {"info" : "Average fibre network clustering", "metric" : DoubleVar()}
+										'Hole Hu Moment 1'  : {"info" : "Average hole shape Hu moment 1", "metric" : DoubleVar()},
+										'Hole Hu Moment 2'  : {"info" : "Average hole shape Hu moment 2", "metric" : DoubleVar()},
+										'Hole Hu Moment 3'  : {"info" : "Average hole shape Hu moment 3", "metric" : DoubleVar()},
+										'Hole Hu Moment 4'  : {"info" : "Average hole shape Hu moment 4", "metric" : DoubleVar()},
+										'Hole Hu Moment 5'  : {"info" : "Average hole shape Hu moment 5", "metric" : DoubleVar()},
+										'Hole Hu Moment 6'  : {"info" : "Average hole shape Hu moment 6", "metric" : DoubleVar()},
+										'Hole Hu Moment 7'  : {"info" : "Average hole shape Hu moment 7", "metric" : DoubleVar()}
 										}
 
 		notebook.metric_tab.titles = list(notebook.metric_tab.metric_dict.keys())

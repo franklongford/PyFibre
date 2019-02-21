@@ -68,11 +68,13 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 	"""
 
 	columns = ['SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
-				'Linearity', 'Eccentricity', 'Density', 'Coverage',
+				'Size', 'Linearity', 'Eccentricity', 'Density', 'Coverage',
 				'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy',
 				'Network Waviness', 'Network Degree', 'Network Eigenvalue',
 				'Network Connectivity', 'Network Local Efficiency', 'Network Clustering',
-				'Hole Eccentricity', 'Hole Ratio']
+				'Segment Hu Moment 1', 'Segment Hu Moment 2', 'SegmentHole Hu Moment 3',
+				'Segment Hu Moment 4', 'Segment Hu Moment 5', 'Segment Hu Moment 6',
+				'Segment Hu Moment 7']
 
 	cmap = 'viridis'
 	if working_dir == None: working_dir = os.getcwd()
@@ -122,18 +124,18 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 						ow_network=ow_network, threads=threads) 
 		(segmented_image, networks, areas, segments) = net
 	
-		global_coverage = np.count_nonzero(segmented_image) / segmented_image.size
+		global_size = np.count_nonzero(segmented_image)
+		global_coverage = global_size / segmented_image.size
 
 		print("Performing Segmented Image analysis")
 
 		"Analyse fibre network"
 		net_res = seg.network_analysis(image_shg, image_pl, networks, segments, n_tensor, pix_n_anis)
-		(segment_sdi, segment_entropy, segment_anis, segment_pix_anis, 
+		(segment_sdi, segment_entropy, segment_anis, segment_pix_anis, segment_size,
 		segment_linear, segment_eccent, segment_density, local_coverage,
-		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy,
+		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy, segment_hu,
 		network_waviness, network_degree, network_eigen, 
-		network_connect, network_loc_eff, network_cluster,
-		hole_eccent, hole_ratio) = net_res
+		network_connect, network_loc_eff, network_cluster) = net_res
 
 		"Calculate area-weighted metrics for segmented image"
 		av_segment_linear = ut.nanmean(segment_linear, weights=areas)
@@ -152,25 +154,26 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		av_network_loc_eff = ut.nanmean(network_loc_eff, weights=areas)
 		av_network_cluster = ut.nanmean(network_cluster, weights=areas)
 
-		av_hole_eccent = ut.nanmean(hole_eccent, weights=areas)
-		av_hole_ratio = ut.nanmean(hole_ratio, weights=areas)
-
+		av_segment_hu = np.zeros(7)
+		for j in range(7): av_segment_hu[j] = ut.nanmean(segment_hu[:,j], weights=areas)
 
 		global_metrics = np.array([
-								global_sdi, global_entropy, global_anis, global_pix_anis,
-								av_segment_linear, av_segment_eccent, av_segment_density, global_coverage,
-								av_segment_contrast, av_segment_homo, av_segment_dissim, av_segment_corr, av_segment_energy,
-								av_network_waviness, av_network_degree, av_network_eigen, 
-								av_network_connect, av_network_loc_eff, av_network_cluster, av_hole_eccent, av_hole_ratio])
+					global_sdi, global_entropy, global_anis, global_pix_anis, global_size,
+					av_segment_linear, av_segment_eccent, av_segment_density, global_coverage,
+					av_segment_contrast, av_segment_homo, av_segment_dissim, av_segment_corr, av_segment_energy,
+					av_network_waviness, av_network_degree, av_network_eigen, 
+					av_network_connect, av_network_loc_eff, av_network_cluster, av_segment_hu])
+		global_metrics = np.concatenate((global_metrics, av_hole_hu))
 		global_metrics = np.expand_dims(global_metrics, axis=0)
 
 		segment_metrics = np.stack([
-								segment_sdi, segment_entropy, segment_anis, segment_pix_anis,
-								segment_linear, segment_eccent, segment_density, local_coverage,
-								segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy,
-								network_waviness, network_degree, network_eigen, 
-								network_connect, network_loc_eff, network_cluster,
-								hole_eccent, hole_ratio], axis=-1)
+					segment_sdi, segment_entropy, segment_anis, segment_pix_anis, segment_size,
+					segment_linear, segment_eccent, segment_density, local_coverage,
+					segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy,
+					network_waviness, network_degree, network_eigen, 
+					network_connect, network_loc_eff, network_cluster], axis=-1)
+
+		segment_metrics = np.concatenate((segment_metrics, segment_hu), axis=-1)
 
 		titles = [input_file_name]
 		for i in range(len(segments)): titles += [input_file_name + "_{}".format(i)]

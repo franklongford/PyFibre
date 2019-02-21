@@ -30,6 +30,48 @@ from analysis import fourier_transform_analysis, tensor_analysis
 from preprocessing import nl_means
 
 
+def hole_extraction(image_sh, image_pl, ow_hole=False, hole_name = 'hole', sigma=0.75, min_size=1000):
+
+	try: hole_labels = np.load(hole_name + '_hole.npy')
+	except IOError: ow_hole = True
+
+	if ow_hole:
+
+		image = np.sqrt(image_sh * image_pl)
+		image_TB = tubeness(image, sigma=sigma)
+		
+		hyst = hysteresis(edges)
+		hyst = remove_small_objects(hyst)
+		hyst = binary_closing(hyst)
+
+		holes = remove_small_objects(~hyst, min_size=min_size)
+		holes = opening(holes)
+		holes = binary_fill_holes(holes)
+
+		hole_labels = measure.label(holes)
+
+	for hole in measure.regionprops(hole_labels):
+		edge_check = (hole.bbox[0] != 0) * (hole.bbox[1] != 0)
+		edge_check *= (hole.bbox[2] != image_holes.shape[0])
+		edge_check *= (hole.bbox[3] != image_holes.shape[1])
+
+		if not edge_check: hole_labels[np.where(hole_labels == hole.label)] *= 0
+
+	return hole_labels
+
+
+def hole_analysis(hole_labels):
+
+	hole_size = np.empty(0, dtype=float)
+	hole_hu = np.empty((0, 7), dtype=float)
+
+	for hole in measure.regionprops(hole_labels):
+		hole_size = np.concatenate((hole_size, hole.area))
+		hole_hu = np.concatenate((hole_hu, np.expand_dims(hole.moments_hu, axis=0)), axis=0)
+
+	return hole_size, hole_hu
+
+
 def network_extraction(image, network_name='network', sigma=1.0, p_denoise=(5, 30), 
 						ow_network=False, threads=8):
 	"""
@@ -114,6 +156,7 @@ def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map
 	segment_anis = np.zeros(l_regions)
 	segment_pix_anis = np.zeros(l_regions)
 
+	segment_size = np.zeros(l_regions)
 	segment_linear = np.zeros(l_regions)
 	segment_eccent = np.zeros(l_regions)
 	segment_density = np.zeros(l_regions)
@@ -124,9 +167,7 @@ def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map
 	segment_corr = np.zeros(l_regions)
 	segment_homo = np.zeros(l_regions)
 	segment_energy = np.zeros(l_regions)
-
-	hole_eccent = np.zeros(l_regions)
-	hole_ratio = np.zeros(l_regions)
+	segment_hu = np.zeros((l_regions, 7))
 	
 	network_waviness = np.empty(l_regions)
 	network_degree = np.empty(l_regions)
@@ -151,6 +192,7 @@ def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map
 
 		segment_image_shg = image_shg[(indices[0], indices[1])]
 		segment_image_pl = image_pl[(indices[0], indices[1])]
+		segment_image_comb = np.sqrt(segment_image_shg * segment_image_pl)
 		segment_anis_map = anis_map[(indices[0], indices[1])]
 		segment_n_tensor = n_tensor[(indices[0], indices[1])]
 
@@ -161,12 +203,14 @@ def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map
 		segment_anis[i], _ , _ = tensor_analysis(np.mean(segment_n_tensor, axis=(0, 1)))
 		segment_pix_anis[i] = np.mean(segment_anis_map)
 
+		segment_size[i] += np.sum(segment.image)
 		segment_linear[i] += 1 - segment.equivalent_diameter / segment.perimeter
 		segment_eccent[i] += segment.eccentricity
-		segment_density[i] += np.sum(segment_image_shg * segment.image) / np.sum(segment.image)
+		segment_density[i] += np.sum(segment_image_shg * segment.image) / segment_size[i]
 		segment_coverage[i] += np.mean(segment.image)
+		segment_hu[i] += segment.moments_hu
 
-		glcm = greycomatrix((segment_image_pl * 255.999).astype('uint8'),
+		glcm = greycomatrix((segment_image_comb * 255.999).astype('uint8'),
                              [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256, symmetric=True, normed=True)
 
 		segment_contrast[i] += greycoprops(glcm, 'contrast').mean()
@@ -174,27 +218,6 @@ def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map
 		segment_dissim[i] += greycoprops(glcm, 'dissimilarity').mean()
 		segment_corr[i] += greycoprops(glcm, 'correlation').mean()
 		segment_energy[i] += greycoprops(glcm, 'energy').mean()
-
-		segment_image_comb = np.sqrt(segment_image_shg * segment_image_pl)
-		
-		edges = tubeness(segment_image_comb, sigma=1.0)
-		hyst = hysteresis(edges)
-
-		hyst = remove_small_objects(~hyst, min_size=128)
-		hyst = ~binary_fill_holes(hyst)
-		
-		holes = (~hyst).astype(int)
-		labels = measure.label(holes)
-		
-		hole_eccentricity = []
-		hole_axis = []
-		
-		for hole in measure.regionprops(labels):
-		    hole_eccentricity.append(hole.eccentricity)
-		    hole_axis.append(hole.minor_axis_length / hole.major_axis_length)
-		
-		hole_eccent[i] = np.mean(hole_eccentricity)
-		hole_ratio[i] = np.mean(hole_axis)
 
 		start = time.time()
 		network_waviness[i] = adj_analysis(network)
@@ -234,7 +257,7 @@ def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map
 	print('Network Clustering = {} s'.format(cluster_time))
 
 	return (segment_sdi, segment_entropy, segment_anis, segment_pix_anis, 
-		segment_linear, segment_eccent, segment_density, segment_coverage,
-		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy,
+		segment_size, segment_linear, segment_eccent, segment_density, segment_coverage,
+		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy, segment_hu,
 		network_waviness, network_degree, network_eigen, network_connect,
-		network_loc_eff, network_cluster, hole_eccent, hole_ratio)
+		network_loc_eff, network_cluster)
