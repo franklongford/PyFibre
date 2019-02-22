@@ -67,14 +67,22 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		Calculated metrics for further analysis
 	"""
 
-	columns = ['SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
-				'Size', 'Linearity', 'Eccentricity', 'Density', 'Coverage',
+	columns_global = ['SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
+					'Linearity', 'Eccentricity', 'Density', 'Coverage',
+					'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy']
+
+	columns_segment = ['SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
+				'Area', 'Linearity', 'Eccentricity', 'Density', 'Coverage',
 				'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy',
 				'Network Waviness', 'Network Degree', 'Network Eigenvalue',
 				'Network Connectivity', 'Network Local Efficiency', 'Network Clustering',
-				'Segment Hu Moment 1', 'Segment Hu Moment 2', 'SegmentHole Hu Moment 3',
+				'Segment Hu Moment 1', 'Segment Hu Moment 2', 'Segment Hu Moment 3',
 				'Segment Hu Moment 4', 'Segment Hu Moment 5', 'Segment Hu Moment 6',
 				'Segment Hu Moment 7']
+
+	columns_holes = ['Hole Area', 'Hole Hu Moment 1', 'Hole Hu Moment 2',
+				'Hole Hu Moment 3', 'Hole Hu Moment 4', 'Hole Hu Moment 5', 
+				'Hole Hu Moment 6','Hole Hu Moment 7']
 
 	cmap = 'viridis'
 	if working_dir == None: working_dir = os.getcwd()
@@ -113,58 +121,56 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		img_n_anis, _ , _ = an.tensor_analysis(np.mean(n_tensor, axis=(0, 1)))
 		img_j_anis, _ , _ = an.tensor_analysis(np.mean(j_tensor, axis=(0, 1)))
 
-		global_entropy = shannon_entropy(image_shg)
-		global_anis = img_n_anis[0]
-		global_pix_anis = np.mean(pix_n_anis)
+		holes, hole_labels = seg.hole_extraction(image_sh, image_pl)
 
-		print("Segmenting Image using FIRE")
+		global_binary = np.where(hole_labels, 0, 1)
+		global_segment = measure.regionprops(global_binary)
+
+		metrics = segment_analysis(image_shg, image_pl, global_segment, j_tensor, pix_j_anis)
+
+		(global_sdi, global_entropy, global_anis, global_pix_anis, 
+		global_area, global_linear, global_eccent, global_density, 
+		global_coverage, global_contrast, global_homo, global_dissim, 
+		global_corr, global_energy, global_hu) = metrics
+
+		global_metrics = np.array([
+					global_sdi, global_entropy, global_anis, global_pix_anis, 
+					global_area, global_linear, global_eccent, global_density, 
+					global_coverage, global_contrast, global_homo, global_dissim, 
+					global_corr, global_energy])
+		global_metrics = np.expand_dims(global_metrics, axis=0)
+
+		dataframe_global = pd.DataFrame(data=global_metrics, columns=columns_global, index=[input_file_name])
+		dataframe_global.to_pickle('{}_global_metric.pkl'.format(data_dir + image_name))
+
+		hole_areas, hole_hu = seg.hole_analysis(image_pl, holes)
+		av_hole_hu = np.zeros(7)
+
+		for j in range(7): av_hole_hu[j] = ut.nanmean(hole_hu[:,j], weights=hole_areas)
+
+		titles = []
+		for i in range(len(holes)): titles += [input_file_name + "_hole_{}".format(i)]
+
+		dataframe_hole = pd.DataFrame(data=hole_metrics, columns=columns_holes, index=titles)
+		dataframe_hole.to_pickle('{}_hole_metric.pkl'.format(data_dir + image_name))
 
 		"Extract fibre network"
 		net = seg.network_extraction(image_shg, data_dir + image_name, p_denoise=p_denoise,
 						ow_network=ow_network, threads=threads) 
-		(segmented_image, networks, areas, segments) = net
+		(segmented_image, networks, segments) = net
 	
-		global_size = np.count_nonzero(segmented_image)
-		global_coverage = global_size / segmented_image.size
-
 		print("Performing Segmented Image analysis")
 
 		"Analyse fibre network"
-		net_res = seg.network_analysis(image_shg, image_pl, networks, segments, n_tensor, pix_n_anis)
-		(segment_sdi, segment_entropy, segment_anis, segment_pix_anis, segment_size,
+		net_res = seg.network_analysis(image_shg, image_pl, networks, segments, j_tensor, pix_njanis)
+		(segment_sdi, segment_entropy, segment_anis, segment_pix_anis, segment_areas,
 		segment_linear, segment_eccent, segment_density, local_coverage,
 		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy, segment_hu,
 		network_waviness, network_degree, network_eigen, 
 		network_connect, network_loc_eff, network_cluster) = net_res
 
-		"Calculate area-weighted metrics for segmented image"
-		av_segment_linear = ut.nanmean(segment_linear, weights=areas)
-		av_segment_eccent = ut.nanmean(segment_eccent, weights=areas)
-		av_segment_density = ut.nanmean(segment_density, weights=areas)
-		av_segment_contrast = ut.nanmean(segment_contrast, weights=areas)
-		av_segment_homo = ut.nanmean(segment_homo, weights=areas)
-		av_segment_dissim = ut.nanmean(segment_dissim, weights=areas)
-		av_segment_corr = ut.nanmean(segment_corr, weights=areas)
-		av_segment_energy = ut.nanmean(segment_energy, weights=areas)
-
-		av_network_waviness = ut.nanmean(network_waviness, weights=areas)
-		av_network_degree = ut.nanmean(network_degree, weights=areas)
-		av_network_eigen = ut.nanmean(network_eigen, weights=areas)
-		av_network_connect = ut.nanmean(network_connect, weights=areas)
-		av_network_loc_eff = ut.nanmean(network_loc_eff, weights=areas)
-		av_network_cluster = ut.nanmean(network_cluster, weights=areas)
-
 		av_segment_hu = np.zeros(7)
-		for j in range(7): av_segment_hu[j] = ut.nanmean(segment_hu[:,j], weights=areas)
-
-		global_metrics = np.array([
-					global_sdi, global_entropy, global_anis, global_pix_anis, global_size,
-					av_segment_linear, av_segment_eccent, av_segment_density, global_coverage,
-					av_segment_contrast, av_segment_homo, av_segment_dissim, av_segment_corr, av_segment_energy,
-					av_network_waviness, av_network_degree, av_network_eigen, 
-					av_network_connect, av_network_loc_eff, av_network_cluster, av_segment_hu])
-		global_metrics = np.concatenate((global_metrics, av_hole_hu))
-		global_metrics = np.expand_dims(global_metrics, axis=0)
+		for j in range(7): av_segment_hu[j] = ut.nanmean(segment_hu[:,j], weights=segment_areas)
 
 		segment_metrics = np.stack([
 					segment_sdi, segment_entropy, segment_anis, segment_pix_anis, segment_size,
@@ -172,16 +178,13 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 					segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy,
 					network_waviness, network_degree, network_eigen, 
 					network_connect, network_loc_eff, network_cluster], axis=-1)
-
 		segment_metrics = np.concatenate((segment_metrics, segment_hu), axis=-1)
 
-		titles = [input_file_name]
-		for i in range(len(segments)): titles += [input_file_name + "_{}".format(i)]
+		titles = []
+		for i in range(len(segments)): titles += [input_file_name + "_segement_{}".format(i)]
 
-		dataframe = pd.DataFrame(data=np.concatenate((global_metrics, segment_metrics), axis=0), 
-								columns=columns, index=titles)
- 
-		dataframe.to_pickle('{}_metric.pkl'.format(data_dir + image_name))
+		dataframe_segment = pd.DataFrame(data=segment_metrics, columns=columns_segment, index=titles)
+		dataframe_segment.to_pickle('{}_segment_metric.pkl'.format(data_dir + image_name))
 
 	return dataframe
 

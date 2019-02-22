@@ -30,46 +30,81 @@ from analysis import fourier_transform_analysis, tensor_analysis
 from preprocessing import nl_means
 
 
-def hole_extraction(image_sh, image_pl, ow_hole=False, hole_name = 'hole', sigma=0.75, min_size=1000):
+def hole_extraction(image, sigma=0.75, min_size=1000):
 
-	try: hole_labels = np.load(hole_name + '_hole.npy')
-	except IOError: ow_hole = True
+	image_TB = tubeness(image, sigma=sigma)
+	
+	hyst = hysteresis(edges)
+	hyst = remove_small_objects(hyst)
+	hyst = binary_closing(hyst)
 
-	if ow_hole:
+	holes = remove_small_objects(~hyst, min_size=min_size)
+	holes = opening(holes)
+	holes = binary_fill_holes(holes)
 
-		image = np.sqrt(image_sh * image_pl)
-		image_TB = tubeness(image, sigma=sigma)
-		
-		hyst = hysteresis(edges)
-		hyst = remove_small_objects(hyst)
-		hyst = binary_closing(hyst)
-
-		holes = remove_small_objects(~hyst, min_size=min_size)
-		holes = opening(holes)
-		holes = binary_fill_holes(holes)
-
-		hole_labels = measure.label(holes)
+	holes = []
+	hole_labels = measure.label(holes)
 
 	for hole in measure.regionprops(hole_labels):
 		edge_check = (hole.bbox[0] != 0) * (hole.bbox[1] != 0)
 		edge_check *= (hole.bbox[2] != image_holes.shape[0])
 		edge_check *= (hole.bbox[3] != image_holes.shape[1])
 
-		if not edge_check: hole_labels[np.where(hole_labels == hole.label)] *= 0
+		if edge_check: holes.append(hole)
 
-	return hole_labels
+	return holes, hole_labels
 
 
-def hole_analysis(hole_labels):
+def hole_analysis(image, holes):
 
-	hole_size = np.empty(0, dtype=float)
+	hole_areas = np.empty(0, dtype=float)
 	hole_hu = np.empty((0, 7), dtype=float)
 
-	for hole in measure.regionprops(hole_labels):
-		hole_size = np.concatenate((hole_size, hole.area))
+	for hole in holes:
+		hole_areas = np.concatenate((hole_size, hole.area))
 		hole_hu = np.concatenate((hole_hu, np.expand_dims(hole.moments_hu, axis=0)), axis=0)
 
-	return hole_size, hole_hu
+	return hole_areas, hole_hu
+
+
+def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map):
+
+	minr, minc, maxr, maxc = segment.bbox
+	indices = np.mgrid[minr:maxr, minc:maxc]
+
+	segment_image_shg = image_shg[(indices[0], indices[1])]
+	segment_image_pl = image_pl[(indices[0], indices[1])]
+	segment_image_comb = np.sqrt(segment_image_shg * segment_image_pl)
+	segment_anis_map = anis_map[(indices[0], indices[1])]
+	segment_n_tensor = n_tensor[(indices[0], indices[1])]
+
+	_, _, segment_sdi = fourier_transform_analysis(segment_image_shg)
+	segment_entropy = measure.shannon_entropy(segment_image_shg)
+
+	segment_anis, _ , _ = tensor_analysis(np.mean(segment_n_tensor, axis=(0, 1)))
+	segment_pix_anis = np.mean(segment_anis_map)
+
+	segment_area = np.sum(segment.image)
+	segment_linear = 1 - segment.equivalent_diameter / segment.perimeter
+	segment_eccent = segment.eccentricity
+	segment_density = np.sum(segment_image_shg * segment.image) / segment_area
+	segment_coverage = np.mean(segment.image)
+	segment_hu = segment.moments_hu
+
+	glcm = greycomatrix((segment_image_pl * 255.999).astype('uint8'),
+                         [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256,
+                         symmetric=True, normed=True)
+
+	segment_contrast = greycoprops(glcm, 'contrast').mean()
+	segment_homo = greycoprops(glcm, 'homogeneity').mean()
+	segment_dissim = greycoprops(glcm, 'dissimilarity').mean()
+	segment_corr = greycoprops(glcm, 'correlation').mean()
+	segment_energy = greycoprops(glcm, 'energy').mean()
+
+	return (segment_sdi, segment_entropy, segment_anis, segment_pix_anis, 
+			segment_area, segment_linear, segment_eccent, segment_density, 
+			segment_coverage, segment_contrast, segment_homo, segment_dissim, 
+			segment_corr, segment_energy, segment_hu)
 
 
 def network_extraction(image, network_name='network', sigma=1.0, p_denoise=(5, 30), 
@@ -127,7 +162,7 @@ def network_extraction(image, network_name='network', sigma=1.0, p_denoise=(5, 3
 	sorted_segments = [segments[i] for i in indices]
 	sorted_networks = [networks[i] for i in indices]
 
-	return segmented_image, sorted_networks, sorted_areas, sorted_segments
+	return segmented_image, sorted_networks, sorted_segments
 
 
 def draw_network(network, label_image, index):
@@ -156,7 +191,7 @@ def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map
 	segment_anis = np.zeros(l_regions)
 	segment_pix_anis = np.zeros(l_regions)
 
-	segment_size = np.zeros(l_regions)
+	segment_area = np.zeros(l_regions)
 	segment_linear = np.zeros(l_regions)
 	segment_eccent = np.zeros(l_regions)
 	segment_density = np.zeros(l_regions)
@@ -187,37 +222,12 @@ def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map
 
 	for i, network, segment in iterator:
 
-		minr, minc, maxr, maxc = segment.bbox
-		indices = np.mgrid[minr:maxr, minc:maxc]
+		metrics = segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map)
 
-		segment_image_shg = image_shg[(indices[0], indices[1])]
-		segment_image_pl = image_pl[(indices[0], indices[1])]
-		segment_image_comb = np.sqrt(segment_image_shg * segment_image_pl)
-		segment_anis_map = anis_map[(indices[0], indices[1])]
-		segment_n_tensor = n_tensor[(indices[0], indices[1])]
-
-		_, _, sdi = fourier_transform_analysis(segment_image_shg)
-		segment_sdi[i] = sdi
-		segment_entropy[i] = measure.shannon_entropy(segment_image_shg)
-
-		segment_anis[i], _ , _ = tensor_analysis(np.mean(segment_n_tensor, axis=(0, 1)))
-		segment_pix_anis[i] = np.mean(segment_anis_map)
-
-		segment_size[i] += np.sum(segment.image)
-		segment_linear[i] += 1 - segment.equivalent_diameter / segment.perimeter
-		segment_eccent[i] += segment.eccentricity
-		segment_density[i] += np.sum(segment_image_shg * segment.image) / segment_size[i]
-		segment_coverage[i] += np.mean(segment.image)
-		segment_hu[i] += segment.moments_hu
-
-		glcm = greycomatrix((segment_image_comb * 255.999).astype('uint8'),
-                             [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256, symmetric=True, normed=True)
-
-		segment_contrast[i] += greycoprops(glcm, 'contrast').mean()
-		segment_homo[i] += greycoprops(glcm, 'homogeneity').mean()
-		segment_dissim[i] += greycoprops(glcm, 'dissimilarity').mean()
-		segment_corr[i] += greycoprops(glcm, 'correlation').mean()
-		segment_energy[i] += greycoprops(glcm, 'energy').mean()
+		(segment_sdi[i], segment_entropy[i], segment_anis[i], segment_pix_anis[i], 
+		segment_area[i], segment_linear[i], segment_eccent[i], segment_density[i], 
+		segment_coverage[i], segment_contrast[i], segment_homo[i], segment_dissim[i], 
+		segment_corr[i], segment_energy[i], segment_hu[i]) = metrics
 
 		start = time.time()
 		network_waviness[i] = adj_analysis(network)
@@ -257,7 +267,7 @@ def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map
 	print('Network Clustering = {} s'.format(cluster_time))
 
 	return (segment_sdi, segment_entropy, segment_anis, segment_pix_anis, 
-		segment_size, segment_linear, segment_eccent, segment_density, segment_coverage,
+		segment_area, segment_linear, segment_eccent, segment_density, segment_coverage,
 		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy, segment_hu,
 		network_waviness, network_degree, network_eigen, network_connect,
 		network_loc_eff, network_cluster)
