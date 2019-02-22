@@ -30,11 +30,11 @@ from analysis import fourier_transform_analysis, tensor_analysis
 from preprocessing import nl_means
 
 
-def hole_extraction(image, sigma=0.75, min_size=1000):
+def hole_extraction(image, sigma=0.75, alpha=0.7, min_size=800):
 
 	image_TB = tubeness(image, sigma=sigma)
 	
-	image_hyst = hysteresis(image_TB)
+	image_hyst = hysteresis(image_TB, alpha=alpha)
 	image_hyst = remove_small_objects(image_hyst)
 	image_hyst = binary_closing(image_hyst)
 
@@ -50,7 +50,8 @@ def hole_extraction(image, sigma=0.75, min_size=1000):
 		edge_check *= (hole.bbox[2] != image_hole.shape[0])
 		edge_check *= (hole.bbox[3] != image_hole.shape[1])
 
-		if edge_check: holes.append(hole)
+		#if edge_check: holes.append(hole)
+		holes.append(hole)
 
 	return holes, hole_labels
 
@@ -97,7 +98,7 @@ def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map):
 
 	segment_image_shg = image_shg[(indices[0], indices[1])]
 	segment_image_pl = image_pl[(indices[0], indices[1])]
-	segment_image_comb = np.sqrt(segment_image_shg * segment_image_pl)
+	#segment_image_comb = np.sqrt(segment_image_shg * segment_image_pl)
 	segment_anis_map = anis_map[(indices[0], indices[1])]
 	segment_n_tensor = n_tensor[(indices[0], indices[1])]
 
@@ -115,7 +116,7 @@ def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map):
 	segment_coverage = np.mean(segment.image)
 	segment_hu = segment.moments_hu
 
-	glcm = greycomatrix((segment_image_pl * 255.999).astype('uint8'),
+	glcm = greycomatrix((segment_image_shg * 255.999).astype('uint8'),
                          [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256,
                          symmetric=True, normed=True)
 
@@ -131,8 +132,8 @@ def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map):
 		segment_corr, segment_energy, segment_hu)
 
 
-def network_extraction(image, network_name='network', sigma=1.0, p_denoise=(5, 30), 
-						ow_network=False, threads=8):
+def network_extraction(image, network_name='network', sigma=0.5, p_denoise=(5, 30), 
+			ow_network=False, threads=8):
 	"""
 	Extract fibre network using modified FIRE algorithm
 	"""
@@ -144,11 +145,12 @@ def network_extraction(image, network_name='network', sigma=1.0, p_denoise=(5, 3
 	"Else, use modified FIRE algorithm to extract network"
 	if ow_network:
 		print("Performing NL Denoise using local windows {} {}".format(*p_denoise))
-		image_nl = nl_means(image, p_denoise=p_denoise)
+		image_TB = tubeness(image, 2 * sigma)
+		image_nl = nl_means(image_TB, p_denoise=p_denoise)
 		"Apply tubeness transform to enhance image fibres"
-		image_TB = tubeness(image_nl, sigma)
+		#image_TB = tubeness(image_nl, sigma)
 		"Call FIRE algorithm to extract full image network"
-		Aij = FIRE(image_TB, sigma=sigma, max_threads=threads)
+		Aij = FIRE(image_nl, sigma=sigma, max_threads=threads)
 		nx.write_gpickle(Aij, network_name + "_network.pkl")
 
 	segmented_image = np.zeros(image.shape, dtype=int)

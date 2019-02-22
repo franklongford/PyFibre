@@ -25,7 +25,7 @@ from filters import form_nematic_tensor, form_structure_tensor
 
 
 def analyse_image(input_file_name, working_dir=None, scale=1, 
-				p_intensity=(1, 98), p_denoise=(2, 35), sigma=0.5, 
+				p_intensity=(1, 98), p_denoise=(2, 35), sigma=0.5, alpha=0.2,
 				ow_metric=False, ow_network=False, threads=8):
 	"""
 	Analyse imput image by calculating metrics and sgenmenting via FIRE algorithm
@@ -123,6 +123,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 
 		holes, hole_labels = seg.hole_extraction(image_combined)
 
+		hole_filter = np.where(hole_labels, 0, alpha)
 		global_binary = np.where(hole_labels, 0, 1)
 		global_segment = regionprops(global_binary)[0]
 
@@ -163,7 +164,8 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		ut.save_region(holes, '{}_holes'.format(data_dir + image_name))
 
 		"Extract fibre network"
-		net = seg.network_extraction(image_shg, data_dir + image_name, p_denoise=p_denoise,
+		net = seg.network_extraction(image_shg * hole_filter, data_dir + image_name,
+						sigma=sigma, p_denoise=p_denoise,
 						ow_network=ow_network, threads=threads) 
 		(segmented_image, networks, segments) = net
 	

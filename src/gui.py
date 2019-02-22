@@ -60,6 +60,8 @@ class imagecol_gui:
 		self.n.set(2)
 		self.m = IntVar()
 		self.m.set(35)
+		self.alpha = DoubleVar()
+		self.alpha.set(0.2)
 
 		"Define GUI objects"
 		self.master = master
@@ -147,19 +149,27 @@ class imagecol_gui:
 		frame.title_m.grid(column=0, row=10, rowspan=1)
 		frame.m.grid(column=0, row=11)
 
+		frame.title_alpha = Label(frame, text="Alpha network coefficient")
+		frame.title_alpha.configure(background='#d8baa9')
+		frame.alpha = Scale(frame, from_=0, to=1, tickinterval=0.1, resolution=0.01,
+						length=300, orient=HORIZONTAL, variable=self.alpha)
+
+		frame.title_alpha.grid(column=0, row=12, rowspan=1)
+		frame.alpha.grid(column=0, row=13)
+
 		frame.chk_anis = Checkbutton(frame, text="o/w metrics", variable=self.ow_metric)
 		frame.chk_anis.configure(background='#d8baa9')
-		frame.chk_anis.grid(column=0, row=12, sticky=(N,W,E,S))
+		frame.chk_anis.grid(column=0, row=14, sticky=(N,W,E,S))
 		#frame.chk_anis.pack(side=LEFT)
 
 		frame.chk_graph = Checkbutton(frame, text="o/w graph", variable=self.ow_network)
 		frame.chk_graph.configure(background='#d8baa9')
-		frame.chk_graph.grid(column=0, row=13, sticky=(N,W,E,S))
+		frame.chk_graph.grid(column=0, row=15, sticky=(N,W,E,S))
 		#frame.chk_graph.pack(side=LEFT)
 
 		frame.chk_db = Checkbutton(frame, text="Save Database", variable=self.save_db)
 		frame.chk_db.configure(background='#d8baa9')
-		frame.chk_db.grid(column=0, row=14, sticky=(N,W,E,S))
+		frame.chk_db.grid(column=0, row=16, sticky=(N,W,E,S))
 
 		frame.configure(background='#d8baa9')
 
@@ -297,6 +307,16 @@ class imagecol_gui:
 		notebook.segment_tab.canvas['yscrollcommand'] = notebook.segment_tab.scrollbar.set
 		notebook.segment_tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
 
+		notebook.hole_tab = ttk.Frame(notebook)
+		notebook.add(notebook.hole_tab, text='Hole')
+		notebook.hole_tab.canvas = Canvas(notebook.hole_tab, width=675, height=550,
+								scrollregion=(0,0,675,600))  
+		notebook.hole_tab.scrollbar = Scrollbar(notebook.hole_tab, orient=VERTICAL, 
+							command=notebook.hole_tab.canvas.yview)
+		notebook.hole_tab.scrollbar.pack(side=RIGHT,fill=Y)
+		notebook.hole_tab.canvas['yscrollcommand'] = notebook.hole_tab.scrollbar.set
+		notebook.hole_tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
+
 		notebook.metric_tab = ttk.Frame(notebook)
 		notebook.add(notebook.metric_tab, text='Metrics')
 
@@ -431,33 +451,18 @@ class imagecol_gui:
 										fill="red", width=1.5)
 
 
-	def display_segments(self, canvas, image, Aij):
+	def display_regions(self, canvas, image, regions):
 
 		image *= 100 / image.max()
-		segmented_image = np.zeros(image.shape, dtype=int)
-		networks = []
+		label_image = np.zeros(image.shape, dtype=int)
+		
+		for region in regions:
+			minr, minc, maxr, maxc = region.bbox
+			indices = np.mgrid[minr:maxr, minc:maxc]
 
-		for i, component in enumerate(nx.connected_components(Aij)):
-			subgraph = Aij.subgraph(component)
-			if subgraph.number_of_nodes() > 3:
+			label_image[(indices[0], indices[1])] += region.image * (region.label)
 
-				label_image = np.zeros(image.shape, dtype=int)
-				label_image = draw_network(subgraph, label_image, 1)
-				dilated_image = binary_dilation(label_image, iterations=6)
-				filled_image = np.array(binary_fill_holes(dilated_image),
-					    dtype=int)
-
-				segment = measure.regionprops(filled_image)[0]
-				area = np.sum(segment.image)
-
-				minr, minc, maxr, maxc = segment.bbox
-				indices = np.mgrid[minr:maxr, minc:maxc]
-
-				if area >= 2E-3 * image.size:
-					segmented_image[(indices[0], indices[1])] += segment.image * (i + 1)
-					networks.append(subgraph)
-
-		image_label_overlay = label2rgb(segmented_image, image=image, bg_label=0,
+		image_label_overlay = label2rgb(label_image, image=image, bg_label=0,
 										image_alpha=0.8, alpha=0.95, bg_color=(0, 0, 0))
 		image_label_overlay *= 255.9999 / image_label_overlay.max()
 		image_pil = Image.fromarray(image_label_overlay.astype('uint8'))
@@ -465,21 +470,6 @@ class imagecol_gui:
 
 		self.display_image(canvas, image_tk)
 
-		"""
-		for j, network in enumerate(networks):
-
-			node_coord = [network.nodes[i]['xy'] for i in network.nodes()]
-			node_coord = np.stack(node_coord)
-
-			mapping = dict(zip(network.nodes, np.arange(network.number_of_nodes())))
-			network = nx.relabel_nodes(network, mapping)
-			
-			for n, node in enumerate(network.nodes):
-				for m in list(network.adj[node]):
-					canvas.create_line(node_coord[n][1] + 40, node_coord[n][0] + 20,
-							       node_coord[m][1] + 40, node_coord[m][0] + 20,
-									fill="red", width=2)
-		"""
 
 	def display_notebook(self):
 
@@ -491,27 +481,34 @@ class imagecol_gui:
 		fig_name = ut.check_file_name(image_name, extension='tif')
 		data_dir = image_path + '/data/'
 
-		image_numpy, _ = load_image(selected_file)
-		image_numpy = clip_intensities(image_numpy, 
-				p_intensity=(self.p0.get(), self.p1.get())) * 255.999 
-		image_tk = ImageTk.PhotoImage(Image.fromarray(image_numpy.astype('uint8')))
+		image_shg, image_pl = load_image(selected_file)
 
-		self.display_image(self.image_display.image_tab.canvas, image_tk)
+		image_shg = clip_intensities(image_shg, 
+				p_intensity=(self.p0.get(), self.p1.get())) * 255.999 
+		image_pl = clip_intensities(image_pl, 
+				p_intensity=(self.p0.get(), self.p1.get())) * 255.999
+
+		self.image = image_shg
+		self.image_tk = ImageTk.PhotoImage(Image.fromarray(self.image.astype('uint8')))
+
+		self.display_image(self.image_display.image_tab.canvas, self.image_tk)
 		self.update_log("Displaying image {}".format(fig_name))
-		self.display_tensor(self.image_display.tensor_tab.canvas, image_numpy)
+		self.display_tensor(self.image_display.tensor_tab.canvas, self.image)
 		self.update_log("Displaying image tensor {}".format(fig_name))
 
 		try:
 			Aij = nx.read_gpickle(data_dir + fig_name + "_network.pkl")
-			self.display_network(self.image_display.network_tab.canvas, image_tk, Aij)
-			self.display_segments(self.image_display.segment_tab.canvas, image_numpy, Aij)
-			self.update_log("Displaying network and segments for {}".format(fig_name))
-		except IOError:
-			self.update_log("Unable to display network and segments for {}".format(fig_name))
+			self.display_network(self.image_display.network_tab.canvas, self.image_tk, Aij)
+			segments = ut.load_region(data_dir + fig_name + "_segments")
+			self.display_regions(self.image_display.segment_tab.canvas, self.image, segments)
+			holes = ut.load_region(data_dir + fig_name + "_holes")
+			self.display_regions(self.image_display.hole_tab.canvas, self.image, holes)
 
-		#"""
+			self.update_log("Displaying network, segments and holes for {}".format(fig_name))
+		except IOError:
+			self.update_log("Unable to display network, segments and holes for {}".format(fig_name))
+
 		try:
-			#loaded_metrics = ut.load_npy(data_dir + fig_name)
 			loaded_metrics = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + fig_name)).iloc[0]
 			for i, metric in enumerate(loaded_metrics.index):
 				self.image_display.metric_tab.metric_dict[metric]["metric"].set(loaded_metrics[metric])
@@ -521,7 +518,7 @@ class imagecol_gui:
 			self.update_log("Unable to display metrics for {}".format(fig_name))
 			for i, metric in enumerate(self.image_display.metric_tab.titles):
 				self.image_display.metric_tab.metric_dict[metric]["metric"].set(0)
-		#"""
+
 		self.master.update_idletasks()
 
 
@@ -594,7 +591,7 @@ class imagecol_gui:
 					args=(batch, 
 					(self.p0.get(), self.p1.get()),
 					(self.n.get(), self.m.get()),
-					self.sigma.get(),
+					self.sigma.get(), self.alpha.get(),
 					self.ow_metric.get(), self.ow_network.get(), 
 					self.queue, self.n_thread))
 			process.daemon = True
@@ -647,7 +644,8 @@ class imagecol_gui:
 		self.file_display.stop_button.config(state=DISABLED)
 
 
-def image_analysis(input_files, p_intensity, p_denoise, sigma, ow_metric, ow_network, queue, threads):
+def image_analysis(input_files, p_intensity, p_denoise, sigma, alpha, 
+			ow_metric, ow_network, queue, threads):
 
 	for input_file_name in input_files:
 
@@ -656,7 +654,8 @@ def image_analysis(input_files, p_intensity, p_denoise, sigma, ow_metric, ow_net
 		try:
 			analyse_image(input_file_name, image_path,
 					scale=1, p_intensity=p_intensity,
-					p_denoise=p_denoise, sigma=sigma, 
+					p_denoise=p_denoise, sigma=sigma,
+					alpha=alpha,
 					ow_metric=ow_metric, ow_network=ow_network,
 					threads=threads)
 			queue.put("Analysis of {} complete".format(input_file_name))
