@@ -512,7 +512,7 @@ class imagecol_gui:
 		#"""
 		try:
 			#loaded_metrics = ut.load_npy(data_dir + fig_name)
-			loaded_metrics = pd.read_pickle('{}_metric.pkl'.format(data_dir + fig_name)).iloc[0]
+			loaded_metrics = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + fig_name)).iloc[0]
 			for i, metric in enumerate(loaded_metrics.index):
 				self.image_display.metric_tab.metric_dict[metric]["metric"].set(loaded_metrics[metric])
 			self.update_log("Displaying metrics for {}".format(fig_name))
@@ -529,6 +529,7 @@ class imagecol_gui:
 
 		global_database = pd.DataFrame()
 		segment_database = pd.DataFrame()
+		hole_database = pd.DataFrame()
 
 		for i, input_file_name in enumerate(self.input_files):
 
@@ -539,16 +540,22 @@ class imagecol_gui:
 			
 			self.update_log("Loading metrics for {}".format(metric_name))
 
-			try: 
-				data = pd.read_pickle('{}_metric.pkl'.format(metric_name))
-				global_database = pd.concat([global_database, data.iloc[:1]], sort=True)
-				segment_database = pd.concat([segment_database, data.iloc[1:]], sort=True)
+			try:
+				data_global = pd.read_pickle('{}_global_metric.pkl'.format(metric_name))
+				data_segment = pd.read_pickle('{}_segment_metric.pkl'.format(metric_name))
+				data_hole = pd.read_pickle('{}_hole_metric.pkl'.format(metric_name))
 
+				global_database = pd.concat([global_database, data_global], sort=True)
+				segment_database = pd.concat([segment_database, data_segment], sort=True)
+				hole_database = pd.concat([hole_database, data_hole], sort=True)
+				
 			except (ValueError, IOError):
-				self.update_log(f"{input_file_name} database not imported - skipping")
+				self.update_log(f"{input_file_name} databases not imported - skipping")
+
 
 		self.global_database = global_database
 		self.segment_database = segment_database
+		self.hole_database = hole_database
 
 		#self.update_dashboard()
 
@@ -559,10 +566,15 @@ class imagecol_gui:
 		db_filename = ut.check_file_name(db_filename, extension='pkl')
 		db_filename = ut.check_file_name(db_filename, extension='xls')
 
-		self.global_database.to_pickle(db_filename + '_global.pkl')
-		self.global_database.to_excel(db_filename + '_global.xls')
+		self.global_database.to_pickle(db_filename + '.pkl')
+		self.global_database.to_excel(db_filename + '.xls')
+
 		self.segment_database.to_pickle(db_filename + '_segment.pkl')
 		self.segment_database.to_excel(db_filename + '_segment.xls')
+
+		self.hole_database.to_pickle(db_filename + '_hole.pkl')
+		self.hole_database.to_excel(db_filename + '_hole.xls')
+		
 
 		self.update_log("Saving Database files {}".format(db_filename))
 

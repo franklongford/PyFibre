@@ -14,7 +14,7 @@ import argparse
 import numpy as np
 import pandas as pd
 
-from skimage.measure import shannon_entropy
+from skimage.measure import shannon_entropy, regionprops
 from multiprocessing import Pool, Process, JoinableQueue, Queue, current_process
 
 import utilities as ut
@@ -68,21 +68,21 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 	"""
 
 	columns_global = ['SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
-					'Linearity', 'Eccentricity', 'Density', 'Coverage',
-					'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy']
+			'Linearity', 'Eccentricity', 'Density', 'Coverage',
+			'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy']
 
 	columns_segment = ['SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
 				'Area', 'Linearity', 'Eccentricity', 'Density', 'Coverage',
 				'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy',
 				'Network Waviness', 'Network Degree', 'Network Eigenvalue',
 				'Network Connectivity', 'Network Local Efficiency', 'Network Clustering',
-				'Segment Hu Moment 1', 'Segment Hu Moment 2', 'Segment Hu Moment 3',
-				'Segment Hu Moment 4', 'Segment Hu Moment 5', 'Segment Hu Moment 6',
-				'Segment Hu Moment 7']
+				'Hu Moment 1', 'Hu Moment 2', 'Hu Moment 3',
+				'Hu Moment 4', 'Hu Moment 5', 'Hu Moment 6',
+				'Hu Moment 7']
 
-	columns_holes = ['Hole Area', 'Hole Hu Moment 1', 'Hole Hu Moment 2',
-				'Hole Hu Moment 3', 'Hole Hu Moment 4', 'Hole Hu Moment 5', 
-				'Hole Hu Moment 6','Hole Hu Moment 7']
+	columns_holes = ['Area', 'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 
+			'Energy','Hu Moment 1', 'Hu Moment 2', 'Hu Moment 3', 'Hu Moment 4', 
+			'Hu Moment 5', 'Hu Moment 6','Hu Moment 7']
 
 	cmap = 'viridis'
 	if working_dir == None: working_dir = os.getcwd()
@@ -94,8 +94,11 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 	image_name = ut.check_file_name(file_name, extension='tif')
 
 	if not np.any([ow_metric, ow_network]) and os.path.exists(data_dir + image_name + '_metric.pkl'):
-		dataframe = pd.read_pickle('{}_metric.pkl'.format(data_dir + image_name))
-
+		try: 
+			dataframe_global = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + image_name))
+			dataframe_segment = pd.read_pickle('{}_segment_metric.pkl'.format(data_dir + image_name))
+			dataframe_hole = pd.read_pickle('{}_hole_metric.pkl'.format(data_dir + image_name))
+		except IOError: ow_metric = True
 	else:
 		print(f"Loading image {data_dir + image_name}")
 		"Load and preprocess image"
@@ -103,6 +106,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		"Pre-process image to remove noise"
 		image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
 		image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
+		image_combined = np.sqrt(image_shg * image_pl)
 
 		print("Performing Global Image analysis")
 
@@ -117,16 +121,12 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		pix_n_anis, pix_n_angle, pix_n_energy = an.tensor_analysis(n_tensor)
 		pix_j_anis, pix_j_angle, pix_j_energy = an.tensor_analysis(j_tensor)
 
-		"Perform anisotropy analysis on whole image"
-		img_n_anis, _ , _ = an.tensor_analysis(np.mean(n_tensor, axis=(0, 1)))
-		img_j_anis, _ , _ = an.tensor_analysis(np.mean(j_tensor, axis=(0, 1)))
-
-		holes, hole_labels = seg.hole_extraction(image_sh, image_pl)
+		holes, hole_labels = seg.hole_extraction(image_combined)
 
 		global_binary = np.where(hole_labels, 0, 1)
-		global_segment = measure.regionprops(global_binary)
+		global_segment = regionprops(global_binary)[0]
 
-		metrics = segment_analysis(image_shg, image_pl, global_segment, j_tensor, pix_j_anis)
+		metrics = seg.segment_analysis(image_shg, image_pl, global_segment, j_tensor, pix_j_anis)
 
 		(global_sdi, global_entropy, global_anis, global_pix_anis, 
 		global_area, global_linear, global_eccent, global_density, 
@@ -135,7 +135,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 
 		global_metrics = np.array([
 					global_sdi, global_entropy, global_anis, global_pix_anis, 
-					global_area, global_linear, global_eccent, global_density, 
+					global_linear, global_eccent, global_density, 
 					global_coverage, global_contrast, global_homo, global_dissim, 
 					global_corr, global_energy])
 		global_metrics = np.expand_dims(global_metrics, axis=0)
@@ -143,16 +143,24 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		dataframe_global = pd.DataFrame(data=global_metrics, columns=columns_global, index=[input_file_name])
 		dataframe_global.to_pickle('{}_global_metric.pkl'.format(data_dir + image_name))
 
-		hole_areas, hole_hu = seg.hole_analysis(image_pl, holes)
-		av_hole_hu = np.zeros(7)
+		print("Performing Hole Image analysis")
 
+		(hole_areas, hole_contrast, hole_homo, hole_dissim, 
+		hole_corr, hole_energy, hole_hu) = seg.hole_analysis(image_pl, holes)
+
+		av_hole_hu = np.zeros(7)
 		for j in range(7): av_hole_hu[j] = ut.nanmean(hole_hu[:,j], weights=hole_areas)
+
+		hole_metrics = np.stack([hole_areas, hole_contrast, hole_homo, hole_dissim, 
+					 hole_corr, hole_energy], axis=-1)
+		hole_metrics = np.concatenate((hole_metrics, hole_hu), axis=-1)
 
 		titles = []
 		for i in range(len(holes)): titles += [input_file_name + "_hole_{}".format(i)]
 
 		dataframe_hole = pd.DataFrame(data=hole_metrics, columns=columns_holes, index=titles)
 		dataframe_hole.to_pickle('{}_hole_metric.pkl'.format(data_dir + image_name))
+		ut.save_region(holes, '{}_holes'.format(data_dir + image_name))
 
 		"Extract fibre network"
 		net = seg.network_extraction(image_shg, data_dir + image_name, p_denoise=p_denoise,
@@ -162,7 +170,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		print("Performing Segmented Image analysis")
 
 		"Analyse fibre network"
-		net_res = seg.network_analysis(image_shg, image_pl, networks, segments, j_tensor, pix_njanis)
+		net_res = seg.network_analysis(image_shg, image_pl, networks, segments, j_tensor, pix_j_anis)
 		(segment_sdi, segment_entropy, segment_anis, segment_pix_anis, segment_areas,
 		segment_linear, segment_eccent, segment_density, local_coverage,
 		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy, segment_hu,
@@ -173,7 +181,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		for j in range(7): av_segment_hu[j] = ut.nanmean(segment_hu[:,j], weights=segment_areas)
 
 		segment_metrics = np.stack([
-					segment_sdi, segment_entropy, segment_anis, segment_pix_anis, segment_size,
+					segment_sdi, segment_entropy, segment_anis, segment_pix_anis, segment_areas,
 					segment_linear, segment_eccent, segment_density, local_coverage,
 					segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy,
 					network_waviness, network_degree, network_eigen, 
@@ -181,12 +189,13 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		segment_metrics = np.concatenate((segment_metrics, segment_hu), axis=-1)
 
 		titles = []
-		for i in range(len(segments)): titles += [input_file_name + "_segement_{}".format(i)]
+		for i in range(len(segments)): titles += [input_file_name + "_segment_{}".format(i)]
 
 		dataframe_segment = pd.DataFrame(data=segment_metrics, columns=columns_segment, index=titles)
 		dataframe_segment.to_pickle('{}_segment_metric.pkl'.format(data_dir + image_name))
+		ut.save_region(segments, '{}_segments'.format(data_dir + image_name))
 
-	return dataframe
+	return dataframe_global, dataframe_segment, dataframe_hole
 
 
 if __name__ == '__main__':
@@ -231,9 +240,8 @@ if __name__ == '__main__':
 		
 	for file_name in removed_files: input_files.remove(file_name)
 
-	print(input_files)
-
 	removed_files = []
+	hole_database = pd.DataFrame()
 	segment_database = pd.DataFrame()
 	global_database = pd.DataFrame()
    
@@ -241,21 +249,27 @@ if __name__ == '__main__':
 
 		image_path = '/'.join(input_file_name.split('/')[:-1])
 
-		data = analyse_image(input_file_name, image_path, sigma=args.sigma, 
+		data_global, data_segment, data_hole = analyse_image(input_file_name, image_path, sigma=args.sigma, 
 			ow_metric=args.ow_metric, ow_network=args.ow_network, threads=args.threads)
 
-		global_database = pd.concat([global_database, data.iloc[:1]])
-		segment_database = pd.concat([segment_database, data.iloc[1:]])
+		global_database = pd.concat([global_database, data_global])
+		segment_database = pd.concat([segment_database, data_segment])
+		hole_database = pd.concat([hole_database, data_hole])
 
-		for i, title in enumerate(global_database.columns): 
-			print(' {} = {:>6.4f}'.format(title, global_database.loc[input_file_name][title]))
+		print(input_file_name.split('/')[-1])
+		print("Global Image Analysis Metrics:")
+		print(data_global.iloc[0])
 
 	for file_name in removed_files: input_files.remove(file_name)
 
 	if args.save_db != None: 
-		global_database.to_pickle('{}_global.pkl'.format(args.save_db))
+		global_database.to_pickle('{}.pkl'.format(args.save_db))
+		global_database.to_excel('{}.xls'.format(args.save_db))
+		
+		segment_database.to_pickle('{}_segment.pkl'.format(args.save_db))
 		segment_database.to_excel('{}_segment.xls'.format(args.save_db))
-		global_database.to_pickle('{}_global.pkl'.format(args.save_db))
-		segment_database.to_excel('{}_segment.xls'.format(args.save_db))
+
+		hole_database.to_pickle('{}_hole.pkl'.format(args.save_db))
+		hole_database.to_excel('{}_hole.xls'.format(args.save_db))
 
 		

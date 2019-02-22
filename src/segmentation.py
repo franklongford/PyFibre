@@ -17,7 +17,7 @@ from networkx.algorithms import approximation as approx
 from networkx.algorithms.efficiency import local_efficiency, global_efficiency
 
 from scipy.ndimage.filters import gaussian_filter
-from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
+from scipy.ndimage.morphology import binary_fill_holes, binary_dilation, binary_closing, binary_opening
 
 from skimage import measure, draw
 from skimage.feature import greycomatrix, greycoprops
@@ -34,21 +34,21 @@ def hole_extraction(image, sigma=0.75, min_size=1000):
 
 	image_TB = tubeness(image, sigma=sigma)
 	
-	hyst = hysteresis(edges)
-	hyst = remove_small_objects(hyst)
-	hyst = binary_closing(hyst)
+	image_hyst = hysteresis(image_TB)
+	image_hyst = remove_small_objects(image_hyst)
+	image_hyst = binary_closing(image_hyst)
 
-	holes = remove_small_objects(~hyst, min_size=min_size)
-	holes = opening(holes)
-	holes = binary_fill_holes(holes)
+	image_hole = remove_small_objects(~image_hyst, min_size=min_size)
+	image_hole = binary_opening(image_hole)
+	image_hole = binary_fill_holes(image_hole)
 
 	holes = []
-	hole_labels = measure.label(holes)
+	hole_labels = measure.label(image_hole)
 
-	for hole in measure.regionprops(hole_labels):
+	for hole in measure.regionprops(hole_labels, intensity_image=image):
 		edge_check = (hole.bbox[0] != 0) * (hole.bbox[1] != 0)
-		edge_check *= (hole.bbox[2] != image_holes.shape[0])
-		edge_check *= (hole.bbox[3] != image_holes.shape[1])
+		edge_check *= (hole.bbox[2] != image_hole.shape[0])
+		edge_check *= (hole.bbox[3] != image_hole.shape[1])
 
 		if edge_check: holes.append(hole)
 
@@ -57,14 +57,37 @@ def hole_extraction(image, sigma=0.75, min_size=1000):
 
 def hole_analysis(image, holes):
 
-	hole_areas = np.empty(0, dtype=float)
-	hole_hu = np.empty((0, 7), dtype=float)
+	l_holes = len(holes)
 
-	for hole in holes:
-		hole_areas = np.concatenate((hole_size, hole.area))
-		hole_hu = np.concatenate((hole_hu, np.expand_dims(hole.moments_hu, axis=0)), axis=0)
+	hole_areas = np.zeros(l_holes)
+	hole_hu = np.zeros((l_holes, 7))
+	hole_contrast = np.zeros(l_holes)
+	hole_dissim = np.zeros(l_holes)
+	hole_corr = np.zeros(l_holes)
+	hole_homo = np.zeros(l_holes)
+	hole_energy = np.zeros(l_holes)
 
-	return hole_areas, hole_hu
+	for i, hole in enumerate(holes):
+		
+		minr, minc, maxr, maxc = hole.bbox
+		indices = np.mgrid[minr:maxr, minc:maxc]
+
+		hole_image = image[(indices[0], indices[1])]
+
+		hole_areas[i] = hole.area
+		hole_hu[i] = hole.moments_hu
+
+		glcm = greycomatrix((hole_image * 255.999).astype('uint8'),
+		                 [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256,
+		                 symmetric=True, normed=True)
+
+		hole_contrast[i] = greycoprops(glcm, 'contrast').mean()
+		hole_homo[i] = greycoprops(glcm, 'homogeneity').mean()
+		hole_dissim[i] = greycoprops(glcm, 'dissimilarity').mean()
+		hole_corr[i] = greycoprops(glcm, 'correlation').mean()
+		hole_energy[i] = greycoprops(glcm, 'energy').mean()
+
+	return hole_areas, hole_contrast, hole_homo, hole_dissim, hole_corr, hole_energy, hole_hu
 
 
 def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map):
@@ -82,6 +105,7 @@ def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map):
 	segment_entropy = measure.shannon_entropy(segment_image_shg)
 
 	segment_anis, _ , _ = tensor_analysis(np.mean(segment_n_tensor, axis=(0, 1)))
+	segment_anis = segment_anis[0]
 	segment_pix_anis = np.mean(segment_anis_map)
 
 	segment_area = np.sum(segment.image)
@@ -102,9 +126,9 @@ def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map):
 	segment_energy = greycoprops(glcm, 'energy').mean()
 
 	return (segment_sdi, segment_entropy, segment_anis, segment_pix_anis, 
-			segment_area, segment_linear, segment_eccent, segment_density, 
-			segment_coverage, segment_contrast, segment_homo, segment_dissim, 
-			segment_corr, segment_energy, segment_hu)
+		segment_area, segment_linear, segment_eccent, segment_density, 
+		segment_coverage, segment_contrast, segment_homo, segment_dissim, 
+		segment_corr, segment_energy, segment_hu)
 
 
 def network_extraction(image, network_name='network', sigma=1.0, p_denoise=(5, 30), 
@@ -259,12 +283,12 @@ def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map
 		stop6 = time.time()
 		cluster_time += stop6-stop5
 
-	print('Network Waviness = {} s'.format(waviness_time))
-	print('Network Degree = {} s'.format(degree_time))
-	print('Network Eigenvalue = {} s'.format(central_time))
-	print('Network Conectivity = {} s'.format(connect_time))
-	print('Network Local Efficiency = {} s'.format(loc_eff_time))
-	print('Network Clustering = {} s'.format(cluster_time))
+	#print('Network Waviness = {} s'.format(waviness_time))
+	#print('Network Degree = {} s'.format(degree_time))
+	#print('Network Eigenvalue = {} s'.format(central_time))
+	#print('Network Conectivity = {} s'.format(connect_time))
+	#print('Network Local Efficiency = {} s'.format(loc_eff_time))
+	#print('Network Clustering = {} s'.format(cluster_time))
 
 	return (segment_sdi, segment_entropy, segment_anis, segment_pix_anis, 
 		segment_area, segment_linear, segment_eccent, segment_density, segment_coverage,

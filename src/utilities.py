@@ -113,6 +113,21 @@ def load_npy(file_path, frames=[]):
 	return array
 
 
+def save_region(regions, file_name):
+	"Saves scikit image regions as pickled file"
+
+	with open('.pkl'.format(file_name), 'wb') as outfile:
+		pickle.dump(regions, outfile, pickle.HIGHEST_PROTOCOL)
+
+
+def load_region(file_name):
+	"Loads pickled scikit image regions"
+
+	regions = pickle.load('.pkl'.format(file_name))
+
+	return regions
+
+
 def numpy_remove(list1, list2):
 	"""
 	numpy_remove(list1, list2)
