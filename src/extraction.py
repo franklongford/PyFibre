@@ -257,7 +257,7 @@ def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 			fibre.direction = (new_dir_vector / new_dir_r)
 
 
-def FIRE(image, sigma = 0.5, nuc_thresh=2, nuc_rad=9, lmp_thresh=0.15, 
+def FIRE(image, sigma = 0.5, nuc_thresh=2, nuc_rad=11, lmp_thresh=0.15, 
              angle_thresh=70, r_thresh=10, max_threads=8):
 	"""
 	FIRE algorithm to extract fibre network
@@ -293,7 +293,7 @@ def FIRE(image, sigma = 0.5, nuc_thresh=2, nuc_rad=9, lmp_thresh=0.15,
 	"Prepare input image to gain distance matrix of foreground from background"
 
 	cleared = clear_border(image)
-	threshold = hysteresis(cleared)
+	threshold = hysteresis(cleared, alpha=0.75)
 	cleaned = remove_small_objects(threshold)
 	distance = distance_transform_edt(cleaned)
 	smoothed = gaussian_filter(distance, sigma=sigma)

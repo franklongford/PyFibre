@@ -27,7 +27,7 @@ from skimage.restoration import (estimate_sigma, denoise_tv_chambolle, denoise_b
 
 from main import analyse_image
 import utilities as ut
-from preprocessing import load_image, clip_intensities
+from preprocessing import import_image, clip_intensities
 from segmentation import draw_network
 
 class imagecol_gui:
@@ -59,9 +59,9 @@ class imagecol_gui:
 		self.n = IntVar()
 		self.n.set(2)
 		self.m = IntVar()
-		self.m.set(35)
+		self.m.set(25)
 		self.alpha = DoubleVar()
-		self.alpha.set(0.2)
+		self.alpha.set(0.5)
 
 		"Define GUI objects"
 		self.master = master
@@ -324,7 +324,7 @@ class imagecol_gui:
 										'Entropy' : {"info" : "Average Shannon entropy of segmented image", "metric" : DoubleVar()},
 										'Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar()},
 										'Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar()},
-										'Size' : {"info" : "Total image covered by collagen fibres", "metric" : DoubleVar()},
+										'Area' : {"info" : "Total image covered by collagen fibres", "metric" : DoubleVar()},
 										'Coverage' : {"info" : "Ratio of total image covered by collagen fibres by image size", "metric" : DoubleVar()},
 										'Contrast' : {"info" : "", "metric" : DoubleVar()},
 										'Homogeneity' : {"info" : "", "metric" : DoubleVar()},
@@ -334,19 +334,19 @@ class imagecol_gui:
 										'Linearity' : {"info" : "Average segment shape linearity", "metric" : DoubleVar()}, 
 										'Eccentricity' : {"info" : "Average segment shape eccentricity", "metric" : DoubleVar()},
 										'Density' : {"info" : "Average segment density", "metric" : DoubleVar()},
-										'Network Waviness' : {"info" : "Average fibre network fibre waviness", "metric" : DoubleVar()},
-										'Network Degree' : {"info" : "Average fibre network number of edges per node", "metric" : DoubleVar()},
-										'Network Eigenvalue' : {"info" : "Max Eigenvalue of network", "metric" : DoubleVar()},
-										'Network Connectivity' : {"info" : "Average fibre network connectivity", "metric" : DoubleVar()},
-										'Network Local Efficiency' : {"info" : "Average fibre network local efficiency", "metric" : DoubleVar()},
-										'Network Clustering' : {"info" : "Average fibre network clustering", "metric" : DoubleVar()},
-										'Hole Hu Moment 1'  : {"info" : "Average hole shape Hu moment 1", "metric" : DoubleVar()},
-										'Hole Hu Moment 2'  : {"info" : "Average hole shape Hu moment 2", "metric" : DoubleVar()},
-										'Hole Hu Moment 3'  : {"info" : "Average hole shape Hu moment 3", "metric" : DoubleVar()},
-										'Hole Hu Moment 4'  : {"info" : "Average hole shape Hu moment 4", "metric" : DoubleVar()},
-										'Hole Hu Moment 5'  : {"info" : "Average hole shape Hu moment 5", "metric" : DoubleVar()},
-										'Hole Hu Moment 6'  : {"info" : "Average hole shape Hu moment 6", "metric" : DoubleVar()},
-										'Hole Hu Moment 7'  : {"info" : "Average hole shape Hu moment 7", "metric" : DoubleVar()}
+										#'Network Waviness' : {"info" : "Average fibre network fibre waviness", "metric" : DoubleVar()},
+										#'Network Degree' : {"info" : "Average fibre network number of edges per node", "metric" : DoubleVar()},
+										#'Network Eigenvalue' : {"info" : "Max Eigenvalue of network", "metric" : DoubleVar()},
+										#'Network Connectivity' : {"info" : "Average fibre network connectivity", "metric" : DoubleVar()},
+										#'Network Local Efficiency' : {"info" : "Average fibre network local efficiency", "metric" : DoubleVar()},
+										#'Network Clustering' : {"info" : "Average fibre network clustering", "metric" : DoubleVar()},
+										#'Hole Hu Moment 1'  : {"info" : "Average hole shape Hu moment 1", "metric" : DoubleVar()},
+										#'Hole Hu Moment 2'  : {"info" : "Average hole shape Hu moment 2", "metric" : DoubleVar()},
+										#'Hole Hu Moment 3'  : {"info" : "Average hole shape Hu moment 3", "metric" : DoubleVar()},
+										#'Hole Hu Moment 4'  : {"info" : "Average hole shape Hu moment 4", "metric" : DoubleVar()},
+										#'Hole Hu Moment 5'  : {"info" : "Average hole shape Hu moment 5", "metric" : DoubleVar()},
+										#'Hole Hu Moment 6'  : {"info" : "Average hole shape Hu moment 6", "metric" : DoubleVar()},
+										#'Hole Hu Moment 7'  : {"info" : "Average hole shape Hu moment 7", "metric" : DoubleVar()}
 										}
 
 		notebook.metric_tab.titles = list(notebook.metric_tab.metric_dict.keys())
@@ -481,7 +481,7 @@ class imagecol_gui:
 		fig_name = ut.check_file_name(image_name, extension='tif')
 		data_dir = image_path + '/data/'
 
-		image_shg, image_pl = load_image(selected_file)
+		image_shg, image_pl = import_image(selected_file)
 
 		image_shg = clip_intensities(image_shg, 
 				p_intensity=(self.p0.get(), self.p1.get())) * 255.999 

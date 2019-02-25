@@ -19,9 +19,9 @@ from skimage.exposure import rescale_intensity
 import utilities as ut
 
 
-def load_image(image_name):
+def import_image(image_name):
 
-	image_orig = io.imread(image_name).astype(float)
+	image_orig = ut.load_image(image_name)
 
 	if image_orig.ndim > 2:
 

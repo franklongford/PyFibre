@@ -12,6 +12,8 @@ import numpy as np
 
 import sys, os, pickle
 
+from skimage import img_as_float, io
+
 SQRT3 = np.sqrt(3)
 SQRT2 = np.sqrt(2)
 SQRTPI = np.sqrt(np.pi)
@@ -67,6 +69,13 @@ def check_file_name(file_name, file_type="", extension=""):
 	file_name = check_string(file_name, -1, '_', file_type)
 	
 	return file_name
+
+
+def load_image(image_name):
+
+	image = io.imread(image_name).astype(float)
+
+	return image
 
 
 def save_npy(file_path, array):

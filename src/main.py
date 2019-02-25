@@ -14,18 +14,20 @@ import argparse
 import numpy as np
 import pandas as pd
 
+from scipy.ndimage.filters import gaussian_filter
+
 from skimage.measure import shannon_entropy, regionprops
 from multiprocessing import Pool, Process, JoinableQueue, Queue, current_process
 
 import utilities as ut
-from preprocessing import load_image, clip_intensities
+from preprocessing import import_image, clip_intensities
 import analysis as an
 import segmentation as seg
 from filters import form_nematic_tensor, form_structure_tensor
 
 
 def analyse_image(input_file_name, working_dir=None, scale=1, 
-				p_intensity=(1, 98), p_denoise=(2, 35), sigma=0.5, alpha=0.2,
+				p_intensity=(1, 98), p_denoise=(2, 25), sigma=0.5, alpha=0.5,
 				ow_metric=False, ow_network=False, threads=8):
 	"""
 	Analyse imput image by calculating metrics and sgenmenting via FIRE algorithm
@@ -102,7 +104,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 	else:
 		print(f"Loading image {data_dir + image_name}")
 		"Load and preprocess image"
-		image_shg, image_pl = load_image(input_file_name)
+		image_shg, image_pl = import_image(input_file_name)
 		"Pre-process image to remove noise"
 		image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
 		image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
@@ -121,9 +123,11 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		pix_n_anis, pix_n_angle, pix_n_energy = an.tensor_analysis(n_tensor)
 		pix_j_anis, pix_j_angle, pix_j_energy = an.tensor_analysis(j_tensor)
 
-		holes, hole_labels = seg.hole_extraction(image_combined)
+		holes, hole_labels = seg.hole_extraction(image_shg)
 
-		hole_filter = np.where(hole_labels, 0, alpha)
+		hole_filter = np.where(hole_labels, alpha, 1)
+		hole_filter = gaussian_filter(hole_filter, sigma=0.5)
+
 		global_binary = np.where(hole_labels, 0, 1)
 		global_segment = regionprops(global_binary)[0]
 
