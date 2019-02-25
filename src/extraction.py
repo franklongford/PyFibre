@@ -20,9 +20,8 @@ from scipy.ndimage.filters import gaussian_filter
 from scipy.sparse import coo_matrix, csr_matrix, csgraph
 
 from skimage.feature import (structure_tensor, hessian_matrix, hessian_matrix_eigvals)
-from skimage.morphology import square, local_maxima, binary_erosion, remove_small_objects
-
-from skimage.morphology import disk
+from skimage.morphology import disk, square, local_maxima, binary_erosion, remove_small_objects
+from skimage.transform import rescale
 from skimage.filters import rank
 
 import networkx as nx
@@ -56,6 +55,10 @@ def distance_matrix(node_coord):
 
 
 def reduce_coord(coord, values, thresh=1):
+	"""
+	Find elements in coord that lie within thresh distance of eachother. Remove
+	element with lowest corresponding value. 
+	"""
 
 	if coord.shape[0] <= 1: return coord
 
@@ -64,7 +67,8 @@ def reduce_coord(coord, values, thresh=1):
 
 	del_coord = np.argwhere((r_coord <= thresh) - np.identity(coord.shape[0]))
 	del_coord = del_coord[np.arange(0, del_coord.shape[0], 2)]
-	indices = np.stack((values[del_coord[:,0]], values[del_coord[:,1]])).argmax(axis=0)
+	indices = np.stack((values[del_coord[:,0]], 
+			    values[del_coord[:,1]])).argmax(axis=0)
 	del_coord = [a[i] for a, i in zip(del_coord, indices)]
 
 	coord = np.delete(coord, del_coord, 0)
@@ -121,7 +125,8 @@ def new_branches(image, coord, ring_filter, max_thresh=0.2):
 
         filtered = image * ring_filter
         branch_coord = np.argwhere(local_maxima(filtered) * image >= max_thresh)
-        branch_coord = reduce_coord(branch_coord, image[branch_coord[:,0], branch_coord[:,1]])
+        branch_coord = reduce_coord(branch_coord, 
+				    image[branch_coord[:,0], branch_coord[:,1]])
         
         n_branch = branch_coord.shape[0]
         branch_vector = np.tile(coord, (n_branch, 1)) - branch_coord
@@ -257,8 +262,8 @@ def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 			fibre.direction = (new_dir_vector / new_dir_r)
 
 
-def FIRE(image, sigma = 0.5, nuc_thresh=2, nuc_rad=11, lmp_thresh=0.15, 
-             angle_thresh=70, r_thresh=10, max_threads=8):
+def FIRE(image, scale=1, alpha=0.75, sigma=0.5, nuc_thresh=2, nuc_rad=15, lmp_thresh=0.15, 
+             angle_thresh=70, r_thresh=9, max_threads=8):
 	"""
 	FIRE algorithm to extract fibre network
 
@@ -292,21 +297,27 @@ def FIRE(image, sigma = 0.5, nuc_thresh=2, nuc_rad=11, lmp_thresh=0.15,
 
 	"Prepare input image to gain distance matrix of foreground from background"
 
-	cleared = clear_border(image)
-	threshold = hysteresis(cleared, alpha=0.75)
+	image_scale = rescale(image, scale)
+
+	alpha *= scale
+	sigma *= scale
+
+	cleared = clear_border(image_scale)
+	threshold = hysteresis(cleared, alpha=alpha)
 	cleaned = remove_small_objects(threshold)
 	distance = distance_transform_edt(cleaned)
 	smoothed = gaussian_filter(distance, sigma=sigma)
 
 	"Set distance and angle thresholds for fibre iterator"
-	nuc_thresh = np.min([nuc_thresh, 2E-1 * smoothed.max()])
-	lmp_thresh = np.min([lmp_thresh, 2E-2 * smoothed[np.nonzero(smoothed)].mean()])
+	nuc_thresh = np.min([nuc_thresh, 2E-1 / scale**2 * smoothed.max()])
+	lmp_thresh = np.min([lmp_thresh, 5E-3 / scale**2 * smoothed[np.nonzero(smoothed)].mean()])
 	theta_thresh = np.cos((180-angle_thresh) * np.pi / 180) + 1
+	r_thresh = int(r_thresh * scale)
 
 	print("Maximum distance = {}".format(smoothed.max()))
 	print("Mean distance = {}".format(smoothed[np.nonzero(smoothed)].mean()))
-	print("Using thresholds:\n nuc = {} pix  lmp = {} pix\n angle = {} deg".format(
-		    nuc_thresh, lmp_thresh, angle_thresh))
+	print("Using thresholds:\n nuc = {} pix\n lmp = {} pix\n angle = {} deg\n edge = {} pix".format(
+		    nuc_thresh, lmp_thresh, angle_thresh, r_thresh))
 
 	"Get global maxima for smoothed distance matrix"
 	maxima = local_maxima(smoothed, connectivity=nuc_rad)
@@ -396,7 +407,6 @@ def FIRE(image, sigma = 0.5, nuc_thresh=2, nuc_rad=11, lmp_thresh=0.15,
 		print("Iteration {} time = {} s, {} nodes  {}/{} fibres left to grow".format(
 			it, round(end - start, 3), n_node, int(np.sum(fibre_grow)), n_fibres))
 
-
 	print("Checking for redundant nodes")
 
 	"Calculate distances between each node"
@@ -420,6 +430,9 @@ def FIRE(image, sigma = 0.5, nuc_thresh=2, nuc_rad=11, lmp_thresh=0.15,
 	Aij.remove_nodes_from(list(nx.isolates(Aij)))
 	mapping = dict(zip(Aij.nodes, np.arange(Aij.number_of_nodes())))
 	Aij = nx.relabel_nodes(Aij, mapping)
+
+	for node in Aij.nodes(): Aij.nodes[node]['xy'] = np.array(Aij.nodes[node]['xy'] // scale, dtype=int)
+	for edge in Aij.edges(): Aij.edges[edge]['r'] *= 1. / scale
 
 	print(f"TOTAL TIME = {round(total_time, 3)} s")
 
@@ -538,7 +551,8 @@ def adj_analysis(Aij, angle_thresh=70, verbose=False):
 					fibre.growing = False
 					tracing[fibre.nodes[-1]] = 0
 		    
-			if verbose: print("End of fibre ", node, fibre.nodes)    
+			if verbose: print("End of fibre ", node, fibre.nodes)
+    
 			if fibre.nodes.size > 3:
 				euclid_dist = np.sqrt(r2_coord[fibre.nodes[0]][fibre.nodes[-1]])
 				
@@ -550,6 +564,7 @@ def adj_analysis(Aij, angle_thresh=70, verbose=False):
 					print("Length", fibre_l, "Displacement", euclid_dist, "\n")
 
 				fibre_waviness = np.concatenate((fibre_waviness, [euclid_dist / fibre_l]))
+
 	#"""
 
 	return  np.nanmean(fibre_waviness)#, fibre_waviness.mean()

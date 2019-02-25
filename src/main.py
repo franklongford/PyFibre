@@ -69,9 +69,11 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		Calculated metrics for further analysis
 	"""
 
-	columns_global = ['SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
+	columns_global = ['SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy', 'Area',
 			'Linearity', 'Eccentricity', 'Density', 'Coverage',
-			'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy']
+			'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy',
+			'Hu Moment 1', 'Hu Moment 2', 'Hu Moment 3', 'Hu Moment 4', 
+			'Hu Moment 5', 'Hu Moment 6', 'Hu Moment 7']
 
 	columns_segment = ['SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
 				'Area', 'Linearity', 'Eccentricity', 'Density', 'Coverage',
@@ -95,20 +97,22 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 	file_name = input_file_name.split('/')[-1]
 	image_name = ut.check_file_name(file_name, extension='tif')
 
-	if not np.any([ow_metric, ow_network]) and os.path.exists(data_dir + image_name + '_metric.pkl'):
+	if not np.any([ow_metric, ow_network]):
 		try: 
 			dataframe_global = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + image_name))
 			dataframe_segment = pd.read_pickle('{}_segment_metric.pkl'.format(data_dir + image_name))
 			dataframe_hole = pd.read_pickle('{}_hole_metric.pkl'.format(data_dir + image_name))
-		except IOError: ow_metric = True
-	else:
+		except IOError:
+			print("Cannot load metrics for {}".format(image_name))
+			ow_metric = True
+
+	if ow_metric:
 		print(f"Loading image {data_dir + image_name}")
 		"Load and preprocess image"
 		image_shg, image_pl = import_image(input_file_name)
 		"Pre-process image to remove noise"
 		image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
 		image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
-		image_combined = np.sqrt(image_shg * image_pl)
 
 		print("Performing Global Image analysis")
 
@@ -123,7 +127,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		pix_n_anis, pix_n_angle, pix_n_energy = an.tensor_analysis(n_tensor)
 		pix_j_anis, pix_j_angle, pix_j_energy = an.tensor_analysis(j_tensor)
 
-		holes, hole_labels = seg.hole_extraction(image_shg)
+		holes, hole_labels = seg.hole_extraction(image_shg, image_pl)
 
 		hole_filter = np.where(hole_labels, alpha, 1)
 		hole_filter = gaussian_filter(hole_filter, sigma=0.5)
@@ -138,12 +142,13 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		global_coverage, global_contrast, global_homo, global_dissim, 
 		global_corr, global_energy, global_hu) = metrics
 
-		global_metrics = np.array([
+		global_metrics = np.stack([
 					global_sdi, global_entropy, global_anis, global_pix_anis, 
-					global_linear, global_eccent, global_density, 
+					global_area, global_linear, global_eccent, global_density, 
 					global_coverage, global_contrast, global_homo, global_dissim, 
-					global_corr, global_energy])
-		global_metrics = np.expand_dims(global_metrics, axis=0)
+					global_corr, global_energy], axis=0)
+		global_metrics = np.concatenate((global_metrics, global_hu), axis=0)
+		global_metrics = np.expand_dims(global_metrics, 0)
 
 		dataframe_global = pd.DataFrame(data=global_metrics, columns=columns_global, index=[input_file_name])
 		dataframe_global.to_pickle('{}_global_metric.pkl'.format(data_dir + image_name))

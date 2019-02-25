@@ -426,7 +426,8 @@ class imagecol_gui:
 
 	def display_network(self, canvas, image, Aij):
 
-		self.display_image(canvas, image)
+		image_tk = ImageTk.PhotoImage(Image.fromarray(image.astype('uint8')))
+		self.display_image(canvas, image_tk)
 
 		networks = []
 
@@ -483,30 +484,38 @@ class imagecol_gui:
 
 		image_shg, image_pl = import_image(selected_file)
 
-		image_shg = clip_intensities(image_shg, 
+		self.image_shg = clip_intensities(image_shg, 
 				p_intensity=(self.p0.get(), self.p1.get())) * 255.999 
-		image_pl = clip_intensities(image_pl, 
+		self.image_pl = clip_intensities(image_pl, 
 				p_intensity=(self.p0.get(), self.p1.get())) * 255.999
 
-		self.image = image_shg
-		self.image_tk = ImageTk.PhotoImage(Image.fromarray(self.image.astype('uint8')))
-
-		self.display_image(self.image_display.image_tab.canvas, self.image_tk)
+		image_tk = ImageTk.PhotoImage(Image.fromarray(self.image_shg.astype('uint8')))
+		self.display_image(self.image_display.image_tab.canvas, image_tk)
 		self.update_log("Displaying image {}".format(fig_name))
-		self.display_tensor(self.image_display.tensor_tab.canvas, self.image)
+
+		self.display_tensor(self.image_display.tensor_tab.canvas, self.image_shg)
 		self.update_log("Displaying image tensor {}".format(fig_name))
 
 		try:
 			Aij = nx.read_gpickle(data_dir + fig_name + "_network.pkl")
-			self.display_network(self.image_display.network_tab.canvas, self.image_tk, Aij)
-			segments = ut.load_region(data_dir + fig_name + "_segments")
-			self.display_regions(self.image_display.segment_tab.canvas, self.image, segments)
-			holes = ut.load_region(data_dir + fig_name + "_holes")
-			self.display_regions(self.image_display.hole_tab.canvas, self.image, holes)
-
-			self.update_log("Displaying network, segments and holes for {}".format(fig_name))
+			self.display_network(self.image_display.network_tab.canvas, self.image_shg, Aij)
+			self.update_log("Displaying network for {}".format(fig_name))
 		except IOError:
-			self.update_log("Unable to display network, segments and holes for {}".format(fig_name))
+			self.update_log("Unable to display network for {}".format(fig_name))
+
+		try:
+			segments = ut.load_region(data_dir + fig_name + "_segments")
+			self.display_regions(self.image_display.segment_tab.canvas, self.image_shg, segments)
+			self.update_log("Displaying segments for {}".format(fig_name))
+		except IOError:
+			self.update_log("Unable to display segments for {}".format(fig_name))
+		
+		try:	
+			holes = ut.load_region(data_dir + fig_name + "_holes")
+			self.display_regions(self.image_display.hole_tab.canvas, self.image_pl, holes)
+			self.update_log("Displaying holes for {}".format(fig_name))
+		except IOError:
+			self.update_log("Unable to display holes for {}".format(fig_name))
 
 		try:
 			loaded_metrics = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + fig_name)).iloc[0]

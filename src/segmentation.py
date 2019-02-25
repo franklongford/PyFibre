@@ -20,6 +20,7 @@ from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.morphology import binary_fill_holes, binary_dilation, binary_closing, binary_opening
 
 from skimage import measure, draw
+from skimage.transform import rescale, resize
 from skimage.feature import greycomatrix, greycoprops
 from skimage.morphology import remove_small_objects
 
@@ -30,22 +31,41 @@ from analysis import fourier_transform_analysis, tensor_analysis
 from preprocessing import nl_means
 
 
-def hole_extraction(image, sigma=0.75, alpha=0.65, min_size=800, edges=False):
+def find_holes(image, sigma=0.8, alpha=1.0, min_size=1250, iterations=1):
 
 	image_TB = tubeness(image, sigma=sigma)
 	
 	image_hyst = hysteresis(image_TB, alpha=alpha)
 	image_hyst = remove_small_objects(image_hyst)
-	image_hyst = binary_closing(image_hyst)
+	image_hyst = binary_closing(image_hyst, iterations=iterations)
 
 	image_hole = remove_small_objects(~image_hyst, min_size=min_size)
-	image_hole = binary_opening(image_hole)
+	image_hole = binary_opening(image_hole, iterations=iterations)
 	image_hole = binary_fill_holes(image_hole)
+	
+	return image_hole
+
+
+def hole_extraction(image_shg, image_pl, scale=2, sigma=0.8, alpha=1.0, min_size=1250, edges=False):
+
+	image_shg_big = rescale(image_shg, scale)
+	image_pl_big = rescale(image_pl, scale)	
+
+	image_hole_shg = find_holes(image_shg_big, sigma=sigma, alpha=alpha,
+					min_size=min_size, iterations=2)
+	image_hole_pl = find_holes(image_pl_big, sigma=sigma, alpha=0.3, 
+					min_size=min_size, iterations=1) 
+
+	image_hole_shg = resize(image_hole_shg, image_shg.shape)
+	image_hole_pl = resize(image_hole_pl, image_pl.shape)
+
+	image_same = np.where(image_hole_shg == image_hole_pl, 1, 0)
+	image_diff = np.where(image_hole_shg != image_hole_pl, 1, 0) * image_hole_shg
 
 	holes = []
-	hole_labels = measure.label(image_hole)
+	hole_labels = measure.label(image_diff)
 
-	for hole in measure.regionprops(hole_labels, intensity_image=image):
+	for hole in measure.regionprops(hole_labels):
 		hole_check = True
 
 		if edges:
@@ -60,7 +80,7 @@ def hole_extraction(image, sigma=0.75, alpha=0.65, min_size=800, edges=False):
 		if hole_check: holes.append(hole)
 		#holes.append(hole)
 
-	return holes, hole_labels
+	return holes, image_hole_shg
 
 
 def hole_analysis(image, holes):
@@ -157,7 +177,7 @@ def network_extraction(image, network_name='network', sigma=0.5, p_denoise=(2, 2
 		"Apply tubeness transform to enhance image fibres"
 		image_TB = tubeness(image_nl, 2 * sigma)
 		"Call FIRE algorithm to extract full image network"
-		Aij = FIRE(image_TB, sigma=sigma, max_threads=threads)
+		Aij = FIRE(image_TB, scale=1.25, sigma=sigma, max_threads=threads)
 		nx.write_gpickle(Aij, network_name + "_network.pkl")
 
 	segmented_image = np.zeros(image.shape, dtype=int)
