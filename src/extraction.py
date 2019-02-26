@@ -27,7 +27,7 @@ from skimage.filters import rank
 import networkx as nx
 
 from utilities import ring, numpy_remove, clear_border
-from filters import hysteresis
+from filters import tubeness, hysteresis
 
 
 def check_2D_arrays(array1, array2, thresh=1):
@@ -164,6 +164,7 @@ class Fibre:
 
 		self.index = index
 		self.nodes = np.array([nodes])
+		self.edges = np.empty(0, dtype=int)
 		self.direction = direction
 		self.growing = growing
 
@@ -172,6 +173,12 @@ class Fibre:
 
 		self.nodes = np.concatenate((self.nodes, [nodes]))
 		self.direction = direction
+
+	def add_edge(self, nodes):
+
+		print(self.edges)
+		self.edges = np.concatenate((self.edges, [nodes]), axis=0)
+		print(self.edges)
 
 	    
 def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
@@ -233,6 +240,7 @@ def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 
 		fibre.growing = False
 		fibre.add_node(new_end, (new_dir_vector / new_dir_r))
+		fibre.add_edge([fibre.nodes[-2], new_end])
 
 	else:
 		index = branch_r.argmax()
@@ -254,6 +262,7 @@ def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 			Aij[fibre.nodes[-1]][new_end]['r'] = np.sqrt(((new_end_coord - end_coord)**2).sum())
 
 			fibre.add_node(new_end, (new_dir_vector / new_dir_r))
+			fibre.add_edge([fibre.nodes[-2], new_end])
 
 		else: 
 			Aij.nodes[fibre.nodes[-1]]['xy'] = new_end_coord
@@ -261,9 +270,13 @@ def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 
 			fibre.direction = (new_dir_vector / new_dir_r)
 
+	if not fibre.growing:
+		if fibre.nodes.size >= 3:
+			for edge in fibre.edges: Aij.remove_edge(edge[0], edge[1])
 
-def FIRE(image, scale=1, alpha=0.75, sigma=0.5, nuc_thresh=2, nuc_rad=15, lmp_thresh=0.15, 
-             angle_thresh=70, r_thresh=9, max_threads=8):
+
+def FIRE(image, scale=1, alpha=0.75, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_thresh=0.15, 
+             angle_thresh=70, r_thresh=8, max_threads=8):
 	"""
 	FIRE algorithm to extract fibre network
 
@@ -299,20 +312,21 @@ def FIRE(image, scale=1, alpha=0.75, sigma=0.5, nuc_thresh=2, nuc_rad=15, lmp_th
 
 	image_scale = rescale(image, scale)
 
-	alpha *= scale
 	sigma *= scale
 
-	cleared = clear_border(image_scale)
-	threshold = hysteresis(cleared, alpha=alpha)
+	"Apply tubeness transform to enhance image fibres"
+	image_TB = tubeness(image_scale, 2 * sigma)
+	threshold = hysteresis(image_TB, alpha=alpha)
 	cleaned = remove_small_objects(threshold)
 	distance = distance_transform_edt(cleaned)
 	smoothed = gaussian_filter(distance, sigma=sigma)
 
 	"Set distance and angle thresholds for fibre iterator"
-	nuc_thresh = np.min([nuc_thresh, 2E-1 / scale**2 * smoothed.max()])
-	lmp_thresh = np.min([lmp_thresh, 5E-3 / scale**2 * smoothed[np.nonzero(smoothed)].mean()])
+	nuc_thresh = np.min([nuc_thresh, 1E-1 * scale**2 * smoothed.max()])
+	lmp_thresh = np.min([lmp_thresh, 1E-2 * scale**2 * smoothed[np.nonzero(smoothed)].mean()])
 	theta_thresh = np.cos((180-angle_thresh) * np.pi / 180) + 1
 	r_thresh = int(r_thresh * scale)
+	nuc_rad = int(nuc_rad * scale)
 
 	print("Maximum distance = {}".format(smoothed.max()))
 	print("Mean distance = {}".format(smoothed[np.nonzero(smoothed)].mean()))

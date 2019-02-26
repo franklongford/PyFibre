@@ -172,12 +172,9 @@ def network_extraction(image, network_name='network', sigma=0.5, p_denoise=(2, 2
 	"Else, use modified FIRE algorithm to extract network"
 	if ow_network:
 		print("Performing NL Denoise using local windows {} {}".format(*p_denoise))
-		#image_TB = tubeness(image, 2 * sigma)
 		image_nl = nl_means(image, p_denoise=p_denoise)
-		"Apply tubeness transform to enhance image fibres"
-		image_TB = tubeness(image_nl, 2 * sigma)
 		"Call FIRE algorithm to extract full image network"
-		Aij = FIRE(image_TB, scale=1.25, sigma=sigma, max_threads=threads)
+		Aij = FIRE(image_nl, scale=1.25, sigma=sigma, max_threads=threads)
 		nx.write_gpickle(Aij, network_name + "_network.pkl")
 
 	segmented_image = np.zeros(image.shape, dtype=int)
