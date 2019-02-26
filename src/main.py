@@ -69,13 +69,13 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		Calculated metrics for further analysis
 	"""
 
-	columns_global = ['SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy', 'Area',
+	columns_global = ['Fourier SDI', 'Angle SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy', 'Area',
 			'Linearity', 'Eccentricity', 'Density', 'Coverage',
 			'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy',
 			'Hu Moment 1', 'Hu Moment 2', 'Hu Moment 3', 'Hu Moment 4', 
 			'Hu Moment 5', 'Hu Moment 6', 'Hu Moment 7']
 
-	columns_segment = ['SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
+	columns_segment = ['Fourier SDI', 'Angle SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
 				'Area', 'Linearity', 'Eccentricity', 'Density', 'Coverage',
 				'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy',
 				'Network Waviness', 'Network Degree', 'Network Eigenvalue',
@@ -116,9 +116,6 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 
 		print("Performing Global Image analysis")
 
-		"Perform fourier analysis to obtain spectrum and sdi metric"
-		angles, fourier_spec, global_sdi = an.fourier_transform_analysis(image_shg)
-
 		"Form nematic and structure tensors for each pixel"
 		n_tensor = form_nematic_tensor(image_shg, sigma=sigma)
 		j_tensor = form_structure_tensor(image_shg, sigma=sigma)
@@ -135,18 +132,19 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		global_binary = np.where(hole_labels, 0, 1)
 		global_segment = regionprops(global_binary)[0]
 
-		metrics = seg.segment_analysis(image_shg, image_pl, global_segment, j_tensor, pix_j_anis)
+		metrics = seg.segment_analysis(image_shg, image_pl, global_segment, j_tensor, 
+										pix_j_anis, pix_j_angle)
 
-		(global_sdi, global_entropy, global_anis, global_pix_anis, 
+		(global_fourier_sdi, global_angle_sdi, global_entropy, global_anis, global_pix_anis, 
 		global_area, global_linear, global_eccent, global_density, 
 		global_coverage, global_contrast, global_homo, global_dissim, 
 		global_corr, global_energy, global_hu) = metrics
 
 		global_metrics = np.stack([
-					global_sdi, global_entropy, global_anis, global_pix_anis, 
-					global_area, global_linear, global_eccent, global_density, 
-					global_coverage, global_contrast, global_homo, global_dissim, 
-					global_corr, global_energy], axis=0)
+					global_fourier_sdi, global_angle_sdi, global_entropy, global_anis, 
+					global_pix_anis, global_area, global_linear, global_eccent, 
+					global_density, global_coverage, global_contrast, global_homo, 
+					global_dissim, global_corr, global_energy], axis=0)
 		global_metrics = np.concatenate((global_metrics, global_hu), axis=0)
 		global_metrics = np.expand_dims(global_metrics, 0)
 
@@ -181,9 +179,9 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		print("Performing Segmented Image analysis")
 
 		"Analyse fibre network"
-		net_res = seg.network_analysis(image_shg, image_pl, networks, segments, j_tensor, pix_j_anis)
-		(segment_sdi, segment_entropy, segment_anis, segment_pix_anis, segment_areas,
-		segment_linear, segment_eccent, segment_density, local_coverage,
+		net_res = seg.network_analysis(image_shg, image_pl, networks, segments, j_tensor, pix_j_anis, pix_j_angle)
+		(segment_fourier_sdi, segment_angle_sdi, segment_entropy, segment_anis, segment_pix_anis, 
+		segment_areas, segment_linear, segment_eccent, segment_density, segment_coverage,
 		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy, segment_hu,
 		network_waviness, network_degree, network_eigen, 
 		network_connect, network_loc_eff, network_cluster) = net_res
@@ -192,9 +190,9 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		for j in range(7): av_segment_hu[j] = ut.nanmean(segment_hu[:,j], weights=segment_areas)
 
 		segment_metrics = np.stack([
-					segment_sdi, segment_entropy, segment_anis, segment_pix_anis, segment_areas,
-					segment_linear, segment_eccent, segment_density, local_coverage,
-					segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy,
+					segment_fourier_sdi, segment_angle_sdi, segment_entropy, segment_anis, 
+					segment_pix_anis, segment_areas, segment_linear, segment_eccent, segment_density, 
+					segment_coverage, segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy,
 					network_waviness, network_degree, network_eigen, 
 					network_connect, network_loc_eff, network_cluster], axis=-1)
 		segment_metrics = np.concatenate((segment_metrics, segment_hu), axis=-1)

@@ -27,7 +27,7 @@ from skimage.morphology import remove_small_objects
 import utilities as ut
 from filters import tubeness, hysteresis
 from extraction import FIRE, adj_analysis
-from analysis import fourier_transform_analysis, tensor_analysis
+from analysis import fourier_transform_analysis, tensor_analysis, angle_analysis
 from preprocessing import nl_means
 
 
@@ -65,7 +65,7 @@ def hole_extraction(image_shg, image_pl, scale=2, sigma=0.8, alpha=1.0, min_size
 	holes = []
 	hole_labels = measure.label(image_diff)
 
-	for hole in measure.regionprops(hole_labels):
+	for hole in measure.regionprops(hole_labels, intensity_image=image_pl):
 		hole_check = True
 
 		if edges:
@@ -118,7 +118,7 @@ def hole_analysis(image, holes):
 	return hole_areas, hole_contrast, hole_homo, hole_dissim, hole_corr, hole_energy, hole_hu
 
 
-def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map):
+def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map, angle_map):
 
 	minr, minc, maxr, maxc = segment.bbox
 	indices = np.mgrid[minr:maxr, minc:maxc]
@@ -127,9 +127,11 @@ def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map):
 	segment_image_pl = image_pl[(indices[0], indices[1])]
 	#segment_image_comb = np.sqrt(segment_image_shg * segment_image_pl)
 	segment_anis_map = anis_map[(indices[0], indices[1])]
+	segment_angle_map = angle_map[(indices[0], indices[1])]
 	segment_n_tensor = n_tensor[(indices[0], indices[1])]
 
-	_, _, segment_sdi = fourier_transform_analysis(segment_image_shg)
+	_, _, segment_fourier_sdi = fourier_transform_analysis(segment_image_shg)
+	segment_angle_sdi = angle_analysis(segment_angle_map)
 	segment_entropy = measure.shannon_entropy(segment_image_shg)
 
 	segment_anis, _ , _ = tensor_analysis(np.mean(segment_n_tensor, axis=(0, 1)))
@@ -153,13 +155,13 @@ def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map):
 	segment_corr = greycoprops(glcm, 'correlation').mean()
 	segment_energy = greycoprops(glcm, 'energy').mean()
 
-	return (segment_sdi, segment_entropy, segment_anis, segment_pix_anis, 
+	return (segment_fourier_sdi, segment_angle_sdi, segment_entropy, segment_anis, segment_pix_anis, 
 		segment_area, segment_linear, segment_eccent, segment_density, 
 		segment_coverage, segment_contrast, segment_homo, segment_dissim, 
 		segment_corr, segment_energy, segment_hu)
 
 
-def network_extraction(image, network_name='network', sigma=0.5, p_denoise=(2, 25), 
+def network_extraction(image_shg, network_name='network', sigma=0.5, p_denoise=(2, 25), 
 			ow_network=False, threads=8):
 	"""
 	Extract fibre network using modified FIRE algorithm
@@ -172,12 +174,12 @@ def network_extraction(image, network_name='network', sigma=0.5, p_denoise=(2, 2
 	"Else, use modified FIRE algorithm to extract network"
 	if ow_network:
 		print("Performing NL Denoise using local windows {} {}".format(*p_denoise))
-		image_nl = nl_means(image, p_denoise=p_denoise)
+		image_nl = nl_means(image_shg, p_denoise=p_denoise)
 		"Call FIRE algorithm to extract full image network"
 		Aij = FIRE(image_nl, scale=1.25, sigma=sigma, max_threads=threads)
 		nx.write_gpickle(Aij, network_name + "_network.pkl")
 
-	segmented_image = np.zeros(image.shape, dtype=int)
+	segmented_image = np.zeros(image_shg.shape, dtype=int)
 	areas = np.empty((0,), dtype=float)
 	networks = []
 	segments = []
@@ -187,19 +189,19 @@ def network_extraction(image, network_name='network', sigma=0.5, p_denoise=(2, 2
 		subgraph = Aij.subgraph(component)
 		if subgraph.number_of_nodes() > 3:
 
-			label_image = np.zeros(image.shape, dtype=int)
+			label_image = np.zeros(image_shg.shape, dtype=int)
 			label_image = draw_network(subgraph, label_image, 1)
 			dilated_image = binary_dilation(label_image, iterations=8)
 			filled_image = np.array(binary_fill_holes(dilated_image),
 					    dtype=int)
 
-			segment = measure.regionprops(filled_image)[0]
+			segment = measure.regionprops(filled_image, intensity_image=image_shg)[0]
 			area = np.sum(segment.image)
 
 			minr, minc, maxr, maxc = segment.bbox
 			indices = np.mgrid[minr:maxr, minc:maxc]
 
-			if area >= 1E-2 * image.size:
+			if area >= 1E-2 * image_shg.size:
 				segmented_image[(indices[0], indices[1])] = segment.image
 				segment.label = (i + 1)
 				areas = np.concatenate((areas, [area]))
@@ -230,13 +232,14 @@ def draw_network(network, label_image, index):
 	return label_image
 
 
-def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map):
+def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map, angle_map):
 	"""
 	Analyse extracted fibre network
 	"""
 	l_regions = len(segments)
 
-	segment_sdi = np.zeros(l_regions)
+	segment_fourier_sdi = np.zeros(l_regions)
+	segment_angle_sdi = np.zeros(l_regions)
 	segment_entropy = np.zeros(l_regions)
 	segment_anis = np.zeros(l_regions)
 	segment_pix_anis = np.zeros(l_regions)
@@ -272,12 +275,13 @@ def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map
 
 	for i, network, segment in iterator:
 
-		metrics = segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map)
+		metrics = segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map,
+									angle_map)
 
-		(segment_sdi[i], segment_entropy[i], segment_anis[i], segment_pix_anis[i], 
-		segment_area[i], segment_linear[i], segment_eccent[i], segment_density[i], 
-		segment_coverage[i], segment_contrast[i], segment_homo[i], segment_dissim[i], 
-		segment_corr[i], segment_energy[i], segment_hu[i]) = metrics
+		(segment_fourier_sdi[i], segment_angle_sdi[i], segment_entropy[i], segment_anis[i], 
+		segment_pix_anis[i], segment_area[i], segment_linear[i], segment_eccent[i], 
+		segment_density[i], segment_coverage[i], segment_contrast[i], segment_homo[i], 
+		segment_dissim[i], segment_corr[i], segment_energy[i], segment_hu[i]) = metrics
 
 		start = time.time()
 		network_waviness[i] = adj_analysis(network)
@@ -316,7 +320,7 @@ def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map
 	#print('Network Local Efficiency = {} s'.format(loc_eff_time))
 	#print('Network Clustering = {} s'.format(cluster_time))
 
-	return (segment_sdi, segment_entropy, segment_anis, segment_pix_anis, 
+	return (segment_fourier_sdi, segment_angle_sdi, segment_entropy, segment_anis, segment_pix_anis, 
 		segment_area, segment_linear, segment_eccent, segment_density, segment_coverage,
 		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy, segment_hu,
 		network_waviness, network_degree, network_eigen, network_connect,

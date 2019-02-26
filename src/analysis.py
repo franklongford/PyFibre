@@ -113,8 +113,10 @@ def tensor_analysis(tensor):
 	return tot_anis, tot_angle, tot_energy
 
 
-def angle_analysis(angles): 
+def angle_analysis(angles, N=200):
 
-	pass
+	angle_hist, _ = np.histogram(angles, bins=N, density=True)
+	angle_sdi = angle_hist.mean() / angle_hist.max()
 
+	return angle_sdi
 

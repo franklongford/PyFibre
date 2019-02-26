@@ -320,7 +320,8 @@ class imagecol_gui:
 		notebook.metric_tab = ttk.Frame(notebook)
 		notebook.add(notebook.metric_tab, text='Metrics')
 
-		notebook.metric_tab.metric_dict = {'SDI' : {"info" : "Fourier spectrum SDI of total image", "metric" : DoubleVar()},
+		notebook.metric_tab.metric_dict = {'Fourier SDI' : {"info" : "Fourier spectrum SDI of total image", "metric" : DoubleVar()},
+										'Angle SDI' : {"info" : "Angle spectrum SDI of total image", "metric" : DoubleVar()},
 										'Entropy' : {"info" : "Average Shannon entropy of segmented image", "metric" : DoubleVar()},
 										'Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar()},
 										'Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar()},

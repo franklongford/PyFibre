@@ -155,8 +155,7 @@ def transfer_edges(Aij, source, target):
 		if node != source:
 			Aij.add_edge(node, target)
 			Aij[node][target]['r'] = np.sqrt(((Aij.nodes[target]['xy'] - Aij.nodes[node]['xy'])**2).sum())
-			Aij.nodes[target]['fibres'].update(Aij.nodes[source]['fibres'])
-			Aij.nodes[source]['fibres'] = set({})
+
 
 class Fibre(nx.Graph):
 
@@ -209,7 +208,6 @@ def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 
 	if indices.size == 0: 
 		Aij.nodes[fibre]['growing'] = False
-		Aij.nodes[fibre]['fibres'].union(set({fibre}))
 
 		if Aij[fibre][connect]['r'] <= r_thresh / 10: transfer_edges(Aij, fibre, connect)
 		
@@ -219,8 +217,8 @@ def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 	branch_vector = branch_vector[indices]
 	branch_r = branch_r[indices]
 
-	close_nodes, _ = check_2D_arrays(tot_node_coord, branch_coord, 2)
-	close_nodes = numpy_remove(close_nodes, list(Aij.nodes[fibre]['fibres']))
+	close_nodes, _ = check_2D_arrays(tot_node_coord, branch_coord, 1)
+	close_nodes = numpy_remove(close_nodes, list(Aij[fibre].keys()))
 
 	if close_nodes.size != 0:
 
@@ -252,9 +250,6 @@ def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 		
 			Aij.nodes[new_end]['xy'] = new_end_coord
 			Aij.nodes[new_end]['nuc'] = nuc
-
-			Aij.nodes[new_end]['fibres'] = Aij.nodes[fibre]['fibres'].copy()
-			Aij.nodes[new_end]['fibres'].union(set({fibre}))
 
 			Aij[fibre][new_end]['r'] = np.sqrt(((new_end_coord - end_coord)**2).sum())
 			Aij.nodes[new_end]['direction'] = (new_dir_vector / new_dir_r)
@@ -344,7 +339,6 @@ def FIRE(image, scale=1, alpha=0.75, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_th
 	for nuc, nuc_coord in enumerate(nuc_node_coord):
 
 		Aij.nodes[nuc]['xy'] = nuc_coord
-		Aij.nodes[nuc]['fibre'] = [nuc]
 		Aij.nodes[nuc]['nuc'] = nuc
 		Aij.nodes[nuc]['growing'] = False
 
@@ -366,10 +360,6 @@ def FIRE(image, scale=1, alpha=0.75, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_th
 			Aij.nodes[lmp]['nuc'] = nuc
 			Aij.nodes[lmp]['growing'] = True
 			Aij.nodes[lmp]['direction'] = -vec / r
-
-			Aij.nodes[nuc]['fibres'].add(lmp)
-			Aij.nodes[lmp]['fibres'] = set({nuc}) 
-			
 
 		index_m += n_lmp
 
@@ -481,7 +471,7 @@ def adj_analysis(Aij, angle_thresh=70, verbose=False):
 	d_coord, r2_coord = distance_matrix(node_coord)
 	fibre_waviness = np.empty((0,), dtype='float64')
 
-	network_ends = edge_count[np.where(edge_count == 1)]
+	network_ends = np.argwhere(edge_count == 1).flatten()
 	tracing = np.where(edge_count == 1, 1, 0)
 	tot_fibres = []
 
@@ -498,6 +488,7 @@ def adj_analysis(Aij, angle_thresh=70, verbose=False):
 			direction = coord_vec / coord_r
 
 			fibre_l = coord_r
+
 			if verbose:
 				print("Start node = ", node, "  coord: ", node_coord[node])
 				print("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
@@ -509,7 +500,7 @@ def adj_analysis(Aij, angle_thresh=70, verbose=False):
 				fibre.add_node(new_node)
 				fibre.direction = direction
 				fibre.node_list = list(fibre.nodes)
-				new_connect = np.array(list(Aij.adj[fibre.node_list[-1]]))#np.argwhere(Aij[new_node]).flatten()
+				new_connect = np.array(list(Aij.adj[fibre.node_list[-1]]))
 
 				if verbose: print("Nodes connected to fibre end = {}".format(new_connect))
 
