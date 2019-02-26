@@ -27,7 +27,7 @@ from filters import form_nematic_tensor, form_structure_tensor
 
 
 def analyse_image(input_file_name, working_dir=None, scale=1, 
-				p_intensity=(1, 98), p_denoise=(2, 25), sigma=0.5, alpha=0.5,
+				p_intensity=(1, 99), p_denoise=(2, 25), sigma=0.5, alpha=0.5,
 				ow_metric=False, ow_network=False, threads=8):
 	"""
 	Analyse imput image by calculating metrics and sgenmenting via FIRE algorithm

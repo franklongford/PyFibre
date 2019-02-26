@@ -55,7 +55,7 @@ class imagecol_gui:
 		self.p0 = IntVar()
 		self.p0.set(1)
 		self.p1 = IntVar()
-		self.p1.set(98)
+		self.p1.set(99)
 		self.n = IntVar()
 		self.n.set(2)
 		self.m = IntVar()
