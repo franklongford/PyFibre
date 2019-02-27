@@ -69,13 +69,14 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		Calculated metrics for further analysis
 	"""
 
-	columns_global = ['Fourier SDI', 'Angle SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy', 'Area',
+	global_columns = ['Fourier SDI', 'Angle SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy', 'Area',
 			'Linearity', 'Eccentricity', 'Density', 'Coverage',
-			'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy',
+			'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy', 'No. Fibres',
+			'No. Cells',
 			'Hu Moment 1', 'Hu Moment 2', 'Hu Moment 3', 'Hu Moment 4', 
 			'Hu Moment 5', 'Hu Moment 6', 'Hu Moment 7']
 
-	columns_segment = ['Fourier SDI', 'Angle SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
+	fibre_columns = ['Fourier SDI', 'Angle SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
 				'Area', 'Linearity', 'Eccentricity', 'Density', 'Coverage',
 				'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy',
 				'Network Waviness', 'Network Degree', 'Network Eigenvalue',
@@ -84,7 +85,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 				'Hu Moment 4', 'Hu Moment 5', 'Hu Moment 6',
 				'Hu Moment 7']
 
-	columns_holes = ['Area', 'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 
+	cell_columns = ['Area', 'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 
 			'Energy','Hu Moment 1', 'Hu Moment 2', 'Hu Moment 3', 'Hu Moment 4', 
 			'Hu Moment 5', 'Hu Moment 6','Hu Moment 7']
 
@@ -99,9 +100,9 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 
 	if not np.any([ow_metric, ow_network]):
 		try: 
-			dataframe_global = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + image_name))
-			dataframe_segment = pd.read_pickle('{}_segment_metric.pkl'.format(data_dir + image_name))
-			dataframe_hole = pd.read_pickle('{}_hole_metric.pkl'.format(data_dir + image_name))
+			global_dataframe = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + image_name))
+			fibre_dataframe = pd.read_pickle('{}_fibre_metric.pkl'.format(data_dir + image_name))
+			cell_dataframe = pd.read_pickle('{}_cell_metric.pkl'.format(data_dir + image_name))
 		except IOError:
 			print("Cannot load metrics for {}".format(image_name))
 			ow_metric = True
@@ -114,7 +115,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
 		image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
 
-		print("Performing Global Image analysis")
+		filename = '{}'.format(data_dir + image_name)
 
 		"Form nematic and structure tensors for each pixel"
 		n_tensor = form_nematic_tensor(image_shg, sigma=sigma)
@@ -124,87 +125,90 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		pix_n_anis, pix_n_angle, pix_n_energy = an.tensor_analysis(n_tensor)
 		pix_j_anis, pix_j_angle, pix_j_energy = an.tensor_analysis(j_tensor)
 
-		holes, hole_labels = seg.hole_extraction(image_shg, image_pl)
+		print("Performing cell segment analysis")
+		
+		cells, hole_labels = seg.hole_extraction(image_shg, image_pl)
 
 		hole_filter = np.where(hole_labels, alpha, 1)
 		hole_filter = gaussian_filter(hole_filter, sigma=0.5)
+
+		(cell_areas, cell_contrast, cell_homo, cell_dissim, 
+		cell_corr, cell_energy, cell_hu) = seg.hole_analysis(image_pl, cells)
+
+		filenames = pd.Series(['{}_cell_segment.pkl'.format(filename)] * len(cells), name='File')		
+		cell_id = pd.Series(np.arange(len(cells)), name='ID')
+
+		cell_metrics = np.stack([cell_areas, cell_contrast, cell_homo, 
+					cell_dissim, cell_corr, cell_energy], axis=-1)
+		cell_metrics = np.concatenate((cell_metrics, cell_hu), axis=-1)
+
+		cell_dataframe = pd.DataFrame(data=cell_metrics, columns=cell_columns)
+		cell_dataframe = pd.concat((filenames, cell_id, cell_dataframe), axis=1)
+		cell_dataframe.to_pickle('{}_cell_metric.pkl'.format(filename))
+		ut.save_region(cells, '{}_cell_segment'.format(filename))
+
+		"Extract fibre network"
+		net = seg.network_extraction(image_shg * hole_filter, data_dir + image_name,
+						sigma=sigma, p_denoise=p_denoise,
+						ow_network=ow_network, threads=threads) 
+		(segmented_image, networks, fibres) = net
+	
+		print("Performing fibre segment analysis")
+
+		"Analyse fibre network"
+		net_res = seg.network_analysis(image_shg, image_pl, networks, fibres, j_tensor, pix_j_anis, pix_j_angle)
+		(fibre_fourier_sdi, fibre_angle_sdi, fibre_entropy, fibre_anis, fibre_pix_anis, 
+		fibre_areas, fibre_linear, fibre_eccent, fibre_density, fibre_coverage,
+		fibre_contrast, fibre_homo, fibre_dissim, fibre_corr, fibre_energy, fibre_hu,
+		network_waviness, network_degree, network_eigen, 
+		network_connect, network_loc_eff, network_cluster) = net_res
+
+		filenames = pd.Series(['{}_fibre_segment.pkl'.format(filename)] * len(fibres), name='File')
+		fibre_id = pd.Series(np.arange(len(fibres)), name='ID')
+
+		fibre_metrics = np.stack([fibre_fourier_sdi, fibre_angle_sdi, fibre_entropy, fibre_anis, 
+					fibre_pix_anis, fibre_areas, fibre_linear, fibre_eccent, fibre_density,
+					fibre_coverage, fibre_contrast, fibre_homo, fibre_dissim, fibre_corr,
+					fibre_energy, network_waviness, network_degree, network_eigen, 
+					network_connect, network_loc_eff, network_cluster], axis=-1)
+		fibre_metrics = np.concatenate((fibre_metrics, fibre_hu), axis=-1)
+
+		fibre_dataframe = pd.DataFrame(data=fibre_metrics, columns=fibre_columns)
+		fibre_dataframe = pd.concat((filenames, fibre_id, fibre_dataframe), axis=1)
+		fibre_dataframe.to_pickle('{}_fibre_metric.pkl'.format(filename))
+		ut.save_region(fibres, '{}_fibre_segment'.format(filename))
+
+		print("Performing Global Image analysis")
 
 		global_binary = np.where(hole_labels, 0, 1)
 		global_segment = regionprops(global_binary)[0]
 
 		metrics = seg.segment_analysis(image_shg, image_pl, global_segment, j_tensor, 
-										pix_j_anis, pix_j_angle)
+						pix_j_anis, pix_j_angle)
 
 		(global_fourier_sdi, global_angle_sdi, global_entropy, global_anis, global_pix_anis, 
 		global_area, global_linear, global_eccent, global_density, 
 		global_coverage, global_contrast, global_homo, global_dissim, 
 		global_corr, global_energy, global_hu) = metrics
 
+		filenames = pd.Series('{}_global_segment.pkl'.format(filename), name='File')
+
 		global_metrics = np.stack([
 					global_fourier_sdi, global_angle_sdi, global_entropy, global_anis, 
 					global_pix_anis, global_area, global_linear, global_eccent, 
 					global_density, global_coverage, global_contrast, global_homo, 
-					global_dissim, global_corr, global_energy], axis=0)
+					global_dissim, global_corr, global_energy, (len(fibres)),
+					(len(cells))], axis=0)
 		global_metrics = np.concatenate((global_metrics, global_hu), axis=0)
 		global_metrics = np.expand_dims(global_metrics, 0)
 
-		dataframe_global = pd.DataFrame(data=global_metrics, columns=columns_global, index=[input_file_name])
-		dataframe_global.to_pickle('{}_global_metric.pkl'.format(data_dir + image_name))
+		global_dataframe = pd.DataFrame(data=global_metrics, columns=global_columns)
+		global_dataframe = pd.concat((filenames, global_dataframe), axis=1)
+		global_dataframe.to_pickle('{}_global_metric.pkl'.format(filename))
+		ut.save_region(global_segment, '{}_global_segment'.format(filename))
 
-		print("Performing Hole Image analysis")
 
-		(hole_areas, hole_contrast, hole_homo, hole_dissim, 
-		hole_corr, hole_energy, hole_hu) = seg.hole_analysis(image_pl, holes)
-
-		av_hole_hu = np.zeros(7)
-		for j in range(7): av_hole_hu[j] = ut.nanmean(hole_hu[:,j], weights=hole_areas)
-
-		hole_metrics = np.stack([hole_areas, hole_contrast, hole_homo, hole_dissim, 
-					 hole_corr, hole_energy], axis=-1)
-		hole_metrics = np.concatenate((hole_metrics, hole_hu), axis=-1)
-
-		titles = []
-		for i in range(len(holes)): titles += [input_file_name + "_hole_{}".format(i)]
-
-		dataframe_hole = pd.DataFrame(data=hole_metrics, columns=columns_holes, index=titles)
-		dataframe_hole.to_pickle('{}_hole_metric.pkl'.format(data_dir + image_name))
-		ut.save_region(holes, '{}_holes'.format(data_dir + image_name))
-
-		"Extract fibre network"
-		net = seg.network_extraction(image_shg * hole_filter, data_dir + image_name,
-						sigma=sigma, p_denoise=p_denoise,
-						ow_network=ow_network, threads=threads) 
-		(segmented_image, networks, segments) = net
-	
-		print("Performing Segmented Image analysis")
-
-		"Analyse fibre network"
-		net_res = seg.network_analysis(image_shg, image_pl, networks, segments, j_tensor, pix_j_anis, pix_j_angle)
-		(segment_fourier_sdi, segment_angle_sdi, segment_entropy, segment_anis, segment_pix_anis, 
-		segment_areas, segment_linear, segment_eccent, segment_density, segment_coverage,
-		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy, segment_hu,
-		network_waviness, network_degree, network_eigen, 
-		network_connect, network_loc_eff, network_cluster) = net_res
-
-		av_segment_hu = np.zeros(7)
-		for j in range(7): av_segment_hu[j] = ut.nanmean(segment_hu[:,j], weights=segment_areas)
-
-		segment_metrics = np.stack([
-					segment_fourier_sdi, segment_angle_sdi, segment_entropy, segment_anis, 
-					segment_pix_anis, segment_areas, segment_linear, segment_eccent, segment_density, 
-					segment_coverage, segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy,
-					network_waviness, network_degree, network_eigen, 
-					network_connect, network_loc_eff, network_cluster], axis=-1)
-		segment_metrics = np.concatenate((segment_metrics, segment_hu), axis=-1)
-
-		titles = []
-		for i in range(len(segments)): titles += [input_file_name + "_segment_{}".format(i)]
-
-		dataframe_segment = pd.DataFrame(data=segment_metrics, columns=columns_segment, index=titles)
-		dataframe_segment.to_pickle('{}_segment_metric.pkl'.format(data_dir + image_name))
-		ut.save_region(segments, '{}_segments'.format(data_dir + image_name))
-
-	return dataframe_global, dataframe_segment, dataframe_hole
+	return global_dataframe, fibre_dataframe, cell_dataframe
 
 
 if __name__ == '__main__':

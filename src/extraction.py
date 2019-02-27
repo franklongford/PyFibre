@@ -308,6 +308,7 @@ def FIRE(image, scale=1, alpha=0.75, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_th
 	cleaned = remove_small_objects(threshold)
 	distance = distance_transform_edt(cleaned)
 	smoothed = gaussian_filter(distance, sigma=sigma)
+	smoothed = clear_border(smoothed)
 
 	"Set distance and angle thresholds for fibre iterator"
 	nuc_thresh = np.min([nuc_thresh, 1E-1 * scale**2 * smoothed.max()])
@@ -442,6 +443,35 @@ def FIRE(image, scale=1, alpha=0.75, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_th
 	print(f"TOTAL TIME = {round(total_time, 3)} s")
 
 	return Aij
+
+
+def get_edge_list(graph, degree=2):
+
+	edge_list = np.empty((0, 2), dtype=int)
+	for edge in graph.edges:
+		if edge[0] != edge[1]:
+			if graph.degree[edge[0]] <= degree and graph.degree[edge[1]] <= degree:
+				edge_list = np.concatenate((edge_list, np.expand_dims(edge, axis=0)))
+
+	return edge_list
+
+
+def simplify_network(Aij):
+
+	mapping = dict(zip(Aij.nodes, np.arange(Aij.number_of_nodes())))
+	Aij = nx.relabel_nodes(Aij, mapping)
+
+	new_Aij = Aij.copy()
+	edge_list = get_edge_list(new_Aij, degree=2)
+
+	while edge_list.size > 0:
+		for edge in edge_list:
+			try: new_Aij = nx.contracted_edge(new_Aij, edge)
+			except (ValueError, KeyError): pass
+	
+		edge_list = get_edge_list(new_Aij, degree=2)
+	
+	return new_Aij
 
 
 def adj_analysis(Aij, angle_thresh=70, verbose=False):

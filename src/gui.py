@@ -327,14 +327,16 @@ class imagecol_gui:
 										'Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar()},
 										'Area' : {"info" : "Total image covered by collagen fibres", "metric" : DoubleVar()},
 										'Coverage' : {"info" : "Ratio of total image covered by collagen fibres by image size", "metric" : DoubleVar()},
-										'Contrast' : {"info" : "", "metric" : DoubleVar()},
-										'Homogeneity' : {"info" : "", "metric" : DoubleVar()},
-										'Dissimilarity' : {"info" : "", "metric" : DoubleVar()},
-										'Correlation' : {"info" : "", "metric" : DoubleVar()},
-										'Energy' : {"info" : "", "metric" : DoubleVar()},					
+										'Contrast' : {"info" : "GLCM angle-averaged contrast", "metric" : DoubleVar()},
+										'Homogeneity' : {"info" : "GLCM angle-averaged homogeneity", "metric" : DoubleVar()},
+										'Dissimilarity' : {"info" : "GLCM angle-averaged dissimilarity", "metric" : DoubleVar()},
+										'Correlation' : {"info" : "GLCM angle-averaged correlation", "metric" : DoubleVar()},
+										'Energy' : {"info" : "GLCM angle-averaged energy", "metric" : DoubleVar()},					
 										'Linearity' : {"info" : "Average segment shape linearity", "metric" : DoubleVar()}, 
 										'Eccentricity' : {"info" : "Average segment shape eccentricity", "metric" : DoubleVar()},
 										'Density' : {"info" : "Average segment density", "metric" : DoubleVar()},
+										'No. Fibres' : {"info" : "Number of fibre segments", "metric" : IntVar()},
+										'No. Cells' : {"info" : "Number of cell segments", "metric" : IntVar()},
 										#'Network Waviness' : {"info" : "Average fibre network fibre waviness", "metric" : DoubleVar()},
 										#'Network Degree' : {"info" : "Average fibre network number of edges per node", "metric" : DoubleVar()},
 										#'Network Eigenvalue' : {"info" : "Max Eigenvalue of network", "metric" : DoubleVar()},
@@ -427,6 +429,8 @@ class imagecol_gui:
 
 	def display_network(self, canvas, image, Aij):
 
+		canvas.delete('all')
+
 		image_tk = ImageTk.PhotoImage(Image.fromarray(image.astype('uint8')))
 		self.display_image(canvas, image_tk)
 
@@ -437,7 +441,6 @@ class imagecol_gui:
 			if subgraph.number_of_nodes() > 3:
 				networks.append(subgraph)
 				
-
 		for j, network in enumerate(networks):
 
 			node_coord = [network.nodes[i]['xy'] for i in network.nodes()]
@@ -449,9 +452,8 @@ class imagecol_gui:
 			for n, node in enumerate(network.nodes):
 				for m in list(network.adj[node]):
 					canvas.create_line(node_coord[n][1] + 40, node_coord[n][0] + 20,
-								       node_coord[m][1] + 40, node_coord[m][0] + 20,
-										fill="red", width=1.5)
-
+							   node_coord[m][1] + 40, node_coord[m][0] + 20,
+							   fill="red", width=1.5)
 
 	def display_regions(self, canvas, image, regions):
 
@@ -498,21 +500,21 @@ class imagecol_gui:
 		self.update_log("Displaying image tensor {}".format(fig_name))
 
 		try:
-			Aij = nx.read_gpickle(data_dir + fig_name + "_network.pkl")
+			Aij = nx.read_gpickle(data_dir + fig_name + "_network_reduced.pkl")
 			self.display_network(self.image_display.network_tab.canvas, self.image_shg, Aij)
 			self.update_log("Displaying network for {}".format(fig_name))
 		except IOError:
 			self.update_log("Unable to display network for {}".format(fig_name))
 
 		try:
-			segments = ut.load_region(data_dir + fig_name + "_segments")
+			segments = ut.load_region(data_dir + fig_name + "_fibre_segment")
 			self.display_regions(self.image_display.segment_tab.canvas, self.image_shg, segments)
 			self.update_log("Displaying segments for {}".format(fig_name))
 		except IOError:
 			self.update_log("Unable to display segments for {}".format(fig_name))
 		
 		try:	
-			holes = ut.load_region(data_dir + fig_name + "_holes")
+			holes = ut.load_region(data_dir + fig_name + "_cell_segment")
 			self.display_regions(self.image_display.hole_tab.canvas, self.image_pl, holes)
 			self.update_log("Displaying holes for {}".format(fig_name))
 		except IOError:
@@ -520,7 +522,7 @@ class imagecol_gui:
 
 		try:
 			loaded_metrics = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + fig_name)).iloc[0]
-			for i, metric in enumerate(loaded_metrics.index):
+			for i, metric in enumerate(self.image_display.metric_tab.metric_dict.keys()):
 				self.image_display.metric_tab.metric_dict[metric]["metric"].set(loaded_metrics[metric])
 			self.update_log("Displaying metrics for {}".format(fig_name))
 
@@ -535,8 +537,8 @@ class imagecol_gui:
 	def generate_db(self):
 
 		global_database = pd.DataFrame()
-		segment_database = pd.DataFrame()
-		hole_database = pd.DataFrame()
+		fibre_database = pd.DataFrame()
+		cell_database = pd.DataFrame()
 
 		for i, input_file_name in enumerate(self.input_files):
 
@@ -549,20 +551,20 @@ class imagecol_gui:
 
 			try:
 				data_global = pd.read_pickle('{}_global_metric.pkl'.format(metric_name))
-				data_segment = pd.read_pickle('{}_segment_metric.pkl'.format(metric_name))
-				data_hole = pd.read_pickle('{}_hole_metric.pkl'.format(metric_name))
+				data_fibre = pd.read_pickle('{}_fibre_metric.pkl'.format(metric_name))
+				data_cell = pd.read_pickle('{}_cell_metric.pkl'.format(metric_name))
 
 				global_database = pd.concat([global_database, data_global], sort=True)
-				segment_database = pd.concat([segment_database, data_segment], sort=True)
-				hole_database = pd.concat([hole_database, data_hole], sort=True)
+				fibre_database = pd.concat([fibre_database, data_fibre], sort=True)
+				cell_database = pd.concat([cell_database, data_cell], sort=True)
 				
 			except (ValueError, IOError):
 				self.update_log(f"{input_file_name} databases not imported - skipping")
 
 
 		self.global_database = global_database
-		self.segment_database = segment_database
-		self.hole_database = hole_database
+		self.fibre_database = fibre_database
+		self.cell_database = cell_database
 
 		#self.update_dashboard()
 
@@ -576,11 +578,11 @@ class imagecol_gui:
 		self.global_database.to_pickle(db_filename + '.pkl')
 		self.global_database.to_excel(db_filename + '.xls')
 
-		self.segment_database.to_pickle(db_filename + '_segment.pkl')
-		self.segment_database.to_excel(db_filename + '_segment.xls')
+		self.fibre_database.to_pickle(db_filename + '_fibre.pkl')
+		self.fibre_database.to_excel(db_filename + '_fibre.xls')
 
-		self.hole_database.to_pickle(db_filename + '_hole.pkl')
-		self.hole_database.to_excel(db_filename + '_hole.xls')
+		self.cell_database.to_pickle(db_filename + '_cell.pkl')
+		self.cell_database.to_excel(db_filename + '_cell.xls')
 		
 
 		self.update_log("Saving Database files {}".format(db_filename))
