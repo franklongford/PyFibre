@@ -341,13 +341,13 @@ class imagecol_gui:
 										#'Network Connectivity' : {"info" : "Average fibre network connectivity", "metric" : DoubleVar()},
 										#'Network Local Efficiency' : {"info" : "Average fibre network local efficiency", "metric" : DoubleVar()},
 										#'Network Clustering' : {"info" : "Average fibre network clustering", "metric" : DoubleVar()},
-										#'Hole Hu Moment 1'  : {"info" : "Average hole shape Hu moment 1", "metric" : DoubleVar()},
-										#'Hole Hu Moment 2'  : {"info" : "Average hole shape Hu moment 2", "metric" : DoubleVar()},
-										#'Hole Hu Moment 3'  : {"info" : "Average hole shape Hu moment 3", "metric" : DoubleVar()},
-										#'Hole Hu Moment 4'  : {"info" : "Average hole shape Hu moment 4", "metric" : DoubleVar()},
-										#'Hole Hu Moment 5'  : {"info" : "Average hole shape Hu moment 5", "metric" : DoubleVar()},
-										#'Hole Hu Moment 6'  : {"info" : "Average hole shape Hu moment 6", "metric" : DoubleVar()},
-										#'Hole Hu Moment 7'  : {"info" : "Average hole shape Hu moment 7", "metric" : DoubleVar()}
+										'Hu Moment 1'  : {"info" : "Shape Hu moment 1", "metric" : DoubleVar()},
+										'Hu Moment 2'  : {"info" : "Shape Hu moment 2", "metric" : DoubleVar()},
+										'Hu Moment 3'  : {"info" : "Shape Hu moment 3", "metric" : DoubleVar()},
+										'Hu Moment 4'  : {"info" : "Shape Hu moment 4", "metric" : DoubleVar()},
+										'Hu Moment 5'  : {"info" : "Shape Hu moment 5", "metric" : DoubleVar()},
+										'Hu Moment 6'  : {"info" : "Shape Hu moment 6", "metric" : DoubleVar()},
+										'Hu Moment 7'  : {"info" : "Shape Hu moment 7", "metric" : DoubleVar()}
 										}
 
 		notebook.metric_tab.titles = list(notebook.metric_tab.metric_dict.keys())
