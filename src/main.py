@@ -151,12 +151,13 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		net = seg.network_extraction(image_shg * hole_filter, data_dir + image_name,
 						sigma=sigma, p_denoise=p_denoise,
 						ow_network=ow_network, threads=threads) 
-		(segmented_image, networks, fibres) = net
+		(segmented_image, networks, networks_red, fibres) = net
 	
 		print("Performing fibre segment analysis")
 
 		"Analyse fibre network"
-		net_res = seg.network_analysis(image_shg, image_pl, networks, fibres, j_tensor, pix_j_anis, pix_j_angle)
+		net_res = seg.network_analysis(image_shg, image_pl, networks, networks_red, fibres, 
+										j_tensor, pix_j_anis, pix_j_angle)
 		(fibre_fourier_sdi, fibre_angle_sdi, fibre_entropy, fibre_anis, fibre_pix_anis, 
 		fibre_areas, fibre_linear, fibre_eccent, fibre_density, fibre_coverage,
 		fibre_contrast, fibre_homo, fibre_dissim, fibre_corr, fibre_energy, fibre_hu,

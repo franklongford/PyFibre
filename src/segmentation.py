@@ -179,21 +179,29 @@ def network_extraction(image_shg, network_name='network', sigma=0.5, p_denoise=(
 		Aij = FIRE(image_nl, scale=1.25, sigma=sigma, max_threads=threads)
 		nx.write_gpickle(Aij, network_name + "_network.pkl")
 
-	"""
-	try: network_simple = nx.read_gpickle(network_name + "_network_reduced.pkl")
+	#"""
+	try: Aij_red = nx.read_gpickle(network_name + "_network_reduced.pkl")
 	except IOError:
-		Aij_simple = simplify_network(Aij)
-		nx.write_gpickle(Aij_simple, network_name + "_network_reduced.pkl")
-	"""
+		Aij_red = simplify_network(Aij)
+		nx.write_gpickle(Aij_red, network_name + "_network_reduced.pkl")
+	#"""
 
 	segmented_image = np.zeros(image_shg.shape, dtype=int)
 	areas = np.empty((0,), dtype=float)
 	networks = []
+	networks_red = []
 	segments = []
 
+	components = nx.connected_components(Aij)
+	components_red = nx.connected_components(Aij_red)
+
+	iterator = zip(components, components_red)
+
 	"Segment image based on connected components in network"
-	for i, component in enumerate(nx.connected_components(Aij)):
-		subgraph = Aij.subgraph(component)
+	for i, components in enumerate(iterator):
+		subgraph = Aij.subgraph(components[0])
+		subgraph_red = Aij_red.subgraph(components[1])
+
 		if subgraph.number_of_nodes() > 3:
 
 			label_image = np.zeros(image_shg.shape, dtype=int)
@@ -214,14 +222,16 @@ def network_extraction(image_shg, network_name='network', sigma=0.5, p_denoise=(
 				areas = np.concatenate((areas, [area]))
 				segments.append(segment)
 				networks.append(subgraph)
+				networks_red.append(subgraph_red)
 		
 	"Sort segments ranked by area"
 	indices = np.argsort(areas)
 	sorted_areas = areas[indices]
 	sorted_segments = [segments[i] for i in indices]
 	sorted_networks = [networks[i] for i in indices]
+	sorted_networks_red = [networks_red[i] for i in indices]
 
-	return segmented_image, sorted_networks, sorted_segments
+	return segmented_image, sorted_networks, sorted_networks_red, sorted_segments
 
 
 def draw_network(network, label_image, index):
@@ -239,7 +249,8 @@ def draw_network(network, label_image, index):
 	return label_image
 
 
-def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map, angle_map):
+def network_analysis(image_shg, image_pl, networks, networks_red, 
+						segments, n_tensor, anis_map, angle_map):
 	"""
 	Analyse extracted fibre network
 	"""
@@ -272,16 +283,15 @@ def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map
 	network_cluster = np.empty(l_regions)
 
 	waviness_time = 0
-	simplify_time = 0
 	degree_time = 0
 	central_time = 0
 	connect_time = 0
 	loc_eff_time = 0
 	cluster_time = 0
 
-	iterator = zip(np.arange(l_regions), networks, segments)
+	iterator = zip(np.arange(l_regions), networks, networks_red, segments)
 
-	for i, network, segment in iterator:
+	for i, network, network_red, segment in iterator:
 
 		metrics = segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map,
 									angle_map)
@@ -296,37 +306,32 @@ def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map
 		stop1 = time.time()
 		waviness_time += stop1-start
 
-		simple_network = simplify_network(network)
-		stop2 = time.time()
-		simplify_time += stop2-stop1
-
-		try: network_degree[i] = nx.degree_pearson_correlation_coefficient(simple_network)**2
+		try: network_degree[i] = nx.degree_pearson_correlation_coefficient(network_red, weight='r')**2
 		except: network_degree[i] = None
-		stop3 = time.time()
-		degree_time += stop3-stop2
+		stop2 = time.time()
+		degree_time += stop2-stop1
 
-		try: network_eigen[i] = np.real(nx.adjacency_spectrum(simple_network).max())
+		try: network_eigen[i] = np.real(nx.adjacency_spectrum(network_red).max())
 		except: network_eigen[i] = None
-		stop4 = time.time()
-		central_time += stop4-stop3
+		stop3 = time.time()
+		central_time += stop3-stop2
 
-		try: network_connect[i] = nx.algebraic_connectivity(simple_network)
+		try: network_connect[i] = nx.algebraic_connectivity(network_red, weight='r')
 		except: network_connect[i] = None
-		stop5 = time.time()
-		connect_time += stop5-stop4
+		stop4 = time.time()
+		connect_time += stop4-stop3
 
-		try: network_loc_eff[i] = local_efficiency(simple_network)
+		try: network_loc_eff[i] = local_efficiency(network_red, weight='r')
 		except: network_loc_eff[i] = None
-		stop6 = time.time()
-		loc_eff_time += stop6-stop5
+		stop5 = time.time()
+		loc_eff_time += stop5-stop4
 
-		try: network_cluster[i] = approx.clustering_coefficient.average_clustering(simple_network)
+		try: network_cluster[i] = approx.clustering_coefficient.average_clustering(network_red, weight='r')
 		except: network_cluster[i] = None
-		stop7 = time.time()
-		cluster_time += stop7-stop6
+		stop6 = time.time()
+		cluster_time += stop6-stop5
 
 	print('Network Waviness = {} s'.format(waviness_time))
-	print('Network Simplification = {} s'.format(simplify_time))
 	print('Network Degree = {} s'.format(degree_time))
 	print('Network Eigenvalue = {} s'.format(central_time))
 	print('Network Conectivity = {} s'.format(connect_time))

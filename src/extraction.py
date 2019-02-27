@@ -449,9 +449,8 @@ def get_edge_list(graph, degree=2):
 
 	edge_list = np.empty((0, 2), dtype=int)
 	for edge in graph.edges:
-		if edge[0] != edge[1]:
-			if graph.degree[edge[0]] <= degree and graph.degree[edge[1]] <= degree:
-				edge_list = np.concatenate((edge_list, np.expand_dims(edge, axis=0)))
+		if graph.degree[edge[0]] <= degree and graph.degree[edge[1]] <= degree:
+			edge_list = np.concatenate((edge_list, np.expand_dims(edge, axis=0)))
 
 	return edge_list
 
@@ -466,11 +465,22 @@ def simplify_network(Aij):
 
 	while edge_list.size > 0:
 		for edge in edge_list:
-			try: new_Aij = nx.contracted_edge(new_Aij, edge)
+			try: new_Aij = nx.contracted_edge(new_Aij, edge, self_loops=False)
 			except (ValueError, KeyError): pass
 	
 		edge_list = get_edge_list(new_Aij, degree=2)
-	
+
+	mapping = dict(zip(new_Aij.nodes, np.arange(new_Aij.number_of_nodes())))
+	new_Aij = nx.relabel_nodes(new_Aij, mapping)
+	    
+	node_coord = [new_Aij.nodes[i]['xy'] for i in new_Aij.nodes()]
+	node_coord = np.stack(node_coord)
+	d_coord, r2_coord = distance_matrix(node_coord)
+	r_coord = np.sqrt(r2_coord)
+
+	for edge in new_Aij.edges:
+		new_Aij[edge[0]][edge[1]]['r'] = r_coord[edge[0]][edge[1]]
+
 	return new_Aij
 
 
