@@ -179,10 +179,12 @@ def network_extraction(image_shg, network_name='network', sigma=0.5, p_denoise=(
 		Aij = FIRE(image_nl, scale=1.25, sigma=sigma, max_threads=threads)
 		nx.write_gpickle(Aij, network_name + "_network.pkl")
 
+	"""
 	try: network_simple = nx.read_gpickle(network_name + "_network_reduced.pkl")
 	except IOError:
 		Aij_simple = simplify_network(Aij)
 		nx.write_gpickle(Aij_simple, network_name + "_network_reduced.pkl")
+	"""
 
 	segmented_image = np.zeros(image_shg.shape, dtype=int)
 	areas = np.empty((0,), dtype=float)
@@ -297,8 +299,6 @@ def network_analysis(image_shg, image_pl, networks, segments, n_tensor, anis_map
 		simple_network = simplify_network(network)
 		stop2 = time.time()
 		simplify_time += stop2-stop1
-
-		print(network.number_of_nodes(), simple_network.number_of_nodes())
 
 		try: network_degree[i] = nx.degree_pearson_correlation_coefficient(simple_network)**2
 		except: network_degree[i] = None

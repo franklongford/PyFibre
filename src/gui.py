@@ -500,7 +500,7 @@ class imagecol_gui:
 		self.update_log("Displaying image tensor {}".format(fig_name))
 
 		try:
-			Aij = nx.read_gpickle(data_dir + fig_name + "_network_reduced.pkl")
+			Aij = nx.read_gpickle(data_dir + fig_name + "_network.pkl")
 			self.display_network(self.image_display.network_tab.canvas, self.image_shg, Aij)
 			self.update_log("Displaying network for {}".format(fig_name))
 		except IOError:
