@@ -28,7 +28,8 @@ from skimage.restoration import (estimate_sigma, denoise_tv_chambolle, denoise_b
 from main import analyse_image
 import utilities as ut
 from preprocessing import import_image, clip_intensities
-from segmentation import draw_network
+from segmentation import draw_network, load_networks
+from figures import create_tensor_image, create_region_image, create_network_image
 
 class imagecol_gui:
 
@@ -47,9 +48,10 @@ class imagecol_gui:
 		self.n_thread = n_thread
 
 		"Initialise option variables"
-		self.ow_metric = IntVar()
-		self.ow_network = IntVar()
-		self.save_db = IntVar()
+		self.ow_metric = BooleanVar()
+		self.ow_network = BooleanVar()
+		self.ow_figure = BooleanVar()
+		self.save_db = BooleanVar()
 		self.sigma = DoubleVar()
 		self.sigma.set(0.5)
 		self.p0 = IntVar()
@@ -162,14 +164,19 @@ class imagecol_gui:
 		frame.chk_anis.grid(column=0, row=14, sticky=(N,W,E,S))
 		#frame.chk_anis.pack(side=LEFT)
 
-		frame.chk_graph = Checkbutton(frame, text="o/w graph", variable=self.ow_network)
+		frame.chk_graph = Checkbutton(frame, text="o/w network", variable=self.ow_network)
 		frame.chk_graph.configure(background='#d8baa9')
 		frame.chk_graph.grid(column=0, row=15, sticky=(N,W,E,S))
+		#frame.chk_graph.pack(side=LEFT)
+	
+		frame.chk_graph = Checkbutton(frame, text="o/w figure", variable=self.ow_figure)
+		frame.chk_graph.configure(background='#d8baa9')
+		frame.chk_graph.grid(column=0, row=16, sticky=(N,W,E,S))
 		#frame.chk_graph.pack(side=LEFT)
 
 		frame.chk_db = Checkbutton(frame, text="Save Database", variable=self.save_db)
 		frame.chk_db.configure(background='#d8baa9')
-		frame.chk_db.grid(column=0, row=16, sticky=(N,W,E,S))
+		frame.chk_db.grid(column=0, row=17, sticky=(N,W,E,S))
 
 		frame.configure(background='#d8baa9')
 
@@ -263,13 +270,13 @@ class imagecol_gui:
 			self.update_log("Removing {}".format(filename))
 
 
-	def create_image_display(self, notebook):
+	def create_image_display(self, notebook, width=675, height=550):
 
 		#frame.grid(row=0, columnspan=3, sticky=(N,W,E,S))
 
 		notebook.image_tab = ttk.Frame(notebook)
 		notebook.add(notebook.image_tab, text='Image')
-		notebook.image_tab.canvas = Canvas(notebook.image_tab, width=675, height=550,
+		notebook.image_tab.canvas = Canvas(notebook.image_tab, width=width, height=height,
 								scrollregion=(0,0,675,600))  
 		notebook.image_tab.scrollbar = Scrollbar(notebook.image_tab, orient=VERTICAL, 
 							command=notebook.image_tab.canvas.yview)
@@ -279,7 +286,7 @@ class imagecol_gui:
 
 		notebook.tensor_tab = ttk.Frame(notebook)
 		notebook.add(notebook.tensor_tab, text='Tensor Image')
-		notebook.tensor_tab.canvas = Canvas(notebook.tensor_tab, width=675, height=550,
+		notebook.tensor_tab.canvas = Canvas(notebook.tensor_tab, width=width, height=height,
 								scrollregion=(0,0,675,600))  
 		notebook.tensor_tab.scrollbar = Scrollbar(notebook.tensor_tab, orient=VERTICAL, 
 							command=notebook.tensor_tab.canvas.yview)
@@ -289,7 +296,7 @@ class imagecol_gui:
 
 		notebook.network_tab = ttk.Frame(notebook)
 		notebook.add(notebook.network_tab, text='Network')
-		notebook.network_tab.canvas = Canvas(notebook.network_tab, width=675, height=550,
+		notebook.network_tab.canvas = Canvas(notebook.network_tab, width=width, height=height,
 								scrollregion=(0,0,675,600))  
 		notebook.network_tab.scrollbar = Scrollbar(notebook.network_tab, orient=VERTICAL, 
 							command=notebook.network_tab.canvas.yview)
@@ -299,7 +306,7 @@ class imagecol_gui:
 
 		notebook.segment_tab = ttk.Frame(notebook)
 		notebook.add(notebook.segment_tab, text='Segment')
-		notebook.segment_tab.canvas = Canvas(notebook.segment_tab, width=675, height=550,
+		notebook.segment_tab.canvas = Canvas(notebook.segment_tab, width=width, height=height,
 								scrollregion=(0,0,675,600))  
 		notebook.segment_tab.scrollbar = Scrollbar(notebook.segment_tab, orient=VERTICAL, 
 							command=notebook.segment_tab.canvas.yview)
@@ -309,7 +316,7 @@ class imagecol_gui:
 
 		notebook.hole_tab = ttk.Frame(notebook)
 		notebook.add(notebook.hole_tab, text='Hole')
-		notebook.hole_tab.canvas = Canvas(notebook.hole_tab, width=675, height=550,
+		notebook.hole_tab.canvas = Canvas(notebook.hole_tab, width=width, height=height,
 								scrollregion=(0,0,675,600))  
 		notebook.hole_tab.scrollbar = Scrollbar(notebook.hole_tab, orient=VERTICAL, 
 							command=notebook.hole_tab.canvas.yview)
@@ -320,36 +327,42 @@ class imagecol_gui:
 		notebook.metric_tab = ttk.Frame(notebook)
 		notebook.add(notebook.metric_tab, text='Metrics')
 
-		notebook.metric_tab.metric_dict = {'Fourier SDI' : {"info" : "Fourier spectrum SDI of total image", "metric" : DoubleVar()},
-										'Angle SDI' : {"info" : "Angle spectrum SDI of total image", "metric" : DoubleVar()},
-										'Entropy' : {"info" : "Average Shannon entropy of segmented image", "metric" : DoubleVar()},
-										'Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar()},
-										'Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar()},
-										'Area' : {"info" : "Total image covered by collagen fibres", "metric" : DoubleVar()},
-										'Coverage' : {"info" : "Ratio of total image covered by collagen fibres by image size", "metric" : DoubleVar()},
-										'Contrast' : {"info" : "GLCM angle-averaged contrast", "metric" : DoubleVar()},
-										'Homogeneity' : {"info" : "GLCM angle-averaged homogeneity", "metric" : DoubleVar()},
-										'Dissimilarity' : {"info" : "GLCM angle-averaged dissimilarity", "metric" : DoubleVar()},
-										'Correlation' : {"info" : "GLCM angle-averaged correlation", "metric" : DoubleVar()},
-										'Energy' : {"info" : "GLCM angle-averaged energy", "metric" : DoubleVar()},					
-										'Linearity' : {"info" : "Average segment shape linearity", "metric" : DoubleVar()}, 
-										'Eccentricity' : {"info" : "Average segment shape eccentricity", "metric" : DoubleVar()},
-										'Density' : {"info" : "Average segment density", "metric" : DoubleVar()},
-										'No. Fibres' : {"info" : "Number of fibre segments", "metric" : IntVar()},
-										'No. Cells' : {"info" : "Number of cell segments", "metric" : IntVar()},
+		notebook.metric_tab.metric_dict = {
+										'Angle SDI' : {"info" : "Angle spectrum SDI of total image", "metric" : DoubleVar(), "tag" : "texture"},
+										'Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar(), "tag" : "texture"},
+										'Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar(), "tag" : "texture"},
+										'Entropy' : {"info" : "Average Shannon entropy of total image", "metric" : DoubleVar(), "tag" : "texture"},						
+										'Contrast' : {"info" : "GLCM angle-averaged contrast", "metric" : DoubleVar(), "tag" : "texture"},
+										'Homogeneity' : {"info" : "GLCM angle-averaged homogeneity", "metric" : DoubleVar(), "tag" : "texture"},
+										'Dissimilarity' : {"info" : "GLCM angle-averaged dissimilarity", "metric" : DoubleVar(), "tag" : "texture"},
+										'Correlation' : {"info" : "GLCM angle-averaged correlation", "metric" : DoubleVar(), "tag" : "texture"},
+										'Energy' : {"info" : "GLCM angle-averaged energy", "metric" : DoubleVar(), "tag" : "texture"},
+										'No. Fibres' : {"info" : "Number of fibre segments", "metric" : IntVar(), "tag" : "content"},
+										'Fibre Area' : {"info" : "Average number of pixels covered by fibres", "metric" : DoubleVar(), "tag" : "content"},			
+										'Fibre Coverage' : {"info" : "Ratio of image covered by fibres", "metric" : DoubleVar(), "tag" : "content"},
+										'Fibre Linearity' : {"info" : "Average fibre segment linearity", "metric" : DoubleVar(), "tag" : "shape"},
+										'Fibre Eccentricity' : {"info" : "Average fibre segment eccentricity", "metric" : DoubleVar(), "tag" : "shape"},
+										'Fibre Density' : {"info" : "Average image fibre density", "metric" : DoubleVar(), "tag" : "texture"},
+										'Fibre Hu Moment 1'  : {"info" : "Average fibre segment Hu moment 1", "metric" : DoubleVar(), "tag" : "shape"},
+										'Fibre Hu Moment 2'  : {"info" : "Average fibre segment Hu moment 2", "metric" : DoubleVar(), "tag" : "shape"},
+										'No. Cells' : {"info" : "Number of cell segments", "metric" : IntVar(), "tag" : "content"},
+										'Cell Area' : {"info" : "Average number of pixels covered by cells", "metric" : DoubleVar(), "tag" : "content"},
+										'Cell Linearity' : {"info" : "Average cell segment linearity", "metric" : DoubleVar(), "tag" : "shape"}, 
+										'Cell Coverage' : {"info" : "Ratio of image covered by cell", "metric" : DoubleVar(), "tag" : "content"},		
+										'Cell Eccentricity' : {"info" : "Average cell segment eccentricity", "metric" : DoubleVar(), "tag" : "shape"},				
+										'Cell Density' : {"info" : "Average image cell density", "metric" : DoubleVar(), "tag" : "texture"},						
 										#'Network Waviness' : {"info" : "Average fibre network fibre waviness", "metric" : DoubleVar()},
 										#'Network Degree' : {"info" : "Average fibre network number of edges per node", "metric" : DoubleVar()},
 										#'Network Eigenvalue' : {"info" : "Max Eigenvalue of network", "metric" : DoubleVar()},
 										#'Network Connectivity' : {"info" : "Average fibre network connectivity", "metric" : DoubleVar()},
 										#'Network Local Efficiency' : {"info" : "Average fibre network local efficiency", "metric" : DoubleVar()},
 										#'Network Clustering' : {"info" : "Average fibre network clustering", "metric" : DoubleVar()},
-										'Hu Moment 1'  : {"info" : "Shape Hu moment 1", "metric" : DoubleVar()},
-										'Hu Moment 2'  : {"info" : "Shape Hu moment 2", "metric" : DoubleVar()},
-										'Hu Moment 3'  : {"info" : "Shape Hu moment 3", "metric" : DoubleVar()},
-										'Hu Moment 4'  : {"info" : "Shape Hu moment 4", "metric" : DoubleVar()},
-										'Hu Moment 5'  : {"info" : "Shape Hu moment 5", "metric" : DoubleVar()},
-										'Hu Moment 6'  : {"info" : "Shape Hu moment 6", "metric" : DoubleVar()},
-										'Hu Moment 7'  : {"info" : "Shape Hu moment 7", "metric" : DoubleVar()}
+										
+										'Cell Hu Moment 1'  : {"info" : "Average cell segment Hu moment 1", "metric" : DoubleVar(), "tag" : "shape"},
+										'Cell Hu Moment 2'  : {"info" : "Average cell segment Hu moment 2", "metric" : DoubleVar(), "tag" : "shape"},
+										#'Hu Moment 5'  : {"info" : "Shape Hu moment 5", "metric" : DoubleVar(), "tag" : "shape"},
+										#'Hu Moment 6'  : {"info" : "Shape Hu moment 6", "metric" : DoubleVar(), "tag" : "shape"},
+										#'Hu Moment 7'  : {"info" : "Shape Hu moment 7", "metric" : DoubleVar(), "tag" : "shape"}
 										}
 
 		notebook.metric_tab.titles = list(notebook.metric_tab.metric_dict.keys())
@@ -359,14 +372,58 @@ class imagecol_gui:
 		notebook.metric_tab.info = []
 		notebook.metric_tab.metrics = []
 
-		for i, metric in enumerate(notebook.metric_tab.titles):
-			notebook.metric_tab.headings += [Label(notebook.metric_tab, text="{}:".format(metric))]
-			notebook.metric_tab.info += [Label(notebook.metric_tab, text=notebook.metric_tab.metric_dict[metric]["info"])]
-			notebook.metric_tab.metrics += [Label(notebook.metric_tab, textvariable=notebook.metric_tab.metric_dict[metric]["metric"])]
-			notebook.metric_tab.headings[i].grid(column=0, row=i)
-			notebook.metric_tab.info[i].grid(column=1, row=i)
-			notebook.metric_tab.metrics[i].grid(column=2, row=i)
+		notebook.metric_tab.texture = ttk.Labelframe(notebook.metric_tab, text="Texture",
+						width=width-50, height=height-50)
+		notebook.metric_tab.content = ttk.Labelframe(notebook.metric_tab, text="Content",
+						width=width-50, height=height-50)
+		notebook.metric_tab.shape = ttk.Labelframe(notebook.metric_tab, text="Shape",
+						width=width-50, height=height-50)
+		
+		texture_i = 0
+		content_i = 0
+		shape_i = 0
 
+		for i, metric in enumerate(notebook.metric_tab.titles):
+
+			if notebook.metric_tab.metric_dict[metric]["tag"] == "texture":
+
+				notebook.metric_tab.headings += [Label(notebook.metric_tab.texture, text="{}:".format(metric))]
+				notebook.metric_tab.info += [Label(notebook.metric_tab.texture, text=notebook.metric_tab.metric_dict[metric]["info"])]
+				notebook.metric_tab.metrics += [Label(notebook.metric_tab.texture, textvariable=notebook.metric_tab.metric_dict[metric]["metric"])]
+
+				notebook.metric_tab.headings[i].grid(column=0, row=texture_i)
+				notebook.metric_tab.info[i].grid(column=1, row=texture_i)
+				notebook.metric_tab.metrics[i].grid(column=2, row=texture_i)
+				texture_i += 1
+
+			if notebook.metric_tab.metric_dict[metric]["tag"] == "content":
+
+				notebook.metric_tab.headings += [Label(notebook.metric_tab.content, text="{}:".format(metric))]
+				notebook.metric_tab.info += [Label(notebook.metric_tab.content, text=notebook.metric_tab.metric_dict[metric]["info"])]
+				notebook.metric_tab.metrics += [Label(notebook.metric_tab.content, textvariable=notebook.metric_tab.metric_dict[metric]["metric"])]
+
+				notebook.metric_tab.headings[i].grid(column=0, row=content_i)
+				notebook.metric_tab.info[i].grid(column=1, row=content_i)
+				notebook.metric_tab.metrics[i].grid(column=2, row=content_i)
+				content_i += 1
+
+
+			if notebook.metric_tab.metric_dict[metric]["tag"] == "shape":
+
+				notebook.metric_tab.headings += [Label(notebook.metric_tab.shape, text="{}:".format(metric))]
+				notebook.metric_tab.info += [Label(notebook.metric_tab.shape, text=notebook.metric_tab.metric_dict[metric]["info"])]
+				notebook.metric_tab.metrics += [Label(notebook.metric_tab.shape, textvariable=notebook.metric_tab.metric_dict[metric]["metric"])]
+
+				notebook.metric_tab.headings[i].grid(column=0, row=shape_i)
+				notebook.metric_tab.info[i].grid(column=1, row=shape_i)
+				notebook.metric_tab.metrics[i].grid(column=2, row=shape_i)
+				shape_i += 1
+
+
+		notebook.metric_tab.texture.pack()
+		notebook.metric_tab.content.pack()
+		notebook.metric_tab.shape.pack()
+		
 		notebook.log_tab = ttk.Frame(notebook)
 		notebook.add(notebook.log_tab, text='Log')
 		notebook.log_tab.text = Text(notebook.log_tab, width=675, height=550)
@@ -394,6 +451,8 @@ class imagecol_gui:
 
 	def display_image(self, canvas, image):
 
+		canvas.delete('all')
+
 		canvas.create_image(40, 20, image=image, anchor=NW)
 		canvas.image = image
 		canvas.pack(side = LEFT, fill = "both", expand = "yes")
@@ -403,43 +462,24 @@ class imagecol_gui:
 
 	def display_tensor(self, canvas, image):
 
-		from filters import form_structure_tensor
-		from analysis import tensor_analysis, set_HSB
+		tensor_image = create_tensor_image(image) * 255.999
 
-		"Form nematic and structure tensors for each pixel"
-		j_tensor = form_structure_tensor(image, sigma=1.0)
+		image_tk = ImageTk.PhotoImage(Image.fromarray(tensor_image.astype('uint8')))
 
-		"Perform anisotropy analysis on each pixel"
-		pix_j_anis, pix_j_angle, pix_j_energy = tensor_analysis(j_tensor)
-
-		hue = (pix_j_angle + 90) / 180
-		saturation = pix_j_anis / pix_j_anis.max()
-		brightness = image / image.max()
-
-		"Form structure tensor image"
-		rgb_image = set_HSB(image, hue, saturation, brightness) * 255.9999
-
-		image_tk = ImageTk.PhotoImage(Image.fromarray(rgb_image.astype('uint8')))
-		canvas.create_image(40, 20, image=image_tk, anchor=NW)
-		canvas.image = image_tk
-		canvas.pack(side = LEFT, fill = "both", expand = "yes")
+		self.display_image(canvas, image_tk)
 
 		self.master.update_idletasks()
 
 
-	def display_network(self, canvas, image, Aij):
+	def display_network(self, canvas, image, networks):
 
-		canvas.delete('all')
+		image_network_overlay = create_network_image(image, networks)
 
-		image_tk = ImageTk.PhotoImage(Image.fromarray(image.astype('uint8')))
+		image_tk = ImageTk.PhotoImage(Image.fromarray(image_network_overlay.astype('uint8')))
+
 		self.display_image(canvas, image_tk)
 
-		networks = []
-
-		for i, component in enumerate(nx.connected_components(Aij)):
-			subgraph = Aij.subgraph(component)
-			if subgraph.number_of_nodes() > 3:
-				networks.append(subgraph)
+		"""
 				
 		for j, network in enumerate(networks):
 
@@ -454,21 +494,12 @@ class imagecol_gui:
 					canvas.create_line(node_coord[n][1] + 40, node_coord[n][0] + 20,
 							   node_coord[m][1] + 40, node_coord[m][0] + 20,
 							   fill="red", width=1.5)
+		"""
 
 	def display_regions(self, canvas, image, regions):
 
-		image *= 100 / image.max()
-		label_image = np.zeros(image.shape, dtype=int)
-		
-		for region in regions:
-			minr, minc, maxr, maxc = region.bbox
-			indices = np.mgrid[minr:maxr, minc:maxc]
+		image_label_overlay = create_region_image(image, regions) * 255.999
 
-			label_image[(indices[0], indices[1])] += region.image * (region.label)
-
-		image_label_overlay = label2rgb(label_image, image=image, bg_label=0,
-										image_alpha=0.8, alpha=0.95, bg_color=(0, 0, 0))
-		image_label_overlay *= 255.9999 / image_label_overlay.max()
 		image_pil = Image.fromarray(image_label_overlay.astype('uint8'))
 		image_tk = ImageTk.PhotoImage(image_pil)
 
@@ -478,7 +509,7 @@ class imagecol_gui:
 	def display_notebook(self):
 
 		selected_file = [self.file_display.file_box.get(idx)\
-							 for idx in self.file_display.file_box.curselection()][0]
+					for idx in self.file_display.file_box.curselection()][0]
 
 		image_name = selected_file.split('/')[-1]
 		image_path = '/'.join(selected_file.split('/')[:-1])
@@ -500,8 +531,8 @@ class imagecol_gui:
 		self.update_log("Displaying image tensor {}".format(fig_name))
 
 		try:
-			Aij = nx.read_gpickle(data_dir + fig_name + "_network.pkl")
-			self.display_network(self.image_display.network_tab.canvas, self.image_shg, Aij)
+			networks = load_networks(data_dir + fig_name + "_network.pkl")
+			self.display_network(self.image_display.network_tab.canvas, self.image_shg, networks)
 			self.update_log("Displaying network for {}".format(fig_name))
 		except IOError:
 			self.update_log("Unable to display network for {}".format(fig_name))
@@ -604,7 +635,8 @@ class imagecol_gui:
 					(self.p0.get(), self.p1.get()),
 					(self.n.get(), self.m.get()),
 					self.sigma.get(), self.alpha.get(),
-					self.ow_metric.get(), self.ow_network.get(), 
+					self.ow_metric.get(), self.ow_network.get(),
+					self.ow_figure.get(), 
 					self.queue, self.n_thread))
 			process.daemon = True
 			self.processes.append(process)
@@ -657,7 +689,7 @@ class imagecol_gui:
 
 
 def image_analysis(input_files, p_intensity, p_denoise, sigma, alpha, 
-			ow_metric, ow_network, queue, threads):
+			ow_metric, ow_network, ow_figure, queue, threads):
 
 	for input_file_name in input_files:
 
@@ -669,7 +701,7 @@ def image_analysis(input_files, p_intensity, p_denoise, sigma, alpha,
 					p_denoise=p_denoise, sigma=sigma,
 					alpha=alpha,
 					ow_metric=ow_metric, ow_network=ow_network,
-					threads=threads)
+					ow_figure=ow_figure, threads=threads)
 			queue.put("Analysis of {} complete".format(input_file_name))
 
 		except Exception as err: queue.put("{} {}".format(err.message, input_file_name))

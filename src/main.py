@@ -24,11 +24,12 @@ from preprocessing import import_image, clip_intensities
 import analysis as an
 import segmentation as seg
 from filters import form_nematic_tensor, form_structure_tensor
+from figures import create_figure, create_tensor_image, create_region_image, create_network_image
 
 
 def analyse_image(input_file_name, working_dir=None, scale=1, 
 				p_intensity=(1, 99), p_denoise=(2, 25), sigma=0.5, alpha=0.5,
-				ow_metric=False, ow_network=False, threads=8):
+				ow_metric=False, ow_network=False, ow_figure=False, threads=8):
 	"""
 	Analyse imput image by calculating metrics and sgenmenting via FIRE algorithm
 
@@ -69,12 +70,12 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		Calculated metrics for further analysis
 	"""
 
-	global_columns = ['Fourier SDI', 'Angle SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy', 'Area',
-			'Linearity', 'Eccentricity', 'Density', 'Coverage',
-			'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy', 'No. Fibres',
-			'No. Cells',
-			'Hu Moment 1', 'Hu Moment 2', 'Hu Moment 3', 'Hu Moment 4', 
-			'Hu Moment 5', 'Hu Moment 6', 'Hu Moment 7']
+	global_columns = ['Angle SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy', 
+			'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy',
+			'No. Fibres', 'Fibre Area', 'No. Cells', 'Cell Area',
+			'Fibre Linearity', 'Fibre Eccentricity', 'Fibre Density', 'Fibre Coverage',
+			'Cell Linearity', 'Cell Eccentricity', 'Cell Density', 'Cell Coverage', 
+			'Fibre Hu Moment 1', 'Fibre Hu Moment 2', 'Cell Hu Moment 1', 'Cell Hu Moment 2']
 
 	fibre_columns = ['Fourier SDI', 'Angle SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
 				'Area', 'Linearity', 'Eccentricity', 'Density', 'Coverage',
@@ -86,14 +87,17 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 				'Hu Moment 7']
 
 	cell_columns = ['Area', 'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 
-			'Energy','Hu Moment 1', 'Hu Moment 2', 'Hu Moment 3', 'Hu Moment 4', 
-			'Hu Moment 5', 'Hu Moment 6','Hu Moment 7']
+			'Energy', 'Linearity', 'Eccentricity', 'Hu Moment 1', 'Hu Moment 2', 
+			'Hu Moment 3', 'Hu Moment 4', 'Hu Moment 5', 'Hu Moment 6','Hu Moment 7']
 
 	cmap = 'viridis'
 	if working_dir == None: working_dir = os.getcwd()
 
-	data_dir = working_dir + '/data/'	
+	data_dir = working_dir + '/data/'
+	fig_dir = working_dir + '/fig/'
+
 	if not os.path.exists(data_dir): os.mkdir(data_dir)
+	if not os.path.exists(fig_dir): os.mkdir(fig_dir)
 
 	file_name = input_file_name.split('/')[-1]
 	image_name = ut.check_file_name(file_name, extension='tif')
@@ -106,6 +110,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		except IOError:
 			print("Cannot load metrics for {}".format(image_name))
 			ow_metric = True
+			ow_figure = True
 
 	if ow_metric:
 		print(f"Loading image {data_dir + image_name}")
@@ -129,17 +134,16 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		
 		cells, hole_labels = seg.hole_extraction(image_shg, image_pl)
 
-		hole_filter = np.where(hole_labels, alpha, 1)
-		hole_filter = gaussian_filter(hole_filter, sigma=0.5)
-
 		(cell_areas, cell_contrast, cell_homo, cell_dissim, 
-		cell_corr, cell_energy, cell_hu) = seg.hole_analysis(image_pl, cells)
+		cell_corr, cell_energy, cell_linear, cell_eccent,
+		cell_hu) = seg.hole_analysis(image_pl, cells)
 
 		filenames = pd.Series(['{}_cell_segment.pkl'.format(filename)] * len(cells), name='File')		
 		cell_id = pd.Series(np.arange(len(cells)), name='ID')
 
 		cell_metrics = np.stack([cell_areas, cell_contrast, cell_homo, 
-					cell_dissim, cell_corr, cell_energy], axis=-1)
+					cell_dissim, cell_corr, cell_energy,
+					cell_linear, cell_eccent], axis=-1)
 		cell_metrics = np.concatenate((cell_metrics, cell_hu), axis=-1)
 
 		cell_dataframe = pd.DataFrame(data=cell_metrics, columns=cell_columns)
@@ -147,13 +151,17 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		cell_dataframe.to_pickle('{}_cell_metric.pkl'.format(filename))
 		ut.save_region(cells, '{}_cell_segment'.format(filename))
 
+
+		print("Performing fibre segment analysis")
+
 		"Extract fibre network"
+		hole_filter = np.where(hole_labels, alpha, 1)
+		hole_filter = gaussian_filter(hole_filter, sigma=0.5)
+
 		net = seg.network_extraction(image_shg * hole_filter, data_dir + image_name,
 						sigma=sigma, p_denoise=p_denoise,
 						ow_network=ow_network, threads=threads) 
-		(segmented_image, networks, networks_red, fibres) = net
-	
-		print("Performing fibre segment analysis")
+		(fibre_labels, networks, networks_red, fibres) = net
 
 		"Analyse fibre network"
 		net_res = seg.network_analysis(image_shg, image_pl, networks, networks_red, fibres, 
@@ -179,6 +187,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		fibre_dataframe.to_pickle('{}_fibre_metric.pkl'.format(filename))
 		ut.save_region(fibres, '{}_fibre_segment'.format(filename))
 
+
 		print("Performing Global Image analysis")
 
 		global_binary = np.where(hole_labels, 0, 1)
@@ -192,15 +201,35 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		global_coverage, global_contrast, global_homo, global_dissim, 
 		global_corr, global_energy, global_hu) = metrics
 
+		global_fibre_area = np.mean(fibre_areas)
+		global_fibre_coverage = np.count_nonzero(fibre_labels) / fibre_labels.size
+		global_fibre_linear = np.mean(fibre_linear)
+		global_fibre_eccent = np.mean(fibre_eccent)
+		global_fibre_density = np.mean(image_shg[np.where(fibre_labels)])
+		global_fibre_hu_1 = np.mean(fibre_hu[:, 0])
+		global_fibre_hu_2 = np.mean(fibre_hu[:, 1])
+
+		global_cell_area = np.mean(cell_areas)
+		global_cell_coverage = np.count_nonzero(hole_labels) / hole_labels.size
+		global_cell_linear = np.mean(cell_linear)
+		global_cell_eccent = np.mean(cell_eccent)
+		global_cell_density = np.mean(image_pl[np.where(hole_labels)])
+		global_cell_hu_1 = np.mean(cell_hu[:, 0])
+		global_cell_hu_2 = np.mean(cell_hu[:, 1])
+
 		filenames = pd.Series('{}_global_segment.pkl'.format(filename), name='File')
 
 		global_metrics = np.stack([
-					global_fourier_sdi, global_angle_sdi, global_entropy, global_anis, 
-					global_pix_anis, global_area, global_linear, global_eccent, 
-					global_density, global_coverage, global_contrast, global_homo, 
-					global_dissim, global_corr, global_energy, (len(fibres)),
-					(len(cells))], axis=0)
-		global_metrics = np.concatenate((global_metrics, global_hu), axis=0)
+					global_angle_sdi, global_entropy, global_anis, global_pix_anis,
+					global_contrast, global_homo, global_dissim, global_corr, global_energy,
+					(len(fibres)), global_fibre_area, (len(cells)), global_cell_area,
+					global_fibre_linear, global_fibre_eccent,
+					global_fibre_density, global_fibre_coverage, global_cell_linear,
+					global_cell_eccent, global_cell_density, global_cell_coverage,
+					global_fibre_hu_1, global_fibre_hu_2, global_cell_hu_1, 
+					global_cell_hu_2], axis=0)
+
+		#global_metrics = np.concatenate((global_metrics, global_hu), axis=0)
 		global_metrics = np.expand_dims(global_metrics, 0)
 
 		global_dataframe = pd.DataFrame(data=global_metrics, columns=global_columns)
@@ -208,6 +237,30 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		global_dataframe.to_pickle('{}_global_metric.pkl'.format(filename))
 		ut.save_region(global_segment, '{}_global_segment'.format(filename))
 
+	if ow_figure:
+
+		print(f"Loading image {data_dir + image_name}")
+		"Load and preprocess image"
+		image_shg, image_pl = import_image(input_file_name)
+		"Pre-process image to remove noise"
+		image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
+		image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
+
+		networks = seg.load_networks(data_dir + image_name + "_network.pkl")
+		fibres = ut.load_region(data_dir + image_name + "_fibre_segment")
+		cells = ut.load_region(data_dir + image_name + "_cell_segment")
+		
+		tensor_image = create_tensor_image(image_shg)
+		fibre_network_image = create_network_image(image_shg, networks)
+		fibre_region_image = create_region_image(image_shg, fibres)
+		cell_region_image = create_region_image(image_pl, cells)
+
+		create_figure(image_shg, fig_dir + image_name)
+		create_figure(tensor_image, fig_dir + image_name + '_tensor')
+		create_figure(fibre_network_image, fig_dir + image_name + '_network')
+		create_figure(fibre_region_image, fig_dir + image_name + '_fibre')
+		create_figure(cell_region_image, fig_dir + image_name + '_cell')
+		
 
 	return global_dataframe, fibre_dataframe, cell_dataframe
 
@@ -226,6 +279,7 @@ if __name__ == '__main__':
 	parser.add_argument('--sigma', type=float, nargs='?', help='Gaussian smoothing standard deviation', default=0.5)
 	parser.add_argument('--ow_metric', action='store_true', help='Toggles overwrite analytic metrics')
 	parser.add_argument('--ow_network', action='store_true', help='Toggles overwrite network extraction')
+	parser.add_argument('--ow_figure', action='store_true', help='Toggles overwrite figures')
 	parser.add_argument('--save_db', nargs='?', help='Output database filename', default=None)
 	parser.add_argument('--threads', type=int, nargs='?', help='Number of threads per processor', default=8)
 	args = parser.parse_args()
@@ -264,7 +318,8 @@ if __name__ == '__main__':
 		image_path = '/'.join(input_file_name.split('/')[:-1])
 
 		data_global, data_segment, data_hole = analyse_image(input_file_name, image_path, sigma=args.sigma, 
-			ow_metric=args.ow_metric, ow_network=args.ow_network, threads=args.threads)
+			ow_metric=args.ow_metric, ow_network=args.ow_network, ow_figure=args.ow_figure, 
+			threads=args.threads)
 
 		global_database = pd.concat([global_database, data_global])
 		segment_database = pd.concat([segment_database, data_segment])

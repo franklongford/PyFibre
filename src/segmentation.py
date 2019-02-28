@@ -80,7 +80,7 @@ def hole_extraction(image_shg, image_pl, scale=2, sigma=0.8, alpha=1.0, min_size
 		if hole_check: holes.append(hole)
 		#holes.append(hole)
 
-	return holes, image_hole_shg
+	return holes, hole_labels
 
 
 def hole_analysis(image, holes):
@@ -94,6 +94,8 @@ def hole_analysis(image, holes):
 	hole_corr = np.zeros(l_holes)
 	hole_homo = np.zeros(l_holes)
 	hole_energy = np.zeros(l_holes)
+	hole_linear = np.zeros(l_holes)
+	hole_eccent = np.zeros(l_holes)
 
 	for i, hole in enumerate(holes):
 		
@@ -115,7 +117,11 @@ def hole_analysis(image, holes):
 		hole_corr[i] = greycoprops(glcm, 'correlation').mean()
 		hole_energy[i] = greycoprops(glcm, 'energy').mean()
 
-	return hole_areas, hole_contrast, hole_homo, hole_dissim, hole_corr, hole_energy, hole_hu
+		hole_linear[i] = 1 - hole.equivalent_diameter / hole.perimeter
+		hole_eccent[i] = hole.eccentricity
+
+	return (hole_areas, hole_contrast, hole_homo, hole_dissim, hole_corr, 
+		hole_energy, hole_linear, hole_eccent, hole_hu) 
 
 
 def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map, angle_map):
@@ -159,6 +165,19 @@ def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map, angle_map
 		segment_area, segment_linear, segment_eccent, segment_density, 
 		segment_coverage, segment_contrast, segment_homo, segment_dissim, 
 		segment_corr, segment_energy, segment_hu)
+
+
+def load_networks(filename):
+
+	Aij = nx.read_gpickle(filename)
+	networks = []
+
+	for i, component in enumerate(nx.connected_components(Aij)):
+		subgraph = Aij.subgraph(component)
+		if subgraph.number_of_nodes() > 3:
+			networks.append(subgraph)
+
+	return networks
 
 
 def network_extraction(image_shg, network_name='network', sigma=0.5, p_denoise=(2, 25), 

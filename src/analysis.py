@@ -19,21 +19,6 @@ from skimage.color import grey2rgb, rgb2grey, rgb2hsv, hsv2rgb
 import utilities as ut
 
 
-def set_HSB(image, hue, saturation=1, brightness=1):
-	""" Add color of the given hue to an greyscale image.
-
-	By default, set the saturation to 1 so that the colors pop!
-	"""
-	rgb = grey2rgb(image)
-	hsv = rgb2hsv(rgb)
-
-	hsv[..., 0] = hue
-	hsv[..., 1] = saturation
-	hsv[..., 2] = brightness
-
-	return hsv2rgb(hsv)
-
-
 def fourier_transform_analysis(image, sigma=None, n_sample=100, size=100, nbins=200):
     """
     Calculates fourier amplitude spectrum for image
