@@ -149,7 +149,7 @@ def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map, angle_map
 	segment_n_tensor = n_tensor[(indices[0], indices[1])]
 
 	_, _, segment_fourier_sdi = fourier_transform_analysis(segment_image_shg)
-	segment_angle_sdi = angle_analysis(segment_angle_map)
+	segment_angle_sdi = angle_analysis(segment_angle_map, segment_anis_map)
 	segment_entropy = measure.shannon_entropy(segment_image_shg)
 
 	segment_anis, _ , _ = tensor_analysis(np.mean(segment_n_tensor, axis=(0, 1)))
