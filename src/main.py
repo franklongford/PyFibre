@@ -74,6 +74,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 			'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy',
 			'No. Fibres', 'Fibre Area', 'No. Cells', 'Cell Area',
 			'Fibre Linearity', 'Fibre Eccentricity', 'Fibre Density', 'Fibre Coverage',
+			#'Fibre Waviness', 'Fibre Eccentricity', 'Fibre Density', 'Fibre Coverage',
 			'Cell Linearity', 'Cell Eccentricity', 'Cell Density', 'Cell Coverage', 
 			'Fibre Hu Moment 1', 'Fibre Hu Moment 2', 'Cell Hu Moment 1', 'Cell Hu Moment 2']
 
@@ -101,8 +102,27 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 
 	file_name = input_file_name.split('/')[-1]
 	image_name = ut.check_file_name(file_name, extension='tif')
+	filename = '{}'.format(data_dir + image_name)
+
+	print(f"Loading image {filename}")
+	"Load and preprocess image"
+	image_shg, image_pl = import_image(input_file_name)
+	"Pre-process image to remove noise"
+	image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
+	image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
+	
 
 	if not np.any([ow_metric, ow_network]):
+
+		try:
+			networks = seg.load_networks(data_dir + image_name + "_network.pkl")
+			networks_red = seg.load_networks(data_dir + image_name + "_network_reduced.pkl")
+		except IOError:
+			print("Cannot load networks for {}".format(image_name))
+			ow_network = True
+			ow_metric = True
+			ow_figure = True
+
 		try: 
 			global_dataframe = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + image_name))
 			fibre_dataframe = pd.read_pickle('{}_fibre_metric.pkl'.format(data_dir + image_name))
@@ -112,16 +132,27 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 			ow_metric = True
 			ow_figure = True
 
-	if ow_metric:
-		print(f"Loading image {data_dir + image_name}")
-		"Load and preprocess image"
-		image_shg, image_pl = import_image(input_file_name)
-		"Pre-process image to remove noise"
-		image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
-		image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
+	if ow_network:
 
-		filename = '{}'.format(data_dir + image_name)
+		cells  = seg.hole_extraction(image_shg, image_pl)
+		ut.save_region(cells, '{}_cell_segment'.format(filename))
 
+		cell_binary = seg.create_binary_image(cells, image_pl.shape)
+		
+		cell_filter = np.where(cell_binary, alpha, 1)
+		cell_filter = gaussian_filter(cell_filter, sigma=0.5)
+
+		net = seg.network_extraction(image_shg * cell_filter, data_dir + image_name,
+						sigma=sigma, p_denoise=p_denoise, threads=threads)
+		networks, networks_red = net
+
+		networks, networks_red, fibres = seg.fibre_extraction(image_shg, networks, networks_red)
+
+		ut.save_region(fibres, '{}_fibre_segment'.format(filename))
+
+
+	if ow_metric or ow_network:
+		
 		"Form nematic and structure tensors for each pixel"
 		n_tensor = form_nematic_tensor(image_shg, sigma=sigma)
 		j_tensor = form_structure_tensor(image_shg, sigma=sigma)
@@ -130,9 +161,15 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		pix_n_anis, pix_n_angle, pix_n_energy = an.tensor_analysis(n_tensor)
 		pix_j_anis, pix_j_angle, pix_j_energy = an.tensor_analysis(j_tensor)
 
+		cells = ut.load_region(data_dir + image_name + "_cell_segment")
+		networks = seg.load_networks(data_dir + image_name + "_network.pkl")
+		networks_red = seg.load_networks(data_dir + image_name + "_network_reduced.pkl")
+
+		networks, networks_red, fibres = seg.fibre_extraction(image_shg, networks, networks_red)
+
 		print("Performing cell segment analysis")
 		
-		cells, hole_labels = seg.hole_extraction(image_shg, image_pl)
+		cell_binary = seg.create_binary_image(cells, image_pl.shape)
 
 		(cell_areas, cell_contrast, cell_homo, cell_dissim, 
 		cell_corr, cell_energy, cell_linear, cell_eccent,
@@ -149,29 +186,20 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		cell_dataframe = pd.DataFrame(data=cell_metrics, columns=cell_columns)
 		cell_dataframe = pd.concat((filenames, cell_id, cell_dataframe), axis=1)
 		cell_dataframe.to_pickle('{}_cell_metric.pkl'.format(filename))
-		ut.save_region(cells, '{}_cell_segment'.format(filename))
-
-
+	
 		print("Performing fibre segment analysis")
-
-		"Extract fibre network"
-		hole_filter = np.where(hole_labels, alpha, 1)
-		hole_filter = gaussian_filter(hole_filter, sigma=0.5)
-
-		net = seg.network_extraction(image_shg * hole_filter, data_dir + image_name,
-						sigma=sigma, p_denoise=p_denoise,
-						ow_network=ow_network, threads=threads) 
-		(fibre_labels, networks, networks_red, fibres) = net
 
 		"Analyse fibre network"
 		net_res = seg.network_analysis(image_shg, image_pl, networks, networks_red, fibres, 
-										j_tensor, pix_j_anis, pix_j_angle)
+						j_tensor, pix_j_anis, pix_j_angle)
 		(fibre_fourier_sdi, fibre_angle_sdi, fibre_entropy, fibre_anis, fibre_pix_anis, 
 		fibre_areas, fibre_linear, fibre_eccent, fibre_density, fibre_coverage,
 		fibre_contrast, fibre_homo, fibre_dissim, fibre_corr, fibre_energy, fibre_hu,
 		network_waviness, network_degree, network_eigen, 
 		network_connect, network_loc_eff, network_cluster) = net_res
 
+		fibre_binary = seg.create_binary_image(fibres, image_shg.shape)
+		
 		filenames = pd.Series(['{}_fibre_segment.pkl'.format(filename)] * len(fibres), name='File')
 		fibre_id = pd.Series(np.arange(len(fibres)), name='ID')
 
@@ -185,12 +213,11 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		fibre_dataframe = pd.DataFrame(data=fibre_metrics, columns=fibre_columns)
 		fibre_dataframe = pd.concat((filenames, fibre_id, fibre_dataframe), axis=1)
 		fibre_dataframe.to_pickle('{}_fibre_metric.pkl'.format(filename))
-		ut.save_region(fibres, '{}_fibre_segment'.format(filename))
-
+		
 
 		print("Performing Global Image analysis")
 
-		global_binary = np.where(hole_labels, 0, 1)
+		global_binary = np.where(cell_binary, 0, 1)
 		global_segment = regionprops(global_binary)[0]
 
 		metrics = seg.segment_analysis(image_shg, image_pl, global_segment, j_tensor, 
@@ -202,18 +229,18 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		global_corr, global_energy, global_hu) = metrics
 
 		global_fibre_area = np.mean(fibre_areas)
-		global_fibre_coverage = np.count_nonzero(fibre_labels) / fibre_labels.size
+		global_fibre_coverage = np.sum(fibre_binary) / image_shg.size
 		global_fibre_linear = np.mean(fibre_linear)
 		global_fibre_eccent = np.mean(fibre_eccent)
-		global_fibre_density = np.mean(image_shg[np.where(fibre_labels)])
+		global_fibre_density = np.mean(image_shg[np.where(fibre_binary)])
 		global_fibre_hu_1 = np.mean(fibre_hu[:, 0])
 		global_fibre_hu_2 = np.mean(fibre_hu[:, 1])
 
 		global_cell_area = np.mean(cell_areas)
-		global_cell_coverage = np.count_nonzero(hole_labels) / hole_labels.size
+		global_cell_coverage = np.sum(cell_binary) / image_pl.size
 		global_cell_linear = np.mean(cell_linear)
 		global_cell_eccent = np.mean(cell_eccent)
-		global_cell_density = np.mean(image_pl[np.where(hole_labels)])
+		global_cell_density = np.mean(image_pl[np.where(cell_binary)])
 		global_cell_hu_1 = np.mean(cell_hu[:, 0])
 		global_cell_hu_2 = np.mean(cell_hu[:, 1])
 
@@ -238,13 +265,6 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		ut.save_region(global_segment, '{}_global_segment'.format(filename))
 
 	if ow_figure:
-
-		print(f"Loading image {data_dir + image_name}")
-		"Load and preprocess image"
-		image_shg, image_pl = import_image(input_file_name)
-		"Pre-process image to remove noise"
-		image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
-		image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
 
 		networks = seg.load_networks(data_dir + image_name + "_network.pkl")
 		fibres = ut.load_region(data_dir + image_name + "_fibre_segment")

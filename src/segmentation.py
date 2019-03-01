@@ -13,6 +13,7 @@ import numpy as np
 import scipy as sp
 
 import networkx as nx
+from networkx.algorithms import cluster
 from networkx.algorithms import approximation as approx
 from networkx.algorithms.efficiency import local_efficiency, global_efficiency
 
@@ -29,6 +30,18 @@ from filters import tubeness, hysteresis
 from extraction import FIRE, adj_analysis, simplify_network
 from analysis import fourier_transform_analysis, tensor_analysis, angle_analysis
 from preprocessing import nl_means
+
+
+def create_binary_image(segments, shape):
+
+	binary_image = np.zeros(shape)
+
+	for segment in segments:
+		minr, minc, maxr, maxc = segment.bbox
+		indices = np.mgrid[minr:maxr, minc:maxc]
+		binary_image[(indices[0], indices[1])] = segment.image
+
+	return binary_image
 
 
 def find_holes(image, sigma=0.8, alpha=1.0, min_size=1250, iterations=1):
@@ -53,7 +66,7 @@ def hole_extraction(image_shg, image_pl, scale=2, sigma=0.8, alpha=1.0, min_size
 
 	image_hole_shg = find_holes(image_shg_big, sigma=sigma, alpha=alpha,
 					min_size=min_size, iterations=2)
-	image_hole_pl = find_holes(image_pl_big, sigma=sigma, alpha=0.3, 
+	image_hole_pl = find_holes(image_pl_big, sigma=sigma, alpha=0.5, 
 					min_size=min_size, iterations=1) 
 
 	image_hole_shg = resize(image_hole_shg, image_shg.shape)
@@ -78,9 +91,8 @@ def hole_extraction(image_shg, image_pl, scale=2, sigma=0.8, alpha=1.0, min_size
 		hole_check *= hole.area >= min_size
 
 		if hole_check: holes.append(hole)
-		#holes.append(hole)
 
-	return holes, hole_labels
+	return holes
 
 
 def hole_analysis(image, holes):
@@ -180,77 +192,73 @@ def load_networks(filename):
 	return networks
 
 
-def network_extraction(image_shg, network_name='network', sigma=0.5, p_denoise=(2, 25), 
-			ow_network=False, threads=8):
+def network_extraction(image_shg, network_name='network', scale=1.25, sigma=0.5, p_denoise=(2, 25), 
+			threads=8):
 	"""
 	Extract fibre network using modified FIRE algorithm
 	"""
 
-	"Try loading saved graph opbject"
-	try: Aij = nx.read_gpickle(network_name + "_network.pkl")
-	except IOError: ow_network = True
 
-	"Else, use modified FIRE algorithm to extract network"
-	if ow_network:
-		print("Performing NL Denoise using local windows {} {}".format(*p_denoise))
-		image_nl = nl_means(image_shg, p_denoise=p_denoise)
-		"Call FIRE algorithm to extract full image network"
-		Aij = FIRE(image_nl, scale=1.25, sigma=sigma, max_threads=threads)
-		nx.write_gpickle(Aij, network_name + "_network.pkl")
+	print("Performing NL Denoise using local windows {} {}".format(*p_denoise))
+	image_nl = nl_means(image_shg, p_denoise=p_denoise)
 
-	#"""
-	try: Aij_red = nx.read_gpickle(network_name + "_network_reduced.pkl")
-	except IOError:
-		Aij_red = simplify_network(Aij)
-		nx.write_gpickle(Aij_red, network_name + "_network_reduced.pkl")
-	#"""
+	"Call FIRE algorithm to extract full image network"
+	print("Calling FIRE algorithm using image scale {}".format(scale))
+	Aij = FIRE(image_nl, scale=scale, sigma=sigma, max_threads=threads)
+	nx.write_gpickle(Aij, network_name + "_network.pkl")
 
-	segmented_image = np.zeros(image_shg.shape, dtype=int)
+	networks = load_networks(network_name + "_network.pkl")
+
+	print("Simplifying network to reduced form with no linear connections")
+	Aij_red = simplify_network(Aij)
+	nx.write_gpickle(Aij_red, network_name + "_network_reduced.pkl")
+
+	networks_red = load_networks(network_name + "_network_reduced.pkl")
+
+	return networks, networks_red
+
+
+def fibre_extraction(image_shg, networks, networks_red):
+
+	n_net = len(networks)
 	areas = np.empty((0,), dtype=float)
-	networks = []
-	networks_red = []
-	segments = []
+	fibres = []
 
-	components = nx.connected_components(Aij)
-	components_red = nx.connected_components(Aij_red)
-
-	iterator = zip(components, components_red)
+	iterator = zip(np.arange(n_net), networks, networks_red)
 
 	"Segment image based on connected components in network"
-	for i, components in enumerate(iterator):
-		subgraph = Aij.subgraph(components[0])
-		subgraph_red = Aij_red.subgraph(components[1])
+	for i, network, network_red in iterator:
 
-		if subgraph.number_of_nodes() > 3:
+		label_image = np.zeros(image_shg.shape, dtype=int)
+		label_image = draw_network(network, label_image, 1)
+		dilated_image = binary_dilation(label_image, iterations=8)
+		filled_image = np.array(binary_fill_holes(dilated_image),
+				    dtype=int)
 
-			label_image = np.zeros(image_shg.shape, dtype=int)
-			label_image = draw_network(subgraph, label_image, 1)
-			dilated_image = binary_dilation(label_image, iterations=8)
-			filled_image = np.array(binary_fill_holes(dilated_image),
-					    dtype=int)
+		segment = measure.regionprops(filled_image, intensity_image=image_shg)[0]
+		area = np.sum(segment.image)
 
-			segment = measure.regionprops(filled_image, intensity_image=image_shg)[0]
-			area = np.sum(segment.image)
+		minr, minc, maxr, maxc = segment.bbox
+		indices = np.mgrid[minr:maxr, minc:maxc]
 
-			minr, minc, maxr, maxc = segment.bbox
-			indices = np.mgrid[minr:maxr, minc:maxc]
-
-			if area >= 1E-2 * image_shg.size:
-				segmented_image[(indices[0], indices[1])] = segment.image
-				segment.label = (i + 1)
-				areas = np.concatenate((areas, [area]))
-				segments.append(segment)
-				networks.append(subgraph)
-				networks_red.append(subgraph_red)
-		
+		if area >= 1E-2 * image_shg.size:
+			segment.label = (i + 1)
+			areas = np.concatenate((areas, [area]))
+			fibres.append(segment)
+		else:
+			networks.remove(network)
+			networks_red.remove(network_red)
+	
+	"""	
 	"Sort segments ranked by area"
 	indices = np.argsort(areas)
 	sorted_areas = areas[indices]
 	sorted_segments = [segments[i] for i in indices]
 	sorted_networks = [networks[i] for i in indices]
 	sorted_networks_red = [networks_red[i] for i in indices]
+	"""
 
-	return segmented_image, sorted_networks, sorted_networks_red, sorted_segments
+	return networks, networks_red, fibres
 
 
 def draw_network(network, label_image, index):
@@ -269,7 +277,7 @@ def draw_network(network, label_image, index):
 
 
 def network_analysis(image_shg, image_pl, networks, networks_red, 
-						segments, n_tensor, anis_map, angle_map):
+				segments, n_tensor, anis_map, angle_map):
 	"""
 	Analyse extracted fibre network
 	"""
@@ -340,12 +348,12 @@ def network_analysis(image_shg, image_pl, networks, networks_red,
 		stop4 = time.time()
 		connect_time += stop4-stop3
 
-		try: network_loc_eff[i] = local_efficiency(network_red, weight='r')
+		try: network_loc_eff[i] = local_efficiency(network_red)
 		except: network_loc_eff[i] = None
 		stop5 = time.time()
 		loc_eff_time += stop5-stop4
 
-		try: network_cluster[i] = approx.clustering_coefficient.average_clustering(network_red, weight='r')
+		try: network_cluster[i] = cluster.average_clustering(network_red, weight='r')
 		except: network_cluster[i] = None
 		stop6 = time.time()
 		cluster_time += stop6-stop5

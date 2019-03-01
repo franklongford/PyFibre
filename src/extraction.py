@@ -457,6 +457,8 @@ def get_edge_list(graph, degree=2):
 
 def simplify_network(Aij):
 
+	start = time.time()
+
 	mapping = dict(zip(Aij.nodes, np.arange(Aij.number_of_nodes())))
 	Aij = nx.relabel_nodes(Aij, mapping)
 
@@ -480,6 +482,11 @@ def simplify_network(Aij):
 
 	for edge in new_Aij.edges:
 		new_Aij[edge[0]][edge[1]]['r'] = r_coord[edge[0]][edge[1]]
+
+	stop = time.time()
+	total_time = stop - start
+
+	print(f"TOTAL TIME = {round(total_time, 3)} s")
 
 	return new_Aij
 

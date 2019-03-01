@@ -33,16 +33,12 @@ def import_image(image_name):
 			image_euclid = np.sqrt(np.sum(image_orig_shg**2, axis=smallest_axis))
 			image_mean = np.mean(image_orig_shg, axis=smallest_axis)
 			image_shg = np.sqrt(image_mean * image_euclid)
-		
-			if image_orig.shape[0] == 3:
 
-				image_orig_pl = image_orig[1]
+			image_orig_pl = image_orig[1]
 
-				image_euclid = np.sqrt(np.sum(image_orig_pl**2, axis=smallest_axis))
-				image_mean = np.mean(image_orig_pl, axis=smallest_axis)
-				image_pl = np.sqrt(image_mean * image_euclid)
-
-			else: image_pl = image_shg
+			image_euclid = np.sqrt(np.sum(image_orig_pl**2, axis=smallest_axis))
+			image_mean = np.mean(image_orig_pl, axis=smallest_axis)
+			image_pl = np.sqrt(image_mean * image_euclid)
 
 		else:
 			smallest_axis = np.argmin(image_orig.shape)
