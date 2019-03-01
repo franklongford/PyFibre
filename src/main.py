@@ -74,14 +74,15 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 			'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy',
 			'No. Fibres', 'Fibre Area', 'No. Cells', 'Cell Area',
 			'Fibre Linearity', 'Fibre Eccentricity', 'Fibre Density', 'Fibre Coverage',
-			#'Fibre Waviness', 'Fibre Eccentricity', 'Fibre Density', 'Fibre Coverage',
+			'Fibre Waviness', 'Network Degree', 'Network Eigenvalue',
+			'Network Connectivity', 'Network Local Efficiency', 'Network Clustering',
 			'Cell Linearity', 'Cell Eccentricity', 'Cell Density', 'Cell Coverage', 
 			'Fibre Hu Moment 1', 'Fibre Hu Moment 2', 'Cell Hu Moment 1', 'Cell Hu Moment 2']
 
 	fibre_columns = ['Fourier SDI', 'Angle SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
 				'Area', 'Linearity', 'Eccentricity', 'Density', 'Coverage',
 				'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy',
-				'Network Waviness', 'Network Degree', 'Network Eigenvalue',
+				'Fibre Waviness', 'Network Degree', 'Network Eigenvalue',
 				'Network Connectivity', 'Network Local Efficiency', 'Network Clustering',
 				'Hu Moment 1', 'Hu Moment 2', 'Hu Moment 3',
 				'Hu Moment 4', 'Hu Moment 5', 'Hu Moment 6',
@@ -235,6 +236,13 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		global_fibre_density = np.mean(image_shg[np.where(fibre_binary)])
 		global_fibre_hu_1 = np.mean(fibre_hu[:, 0])
 		global_fibre_hu_2 = np.mean(fibre_hu[:, 1])
+		global_fibre_wavines = np.mean(network_waviness)
+
+		global_network_degree = np.mean(network_degree)
+		global_network_eigen = np.mean(network_eigen)
+		global_network_connect = np.mean(network_connect)
+		global_network_loc_eff = np.mean(network_loc_eff)
+		global_network_cluster = np.mean(network_cluster)
 
 		global_cell_area = np.mean(cell_areas)
 		global_cell_coverage = np.sum(cell_binary) / image_pl.size
@@ -251,7 +259,9 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 					global_contrast, global_homo, global_dissim, global_corr, global_energy,
 					(len(fibres)), global_fibre_area, (len(cells)), global_cell_area,
 					global_fibre_linear, global_fibre_eccent,
-					global_fibre_density, global_fibre_coverage, global_cell_linear,
+					global_fibre_density, global_fibre_coverage, global_fibre_wavines, 
+					global_network_degree, global_network_eigen, global_network_connect,
+					global_network_loc_eff, global_network_cluster, global_cell_linear,
 					global_cell_eccent, global_cell_density, global_cell_coverage,
 					global_fibre_hu_1, global_fibre_hu_2, global_cell_hu_1, 
 					global_cell_hu_2], axis=0)

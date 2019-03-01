@@ -343,6 +343,7 @@ class imagecol_gui:
 										'Fibre Linearity' : {"info" : "Average fibre segment linearity", "metric" : DoubleVar(), "tag" : "shape"},
 										'Fibre Eccentricity' : {"info" : "Average fibre segment eccentricity", "metric" : DoubleVar(), "tag" : "shape"},
 										'Fibre Density' : {"info" : "Average image fibre density", "metric" : DoubleVar(), "tag" : "texture"},
+										'Fibre Waviness' : {"info" : "Average fibre network fibre waviness", "metric" : DoubleVar(), "tag" : "content"},
 										'Fibre Hu Moment 1'  : {"info" : "Average fibre segment Hu moment 1", "metric" : DoubleVar(), "tag" : "shape"},
 										'Fibre Hu Moment 2'  : {"info" : "Average fibre segment Hu moment 2", "metric" : DoubleVar(), "tag" : "shape"},
 										'No. Cells' : {"info" : "Number of cell segments", "metric" : IntVar(), "tag" : "content"},
@@ -351,13 +352,11 @@ class imagecol_gui:
 										'Cell Coverage' : {"info" : "Ratio of image covered by cell", "metric" : DoubleVar(), "tag" : "content"},		
 										'Cell Eccentricity' : {"info" : "Average cell segment eccentricity", "metric" : DoubleVar(), "tag" : "shape"},				
 										'Cell Density' : {"info" : "Average image cell density", "metric" : DoubleVar(), "tag" : "texture"},						
-										#'Network Waviness' : {"info" : "Average fibre network fibre waviness", "metric" : DoubleVar()},
-										#'Network Degree' : {"info" : "Average fibre network number of edges per node", "metric" : DoubleVar()},
-										#'Network Eigenvalue' : {"info" : "Max Eigenvalue of network", "metric" : DoubleVar()},
-										#'Network Connectivity' : {"info" : "Average fibre network connectivity", "metric" : DoubleVar()},
-										#'Network Local Efficiency' : {"info" : "Average fibre network local efficiency", "metric" : DoubleVar()},
-										#'Network Clustering' : {"info" : "Average fibre network clustering", "metric" : DoubleVar()},
-										
+										'Network Degree' : {"info" : "Average fibre network number of edges per node", "metric" : DoubleVar(), "tag" : "network"},
+										'Network Eigenvalue' : {"info" : "Max Eigenvalue of network", "metric" : DoubleVar(), "tag" : "network"},
+										'Network Connectivity' : {"info" : "Average fibre network connectivity", "metric" : DoubleVar(), "tag" : "network"},
+										'Network Local Efficiency' : {"info" : "Average fibre network local efficiency", "metric" : DoubleVar(), "tag" : "network"},
+										'Network Clustering' : {"info" : "Average fibre network clustering", "metric" : DoubleVar(), "tag" : "network"},
 										'Cell Hu Moment 1'  : {"info" : "Average cell segment Hu moment 1", "metric" : DoubleVar(), "tag" : "shape"},
 										'Cell Hu Moment 2'  : {"info" : "Average cell segment Hu moment 2", "metric" : DoubleVar(), "tag" : "shape"},
 										#'Hu Moment 5'  : {"info" : "Shape Hu moment 5", "metric" : DoubleVar(), "tag" : "shape"},
@@ -378,10 +377,13 @@ class imagecol_gui:
 						width=width-50, height=height-50)
 		notebook.metric_tab.shape = ttk.Labelframe(notebook.metric_tab, text="Shape",
 						width=width-50, height=height-50)
+		notebook.metric_tab.network = ttk.Labelframe(notebook.metric_tab, text="Network",
+						width=width-50, height=height-50)
 		
 		texture_i = 0
 		content_i = 0
 		shape_i = 0
+		network_i = 0
 
 		for i, metric in enumerate(notebook.metric_tab.titles):
 
@@ -419,10 +421,22 @@ class imagecol_gui:
 				notebook.metric_tab.metrics[i].grid(column=2, row=shape_i)
 				shape_i += 1
 
+			if notebook.metric_tab.metric_dict[metric]["tag"] == "network":
+
+				notebook.metric_tab.headings += [Label(notebook.metric_tab.network, text="{}:".format(metric))]
+				notebook.metric_tab.info += [Label(notebook.metric_tab.network, text=notebook.metric_tab.metric_dict[metric]["info"])]
+				notebook.metric_tab.metrics += [Label(notebook.metric_tab.network, textvariable=notebook.metric_tab.metric_dict[metric]["metric"])]
+
+				notebook.metric_tab.headings[i].grid(column=0, row=network_i)
+				notebook.metric_tab.info[i].grid(column=1, row=network_i)
+				notebook.metric_tab.metrics[i].grid(column=2, row=network_i)
+				network_i += 1
+
 
 		notebook.metric_tab.texture.pack()
 		notebook.metric_tab.content.pack()
 		notebook.metric_tab.shape.pack()
+		notebook.metric_tab.network.pack()
 		
 		notebook.log_tab = ttk.Frame(notebook)
 		notebook.add(notebook.log_tab, text='Log')
