@@ -70,8 +70,10 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		Calculated metrics for further analysis
 	"""
 
-	global_columns = ['Angle SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy', 
-			'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy',
+	global_columns = ['Angle SDI', 'Anisotropy', 'Pixel Anisotropy', 
+			'Mean', 'STD', 'Entropy', 'GLCM Contrast', 'GLCM Homogeneity',
+			'GLCM Dissimilarity', 'GLCM Correlation', 'GLCM Energy', 
+			'GLCM IDM', 'GLCM Variance', 'GLCM Cluster', 'GLCM Entropy',
 			'No. Fibres', 'Fibre Area', 'No. Cells', 'Cell Area',
 			'Fibre Linearity', 'Fibre Eccentricity', 'Fibre Density', 'Fibre Coverage',
 			'Fibre Waviness', 'Network Degree', 'Network Eigenvalue',
@@ -79,17 +81,21 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 			'Cell Linearity', 'Cell Eccentricity', 'Cell Density', 'Cell Coverage', 
 			'Fibre Hu Moment 1', 'Fibre Hu Moment 2', 'Cell Hu Moment 1', 'Cell Hu Moment 2']
 
-	fibre_columns = ['Fourier SDI', 'Angle SDI', 'Entropy', 'Anisotropy', 'Pixel Anisotropy',
+	fibre_columns = ['Fourier SDI', 'Angle SDI', 'Anisotropy', 'Pixel Anisotropy',
 				'Area', 'Linearity', 'Eccentricity', 'Density', 'Coverage',
-				'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 'Energy',
+				'Mean', 'STD', 'Entropy', 'GLCM Contrast', 'GLCM Homogeneity', 
+				'GLCM Dissimilarity', 'GLCM Correlation', 'GLCM Energy',
+				'GLCM IDM', 'GLCM Variance', 'GLCM Cluster', 'GLCM Entropy',
 				'Fibre Waviness', 'Network Degree', 'Network Eigenvalue',
 				'Network Connectivity', 'Network Local Efficiency', 'Network Clustering',
 				'Hu Moment 1', 'Hu Moment 2', 'Hu Moment 3',
 				'Hu Moment 4', 'Hu Moment 5', 'Hu Moment 6',
 				'Hu Moment 7']
 
-	cell_columns = ['Area', 'Contrast', 'Homogeneity', 'Dissimilarity', 'Correlation', 
-			'Energy', 'Linearity', 'Eccentricity', 'Hu Moment 1', 'Hu Moment 2', 
+	cell_columns = ['Area', 'Mean', 'STD', 'Entropy', 'GLCM Contrast', 
+			'GLCM Homogeneity', 'GLCM Dissimilarity', 'GLCM Correlation', 'GLCM Energy',
+			'GLCM IDM', 'GLCM Variance', 'GLCM Cluster', 'GLCM Entropy',
+			'Linearity', 'Eccentricity', 'Hu Moment 1', 'Hu Moment 2', 
 			'Hu Moment 3', 'Hu Moment 4', 'Hu Moment 5', 'Hu Moment 6','Hu Moment 7']
 
 	cmap = 'viridis'
@@ -131,7 +137,6 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		except IOError:
 			print("Cannot load metrics for {}".format(image_name))
 			ow_metric = True
-			ow_figure = True
 
 	if ow_network:
 
@@ -172,16 +177,18 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		
 		cell_binary = seg.create_binary_image(cells, image_pl.shape)
 
-		(cell_areas, cell_contrast, cell_homo, cell_dissim, 
-		cell_corr, cell_energy, cell_linear, cell_eccent,
-		cell_hu) = seg.hole_analysis(image_pl, cells)
+		(cell_areas, cell_mean, cell_std, cell_entropy, cell_glcm_contrast, 
+		cell_glcm_homo, cell_glcm_dissim, cell_glcm_corr, cell_glcm_energy, 
+		cell_glcm_IDM, cell_glcm_variance, cell_glcm_cluster, cell_glcm_entropy,
+		cell_linear, cell_eccent, cell_hu) = seg.hole_analysis(image_pl, cells)
 
 		filenames = pd.Series(['{}_cell_segment.pkl'.format(filename)] * len(cells), name='File')		
 		cell_id = pd.Series(np.arange(len(cells)), name='ID')
 
-		cell_metrics = np.stack([cell_areas, cell_contrast, cell_homo, 
-					cell_dissim, cell_corr, cell_energy,
-					cell_linear, cell_eccent], axis=-1)
+		cell_metrics = np.stack([cell_areas, cell_mean, cell_std, cell_entropy, 
+					cell_glcm_contrast, cell_glcm_homo, cell_glcm_dissim, cell_glcm_corr, 
+					cell_glcm_energy, cell_glcm_IDM, cell_glcm_variance, cell_glcm_cluster,
+					cell_glcm_entropy, cell_linear, cell_eccent], axis=-1)
 		cell_metrics = np.concatenate((cell_metrics, cell_hu), axis=-1)
 
 		cell_dataframe = pd.DataFrame(data=cell_metrics, columns=cell_columns)
@@ -193,10 +200,12 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		"Analyse fibre network"
 		net_res = seg.network_analysis(image_shg, image_pl, networks, networks_red, fibres, 
 						j_tensor, pix_j_anis, pix_j_angle)
-		(fibre_fourier_sdi, fibre_angle_sdi, fibre_entropy, fibre_anis, fibre_pix_anis, 
+		(fibre_fourier_sdi, fibre_angle_sdi, fibre_anis, fibre_pix_anis,
 		fibre_areas, fibre_linear, fibre_eccent, fibre_density, fibre_coverage,
-		fibre_contrast, fibre_homo, fibre_dissim, fibre_corr, fibre_energy, fibre_hu,
-		network_waviness, network_degree, network_eigen, 
+		fibre_mean, fibre_std, fibre_entropy, fibre_glcm_contrast, 
+		fibre_glcm_homo, fibre_glcm_dissim, fibre_glcm_corr, fibre_glcm_energy, 
+		fibre_glcm_IDM, fibre_glcm_variance, fibre_glcm_cluster, fibre_glcm_entropy,
+		fibre_hu, network_waviness, network_degree, network_eigen, 
 		network_connect, network_loc_eff, network_cluster) = net_res
 
 		fibre_binary = seg.create_binary_image(fibres, image_shg.shape)
@@ -204,10 +213,12 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		filenames = pd.Series(['{}_fibre_segment.pkl'.format(filename)] * len(fibres), name='File')
 		fibre_id = pd.Series(np.arange(len(fibres)), name='ID')
 
-		fibre_metrics = np.stack([fibre_fourier_sdi, fibre_angle_sdi, fibre_entropy, fibre_anis, 
+		fibre_metrics = np.stack([fibre_fourier_sdi, fibre_angle_sdi, fibre_anis, 
 					fibre_pix_anis, fibre_areas, fibre_linear, fibre_eccent, fibre_density,
-					fibre_coverage, fibre_contrast, fibre_homo, fibre_dissim, fibre_corr,
-					fibre_energy, network_waviness, network_degree, network_eigen, 
+					fibre_coverage, fibre_mean, fibre_std, fibre_entropy, 
+					fibre_glcm_contrast, fibre_glcm_homo, fibre_glcm_dissim, fibre_glcm_corr,
+					fibre_glcm_IDM, fibre_glcm_variance, fibre_glcm_cluster, fibre_glcm_entropy,
+					fibre_glcm_energy, network_waviness, network_degree, network_eigen, 
 					network_connect, network_loc_eff, network_cluster], axis=-1)
 		fibre_metrics = np.concatenate((fibre_metrics, fibre_hu), axis=-1)
 
@@ -224,10 +235,12 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		metrics = seg.segment_analysis(image_shg, image_pl, global_segment, j_tensor, 
 						pix_j_anis, pix_j_angle)
 
-		(global_fourier_sdi, global_angle_sdi, global_entropy, global_anis, global_pix_anis, 
+		(global_fourier_sdi, global_angle_sdi, global_anis, global_pix_anis, 
 		global_area, global_linear, global_eccent, global_density, 
-		global_coverage, global_contrast, global_homo, global_dissim, 
-		global_corr, global_energy, global_hu) = metrics
+		global_coverage, global_mean, global_std, global_entropy, global_glcm_contrast, 
+		global_glcm_homo, global_glcm_dissim, global_glcm_corr, global_glcm_energy,
+		global_glcm_IDM, global_glcm_variance, global_glcm_cluster, global_glcm_entropy,
+		global_hu) = metrics
 
 		global_fibre_area = np.mean(fibre_areas)
 		global_fibre_coverage = np.sum(fibre_binary) / image_shg.size
@@ -236,7 +249,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		global_fibre_density = np.mean(image_shg[np.where(fibre_binary)])
 		global_fibre_hu_1 = np.mean(fibre_hu[:, 0])
 		global_fibre_hu_2 = np.mean(fibre_hu[:, 1])
-		global_fibre_wavines = np.mean(network_waviness)
+		global_fibre_waviness = np.mean(network_waviness)
 
 		global_network_degree = np.mean(network_degree)
 		global_network_eigen = np.mean(network_eigen)
@@ -255,11 +268,14 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		filenames = pd.Series('{}_global_segment.pkl'.format(filename), name='File')
 
 		global_metrics = np.stack([
-					global_angle_sdi, global_entropy, global_anis, global_pix_anis,
-					global_contrast, global_homo, global_dissim, global_corr, global_energy,
+					global_angle_sdi, global_anis, global_pix_anis,
+					global_mean, global_std, global_entropy, global_glcm_contrast, 
+					global_glcm_homo, global_glcm_dissim, global_glcm_corr, global_glcm_energy,
+					global_glcm_IDM, global_glcm_variance, global_glcm_cluster, 
+					global_glcm_entropy,
 					(len(fibres)), global_fibre_area, (len(cells)), global_cell_area,
 					global_fibre_linear, global_fibre_eccent,
-					global_fibre_density, global_fibre_coverage, global_fibre_wavines, 
+					global_fibre_density, global_fibre_coverage, global_fibre_waviness, 
 					global_network_degree, global_network_eigen, global_network_connect,
 					global_network_loc_eff, global_network_cluster, global_cell_linear,
 					global_cell_eccent, global_cell_density, global_cell_coverage,

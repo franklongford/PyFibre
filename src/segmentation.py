@@ -101,11 +101,20 @@ def hole_analysis(image, holes):
 
 	hole_areas = np.zeros(l_holes)
 	hole_hu = np.zeros((l_holes, 7))
-	hole_contrast = np.zeros(l_holes)
-	hole_dissim = np.zeros(l_holes)
-	hole_corr = np.zeros(l_holes)
-	hole_homo = np.zeros(l_holes)
-	hole_energy = np.zeros(l_holes)
+	hole_mean = np.zeros(l_holes)
+	hole_std = np.zeros(l_holes)
+	hole_entropy = np.zeros(l_holes)
+
+	hole_glcm_contrast = np.zeros(l_holes)
+	hole_glcm_dissim = np.zeros(l_holes)
+	hole_glcm_corr = np.zeros(l_holes)
+	hole_glcm_homo = np.zeros(l_holes)
+	hole_glcm_energy = np.zeros(l_holes)
+	hole_glcm_IDM = np.zeros(l_holes)
+	hole_glcm_variance = np.zeros(l_holes)
+	hole_glcm_cluster = np.zeros(l_holes)
+	hole_glcm_entropy = np.zeros(l_holes)
+
 	hole_linear = np.zeros(l_holes)
 	hole_eccent = np.zeros(l_holes)
 
@@ -123,17 +132,84 @@ def hole_analysis(image, holes):
 		                 [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256,
 		                 symmetric=True, normed=True)
 
-		hole_contrast[i] = greycoprops(glcm, 'contrast').mean()
-		hole_homo[i] = greycoprops(glcm, 'homogeneity').mean()
-		hole_dissim[i] = greycoprops(glcm, 'dissimilarity').mean()
-		hole_corr[i] = greycoprops(glcm, 'correlation').mean()
-		hole_energy[i] = greycoprops(glcm, 'energy').mean()
+		hole_mean[i] = np.mean(hole_image)
+		hole_std[i] = np.std(hole_image)
+		hole_entropy[i] = measure.shannon_entropy(hole_image)
+
+		hole_glcm_contrast[i] = greycoprops_edit(glcm, 'contrast').mean()
+		hole_glcm_homo[i] = greycoprops_edit(glcm, 'homogeneity').mean()
+		hole_glcm_dissim[i] = greycoprops_edit(glcm, 'dissimilarity').mean()
+		hole_glcm_corr[i] = greycoprops_edit(glcm, 'correlation').mean()
+		hole_glcm_energy[i] = greycoprops_edit(glcm, 'energy').mean()
+		hole_glcm_IDM[i] = greycoprops_edit(glcm, 'IDM').mean()
+		hole_glcm_variance[i] = greycoprops_edit(glcm, 'variance').mean()
+		hole_glcm_cluster[i] = greycoprops_edit(glcm, 'cluster').mean()
+		hole_glcm_entropy[i] = greycoprops_edit(glcm, 'entropy').mean()
 
 		hole_linear[i] = 1 - hole.equivalent_diameter / hole.perimeter
 		hole_eccent[i] = hole.eccentricity
 
-	return (hole_areas, hole_contrast, hole_homo, hole_dissim, hole_corr, 
-		hole_energy, hole_linear, hole_eccent, hole_hu) 
+	return (hole_areas, hole_mean, hole_std, hole_entropy, hole_glcm_contrast,
+		hole_glcm_homo, hole_glcm_dissim, hole_glcm_corr, hole_glcm_energy,
+		hole_glcm_IDM, hole_glcm_variance, hole_glcm_cluster, hole_glcm_entropy,
+		hole_linear, hole_eccent, hole_hu) 
+
+
+def greycoprops_edit(P, prop='contrast'):
+
+
+	(num_level, num_level2, num_dist, num_angle) = P.shape
+
+	assert num_level == num_level2
+	assert num_dist > 0
+	assert num_angle > 0
+
+	# normalize each GLCM
+	P = P.astype(np.float64)
+	glcm_sums = np.apply_over_axes(np.sum, P, axes=(0, 1))
+	glcm_sums[glcm_sums == 0] = 1
+	P /= glcm_sums
+
+	# create weights for specified property
+	I, J = np.ogrid[0:num_level, 0:num_level]
+	if prop == 'IDM': weights = 1. / (1. + abs(I - J))
+	elif prop in ['variance', 'cluster', 'entropy']: pass
+	else: return greycoprops(P, prop)
+
+	if prop in ['IDM']:
+		weights = weights.reshape((num_level, num_level, 1, 1))
+		results = np.apply_over_axes(np.sum, (P * weights), axes=(0, 1))[0, 0]
+
+	elif prop == 'variance':
+		I = np.array(range(num_level)).reshape((num_level, 1, 1, 1))
+		J = np.array(range(num_level)).reshape((1, num_level, 1, 1))
+		diff_i = I - np.apply_over_axes(np.sum, (I * P), axes=(0, 1))[0, 0]
+		diff_j = J - np.apply_over_axes(np.sum, (J * P), axes=(0, 1))[0, 0]
+
+		results = np.apply_over_axes(np.sum, (P * (diff_i * diff_j)),
+		                         axes=(0, 1))[0, 0]
+
+	elif prop == 'cluster':
+		I = np.array(range(num_level)).reshape((num_level, 1, 1, 1))
+		J = np.array(range(num_level)).reshape((1, num_level, 1, 1))
+		diff_i = I - np.apply_over_axes(np.sum, (I * P), axes=(0, 1))[0, 0]
+		diff_j = J - np.apply_over_axes(np.sum, (J * P), axes=(0, 1))[0, 0]
+
+		results = np.apply_over_axes(np.sum, (P * (I + J - diff_i - diff_j)),
+		                         axes=(0, 1))[0, 0]
+
+	elif prop == 'entropy':
+		nat_log = np.log(P)
+
+		mask_0 = P < 1e-15
+		mask_0[P < 1e-15] = True
+		nat_log[mask_0] = 0
+
+		results = np.apply_over_axes(np.sum, (P * (- nat_log)),
+		                         axes=(0, 1))[0, 0]
+
+
+	return results
 
 
 def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map, angle_map):
@@ -150,6 +226,9 @@ def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map, angle_map
 
 	_, _, segment_fourier_sdi = fourier_transform_analysis(segment_image_shg)
 	segment_angle_sdi = angle_analysis(segment_angle_map, segment_anis_map)
+
+	segment_mean = np.mean(segment_image_shg)
+	segment_std = np.std(segment_image_shg)
 	segment_entropy = measure.shannon_entropy(segment_image_shg)
 
 	segment_anis, _ , _ = tensor_analysis(np.mean(segment_n_tensor, axis=(0, 1)))
@@ -167,16 +246,24 @@ def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map, angle_map
                          [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256,
                          symmetric=True, normed=True)
 
-	segment_contrast = greycoprops(glcm, 'contrast').mean()
-	segment_homo = greycoprops(glcm, 'homogeneity').mean()
-	segment_dissim = greycoprops(glcm, 'dissimilarity').mean()
-	segment_corr = greycoprops(glcm, 'correlation').mean()
-	segment_energy = greycoprops(glcm, 'energy').mean()
+	segment_glcm_contrast = greycoprops_edit(glcm, 'contrast').mean()
+	segment_glcm_homo = greycoprops_edit(glcm, 'homogeneity').mean()
+	segment_glcm_dissim = greycoprops_edit(glcm, 'dissimilarity').mean()
+	segment_glcm_corr = greycoprops_edit(glcm, 'correlation').mean()
+	segment_glcm_energy = greycoprops_edit(glcm, 'energy').mean()
+	segment_glcm_IDM = greycoprops_edit(glcm, 'IDM').mean()
+	segment_glcm_variance = greycoprops_edit(glcm, 'variance').mean()
+	segment_glcm_cluster = greycoprops_edit(glcm, 'cluster').mean()
+	segment_glcm_entropy = greycoprops_edit(glcm, 'entropy').mean()
 
-	return (segment_fourier_sdi, segment_angle_sdi, segment_entropy, segment_anis, segment_pix_anis, 
+
+	return (segment_fourier_sdi, segment_angle_sdi, segment_anis, segment_pix_anis, 
 		segment_area, segment_linear, segment_eccent, segment_density, 
-		segment_coverage, segment_contrast, segment_homo, segment_dissim, 
-		segment_corr, segment_energy, segment_hu)
+		segment_coverage, segment_mean, segment_std, segment_entropy,
+		segment_glcm_contrast, segment_glcm_homo, segment_glcm_dissim, 
+		segment_glcm_corr, segment_glcm_energy, segment_glcm_IDM, 
+		segment_glcm_variance, segment_glcm_cluster, segment_glcm_entropy,
+		segment_hu)
 
 
 def load_networks(filename):
@@ -285,7 +372,6 @@ def network_analysis(image_shg, image_pl, networks, networks_red,
 
 	segment_fourier_sdi = np.zeros(l_regions)
 	segment_angle_sdi = np.zeros(l_regions)
-	segment_entropy = np.zeros(l_regions)
 	segment_anis = np.zeros(l_regions)
 	segment_pix_anis = np.zeros(l_regions)
 
@@ -295,11 +381,20 @@ def network_analysis(image_shg, image_pl, networks, networks_red,
 	segment_density = np.zeros(l_regions)
 	segment_coverage = np.zeros(l_regions)
 
-	segment_contrast = np.zeros(l_regions)
-	segment_dissim = np.zeros(l_regions)
-	segment_corr = np.zeros(l_regions)
-	segment_homo = np.zeros(l_regions)
-	segment_energy = np.zeros(l_regions)
+	segment_mean = np.zeros(l_regions)
+	segment_std = np.zeros(l_regions)
+	segment_entropy = np.zeros(l_regions)
+
+	segment_glcm_contrast = np.zeros(l_regions)
+	segment_glcm_dissim = np.zeros(l_regions)
+	segment_glcm_corr = np.zeros(l_regions)
+	segment_glcm_homo = np.zeros(l_regions)
+	segment_glcm_energy = np.zeros(l_regions)
+	segment_glcm_IDM = np.zeros(l_regions)
+	segment_glcm_variance = np.zeros(l_regions)
+	segment_glcm_cluster = np.zeros(l_regions)
+	segment_glcm_entropy = np.zeros(l_regions)
+
 	segment_hu = np.zeros((l_regions, 7))
 	
 	network_waviness = np.empty(l_regions)
@@ -323,10 +418,13 @@ def network_analysis(image_shg, image_pl, networks, networks_red,
 		metrics = segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map,
 									angle_map)
 
-		(segment_fourier_sdi[i], segment_angle_sdi[i], segment_entropy[i], segment_anis[i], 
+		(segment_fourier_sdi[i], segment_angle_sdi[i], segment_anis[i], 
 		segment_pix_anis[i], segment_area[i], segment_linear[i], segment_eccent[i], 
-		segment_density[i], segment_coverage[i], segment_contrast[i], segment_homo[i], 
-		segment_dissim[i], segment_corr[i], segment_energy[i], segment_hu[i]) = metrics
+		segment_density[i], segment_coverage[i], segment_mean[i], segment_std[i],
+		segment_entropy[i], segment_glcm_contrast[i], segment_glcm_homo[i], segment_glcm_dissim[i], 
+		segment_glcm_corr[i], segment_glcm_energy[i], segment_glcm_IDM[i], 
+		segment_glcm_variance[i], segment_glcm_cluster[i], segment_glcm_entropy[i],
+		segment_hu[i]) = metrics
 
 		start = time.time()
 		network_waviness[i] = adj_analysis(network)
@@ -365,8 +463,10 @@ def network_analysis(image_shg, image_pl, networks, networks_red,
 	print('Network Local Efficiency = {} s'.format(loc_eff_time))
 	print('Network Clustering = {} s'.format(cluster_time))
 
-	return (segment_fourier_sdi, segment_angle_sdi, segment_entropy, segment_anis, segment_pix_anis, 
+	return (segment_fourier_sdi, segment_angle_sdi, segment_anis, segment_pix_anis, 
 		segment_area, segment_linear, segment_eccent, segment_density, segment_coverage,
-		segment_contrast, segment_homo, segment_dissim, segment_corr, segment_energy, segment_hu,
-		network_waviness, network_degree, network_eigen, network_connect,
+		segment_mean, segment_std, segment_entropy, segment_glcm_contrast, 
+		segment_glcm_homo, segment_glcm_dissim, segment_glcm_corr, segment_glcm_energy, 
+		segment_glcm_IDM, segment_glcm_variance, segment_glcm_cluster, segment_glcm_entropy,
+		segment_hu, network_waviness, network_degree, network_eigen, network_connect,
 		network_loc_eff, network_cluster)
