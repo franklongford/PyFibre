@@ -164,17 +164,17 @@ def greycoprops_edit(P, prop='contrast'):
 	assert num_dist > 0
 	assert num_angle > 0
 
-	# normalize each GLCM
-	P = P.astype(np.float64)
-	glcm_sums = np.apply_over_axes(np.sum, P, axes=(0, 1))
-	glcm_sums[glcm_sums == 0] = 1
-	P /= glcm_sums
-
 	# create weights for specified property
 	I, J = np.ogrid[0:num_level, 0:num_level]
 	if prop == 'IDM': weights = 1. / (1. + abs(I - J))
 	elif prop in ['variance', 'cluster', 'entropy']: pass
 	else: return greycoprops(P, prop)
+
+	# normalize each GLCM
+	P = P.astype(np.float64)
+	glcm_sums = np.apply_over_axes(np.sum, P, axes=(0, 1))
+	glcm_sums[glcm_sums == 0] = 1
+	P /= glcm_sums
 
 	if prop in ['IDM']:
 		weights = weights.reshape((num_level, num_level, 1, 1))
