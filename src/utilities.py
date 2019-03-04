@@ -282,12 +282,13 @@ def conv_coord(array):
     return (array[:,0], array[:,1])
 
 
-def clear_border(image):
+def clear_border(image, thickness=1):
 
-	image[:, 0] = 0
-	image[0, :] = 0
-	image[:, -1] = 0
-	image[-1, :] = 0
+	for i in range(thickness):
+		image[:, 0 + i] = 0
+		image[0 + i, :] = 0
+		image[:, -(1 + i)] = 0
+		image[-(1 + i), :] = 0
 
 	return image
 

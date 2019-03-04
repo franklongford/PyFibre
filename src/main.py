@@ -8,7 +8,7 @@ Created on: 16/08/2018
 Last Modified: 18/02/2019
 """
 
-import sys, os
+import sys, os, time
 import argparse
 
 import numpy as np
@@ -29,7 +29,8 @@ from figures import create_figure, create_tensor_image, create_region_image, cre
 
 def analyse_image(input_file_name, working_dir=None, scale=1, 
 				p_intensity=(1, 99), p_denoise=(2, 25), sigma=0.5, alpha=0.5,
-				ow_metric=False, ow_network=False, ow_figure=False, threads=8):
+				ow_metric=False, ow_segment=False, ow_network=False, ow_figure=False,
+				threads=8):
 	"""
 	Analyse imput image by calculating metrics and sgenmenting via FIRE algorithm
 
@@ -77,7 +78,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 			'No. Fibres', 'Fibre Area', 'No. Cells', 'Cell Area',
 			'Fibre Linearity', 'Fibre Eccentricity', 'Fibre Density', 'Fibre Coverage',
 			'Fibre Waviness', 'Network Degree', 'Network Eigenvalue',
-			'Network Connectivity', 'Network Local Efficiency', 'Network Clustering',
+			'Network Connectivity',
 			'Cell Linearity', 'Cell Eccentricity', 'Cell Density', 'Cell Coverage', 
 			'Fibre Hu Moment 1', 'Fibre Hu Moment 2', 'Cell Hu Moment 1', 'Cell Hu Moment 2']
 
@@ -87,7 +88,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 				'GLCM Dissimilarity', 'GLCM Correlation', 'GLCM Energy',
 				'GLCM IDM', 'GLCM Variance', 'GLCM Cluster', 'GLCM Entropy',
 				'Fibre Waviness', 'Network Degree', 'Network Eigenvalue',
-				'Network Connectivity', 'Network Local Efficiency', 'Network Clustering',
+				'Network Connectivity',
 				'Hu Moment 1', 'Hu Moment 2', 'Hu Moment 3',
 				'Hu Moment 4', 'Hu Moment 5', 'Hu Moment 6',
 				'Hu Moment 7']
@@ -118,17 +119,23 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 	image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
 	image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
 	
+	print(ow_metric, ow_segment, ow_network)
 
-	if not np.any([ow_metric, ow_network]):
+	if not np.any([ow_metric, ow_segment, ow_network]):
 
 		try:
-			networks = seg.load_networks(data_dir + image_name + "_network.pkl")
-			networks_red = seg.load_networks(data_dir + image_name + "_network_reduced.pkl")
+			networks = ut.load_region(data_dir + image_name + "_network")
+			networks_red = ut.load_region(data_dir + image_name + "_network_reduced")
 		except IOError:
 			print("Cannot load networks for {}".format(image_name))
 			ow_network = True
-			ow_metric = True
-			ow_figure = True
+
+		try:
+			cells = ut.load_region(data_dir + image_name + "_cell_segment")
+			fibres = ut.load_region(data_dir + image_name + "_fibre_segment")
+		except IOError:
+			print("Cannot load segments for {}".format(image_name))
+			ow_segment = True
 
 		try: 
 			global_dataframe = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + image_name))
@@ -138,27 +145,56 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 			print("Cannot load metrics for {}".format(image_name))
 			ow_metric = True
 
+	start = time.time()
+
 	if ow_network:
 
-		cells  = seg.hole_extraction(image_shg, image_pl)
-		ut.save_region(cells, '{}_cell_segment'.format(filename))
+		start_net = time.time()
 
-		cell_binary = seg.create_binary_image(cells, image_pl.shape)
-		
-		cell_filter = np.where(cell_binary, alpha, 1)
-		cell_filter = gaussian_filter(cell_filter, sigma=0.5)
+		ow_segment = True
+		ow_metric = True
+		ow_figure = True
 
-		net = seg.network_extraction(image_shg * cell_filter, data_dir + image_name,
+		networks, networks_red = seg.network_extraction(image_shg, data_dir + image_name,
 						sigma=sigma, p_denoise=p_denoise, threads=threads)
-		networks, networks_red = net
 
-		networks, networks_red, fibres = seg.fibre_extraction(image_shg, networks, networks_red)
+		ut.save_region(networks, data_dir + image_name + "_network")
+		ut.save_region(networks_red, data_dir + image_name + "_network_reduced")
 
+		end_net = time.time()
+
+		print(f"TOTAL NETWORK EXTRACTION TIME = {round(end_net - start_net, 3)} s")
+
+	if ow_segment:
+
+		start_seg = time.time()
+
+		ow_metric = True
+		ow_figure = True
+
+		networks = ut.load_region(data_dir + image_name + "_network")
+		networks_red = ut.load_region(data_dir + image_name + "_network_reduced")
+
+		fibres = seg.fibre_extraction(image_shg, networks, networks_red)
 		ut.save_region(fibres, '{}_fibre_segment'.format(filename))
 
+		cells  = seg.hole_extraction(image_shg, image_pl, fibres)
+		ut.save_region(cells, '{}_cell_segment'.format(filename))
 
-	if ow_metric or ow_network:
+		end_seg = time.time()
+
+		print(f"TOTAL SEGMENTATION TIME = {round(end_seg - start_seg, 3)} s")
+
+	if ow_metric:
 		
+		start_met = time.time()
+
+		"Load networks and segments"
+		cells = ut.load_region(data_dir + image_name + "_cell_segment")
+		fibres = ut.load_region(data_dir + image_name + "_fibre_segment")
+		networks = ut.load_region(data_dir + image_name + "_network")
+		networks_red = ut.load_region(data_dir + image_name + "_network_reduced")
+
 		"Form nematic and structure tensors for each pixel"
 		n_tensor = form_nematic_tensor(image_shg, sigma=sigma)
 		j_tensor = form_structure_tensor(image_shg, sigma=sigma)
@@ -166,12 +202,6 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		"Perform anisotropy analysis on each pixel"
 		pix_n_anis, pix_n_angle, pix_n_energy = an.tensor_analysis(n_tensor)
 		pix_j_anis, pix_j_angle, pix_j_energy = an.tensor_analysis(j_tensor)
-
-		cells = ut.load_region(data_dir + image_name + "_cell_segment")
-		networks = seg.load_networks(data_dir + image_name + "_network.pkl")
-		networks_red = seg.load_networks(data_dir + image_name + "_network_reduced.pkl")
-
-		networks, networks_red, fibres = seg.fibre_extraction(image_shg, networks, networks_red)
 
 		print("Performing cell segment analysis")
 		
@@ -198,7 +228,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		print("Performing fibre segment analysis")
 
 		"Analyse fibre network"
-		net_res = seg.network_analysis(image_shg, image_pl, networks, networks_red, fibres, 
+		net_res = seg.total_analysis(image_shg, image_pl, networks, networks_red, fibres, 
 						j_tensor, pix_j_anis, pix_j_angle)
 		(fibre_fourier_sdi, fibre_angle_sdi, fibre_anis, fibre_pix_anis,
 		fibre_areas, fibre_linear, fibre_eccent, fibre_density, fibre_coverage,
@@ -206,7 +236,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		fibre_glcm_homo, fibre_glcm_dissim, fibre_glcm_corr, fibre_glcm_energy, 
 		fibre_glcm_IDM, fibre_glcm_variance, fibre_glcm_cluster, fibre_glcm_entropy,
 		fibre_hu, network_waviness, network_degree, network_eigen, 
-		network_connect, network_loc_eff, network_cluster) = net_res
+		network_connect) = net_res
 
 		fibre_binary = seg.create_binary_image(fibres, image_shg.shape)
 		
@@ -219,7 +249,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 					fibre_glcm_contrast, fibre_glcm_homo, fibre_glcm_dissim, fibre_glcm_corr,
 					fibre_glcm_energy, fibre_glcm_IDM, fibre_glcm_variance, fibre_glcm_cluster, 
 					fibre_glcm_entropy, network_waviness, network_degree, network_eigen, 
-					network_connect, network_loc_eff, network_cluster], axis=-1)
+					network_connect], axis=-1)
 		fibre_metrics = np.concatenate((fibre_metrics, fibre_hu), axis=-1)
 
 		fibre_dataframe = pd.DataFrame(data=fibre_metrics, columns=fibre_columns)
@@ -249,13 +279,11 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		global_fibre_density = np.mean(image_shg[np.where(fibre_binary)])
 		global_fibre_hu_1 = np.mean(fibre_hu[:, 0])
 		global_fibre_hu_2 = np.mean(fibre_hu[:, 1])
-		global_fibre_waviness = np.mean(network_waviness)
+		global_fibre_waviness = np.nanmean(network_waviness)
 
-		global_network_degree = np.mean(network_degree)
-		global_network_eigen = np.mean(network_eigen)
-		global_network_connect = np.mean(network_connect)
-		global_network_loc_eff = np.mean(network_loc_eff)
-		global_network_cluster = np.mean(network_cluster)
+		global_network_degree = np.nanmean(network_degree)
+		global_network_eigen = np.nanmean(network_eigen)
+		global_network_connect = np.nanmean(network_connect)
 
 		global_cell_area = np.mean(cell_areas)
 		global_cell_coverage = np.sum(cell_binary) / image_pl.size
@@ -277,7 +305,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 					global_fibre_linear, global_fibre_eccent,
 					global_fibre_density, global_fibre_coverage, global_fibre_waviness, 
 					global_network_degree, global_network_eigen, global_network_connect,
-					global_network_loc_eff, global_network_cluster, global_cell_linear,
+					global_cell_linear,
 					global_cell_eccent, global_cell_density, global_cell_coverage,
 					global_fibre_hu_1, global_fibre_hu_2, global_cell_hu_1, 
 					global_cell_hu_2], axis=0)
@@ -290,9 +318,15 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		global_dataframe.to_pickle('{}_global_metric.pkl'.format(filename))
 		ut.save_region(global_segment, '{}_global_segment'.format(filename))
 
+		end_met = time.time()
+
+		print(f"TOTAL METRIC TIME = {round(end_met - start_met, 3)} s")
+
 	if ow_figure:
 
-		networks = seg.load_networks(data_dir + image_name + "_network.pkl")
+		start_fig = time.time()
+	
+		networks =  ut.load_region(data_dir + image_name + "_network")
 		fibres = ut.load_region(data_dir + image_name + "_fibre_segment")
 		cells = ut.load_region(data_dir + image_name + "_cell_segment")
 		
@@ -306,7 +340,14 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		create_figure(fibre_network_image, fig_dir + image_name + '_network')
 		create_figure(fibre_region_image, fig_dir + image_name + '_fibre')
 		create_figure(cell_region_image, fig_dir + image_name + '_cell')
+
+		end_fig = time.time()
+
+		print(f"TOTAL FIGURE TIME = {round(end_fig - start_fig, 3)} s")
 		
+	end = time.time()
+
+	print(f"TOTAL ANALYSIS TIME = {round(end - start, 3)} s")
 
 	return global_dataframe, fibre_dataframe, cell_dataframe
 
@@ -324,6 +365,7 @@ if __name__ == '__main__':
 	parser.add_argument('--key', nargs='?', help='Keywords to filter file names', default="")
 	parser.add_argument('--sigma', type=float, nargs='?', help='Gaussian smoothing standard deviation', default=0.5)
 	parser.add_argument('--ow_metric', action='store_true', help='Toggles overwrite analytic metrics')
+	parser.add_argument('--ow_segment', action='store_true', help='Toggles overwrite image segmentation')
 	parser.add_argument('--ow_network', action='store_true', help='Toggles overwrite network extraction')
 	parser.add_argument('--ow_figure', action='store_true', help='Toggles overwrite figures')
 	parser.add_argument('--save_db', nargs='?', help='Output database filename', default=None)
@@ -364,7 +406,8 @@ if __name__ == '__main__':
 		image_path = '/'.join(input_file_name.split('/')[:-1])
 
 		data_global, data_segment, data_hole = analyse_image(input_file_name, image_path, sigma=args.sigma, 
-			ow_metric=args.ow_metric, ow_network=args.ow_network, ow_figure=args.ow_figure, 
+			ow_metric=args.ow_metric, ow_segment=args.ow_segment, 
+			ow_network=args.ow_network, ow_figure=args.ow_figure, 
 			threads=args.threads)
 
 		global_database = pd.concat([global_database, data_global])

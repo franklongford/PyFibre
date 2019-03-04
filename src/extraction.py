@@ -434,43 +434,56 @@ def FIRE(image, scale=1, alpha=0.75, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_th
 
 	"Remove all nodes with no edges"
 	Aij.remove_nodes_from(list(nx.isolates(Aij)))
+
+	"Remove graph components containing only one node with more than 1 edge"
+	node_remove_list = []
+	for i, component in enumerate(nx.connected_components(Aij)):
+		subgraph = Aij.subgraph(component)
+		edge_count = np.array([subgraph.degree[node] for node in subgraph], dtype=int)
+		graph_check = np.sum(edge_count > 1) > 1
+		if not graph_check: node_remove_list += list(subgraph.nodes())
+	
+	Aij.remove_nodes_from(node_remove_list)	
+
 	mapping = dict(zip(Aij.nodes, np.arange(Aij.number_of_nodes())))
 	Aij = nx.relabel_nodes(Aij, mapping)
 
 	for node in Aij.nodes(): Aij.nodes[node]['xy'] = np.array(Aij.nodes[node]['xy'] // scale, dtype=int)
 	for edge in Aij.edges(): Aij.edges[edge]['r'] *= 1. / scale
 
-	print(f"TOTAL TIME = {round(total_time, 3)} s")
-
 	return Aij
 
 
-def get_edge_list(graph, degree=2):
+def get_edge_list(graph, degree_min=2):
 
 	edge_list = np.empty((0, 2), dtype=int)
 	for edge in graph.edges:
-		if graph.degree[edge[0]] <= degree and graph.degree[edge[1]] <= degree:
-			edge_list = np.concatenate((edge_list, np.expand_dims(edge, axis=0)))
+		edge = np.array(edge)
+		degrees = np.array((graph.degree[edge[0]], graph.degree[edge[1]]))
+
+		degree_check = np.any(degrees != 1)
+		degree_check *= np.all(degrees <= degree_min)
+
+		if degree_check:
+			order = np.argsort(degrees)
+			edge_list = np.concatenate((edge_list, 
+					np.expand_dims(edge[order], axis=0)))
 
 	return edge_list
 
 
 def simplify_network(Aij):
 
-	start = time.time()
-
-	mapping = dict(zip(Aij.nodes, np.arange(Aij.number_of_nodes())))
-	Aij = nx.relabel_nodes(Aij, mapping)
 
 	new_Aij = Aij.copy()
-	edge_list = get_edge_list(new_Aij, degree=2)
+	edge_list = get_edge_list(new_Aij, degree_min=2)
 
 	while edge_list.size > 0:
 		for edge in edge_list:
 			try: new_Aij = nx.contracted_edge(new_Aij, edge, self_loops=False)
 			except (ValueError, KeyError): pass
 	
-		edge_list = get_edge_list(new_Aij, degree=2)
+		edge_list = get_edge_list(new_Aij, degree_min=2)
 
 	mapping = dict(zip(new_Aij.nodes, np.arange(new_Aij.number_of_nodes())))
 	new_Aij = nx.relabel_nodes(new_Aij, mapping)
@@ -483,15 +496,11 @@ def simplify_network(Aij):
 	for edge in new_Aij.edges:
 		new_Aij[edge[0]][edge[1]]['r'] = r_coord[edge[0]][edge[1]]
 
-	stop = time.time()
-	total_time = stop - start
-
-	print(f"TOTAL TIME = {round(total_time, 3)} s")
 
 	return new_Aij
 
 
-def adj_analysis(Aij, angle_thresh=70, verbose=False):
+def waviness_analysis(Aij, angle_thresh=70, verbose=False):
 
 	mapping = dict(zip(Aij.nodes, np.arange(Aij.number_of_nodes())))
 	Aij = nx.relabel_nodes(Aij, mapping)

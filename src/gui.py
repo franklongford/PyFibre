@@ -28,8 +28,9 @@ from skimage.restoration import (estimate_sigma, denoise_tv_chambolle, denoise_b
 from main import analyse_image
 import utilities as ut
 from preprocessing import import_image, clip_intensities
-from segmentation import draw_network, load_networks
+from segmentation import draw_network
 from figures import create_tensor_image, create_region_image, create_network_image
+
 
 class imagecol_gui:
 
@@ -49,6 +50,7 @@ class imagecol_gui:
 
 		"Initialise option variables"
 		self.ow_metric = BooleanVar()
+		self.ow_segment = BooleanVar()
 		self.ow_network = BooleanVar()
 		self.ow_figure = BooleanVar()
 		self.save_db = BooleanVar()
@@ -67,13 +69,13 @@ class imagecol_gui:
 
 		"Define GUI objects"
 		self.master = master
-		self.master.geometry("1230x620")
+		self.master.geometry("1230x720")
 		self.master.configure(background='#d8baa9')
 		self.master.protocol("WM_DELETE_WINDOW", lambda: quit())
 
 		self.title = Frame(self.master)
 		self.create_title(self.title)
-		self.title.place(bordermode=OUTSIDE, height=200, width=300)
+		self.title.place(bordermode=OUTSIDE, height=300, width=300)
 
 		self.options = Frame(self.master)
 		self.options.configure(background='#d8baa9')
@@ -81,16 +83,16 @@ class imagecol_gui:
 				   text="Options",
 				   command=self.create_options)
 		self.options.options_button.pack()
-		self.options.place(x=300, y=1, height=200, width=250)
+		self.options.place(x=300, y=1, height=300, width=250)
 
 		self.file_display = Frame(self.master)
 		self.create_file_display(self.file_display)
-		self.file_display.place(x=5, y=220, height=600, width=545)
+		self.file_display.place(x=5, y=220, height=700, width=545)
 
 		self.image_display = ttk.Notebook(self.master)
 		self.create_image_display(self.image_display)
 		self.master.bind('<Double-1>', lambda e: self.display_notebook())
-		self.image_display.place(x=550, y=10, width=675, height=600)
+		self.image_display.place(x=550, y=10, height=700, width=675)
 
 
 	def create_title(self, frame):
@@ -118,7 +120,7 @@ class imagecol_gui:
 		frame.title_sigma = Label(frame, text="Gaussian Std Dev (pix)")
 		frame.title_sigma.configure(background='#d8baa9')
 		frame.sigma = Scale(frame, from_=0, to=10, tickinterval=1, resolution=0.1, 
-						length=300, orient=HORIZONTAL, variable=self.sigma)#,text='Low Clip Intensity (%)')
+				length=300, orient=HORIZONTAL, variable=self.sigma)
 
 		frame.title_sigma.grid(column=0, row=2, rowspan=1)
 		frame.sigma.grid(column=0, row=3, sticky=(N,W,E,S))
@@ -126,11 +128,12 @@ class imagecol_gui:
 		frame.title_p0 = Label(frame, text="Low Clip Intensity (%)")
 		frame.title_p0.configure(background='#d8baa9')
 		frame.p0 = Scale(frame, from_=0, to=100, tickinterval=10, 
-						length=300, orient=HORIZONTAL, variable=self.p0)#,text='Low Clip Intensity (%)')
+				length=300, orient=HORIZONTAL, variable=self.p0)
+
 		frame.title_p1 = Label(frame, text="High Clip Intensity (%)")
 		frame.title_p1.configure(background='#d8baa9')
 		frame.p1 = Scale(frame, from_=0, to=100,tickinterval=10, 
-							length=300, orient=HORIZONTAL, variable=self.p1)#, text='High Clip Intensity (%)')
+				length=300, orient=HORIZONTAL, variable=self.p1)
 
 		frame.title_p0.grid(column=0, row=4, rowspan=1)
 		frame.p0.grid(column=0, row=5)
@@ -140,11 +143,11 @@ class imagecol_gui:
 		frame.title_n = Label(frame, text="NL-Mean Neighbourhood 1 (pix)")
 		frame.title_n.configure(background='#d8baa9')
 		frame.n = Scale(frame, from_=0, to=100, tickinterval=10, 
-						length=300, orient=HORIZONTAL, variable=self.n)
+				length=300, orient=HORIZONTAL, variable=self.n)
 		frame.title_m = Label(frame, text="NL-Mean Neighbourhood 2 (pix)")
 		frame.title_m.configure(background='#d8baa9')
 		frame.m = Scale(frame, from_=0, to=100,tickinterval=10,
-						length=300, orient=HORIZONTAL, variable=self.m)
+				length=300, orient=HORIZONTAL, variable=self.m)
 
 		frame.title_n.grid(column=0, row=8, rowspan=1)
 		frame.n.grid(column=0, row=9)
@@ -159,24 +162,29 @@ class imagecol_gui:
 		frame.title_alpha.grid(column=0, row=12, rowspan=1)
 		frame.alpha.grid(column=0, row=13)
 
-		frame.chk_anis = Checkbutton(frame, text="o/w metrics", variable=self.ow_metric)
-		frame.chk_anis.configure(background='#d8baa9')
-		frame.chk_anis.grid(column=0, row=14, sticky=(N,W,E,S))
+		frame.chk_metric = Checkbutton(frame, text="o/w metrics", variable=self.ow_metric)
+		frame.chk_metric.configure(background='#d8baa9')
+		frame.chk_metric.grid(column=0, row=14, sticky=(N,W,E,S))
 		#frame.chk_anis.pack(side=LEFT)
 
-		frame.chk_graph = Checkbutton(frame, text="o/w network", variable=self.ow_network)
-		frame.chk_graph.configure(background='#d8baa9')
-		frame.chk_graph.grid(column=0, row=15, sticky=(N,W,E,S))
+		frame.chk_segment = Checkbutton(frame, text="o/w segment", variable=self.ow_segment)
+		frame.chk_segment.configure(background='#d8baa9')
+		frame.chk_segment.grid(column=0, row=15, sticky=(N,W,E,S))
+		#frame.chk_graph.pack(side=LEFT)
+
+		frame.chk_network = Checkbutton(frame, text="o/w network", variable=self.ow_network)
+		frame.chk_network.configure(background='#d8baa9')
+		frame.chk_network.grid(column=0, row=16, sticky=(N,W,E,S))
 		#frame.chk_graph.pack(side=LEFT)
 	
-		frame.chk_graph = Checkbutton(frame, text="o/w figure", variable=self.ow_figure)
-		frame.chk_graph.configure(background='#d8baa9')
-		frame.chk_graph.grid(column=0, row=16, sticky=(N,W,E,S))
+		frame.chk_figure = Checkbutton(frame, text="o/w figure", variable=self.ow_figure)
+		frame.chk_figure.configure(background='#d8baa9')
+		frame.chk_figure.grid(column=0, row=17, sticky=(N,W,E,S))
 		#frame.chk_graph.pack(side=LEFT)
 
 		frame.chk_db = Checkbutton(frame, text="Save Database", variable=self.save_db)
 		frame.chk_db.configure(background='#d8baa9')
-		frame.chk_db.grid(column=0, row=17, sticky=(N,W,E,S))
+		frame.chk_db.grid(column=0, row=18, sticky=(N,W,E,S))
 
 		frame.configure(background='#d8baa9')
 
@@ -270,14 +278,14 @@ class imagecol_gui:
 			self.update_log("Removing {}".format(filename))
 
 
-	def create_image_display(self, notebook, width=675, height=550):
+	def create_image_display(self, notebook, width=675, height=650):
 
 		#frame.grid(row=0, columnspan=3, sticky=(N,W,E,S))
 
 		notebook.image_tab = ttk.Frame(notebook)
 		notebook.add(notebook.image_tab, text='Image')
 		notebook.image_tab.canvas = Canvas(notebook.image_tab, width=width, height=height,
-								scrollregion=(0,0,675,600))  
+								scrollregion=(0,0,675,700))  
 		notebook.image_tab.scrollbar = Scrollbar(notebook.image_tab, orient=VERTICAL, 
 							command=notebook.image_tab.canvas.yview)
 		notebook.image_tab.scrollbar.pack(side=RIGHT,fill=Y)
@@ -287,7 +295,7 @@ class imagecol_gui:
 		notebook.tensor_tab = ttk.Frame(notebook)
 		notebook.add(notebook.tensor_tab, text='Tensor Image')
 		notebook.tensor_tab.canvas = Canvas(notebook.tensor_tab, width=width, height=height,
-								scrollregion=(0,0,675,600))  
+								scrollregion=(0,0,675,700))  
 		notebook.tensor_tab.scrollbar = Scrollbar(notebook.tensor_tab, orient=VERTICAL, 
 							command=notebook.tensor_tab.canvas.yview)
 		notebook.tensor_tab.scrollbar.pack(side=RIGHT,fill=Y)
@@ -297,7 +305,7 @@ class imagecol_gui:
 		notebook.network_tab = ttk.Frame(notebook)
 		notebook.add(notebook.network_tab, text='Network')
 		notebook.network_tab.canvas = Canvas(notebook.network_tab, width=width, height=height,
-								scrollregion=(0,0,675,600))  
+								scrollregion=(0,0,675,700))  
 		notebook.network_tab.scrollbar = Scrollbar(notebook.network_tab, orient=VERTICAL, 
 							command=notebook.network_tab.canvas.yview)
 		notebook.network_tab.scrollbar.pack(side=RIGHT,fill=Y)
@@ -307,7 +315,7 @@ class imagecol_gui:
 		notebook.segment_tab = ttk.Frame(notebook)
 		notebook.add(notebook.segment_tab, text='Segment')
 		notebook.segment_tab.canvas = Canvas(notebook.segment_tab, width=width, height=height,
-								scrollregion=(0,0,675,600))  
+								scrollregion=(0,0,675,700))  
 		notebook.segment_tab.scrollbar = Scrollbar(notebook.segment_tab, orient=VERTICAL, 
 							command=notebook.segment_tab.canvas.yview)
 		notebook.segment_tab.scrollbar.pack(side=RIGHT,fill=Y)
@@ -317,7 +325,7 @@ class imagecol_gui:
 		notebook.hole_tab = ttk.Frame(notebook)
 		notebook.add(notebook.hole_tab, text='Hole')
 		notebook.hole_tab.canvas = Canvas(notebook.hole_tab, width=width, height=height,
-								scrollregion=(0,0,675,600))  
+								scrollregion=(0,0,675,700))  
 		notebook.hole_tab.scrollbar = Scrollbar(notebook.hole_tab, orient=VERTICAL, 
 							command=notebook.hole_tab.canvas.yview)
 		notebook.hole_tab.scrollbar.pack(side=RIGHT,fill=Y)
@@ -361,8 +369,8 @@ class imagecol_gui:
 										'Network Degree' : {"info" : "Average fibre network number of edges per node", "metric" : DoubleVar(), "tag" : "network"},
 										'Network Eigenvalue' : {"info" : "Max Eigenvalue of network", "metric" : DoubleVar(), "tag" : "network"},
 										'Network Connectivity' : {"info" : "Average fibre network connectivity", "metric" : DoubleVar(), "tag" : "network"},
-										'Network Local Efficiency' : {"info" : "Average fibre network local efficiency", "metric" : DoubleVar(), "tag" : "network"},
-										'Network Clustering' : {"info" : "Average fibre network clustering", "metric" : DoubleVar(), "tag" : "network"},
+										#'Network Local Efficiency' : {"info" : "Average fibre network local efficiency", "metric" : DoubleVar(), "tag" : "network"},
+										#'Network Clustering' : {"info" : "Average fibre network clustering", "metric" : DoubleVar(), "tag" : "network"},
 										'Cell Hu Moment 1'  : {"info" : "Average cell segment Hu moment 1", "metric" : DoubleVar(), "tag" : "shape"},
 										'Cell Hu Moment 2'  : {"info" : "Average cell segment Hu moment 2", "metric" : DoubleVar(), "tag" : "shape"},
 										#'Hu Moment 5'  : {"info" : "Shape Hu moment 5", "metric" : DoubleVar(), "tag" : "shape"},
@@ -446,7 +454,7 @@ class imagecol_gui:
 		
 		notebook.log_tab = ttk.Frame(notebook)
 		notebook.add(notebook.log_tab, text='Log')
-		notebook.log_tab.text = Text(notebook.log_tab, width=675, height=550)
+		notebook.log_tab.text = Text(notebook.log_tab, width=675, height=650)
 		notebook.log_tab.text.insert(END, self.Log)
 		notebook.log_tab.text.config(state=DISABLED)
 
@@ -499,22 +507,6 @@ class imagecol_gui:
 
 		self.display_image(canvas, image_tk)
 
-		"""
-				
-		for j, network in enumerate(networks):
-
-			node_coord = [network.nodes[i]['xy'] for i in network.nodes()]
-			node_coord = np.stack(node_coord)
-
-			mapping = dict(zip(network.nodes, np.arange(network.number_of_nodes())))
-			network = nx.relabel_nodes(network, mapping)
-			
-			for n, node in enumerate(network.nodes):
-				for m in list(network.adj[node]):
-					canvas.create_line(node_coord[n][1] + 40, node_coord[n][0] + 20,
-							   node_coord[m][1] + 40, node_coord[m][0] + 20,
-							   fill="red", width=1.5)
-		"""
 
 	def display_regions(self, canvas, image, regions):
 
@@ -551,7 +543,7 @@ class imagecol_gui:
 		self.update_log("Displaying image tensor {}".format(fig_name))
 
 		try:
-			networks = load_networks(data_dir + fig_name + "_network.pkl")
+			networks = ut.load_region(data_dir + fig_name + "_network")
 			self.display_network(self.image_display.network_tab.canvas, self.image_shg, networks)
 			self.update_log("Displaying network for {}".format(fig_name))
 		except IOError:
@@ -655,8 +647,8 @@ class imagecol_gui:
 					(self.p0.get(), self.p1.get()),
 					(self.n.get(), self.m.get()),
 					self.sigma.get(), self.alpha.get(),
-					self.ow_metric.get(), self.ow_network.get(),
-					self.ow_figure.get(), 
+					self.ow_metric.get(), self.ow_segment.get(),
+					 self.ow_network.get(), self.ow_figure.get(), 
 					self.queue, self.n_thread))
 			process.daemon = True
 			self.processes.append(process)
@@ -709,7 +701,8 @@ class imagecol_gui:
 
 
 def image_analysis(input_files, p_intensity, p_denoise, sigma, alpha, 
-			ow_metric, ow_network, ow_figure, queue, threads):
+			ow_metric, ow_segment, ow_network, ow_figure, 
+			queue, threads):
 
 	for input_file_name in input_files:
 
@@ -720,8 +713,9 @@ def image_analysis(input_files, p_intensity, p_denoise, sigma, alpha,
 					scale=1, p_intensity=p_intensity,
 					p_denoise=p_denoise, sigma=sigma,
 					alpha=alpha,
-					ow_metric=ow_metric, ow_network=ow_network,
-					ow_figure=ow_figure, threads=threads)
+					ow_metric=ow_metric, ow_segment=ow_segment,
+					ow_network=ow_network, ow_figure=ow_figure,
+					threads=threads)
 			queue.put("Analysis of {} complete".format(input_file_name))
 
 		except Exception as err: queue.put("{} {}".format(err.message, input_file_name))
