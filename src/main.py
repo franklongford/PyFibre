@@ -217,8 +217,8 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 					fibre_pix_anis, fibre_areas, fibre_linear, fibre_eccent, fibre_density,
 					fibre_coverage, fibre_mean, fibre_std, fibre_entropy, 
 					fibre_glcm_contrast, fibre_glcm_homo, fibre_glcm_dissim, fibre_glcm_corr,
-					fibre_glcm_IDM, fibre_glcm_variance, fibre_glcm_cluster, fibre_glcm_entropy,
-					fibre_glcm_energy, network_waviness, network_degree, network_eigen, 
+					fibre_glcm_energy, fibre_glcm_IDM, fibre_glcm_variance, fibre_glcm_cluster, 
+					fibre_glcm_entropy, network_waviness, network_degree, network_eigen, 
 					network_connect, network_loc_eff, network_cluster], axis=-1)
 		fibre_metrics = np.concatenate((fibre_metrics, fibre_hu), axis=-1)
 
