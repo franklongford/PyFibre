@@ -634,6 +634,20 @@ def waviness_analysis(Aij, angle_thresh=70, verbose=False):
 
 	#"""
 
+	print(Aij.number_of_nodes(), fibre_waviness)
+
+	if fibre_waviness.size == 0:
+		import matplotlib.pyplot as plt
+		
+		plt.figure(0)
+		plt.scatter(node_coord[:, 0], node_coord[:, 1])
+		for edge in Aij.edges():
+			plt.plot(node_coord[edge, 0], node_coord[edge, 1])
+
+		plt.figure(1)		
+		nx.draw_networkx(Aij)
+		plt.show()
+
 	return  np.nanmean(fibre_waviness)#, fibre_waviness.mean()
 	#return  network_waviness.mean()#, fibre_waviness.mean()
 
