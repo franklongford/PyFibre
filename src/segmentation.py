@@ -23,7 +23,7 @@ from scipy.ndimage.morphology import binary_fill_holes, binary_dilation, binary_
 from skimage import measure, draw
 from skimage.transform import rescale, resize
 from skimage.feature import greycomatrix, greycoprops
-from skimage.morphology import remove_small_objects
+from skimage.morphology import remove_small_objects, remove_small_holes
 
 import utilities as ut
 from filters import tubeness, hysteresis
@@ -295,7 +295,7 @@ def network_extraction(image_shg, network_name='network', scale=1.25, sigma=0.5,
 	return networks, networks_red
 
 
-def fibre_extraction(image_shg, networks, networks_red):
+def fibre_extraction(image_shg, networks, networks_red, area_threshold=200):
 
 	n_net = len(networks)
 	fibres = []
@@ -308,7 +308,8 @@ def fibre_extraction(image_shg, networks, networks_red):
 		label_image = np.zeros(image_shg.shape, dtype=int)
 		label_image = draw_network(network, label_image, 1)
 		dilated_image = binary_dilation(label_image, iterations=8)
-		smoothed_image = gaussian_filter(dilated_image, sigma=0.25)
+		filled_image = remove_small_holes(dilated_image, area_threshold=area_threshold)
+		smoothed_image = gaussian_filter(filled_image, sigma=0.25)
 		binary_image = np.where(smoothed_image, 1, 0)
 
 		segment = measure.regionprops(binary_image, intensity_image=image_shg)[0]
@@ -367,9 +368,9 @@ def filter_segments(segments, network, network_red, min_size=200):
 
 def network_analysis(network, network_red):
 
-	import matplotlib.pyplot as plt
+	from extraction import updated_waviness_analysis
 
-	network_waviness = waviness_analysis(network)
+	network_waviness, network_waviness_std = updated_waviness_analysis(network)
 
 	try: network_degree = nx.degree_pearson_correlation_coefficient(network, weight='r')**2
 	except: network_degree = None
@@ -388,7 +389,8 @@ def network_analysis(network, network_red):
 	except: network_cluster = None
 	"""
 
-	return (network_waviness, network_degree, network_eigen, network_connect)
+	return (network_waviness, network_waviness_std, network_degree, 
+			network_eigen, network_connect)
 
 
 def total_analysis(image_shg, image_pl, networks, networks_red, 
@@ -426,6 +428,7 @@ def total_analysis(image_shg, image_pl, networks, networks_red,
 	segment_hu = np.zeros((l_regions, 7))
 	
 	network_waviness = np.empty(l_regions)
+	network_waviness_std = np.empty(l_regions)
 	network_degree = np.empty(l_regions)
 	network_eigen = np.empty(l_regions)
 	network_connect = np.empty(l_regions)
@@ -451,7 +454,8 @@ def total_analysis(image_shg, image_pl, networks, networks_red,
 
 		metrics = network_analysis(network, network_red)
 
-		(network_waviness[i], network_degree[i], network_eigen[i], network_connect[i]) = metrics
+		(network_waviness[i], network_waviness_std[i], network_degree[i], network_eigen[i],
+			network_connect[i]) = metrics
 
 
 	return (segment_fourier_sdi, segment_angle_sdi, segment_anis, segment_pix_anis, 
@@ -459,4 +463,5 @@ def total_analysis(image_shg, image_pl, networks, networks_red,
 		segment_mean, segment_std, segment_entropy, segment_glcm_contrast, 
 		segment_glcm_homo, segment_glcm_dissim, segment_glcm_corr, segment_glcm_energy, 
 		segment_glcm_IDM, segment_glcm_variance, segment_glcm_cluster, segment_glcm_entropy,
-		segment_hu, network_waviness, network_degree, network_eigen, network_connect)
+		segment_hu, network_waviness, network_waviness_std, network_degree, network_eigen, 
+		network_connect)

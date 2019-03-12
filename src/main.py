@@ -77,7 +77,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 			'GLCM IDM', 'GLCM Variance', 'GLCM Cluster', 'GLCM Entropy',
 			'No. Fibres', 'Fibre Area', 'No. Cells', 'Cell Area',
 			'Fibre Linearity', 'Fibre Eccentricity', 'Fibre Density', 'Fibre Coverage',
-			'Fibre Waviness', 'Network Degree', 'Network Eigenvalue',
+			'Fibre Waviness', 'Fibre Waviness STD', 'Network Degree', 'Network Eigenvalue',
 			'Network Connectivity',
 			'Cell Linearity', 'Cell Eccentricity', 'Cell Density', 'Cell Coverage', 
 			'Fibre Hu Moment 1', 'Fibre Hu Moment 2', 'Cell Hu Moment 1', 'Cell Hu Moment 2']
@@ -87,8 +87,8 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 				'Mean', 'STD', 'Entropy', 'GLCM Contrast', 'GLCM Homogeneity', 
 				'GLCM Dissimilarity', 'GLCM Correlation', 'GLCM Energy',
 				'GLCM IDM', 'GLCM Variance', 'GLCM Cluster', 'GLCM Entropy',
-				'Fibre Waviness', 'Network Degree', 'Network Eigenvalue',
-				'Network Connectivity',
+				'Fibre Waviness', 'Fibre Waviness STD', 'Network Degree',
+				'Network Eigenvalue', 'Network Connectivity',
 				'Hu Moment 1', 'Hu Moment 2', 'Hu Moment 3',
 				'Hu Moment 4', 'Hu Moment 5', 'Hu Moment 6',
 				'Hu Moment 7']
@@ -119,8 +119,6 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 	image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
 	image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
 	
-	print(ow_metric, ow_segment, ow_network)
-
 	if not np.any([ow_metric, ow_segment, ow_network]):
 
 		try:
@@ -136,6 +134,8 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		except IOError:
 			print("Cannot load segments for {}".format(image_name))
 			ow_segment = True
+			ow_metric = True
+			ow_figure = True
 
 		try: 
 			global_dataframe = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + image_name))
@@ -145,15 +145,16 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 			print("Cannot load metrics for {}".format(image_name))
 			ow_metric = True
 
+	print(f"Overwrite options:\n ow_network = {ow_network}\n ow_segment = {ow_segment}\
+		\n ow_metric = {ow_metric}\n ow_figure = {ow_figure}")
+
 	start = time.time()
 
 	if ow_network:
 
-		start_net = time.time()
-
 		ow_segment = True
-		ow_metric = True
-		ow_figure = True
+	
+		start_net = time.time()
 
 		networks, networks_red = seg.network_extraction(image_shg, data_dir + image_name,
 						sigma=sigma, p_denoise=p_denoise, threads=threads)
@@ -166,6 +167,9 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		print(f"TOTAL NETWORK EXTRACTION TIME = {round(end_net - start_net, 3)} s")
 
 	if ow_segment:
+
+		ow_metric = True
+		ow_figure = True
 
 		start_seg = time.time()
 
@@ -235,7 +239,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		fibre_mean, fibre_std, fibre_entropy, fibre_glcm_contrast, 
 		fibre_glcm_homo, fibre_glcm_dissim, fibre_glcm_corr, fibre_glcm_energy, 
 		fibre_glcm_IDM, fibre_glcm_variance, fibre_glcm_cluster, fibre_glcm_entropy,
-		fibre_hu, network_waviness, network_degree, network_eigen, 
+		fibre_hu, network_waviness, network_waviness_std, network_degree, network_eigen, 
 		network_connect) = net_res
 
 		fibre_binary = seg.create_binary_image(fibres, image_shg.shape)
@@ -248,8 +252,8 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 					fibre_coverage, fibre_mean, fibre_std, fibre_entropy, 
 					fibre_glcm_contrast, fibre_glcm_homo, fibre_glcm_dissim, fibre_glcm_corr,
 					fibre_glcm_energy, fibre_glcm_IDM, fibre_glcm_variance, fibre_glcm_cluster, 
-					fibre_glcm_entropy, network_waviness, network_degree, network_eigen, 
-					network_connect], axis=-1)
+					fibre_glcm_entropy, network_waviness, network_waviness_std, network_degree,
+					network_eigen, network_connect], axis=-1)
 		fibre_metrics = np.concatenate((fibre_metrics, fibre_hu), axis=-1)
 
 		fibre_dataframe = pd.DataFrame(data=fibre_metrics, columns=fibre_columns)
@@ -280,6 +284,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		global_fibre_hu_1 = np.mean(fibre_hu[:, 0])
 		global_fibre_hu_2 = np.mean(fibre_hu[:, 1])
 		global_fibre_waviness = np.nanmean(network_waviness)
+		global_fibre_waviness_std = np.sqrt(np.nanmean(network_waviness_std**2))
 
 		global_network_degree = np.nanmean(network_degree)
 		global_network_eigen = np.nanmean(network_eigen)
@@ -304,8 +309,8 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 					(len(fibres)), global_fibre_area, (len(cells)), global_cell_area,
 					global_fibre_linear, global_fibre_eccent,
 					global_fibre_density, global_fibre_coverage, global_fibre_waviness, 
-					global_network_degree, global_network_eigen, global_network_connect,
-					global_cell_linear,
+					global_fibre_waviness_std, global_network_degree, global_network_eigen,
+					global_network_connect,	global_cell_linear,
 					global_cell_eccent, global_cell_density, global_cell_coverage,
 					global_fibre_hu_1, global_fibre_hu_2, global_cell_hu_1, 
 					global_cell_hu_2], axis=0)
