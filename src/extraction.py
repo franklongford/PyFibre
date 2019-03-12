@@ -307,27 +307,8 @@ def FIRE(image, scale=1, alpha=0.70, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_th
 
 	"Apply tubeness transform to enhance image fibres"
 	image_TB = tubeness(image_scale, 2 * sigma)
-
-	import matplotlib.pyplot as plt
-
-	plt.figure(0)
-	plt.imshow(image_scale)
-
-	plt.figure(1)
-	plt.imshow(image_TB)
-
 	threshold = hysteresis(image_TB, alpha=alpha)
-
-	plt.figure(2)
-	plt.imshow(threshold)
-
 	cleaned = remove_small_objects(threshold)
-
-	plt.figure(3)
-	plt.imshow(cleaned)
-
-	plt.show()
-
 	distance = distance_transform_edt(cleaned)
 	smoothed = gaussian_filter(distance, sigma=sigma)
 	smoothed = clear_border(smoothed)
@@ -865,7 +846,7 @@ def updated_waviness_analysis(Aij, angle_thresh=70, node_max=25, verbose=False):
 
 	#"""
 
-	print(Aij.number_of_nodes(), fibre_waviness, np.nanmean(fibre_waviness))
+	print(Aij.number_of_nodes(), np.nanmean(fibre_waviness), np.std(fibre_waviness))
 
 	return  np.nanmean(fibre_waviness), np.std(fibre_waviness)
 	#return  network_waviness.mean()#, fibre_waviness.mean()
