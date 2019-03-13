@@ -27,8 +27,8 @@ from skimage.morphology import remove_small_objects, remove_small_holes
 
 import utilities as ut
 from filters import tubeness, hysteresis
-from extraction import FIRE, waviness_analysis, simplify_network
-from analysis import fourier_transform_analysis, tensor_analysis, angle_analysis
+from extraction import FIRE, fibre_assignment, simplify_network
+from analysis import fourier_transform_analysis, tensor_analysis, angle_analysis, fibre_analysis
 from preprocessing import nl_means
 
 
@@ -61,7 +61,7 @@ def find_holes(image, sigma=0.8, alpha=1.0, min_size=1250, iterations=1):
 	return image_hole
 
 
-def hole_extraction(image_shg, image_pl, fibres, scale=2, sigma=0.8, alpha=1.0, min_size=1250, edges=False):
+def hole_segmentation(image_shg, image_pl, fibres, scale=2, sigma=0.8, alpha=1.0, min_size=1250, edges=False):
 
 	image_fibre = create_binary_image(fibres, image_pl.shape)
 	image_hole_fibre = np.where(image_fibre, 0, 1)
@@ -286,16 +286,21 @@ def network_extraction(image_shg, network_name='network', scale=1.25, sigma=0.5,
 	print("Extracting and simplifying fibre networks from graph")
 	networks = []
 	networks_red = []
+	fibres = []
 	for i, component in enumerate(nx.connected_components(Aij)):
 		subgraph = Aij.subgraph(component)
 
-		networks.append(subgraph)
-		networks_red.append(simplify_network(subgraph))
+		fibre = fibre_assignment(subgraph)
 
-	return networks, networks_red
+		if len(fibre) > 0:
+			networks.append(subgraph)
+			networks_red.append(simplify_network(subgraph))
+			fibres.append(fibre)		
+
+	return networks, networks_red, fibres
 
 
-def fibre_extraction(image_shg, networks, networks_red, area_threshold=200):
+def fibre_segmentation(image_shg, networks, networks_red, area_threshold=200):
 
 	n_net = len(networks)
 	fibres = []
@@ -368,10 +373,6 @@ def filter_segments(segments, network, network_red, min_size=200):
 
 def network_analysis(network, network_red):
 
-	from extraction import updated_waviness_analysis
-
-	network_waviness, network_waviness_std = updated_waviness_analysis(network)
-
 	try: network_degree = nx.degree_pearson_correlation_coefficient(network, weight='r')**2
 	except: network_degree = None
 
@@ -389,12 +390,11 @@ def network_analysis(network, network_red):
 	except: network_cluster = None
 	"""
 
-	return (network_waviness, network_waviness_std, network_degree, 
-			network_eigen, network_connect)
+	return (network_degree, network_eigen, network_connect)
 
 
 def total_analysis(image_shg, image_pl, networks, networks_red, 
-				segments, n_tensor, anis_map, angle_map):
+			fibres, segments, n_tensor, anis_map, angle_map):
 	"""
 	Analyse extracted fibre network
 	"""
@@ -427,17 +427,15 @@ def total_analysis(image_shg, image_pl, networks, networks_red,
 
 	segment_hu = np.zeros((l_regions, 7))
 	
-	network_waviness = np.empty(l_regions)
-	network_waviness_std = np.empty(l_regions)
-	network_degree = np.empty(l_regions)
-	network_eigen = np.empty(l_regions)
-	network_connect = np.empty(l_regions)
-	#network_loc_eff = np.empty(l_regions)
-	#network_cluster = np.empty(l_regions)
+	fibre_waviness = np.zeros(l_regions)
+	fibre_lengths = np.zeros(l_regions)
+	network_degree = np.zeros(l_regions)
+	network_eigen = np.zeros(l_regions)
+	network_connect = np.zeros(l_regions)
 
-	iterator = zip(np.arange(l_regions), networks, networks_red, segments)
+	iterator = zip(np.arange(l_regions), networks, networks_red, fibres, segments)
 
-	for i, network, network_red, segment in iterator:
+	for i, network, network_red, fibre, segment in iterator:
 
 		#if segment.filled_area >= 1E-2 * image_shg.size:
 
@@ -454,8 +452,13 @@ def total_analysis(image_shg, image_pl, networks, networks_red,
 
 		metrics = network_analysis(network, network_red)
 
-		(network_waviness[i], network_waviness_std[i], network_degree[i], network_eigen[i],
+		(network_degree[i], network_eigen[i],
 			network_connect[i]) = metrics
+
+		fibre_len, fibre_wav, _ = fibre_analysis(fibre)
+
+		fibre_waviness[i] = np.nanmean(fibre_wav)
+		fibre_lengths[i] = np.nanmean(fibre_len)
 
 
 	return (segment_fourier_sdi, segment_angle_sdi, segment_anis, segment_pix_anis, 
@@ -463,5 +466,5 @@ def total_analysis(image_shg, image_pl, networks, networks_red,
 		segment_mean, segment_std, segment_entropy, segment_glcm_contrast, 
 		segment_glcm_homo, segment_glcm_dissim, segment_glcm_corr, segment_glcm_energy, 
 		segment_glcm_IDM, segment_glcm_variance, segment_glcm_cluster, segment_glcm_entropy,
-		segment_hu, network_waviness, network_waviness_std, network_degree, network_eigen, 
-		network_connect)
+		segment_hu, network_degree, network_eigen, network_connect, fibre_waviness, 
+		fibre_lengths)

@@ -292,7 +292,13 @@ def clear_border(image, thickness=1):
 
 	return image
 
-	
+
+def flatten_list(list_of_lists):
+
+	flat_list = [val for sublist in list_of_lists for val in sublist]
+
+	return flat_list
+
 ####### OBSOLETE ########
 
 def gaussian_filter(histogram, std, r, n_xyz):

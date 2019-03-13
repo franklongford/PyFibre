@@ -17,6 +17,7 @@ from scipy.ndimage.filters import gaussian_filter
 from skimage.color import grey2rgb, rgb2grey, rgb2hsv, hsv2rgb
 
 import utilities as ut
+from extraction import branch_angles
 
 
 def fourier_transform_analysis(image, sigma=None, n_sample=100, size=100, nbins=200):
@@ -105,4 +106,26 @@ def angle_analysis(angles, weights, N=200):
 	angle_sdi = angle_hist.mean() / angle_hist.max()
 
 	return angle_sdi
+
+
+def fibre_analysis(tot_fibres, verbose=False):
+
+	fibre_lengths = np.empty((0,), dtype='float64')
+	fibre_waviness = np.empty((0,), dtype='float64')
+	fibre_angles = np.empty((0,), dtype='float64')
+
+	for fibre in tot_fibres:
+
+		start = fibre.node_list[0]
+		end = fibre.node_list[-1]
+
+		if verbose: print("Length", fibre.fibre_l, "Displacement", fibre.euclid_l, "\n")
+
+		fibre_lengths = np.concatenate((fibre_lengths, [fibre.fibre_l]))
+		fibre_waviness = np.concatenate((fibre_waviness, [fibre.euclid_l / fibre.fibre_l]))
+
+		cos_the = branch_angles(fibre.direction, np.array([[0, 1]]), np.ones(1))
+		fibre_angles = np.concatenate((fibre_angles, np.arccos(cos_the)))
+
+	return fibre_lengths, fibre_waviness, fibre_angles
 

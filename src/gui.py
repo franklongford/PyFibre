@@ -312,6 +312,16 @@ class imagecol_gui:
 		notebook.network_tab.canvas['yscrollcommand'] = notebook.network_tab.scrollbar.set
 		notebook.network_tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
 
+		notebook.fibre_tab = ttk.Frame(notebook)
+		notebook.add(notebook.fibre_tab, text='Fibre')
+		notebook.fibre_tab.canvas = Canvas(notebook.fibre_tab, width=width, height=height,
+								scrollregion=(0,0,675,700))  
+		notebook.fibre_tab.scrollbar = Scrollbar(notebook.fibre_tab, orient=VERTICAL, 
+							command=notebook.fibre_tab.canvas.yview)
+		notebook.fibre_tab.scrollbar.pack(side=RIGHT,fill=Y)
+		notebook.fibre_tab.canvas['yscrollcommand'] = notebook.fibre_tab.scrollbar.set
+		notebook.fibre_tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
+
 		notebook.segment_tab = ttk.Frame(notebook)
 		notebook.add(notebook.segment_tab, text='Segment')
 		notebook.segment_tab.canvas = Canvas(notebook.segment_tab, width=width, height=height,
@@ -357,8 +367,8 @@ class imagecol_gui:
 										'Fibre Linearity' : {"info" : "Average fibre segment linearity", "metric" : DoubleVar(), "tag" : "shape"},
 										'Fibre Eccentricity' : {"info" : "Average fibre segment eccentricity", "metric" : DoubleVar(), "tag" : "shape"},
 										'Fibre Density' : {"info" : "Average image fibre density", "metric" : DoubleVar(), "tag" : "texture"},
-										'Fibre Waviness' : {"info" : "Average fibre network waviness", "metric" : DoubleVar(), "tag" : "content"},
-										'Fibre Waviness STD' : {"info" : "Stadard deviation fibre waviness", "metric" : DoubleVar(), "tag" : "content"},
+										'Fibre Waviness' : {"info" : "Average fibre waviness", "metric" : DoubleVar(), "tag" : "content"},
+										'Fibre Lengths' : {"info" : "Average fibre length", "metric" : DoubleVar(), "tag" : "content"},
 										'Fibre Hu Moment 1'  : {"info" : "Average fibre segment Hu moment 1", "metric" : DoubleVar(), "tag" : "shape"},
 										'Fibre Hu Moment 2'  : {"info" : "Average fibre segment Hu moment 2", "metric" : DoubleVar(), "tag" : "shape"},
 										'No. Cells' : {"info" : "Number of cell segments", "metric" : IntVar(), "tag" : "content"},
@@ -500,9 +510,9 @@ class imagecol_gui:
 		self.master.update_idletasks()
 
 
-	def display_network(self, canvas, image, networks):
+	def display_network(self, canvas, image, networks, c_mode=0):
 
-		image_network_overlay = create_network_image(image, networks)
+		image_network_overlay = create_network_image(image, networks, c_mode)
 
 		image_tk = ImageTk.PhotoImage(Image.fromarray(image_network_overlay.astype('uint8')))
 
@@ -549,6 +559,14 @@ class imagecol_gui:
 			self.update_log("Displaying network for {}".format(fig_name))
 		except IOError:
 			self.update_log("Unable to display network for {}".format(fig_name))
+
+		try:
+			fibres = ut.load_region(data_dir + fig_name + "_fibre")
+			fibres = ut.flatten_list(fibres)
+			self.display_network(self.image_display.fibre_tab.canvas, self.image_shg, fibres, 1)
+			self.update_log("Displaying segments for {}".format(fig_name))
+		except IOError:
+			self.update_log("Unable to display segments for {}".format(fig_name))
 
 		try:
 			segments = ut.load_region(data_dir + fig_name + "_fibre_segment")

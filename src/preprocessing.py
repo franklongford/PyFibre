@@ -117,6 +117,7 @@ def nl_means(image, p_denoise=(5, 35)):
 
 	return image
 
+
 def select_samples(full_set, area, n_sample):
 	"""
 	Selects n_sample random sections of image stack full_set

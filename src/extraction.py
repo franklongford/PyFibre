@@ -160,16 +160,16 @@ def transfer_edges(Aij, source, target):
 
 class Fibre(nx.Graph):
 
-	def __init__(self, index, nodes, edges=[], direction=0, growing=True,
-			fibre_l=0):
+	def __init__(self, nodes, edges=[], direction=[0,0], growing=True,
+			fibre_l=0, euclid_l=0):
 
 		super().__init__()
-		self.index = index
 		self.add_nodes_from(nodes)
 		self.add_edges_from(edges)
 		self.direction = direction
 		self.growing = growing
 		self.fibre_l = fibre_l
+		self.euclid_l = euclid_l
 
 		self.node_list = list(self.nodes)
 
@@ -510,78 +510,69 @@ def simplify_network(Aij):
 	return new_Aij
 
 
-def waviness_analysis(Aij, angle_thresh=70, verbose=False):
+def fibre_assignment(network, angle_thresh=70, verbose=False, min_n=4):
 
-	mapping = dict(zip(Aij.nodes, np.arange(Aij.number_of_nodes())))
-	Aij = nx.relabel_nodes(Aij, mapping)
-	network_waviness = np.empty((0,), dtype='float64')
+	mapping = dict(zip(network.nodes, np.arange(network.number_of_nodes())))
+	network = nx.relabel_nodes(network, mapping)
 
-	#for component in nx.connected_components(Aij):
-	#subgraph = Aij.subgraph(component)
-
-	"""
-	edge_nodes = np.array([node for node in Aij.nodes if Aij.degree[node] == 1], dtype=int)
-	
-	for n, node1 in enumerate(edge_nodes):
-		for m, node2 in enumerate(edge_nodes[:n]):
-			shortest_path_r = nx.shortest_path_length(Aij, source=node1, target=node2, weight='r')
-			euclidean_r = np.sqrt(((Aij.nodes[node1]['xy'] - Aij.nodes[node2]['xy'])**2).sum())
-			network_waviness = np.concatenate((network_waviness, [euclidean_r / shortest_path_r])) 
-
-	#"""
-
-	node_coord = [Aij.nodes[i]['xy'] for i in Aij.nodes()]
+	node_coord = [network.nodes[i]['xy'] for i in network.nodes()]
 	node_coord = np.stack(node_coord)
-	edge_count = np.array([Aij.degree[node] for node in Aij], dtype=int)
+	edge_count = np.array([network.degree[node] for node in network], dtype=int)
+
 	theta_thresh = np.cos((180-angle_thresh) * np.pi / 180) + 1
 	d_coord, r2_coord = distance_matrix(node_coord)
-	fibre_waviness = np.empty((0,), dtype='float64')
 
 	network_ends = np.argwhere(edge_count == 1).flatten()
-	tracing = np.where(edge_count == 1, 1, 0)
+	tracing = np.where(edge_count == 1, 1, 1)
 	tot_fibres = []
 
-	for n, node in enumerate(network_ends):
+	for n, node in enumerate(np.argsort(edge_count)):
 
 		if tracing[node]:
 
-			fibre = Fibre(n, [node])
-			tracing[node] = 0
+			fibre = Fibre([node])
+			fibre.nodes[node]['xy'] = network.nodes[node]['xy']
 
-			new_node = np.array(list(Aij.adj[node]))[0]
+			new_nodes = np.array(list(network.adj[node]))
+			edge_list = edge_count[new_nodes]
+			new_node = new_nodes[np.argsort(edge_list)][-1]
 			coord_vec = -d_coord[node][new_node]
-			coord_r = Aij[node][new_node]['r']
-			direction = coord_vec / coord_r
+			coord_r = network[node][new_node]['r']
 
-			fibre_l = coord_r
+			fibre.direction = coord_vec / coord_r
+			fibre.fibre_l = coord_r
+			fibre.euclid_l = np.sqrt(r2_coord[new_node][node])
+			fibre.add_node(new_node, xy= network.nodes[new_node]['xy'])
+			fibre.add_edge(node, new_node, 
+				r=network[new_node][node]['r'])
+			fibre.node_list = list(fibre.nodes)
 
 			if verbose:
 				print("Start node = ", node, "  coord: ", node_coord[node])
 				print("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
 				print("Fibre length = ", coord_r)
-				print("Fibre direction = ", direction)
+				print("Fibre direction = ", fibre.direction)
 
 			while fibre.growing:
-		
-				fibre.add_node(new_node)
-				fibre.direction = direction
-				fibre.node_list = list(fibre.nodes)
-				new_connect = np.array(list(Aij.adj[fibre.node_list[-1]]))
+
+				end_node = fibre.node_list[-1]
+				new_connect = np.array(list(network.adj[end_node]))
 
 				if verbose: print("Nodes connected to fibre end = {}".format(new_connect))
 
 				new_connect = numpy_remove(new_connect, fibre.node_list)
+				#new_connect = numpy_remove(new_connect, np.argwhere(tracing == 0))
 				n_edges = new_connect.shape[0]
 
 				if verbose: 
 					print("{} possible candidates for next fibre node: {}".format(n_edges, new_connect))
 					print("Coords = ", *node_coord[new_connect])
-	
-				if n_edges > 1:
-					new_coord_vec = d_coord[new_node][new_connect]
-					new_coord_r = np.array([Aij[new_node][n]['r'] for n in new_connect])
 
-					assert np.all(new_coord_r > 0), print(new_node, new_connect, new_coord_vec, new_coord_r, fibre.node_list)
+				if n_edges > 0:
+					new_coord_vec = d_coord[end_node][new_connect]
+					new_coord_r = np.array([network[end_node][n]['r'] for n in new_connect])
+
+					assert np.all(new_coord_r > 0), print(end_node, new_connect, new_coord_vec, new_coord_r, fibre.node_list)
 
 					cos_the = branch_angles(fibre.direction, new_coord_vec, new_coord_r)
 
@@ -596,258 +587,31 @@ def waviness_analysis(Aij, angle_thresh=70, verbose=False):
 						new_node = new_connect[index]
 						coord_vec = - new_coord_vec[index]
 						coord_r = new_coord_r[index]
-						direction = coord_vec / coord_r
 
-						fibre_l += coord_r
+						fibre.direction = coord_vec / coord_r
+						fibre.fibre_l += coord_r
+						fibre.euclid_l = np.sqrt(r2_coord[node][end_node])
+						fibre.add_node(new_node, xy= network.nodes[new_node]['xy'])
+						fibre.add_edge(end_node, new_node, 
+							r=network[new_node][end_node]['r'])
+						fibre.node_list = list(fibre.nodes)
 						
 						if verbose: 
 							print("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
-							print("New fibre length = ", fibre_l, "(+{})".format(coord_r))
-							print("New fibre direction = ", fibre.direction)
-
-
-					except (ValueError, IndexError):
-						fibre.growing = False
-						tracing[fibre.node_list[-1]] = 0
-			
-				elif n_edges == 1:
-					new_node = new_connect[0]
-					coord_vec = -d_coord[fibre.node_list[-1]][new_node]
-					coord_r = Aij[fibre.node_list[-1]][new_node]['r']
-
-					assert coord_r > 0, print(new_node, coord_vec, coord_r, fibre.node_list)#np.sqrt(r2_coord[old_node][new_node])
-					direction = coord_vec / coord_r
-
-					fibre_l += coord_r
-
-					if verbose: 
-						print("New fibre length = ", fibre_l, "(+{})".format(coord_r))
-						print("New fibre direction = ", direction)
-				    
-				else:
-					fibre.growing = False
-					tracing[fibre.node_list[-1]] = 0
-		    
-			if verbose: print("End of fibre ", node, fibre.node_list)
-    
-			if fibre.number_of_nodes() > 3:
-				euclid_dist = np.sqrt(r2_coord[fibre.node_list[0]][fibre.node_list[-1]])
-				
-				if verbose:
-					print("Terminals = ", node_coord[fibre.node_list[0]], node_coord[fibre.node_list[-1]],
-										  node_coord[fibre.node_list[0]] - node_coord[fibre.node_list[-1]],
-										  d_coord[fibre.node_list[0]][fibre.node_list[-1]],
-										  d_coord[fibre.node_list[0]][fibre.node_list[-1]]**2)
-					print("Length", fibre_l, "Displacement", euclid_dist, "\n")
-
-				fibre_waviness = np.concatenate((fibre_waviness, [euclid_dist / fibre_l]))
-
-	#"""
-
-	print(Aij.number_of_nodes(), fibre_waviness)
-
-	if fibre_waviness.size == 0:
-		import matplotlib.pyplot as plt
-		
-		plt.figure(0)
-		plt.scatter(node_coord[:, 0], node_coord[:, 1])
-		for edge in Aij.edges():
-			plt.plot(node_coord[edge, 0], node_coord[edge, 1])
-
-		plt.figure(1)		
-		nx.draw_networkx(Aij)
-		plt.show()
-
-	return  np.nanmean(fibre_waviness)#, fibre_waviness.mean()
-	#return  network_waviness.mean()#, fibre_waviness.mean()
-
-
-def updated_waviness_analysis(Aij, angle_thresh=70, node_max=25, verbose=False):
-
-	mapping = dict(zip(Aij.nodes, np.arange(Aij.number_of_nodes())))
-	Aij = nx.relabel_nodes(Aij, mapping)
-	network_waviness = np.empty((0,), dtype='float64')
-
-	#for component in nx.connected_components(Aij):
-	#subgraph = Aij.subgraph(component)
-
-	node_coord = [Aij.nodes[i]['xy'] for i in Aij.nodes()]
-	node_coord = np.stack(node_coord)
-	edge_count = np.array([Aij.degree[node] for node in Aij], dtype=int)
-	theta_thresh = np.cos((180-angle_thresh) * np.pi / 180) + 1
-	d_coord, r2_coord = distance_matrix(node_coord)
-	fibre_waviness = np.empty((0,), dtype='float64')
-
-	network_ends = np.argwhere(edge_count == 1).flatten()
-	tracing = np.where(edge_count == 1, 1, 0)
-	tot_fibres = []
-
-	"""
-	import matplotlib.pyplot as plt
-
-	plt.figure(0)
-	plt.scatter(node_coord[:, 0], node_coord[:, 1])
-	for edge in Aij.edges():
-		plt.plot(node_coord[edge, 0], node_coord[edge, 1])
-
-	plt.figure(1)		
-	nx.draw_networkx(Aij)
-	plt.show()
-	"""
-
-	#"""
-
-	for n, node in enumerate(network_ends):
-
-		Fibres = [Fibre(n, [node])]
-		tracing[node] = 0
-
-		new_node = np.array(list(Aij.adj[node]))[0]
-		coord_vec = -d_coord[node][new_node]
-		coord_r = Aij[node][new_node]['r']
-		direction = coord_vec / coord_r
-
-		Fibres[0].fibre_l = coord_r
-		growing_list = [fibre.growing for fibre in Fibres]
-
-		if verbose:
-			print(f"\nTracing fibre {n}")
-			print("Start node = ", node, "  coord: ", node_coord[node])
-			print("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
-			print("Fibre length = ", coord_r)
-			print("Fibre direction = ", direction)
-
-		while np.any(growing_list):
-	
-			for i in np.argwhere(growing_list).flatten(): 
-
-				fibre = Fibres[i]
-				new_node = fibre.node_list[-1]
-				new_connect = np.array(list(Aij.adj[new_node]))
-
-				if verbose: print("Nodes connected to fibre end = {}".format(new_connect))
-
-				new_connect = numpy_remove(new_connect, fibre.node_list)
-				n_edges = new_connect.shape[0]
-
-				if verbose: print("{} possible candidates for next fibre node: {}".format(n_edges, new_connect))
-
-				if n_edges > 1:
-					if verbose: print("Coords = ", *node_coord[new_connect])
-
-					new_coord_vec = d_coord[new_node][new_connect]
-					new_coord_r = np.array([Aij[new_node][n]['r'] for n in new_connect])
-
-					assert np.all(new_coord_r > 0), print(new_node, new_connect, new_coord_vec, new_coord_r, fibre.node_list)
-
-					cos_the = branch_angles(fibre.direction, new_coord_vec, new_coord_r)
-
-					if verbose: print("Cos theta = ", cos_the)
-
-					try:   
-						indices = np.argwhere(cos_the + 1 <= theta_thresh).flatten()
-						if verbose: print("Nodes lying in fibre growth direction: ", new_connect[indices])
-
-						if indices.size > 1:
-							for index in indices[1:]:
-
-								new_fibre = copy.deepcopy(fibre)
-
-								new_node = new_connect[index]
-								coord_vec = - new_coord_vec[index]
-								coord_r = new_coord_r[index]
-
-								new_fibre.add_node(new_node)
-								new_fibre.node_list = list(new_fibre.nodes)
-								new_fibre.direction = coord_vec / coord_r
-								new_fibre.fibre_l += coord_r
-								
-								if verbose:
-									print("New fibre ")
-									print("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
-									print("New fibre length = ", new_fibre.fibre_l, "(+{})".format(coord_r))
-									print("New fibre direction = ", new_fibre.direction)
-
-								Fibres.append(new_fibre)
-
-						index = indices[0]
-						new_node = new_connect[index]
-						coord_vec = - new_coord_vec[index]
-						coord_r = new_coord_r[index]
-
-						fibre.add_node(new_node)
-						fibre.node_list = list(fibre.nodes)
-						fibre.direction = coord_vec / coord_r
-						fibre.fibre_l += coord_r
-						
-						if verbose:
-							print("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
 							print("New fibre length = ", fibre.fibre_l, "(+{})".format(coord_r))
+							print("New fibre displacement = ", fibre.euclid_l)
 							print("New fibre direction = ", fibre.direction)
 
-						"If more than one possible solution for next node nodes, create all and append to Fibres"
-						
 
-					except (ValueError, IndexError):
-						fibre.growing = False
-						if verbose: print(f"End of fibre {fibre.nodes()}")
-			
-				elif n_edges == 1:
-					new_node = new_connect[0]
-					coord_vec = -d_coord[fibre.node_list[-1]][new_node]
-					coord_r = Aij[fibre.node_list[-1]][new_node]['r']
+					except (ValueError, IndexError):fibre.growing = False
+				else: fibre.growing = False
+				
 
-					assert coord_r > 0, print(new_node, coord_vec, coord_r, fibre.node_list)
+			if verbose: print("End of fibre ", node, fibre.node_list)
+			if fibre.number_of_nodes() >= min_n: 
+				tot_fibres.append(fibre)
+				for node in fibre:
+					tracing[node] = 0
 
-					fibre.add_node(new_node)
-					fibre.node_list = list(fibre.nodes)
-					fibre.direction = coord_vec / coord_r
-					fibre.fibre_l += coord_r
-
-					if verbose: 
-						print("New fibre length = ", fibre.fibre_l, "(+{})".format(coord_r))
-						print("New fibre direction = ", fibre.direction)
-				    
-				else:
-					fibre.growing = False
-					if verbose: print(f"End of fibre {fibre.nodes()}")
-
-				if fibre.number_of_nodes() >= node_max:
-					fibre.growing = False
-					if verbose: print(f"End of fibre {fibre.nodes()}")
-
-			growing_list = [fibre.growing for fibre in Fibres]
-
-			if verbose: 
-				print("Growing List ", growing_list)
-				for fibre in Fibres: print(fibre.nodes())
-
-		tot_fibres += Fibres
-
-	tot_fibres = [fibre for fibre in tot_fibres if fibre.number_of_nodes() > 3]
-	
-	fibre_lengths = np.array([fibre.fibre_l for fibre in tot_fibres], dtype=int)
-	unique_lengths, unique_index = np.unique(fibre_lengths, return_index=True)
-
-	for index in unique_index:
-
-		fibre = tot_fibres[index]
-
-		euclid_dist = np.sqrt(r2_coord[fibre.node_list[0]][fibre.node_list[-1]])
-		
-		if verbose:
-			print("Terminals = ", node_coord[fibre.node_list[0]], node_coord[fibre.node_list[-1]],
-								  node_coord[fibre.node_list[0]] - node_coord[fibre.node_list[-1]],
-								  d_coord[fibre.node_list[0]][fibre.node_list[-1]],
-								  d_coord[fibre.node_list[0]][fibre.node_list[-1]]**2)
-			print("Length", fibre.fibre_l, "Displacement", euclid_dist, "\n")
-
-		fibre_waviness = np.concatenate((fibre_waviness, [euclid_dist / fibre.fibre_l]))
-
-	#"""
-
-	print(Aij.number_of_nodes(), np.nanmean(fibre_waviness), np.std(fibre_waviness))
-
-	return  np.nanmean(fibre_waviness), np.std(fibre_waviness)
-	#return  network_waviness.mean()#, fibre_waviness.mean()
+	return tot_fibres
 

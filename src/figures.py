@@ -99,7 +99,7 @@ def create_region_image(image, regions):
 	return image_label_overlay
 
 
-def create_network_image(image, networks):
+def create_network_image(image, networks, c_mode=0):
 
 	BASE_COLOURS = {
 	    'b': (0, 0, 1),
@@ -116,17 +116,18 @@ def create_network_image(image, networks):
 	
 	for j, network in enumerate(networks):
 
-		colour = BASE_COLOURS['r']
-		#colour = BASE_COLOURS[colours[j % len(colours)]]
+		if c_mode == 0: colour = BASE_COLOURS['r']
+		else: colour = BASE_COLOURS[colours[j % len(colours)]]
 
 		node_coord = [network.nodes[i]['xy'] for i in network]
 		node_coord = np.stack((node_coord))
 		
-		mapping = dict(zip(network.nodes, np.arange(network.number_of_nodes())))
-		network = nx.relabel_nodes(network, mapping)
+		mapping = zip(network.nodes, np.arange(network.number_of_nodes()))
+		mapping_dict = dict(mapping)		
 
-		for n, node in enumerate(network.nodes):
-			for m in list(network.adj[node]):
+		for n, node1 in enumerate(network):
+			for node2 in list(network.adj[node1]):
+				m = mapping_dict[node2]
 				rr, cc, val = draw.line_aa(node_coord[m][0], node_coord[m][1],
 						   node_coord[n][0], node_coord[n][1])
 				
