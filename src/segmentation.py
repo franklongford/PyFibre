@@ -25,7 +25,8 @@ from skimage.transform import rescale, resize
 from skimage.feature import greycomatrix, greycoprops
 from skimage.morphology import remove_small_objects, remove_small_holes, dilation
 from skimage.color import grey2rgb, rgb2grey
-from skimage.filters import threshold_otsu
+from skimage.filters import threshold_otsu, threshold_mean
+from skimage.exposure import rescale_intensity
 
 from sklearn.cluster import MiniBatchKMeans
 
@@ -33,7 +34,7 @@ import utilities as ut
 from filters import tubeness, hysteresis
 from extraction import FIRE, fibre_assignment, simplify_network
 from analysis import fourier_transform_analysis, tensor_analysis, angle_analysis, fibre_analysis
-from preprocessing import nl_means
+from preprocessing import nl_means, clip_intensities
 
 
 def create_binary_image(segments, shape):
@@ -67,7 +68,7 @@ def find_holes(image, sigma=0.8, alpha=1.0, min_size=1250, iterations=2):
 	return image_hole
 
 
-def PL_segmentation(image, n_runs=50, n_clusters=4):
+def BD_filter(image, n_runs=3, n_clusters=4, p_intensity=(2, 98)):
 	"Adapted from CurveAlign BDcreationHE routine"
 
 	assert image.ndim == 3
@@ -75,8 +76,18 @@ def PL_segmentation(image, n_runs=50, n_clusters=4):
 	image_size = image.shape[0] * image.shape[1]
 	image_shape = (image.shape[0], image.shape[1])
 
+	import matplotlib.pyplot as plt
+
+	plt.figure(0)
+	plt.imshow(image)
+
+	"Mimic contrast stretching decorrstrech routine in MatLab"
+	for i in range(3):
+		low, high = np.percentile(image[:, :, i], p_intensity) 
+		image[:, :, i] = rescale_intensity(image[:, :, i], in_range=(low, high))
+	
 	"Perform k-means clustering on PL image"
-	X = image[:, :, 1 : ].reshape((image_size, 2))
+	X = image.reshape((image_size, 3))
 	clustering = MiniBatchKMeans(n_clusters=n_clusters, n_init=n_runs)
 	clustering.fit(X)
 
@@ -104,15 +115,12 @@ def PL_segmentation(image, n_runs=50, n_clusters=4):
 
 	"Blue light classed as first index of sort_cluster"
 	blue_cluster_number = sort_cluster[0]
-	L = image[:, :, 0]
-	L_blue = np.where(labels == blue_cluster_number, L, 0)
 
 	"Select light blue regions to extrac epithelial cells"
-	light_blue = np.where(L_blue > threshold_otsu(L_blue), True, False)
 	epith_cell = segmented_image[blue_cluster_number]
 	epith_grey = rgb2grey(epith_cell)
 
-	epith_cell_BW = np.where(epith_grey > 0.001, True, False)
+	epith_cell_BW = np.where(epith_grey, True, False)
 	epith_cell_BW_open = binary_opening(epith_cell_BW, iterations=1)
 	BWx = binary_fill_holes(epith_cell_BW_open)
 	BWy = remove_small_objects(~BWx, min_size=60);
@@ -134,7 +142,8 @@ def hole_segmentation(image_shg, image_pl, fibres, scale=2, sigma=0.8, alpha=1.0
 	"""
 
 	rgb_im = grey2rgb(image_pl)
-	mask_image = PL_segmentation(rgb_im)
+	rgb_im = np.stack((image_shg, image_pl, np.sqrt(image_pl * image_shg)), axis=-1)
+	mask_image = BD_filter(rgb_im)
 
 	holes = []
 	hole_labels = measure.label(mask_image)
