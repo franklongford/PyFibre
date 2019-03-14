@@ -75,19 +75,16 @@ def BD_filter(image, n_runs=3, n_clusters=4, p_intensity=(2, 98)):
 	
 	image_size = image.shape[0] * image.shape[1]
 	image_shape = (image.shape[0], image.shape[1])
-
-	import matplotlib.pyplot as plt
-
-	plt.figure(0)
-	plt.imshow(image)
+	image_channels = image.shape[-1]
+	image_scaled = np.zeros(image.shape)
 
 	"Mimic contrast stretching decorrstrech routine in MatLab"
-	for i in range(3):
+	for i in range(image_channels):
 		low, high = np.percentile(image[:, :, i], p_intensity) 
-		image[:, :, i] = rescale_intensity(image[:, :, i], in_range=(low, high))
+		image_scaled[:, :, i] = rescale_intensity(image[:, :, i], in_range=(low, high))
 	
 	"Perform k-means clustering on PL image"
-	X = image.reshape((image_size, 3))
+	X = image_scaled.reshape((image_size, image_channels))[:, : 2]
 	clustering = MiniBatchKMeans(n_clusters=n_clusters, n_init=n_runs)
 	clustering.fit(X)
 
@@ -133,16 +130,7 @@ def hole_segmentation(image_shg, image_pl, fibres, scale=2, sigma=0.8, alpha=1.0
 
 	import matplotlib.pyplot as plt
 
-	"""
-	plt.figure(0)
-	plt.imshow(image_shg)
-	plt.figure(1)
-	plt.imshow(image_pl)
-	plt.show()
-	"""
-
-	rgb_im = grey2rgb(image_pl)
-	rgb_im = np.stack((image_shg, image_pl, np.sqrt(image_pl * image_shg)), axis=-1)
+	rgb_im = np.stack((image_shg, image_pl, np.sqrt(image_shg * image_pl)), axis=-1)
 	mask_image = BD_filter(rgb_im)
 
 	holes = []

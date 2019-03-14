@@ -46,6 +46,20 @@ for n, fig_name in enumerate(fig_names):
 		test_images.apend(swirl(test_image, rotation=0, strength=10, radius=120))
 
 
+for image in test_images:
+
+
+
+
+def test_load_image():
+
+	from utilities import load_image
+
+	image_path = 'stubs/test_fibres.png'
+	image = load_image(image_path)
+
+	assert image.size ==
+
 def test_FIRE():
 
 
