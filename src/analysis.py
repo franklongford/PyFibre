@@ -125,7 +125,7 @@ def fibre_analysis(tot_fibres, verbose=False):
 		fibre_waviness = np.concatenate((fibre_waviness, [fibre.euclid_l / fibre.fibre_l]))
 
 		cos_the = branch_angles(fibre.direction, np.array([[0, 1]]), np.ones(1))
-		fibre_angles = np.concatenate((fibre_angles, np.arccos(cos_the)))
+		fibre_angles = np.concatenate((fibre_angles, np.arccos(cos_the) * 180 / np.pi))
 
 	return fibre_lengths, fibre_waviness, fibre_angles
 

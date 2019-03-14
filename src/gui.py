@@ -361,14 +361,15 @@ class imagecol_gui:
 										'GLCM Variance' : {"info" : "GLCM angle-averaged variance", "metric" : DoubleVar(), "tag" : "texture"},
 										'GLCM Cluster' : {"info" : "GLCM angle-averaged clustering tendency", "metric" : DoubleVar(), "tag" : "texture"},
 										'GLCM Entropy' : {"info" : "GLCM angle-averaged entropy", "metric" : DoubleVar(), "tag" : "texture"},
-										'No. Fibres' : {"info" : "Number of fibre segments", "metric" : IntVar(), "tag" : "content"},
+										'No. Fibres' : {"info" : "Number of extracted fibres", "metric" : IntVar(), "tag" : "content"},
 										'Fibre Area' : {"info" : "Average number of pixels covered by fibres", "metric" : DoubleVar(), "tag" : "content"},			
 										'Fibre Coverage' : {"info" : "Ratio of image covered by fibres", "metric" : DoubleVar(), "tag" : "content"},
 										'Fibre Linearity' : {"info" : "Average fibre segment linearity", "metric" : DoubleVar(), "tag" : "shape"},
 										'Fibre Eccentricity' : {"info" : "Average fibre segment eccentricity", "metric" : DoubleVar(), "tag" : "shape"},
 										'Fibre Density' : {"info" : "Average image fibre density", "metric" : DoubleVar(), "tag" : "texture"},
 										'Fibre Waviness' : {"info" : "Average fibre waviness", "metric" : DoubleVar(), "tag" : "content"},
-										'Fibre Lengths' : {"info" : "Average fibre length", "metric" : DoubleVar(), "tag" : "content"},
+										'Fibre Lengths' : {"info" : "Average fibre pixel length", "metric" : DoubleVar(), "tag" : "content"},
+										'Fibre Cross-Link Density' : {"info" : "Average cross-links per fibre", "metric" : DoubleVar(), "tag" : "content"},
 										'Fibre Hu Moment 1'  : {"info" : "Average fibre segment Hu moment 1", "metric" : DoubleVar(), "tag" : "shape"},
 										'Fibre Hu Moment 2'  : {"info" : "Average fibre segment Hu moment 2", "metric" : DoubleVar(), "tag" : "shape"},
 										'No. Cells' : {"info" : "Number of cell segments", "metric" : IntVar(), "tag" : "content"},
@@ -585,7 +586,8 @@ class imagecol_gui:
 		try:
 			loaded_metrics = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + fig_name)).iloc[0]
 			for i, metric in enumerate(self.image_display.metric_tab.metric_dict.keys()):
-				self.image_display.metric_tab.metric_dict[metric]["metric"].set(loaded_metrics[metric])
+				value = round(loaded_metrics[metric], 2)
+				self.image_display.metric_tab.metric_dict[metric]["metric"].set(value)
 			self.update_log("Displaying metrics for {}".format(fig_name))
 
 		except IOError:

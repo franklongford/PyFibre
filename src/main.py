@@ -78,7 +78,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 			'No. Fibres', 'Fibre Area', 'No. Cells', 'Cell Area',
 			'Fibre Linearity', 'Fibre Eccentricity', 'Fibre Density', 'Fibre Coverage',
 			'Network Degree', 'Network Eigenvalue', 'Network Connectivity',
-			'Fibre Waviness', 'Fibre Lengths',
+			'Fibre Waviness', 'Fibre Lengths', 'Fibre Cross-Link Density',
 			'Cell Linearity', 'Cell Eccentricity', 'Cell Density', 'Cell Coverage', 
 			'Fibre Hu Moment 1', 'Fibre Hu Moment 2', 'Cell Hu Moment 1', 'Cell Hu Moment 2']
 
@@ -88,7 +88,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 				'GLCM Dissimilarity', 'GLCM Correlation', 'GLCM Energy',
 				'GLCM IDM', 'GLCM Variance', 'GLCM Cluster', 'GLCM Entropy',
 				'Network Degree', 'Network Eigenvalue', 'Network Connectivity',
-				'Fibre Waviness', 'Fibre Lengths',
+				'Fibre Waviness', 'Fibre Lengths', 'Fibre Cross-Link Density',
 				'Hu Moment 1', 'Hu Moment 2', 'Hu Moment 3',
 				'Hu Moment 4', 'Hu Moment 5', 'Hu Moment 6',
 				'Hu Moment 7']
@@ -243,7 +243,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		fibre_glcm_homo, fibre_glcm_dissim, fibre_glcm_corr, fibre_glcm_energy, 
 		fibre_glcm_IDM, fibre_glcm_variance, fibre_glcm_cluster, fibre_glcm_entropy,
 		fibre_hu, network_degree, network_eigen, network_connect, fibre_waviness, 
-		fibre_lengths) = net_res
+		fibre_lengths, fibre_cross_link) = net_res
 
 		fibre_binary = seg.create_binary_image(fibre_seg, image_shg.shape)
 		
@@ -256,7 +256,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 					fibre_glcm_contrast, fibre_glcm_homo, fibre_glcm_dissim, fibre_glcm_corr,
 					fibre_glcm_energy, fibre_glcm_IDM, fibre_glcm_variance, fibre_glcm_cluster, 
 					fibre_glcm_entropy, network_degree, network_eigen, network_connect,
-					fibre_waviness, fibre_lengths], axis=-1)
+					fibre_waviness, fibre_lengths, fibre_cross_link], axis=-1)
 		fibre_metrics = np.concatenate((fibre_metrics, fibre_hu), axis=-1)
 
 		fibre_dataframe = pd.DataFrame(data=fibre_metrics, columns=fibre_columns)
@@ -289,6 +289,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 
 		global_fibre_waviness = np.nanmean(fibre_waviness)
 		global_fibre_lengths = np.nanmean(fibre_lengths)
+		global_fibre_cross_link = np.nanmean(fibre_cross_link)
 
 		global_network_degree = np.nanmean(network_degree)
 		global_network_eigen = np.nanmean(network_eigen)
@@ -310,14 +311,14 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 					global_glcm_homo, global_glcm_dissim, global_glcm_corr, global_glcm_energy,
 					global_glcm_IDM, global_glcm_variance, global_glcm_cluster, 
 					global_glcm_entropy,
-					(len(fibre_seg)), global_fibre_area, (len(cell_seg)), global_cell_area,
-					global_fibre_linear, global_fibre_eccent,
+					(len(ut.flatten_list(fibres))), global_fibre_area, (len(cell_seg)),
+					global_cell_area, global_fibre_linear, global_fibre_eccent,
 					global_fibre_density, global_fibre_coverage, global_network_degree,
 					global_network_eigen, global_network_connect,
-					global_fibre_waviness, global_fibre_lengths, global_cell_linear,
-					global_cell_eccent, global_cell_density, global_cell_coverage,
-					global_fibre_hu_1, global_fibre_hu_2, global_cell_hu_1, 
-					global_cell_hu_2], axis=0)
+					global_fibre_waviness, global_fibre_lengths, global_fibre_cross_link,
+					global_cell_linear, global_cell_eccent, global_cell_density,
+					global_cell_coverage, global_fibre_hu_1, global_fibre_hu_2, 
+					global_cell_hu_1, global_cell_hu_2], axis=0)
 
 		#global_metrics = np.concatenate((global_metrics, global_hu), axis=0)
 		global_metrics = np.expand_dims(global_metrics, 0)
@@ -338,10 +339,12 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		networks =  ut.load_region(data_dir + image_name + "_network")
 		fibre_seg = ut.load_region(data_dir + image_name + "_fibre_segment")
 		cell_seg = ut.load_region(data_dir + image_name + "_cell_segment")
+		fibres = ut.load_region(data_dir + image_name + "_fibre")
+		fibres = ut.flatten_list(fibres)
 		
 		tensor_image = create_tensor_image(image_shg)
 		network_image = create_network_image(image_shg, networks)
-		fibre_image = create_network_image(image_shg, ut.flatten_list(fibres), 1)
+		fibre_image = create_network_image(image_shg, fibres, 1)
 		fibre_region_image = create_region_image(image_shg, fibre_seg)
 		cell_region_image = create_region_image(image_pl, cell_seg)
 

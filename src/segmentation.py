@@ -23,7 +23,11 @@ from scipy.ndimage.morphology import binary_fill_holes, binary_dilation, binary_
 from skimage import measure, draw
 from skimage.transform import rescale, resize
 from skimage.feature import greycomatrix, greycoprops
-from skimage.morphology import remove_small_objects, remove_small_holes
+from skimage.morphology import remove_small_objects, remove_small_holes, dilation
+from skimage.color import grey2rgb, rgb2grey
+from skimage.filters import threshold_otsu
+
+from sklearn.cluster import MiniBatchKMeans
 
 import utilities as ut
 from filters import tubeness, hysteresis
@@ -46,40 +50,94 @@ def create_binary_image(segments, shape):
 	return binary_image
 
 
-def find_holes(image, sigma=0.8, alpha=1.0, min_size=1250, iterations=1):
+def find_holes(image, sigma=0.8, alpha=1.0, min_size=1250, iterations=2):
+
+	import matplotlib.pyplot as plt
 
 	image_TB = tubeness(image, sigma=sigma)
-	
+
 	image_hyst = hysteresis(image_TB, alpha=alpha)
 	image_hyst = remove_small_objects(image_hyst)
 	image_hyst = binary_closing(image_hyst, iterations=iterations)
 
-	image_hole = remove_small_objects(~image_hyst, min_size=min_size)
+	image_hole = remove_small_holes(~image_hyst, min_size=min_size)
 	image_hole = binary_opening(image_hole, iterations=iterations)
 	image_hole = binary_fill_holes(image_hole)
 	
 	return image_hole
 
 
+def PL_segmentation(image, n_runs=50, n_clusters=4):
+	"Adapted from CurveAlign BDcreationHE routine"
+
+	assert image.ndim == 3
+	
+	image_size = image.shape[0] * image.shape[1]
+	image_shape = (image.shape[0], image.shape[1])
+
+	"Perform k-means clustering on PL image"
+	X = image[:, :, 1 : ].reshape((image_size, 2))
+	clustering = MiniBatchKMeans(n_clusters=n_clusters, n_init=n_runs)
+	clustering.fit(X)
+
+	labels = clustering.labels_.reshape(image_shape)
+	centres = clustering.cluster_centers_
+
+	"Reorder centres by mean centroid"
+	mean_centres = centres.mean(axis=-1)
+	sort_centres = np.argsort(mean_centres)
+
+	"Reorder labels to represent average intensity"
+	unique_labels = np.unique(labels)
+	segmented_image = np.zeros((n_clusters,) + image.shape)
+	mean_intensity = np.zeros(unique_labels.shape)
+	for i, label in enumerate(unique_labels):
+		segmented_image[i][np.where(labels == label)] += image[np.where(labels == label)]
+		mean_intensity[i] += np.mean(np.nonzero(image[np.where(labels == label)]))
+	sort_intensity = np.argsort(mean_intensity)
+
+	"Calculate final order of labels"
+	cluster_val = np.zeros(unique_labels.shape)
+	for i, label in enumerate(unique_labels):
+		cluster_val[i] = np.argwhere(sort_centres == i) * np.argwhere(sort_intensity == i)
+	sort_cluster = np.argsort(cluster_val)
+
+	"Blue light classed as first index of sort_cluster"
+	blue_cluster_number = sort_cluster[0]
+	L = image[:, :, 0]
+	L_blue = np.where(labels == blue_cluster_number, L, 0)
+
+	"Select light blue regions to extrac epithelial cells"
+	light_blue = np.where(L_blue > threshold_otsu(L_blue), True, False)
+	epith_cell = segmented_image[blue_cluster_number]
+	epith_grey = rgb2grey(epith_cell)
+
+	epith_cell_BW = np.where(epith_grey > 0.001, True, False)
+	epith_cell_BW_open = binary_opening(epith_cell_BW, iterations=1)
+	BWx = binary_fill_holes(epith_cell_BW_open)
+	BWy = remove_small_objects(~BWx, min_size=60);
+	mask_image = remove_small_objects(~BWy, min_size=35);
+
+	return mask_image
+
+
 def hole_segmentation(image_shg, image_pl, fibres, scale=2, sigma=0.8, alpha=1.0, min_size=1250, edges=False):
 
-	image_fibre = create_binary_image(fibres, image_pl.shape)
-	image_hole_fibre = np.where(image_fibre, 0, 1)
+	import matplotlib.pyplot as plt
 
-	image_shg_big = rescale(image_shg, scale)	
-	image_hole_shg = find_holes(image_shg_big, sigma=sigma, alpha=0.9, 
-					min_size=min_size, iterations=1) 
-	image_hole_shg = resize(image_hole_shg, image_shg.shape)
-	
-	image_back_big = rescale(np.sqrt(image_shg * image_pl), scale)	
-	background = find_holes(image_back_big, sigma=sigma, alpha=0.4, 
-					min_size=min_size, iterations=1) 
-	background = resize(background, image_pl.shape)
+	"""
+	plt.figure(0)
+	plt.imshow(image_shg)
+	plt.figure(1)
+	plt.imshow(image_pl)
+	plt.show()
+	"""
 
-	image_diff = np.where((image_hole_fibre * image_hole_shg) != background, 1, 0)
+	rgb_im = grey2rgb(image_pl)
+	mask_image = PL_segmentation(rgb_im)
 
 	holes = []
-	hole_labels = measure.label(image_diff)
+	hole_labels = measure.label(mask_image)
 
 	for hole in measure.regionprops(hole_labels, intensity_image=image_pl):
 		hole_check = True
@@ -373,6 +431,9 @@ def filter_segments(segments, network, network_red, min_size=200):
 
 def network_analysis(network, network_red):
 
+	cross_links = np.array([degree[1] for degree in network.degree], dtype=int)
+	network_cross_links = (cross_links > 2).sum()
+
 	try: network_degree = nx.degree_pearson_correlation_coefficient(network, weight='r')**2
 	except: network_degree = None
 
@@ -390,7 +451,7 @@ def network_analysis(network, network_red):
 	except: network_cluster = None
 	"""
 
-	return (network_degree, network_eigen, network_connect)
+	return (network_degree, network_eigen, network_connect, network_cross_links)
 
 
 def total_analysis(image_shg, image_pl, networks, networks_red, 
@@ -429,9 +490,13 @@ def total_analysis(image_shg, image_pl, networks, networks_red,
 	
 	fibre_waviness = np.zeros(l_regions)
 	fibre_lengths = np.zeros(l_regions)
+	fibre_cross_link_den = np.zeros(l_regions)
+	fibre_angle_sdi = np.zeros(l_regions)
+
 	network_degree = np.zeros(l_regions)
 	network_eigen = np.zeros(l_regions)
 	network_connect = np.zeros(l_regions)
+	
 
 	iterator = zip(np.arange(l_regions), networks, networks_red, fibres, segments)
 
@@ -453,12 +518,14 @@ def total_analysis(image_shg, image_pl, networks, networks_red,
 		metrics = network_analysis(network, network_red)
 
 		(network_degree[i], network_eigen[i],
-			network_connect[i]) = metrics
+		network_connect[i], network_cross_links) = metrics
 
-		fibre_len, fibre_wav, _ = fibre_analysis(fibre)
+		fibre_len, fibre_wav, fibre_ang = fibre_analysis(fibre)
 
 		fibre_waviness[i] = np.nanmean(fibre_wav)
 		fibre_lengths[i] = np.nanmean(fibre_len)
+		fibre_cross_link_den[i] = network_cross_links / len(fibre)
+		#fibre_angle_sdi[i] = angle_analysis(fibre_ang, np.ones(fibre_ang.shape))
 
 
 	return (segment_fourier_sdi, segment_angle_sdi, segment_anis, segment_pix_anis, 
@@ -467,4 +534,4 @@ def total_analysis(image_shg, image_pl, networks, networks_red,
 		segment_glcm_homo, segment_glcm_dissim, segment_glcm_corr, segment_glcm_energy, 
 		segment_glcm_IDM, segment_glcm_variance, segment_glcm_cluster, segment_glcm_entropy,
 		segment_hu, network_degree, network_eigen, network_connect, fibre_waviness, 
-		fibre_lengths)
+		fibre_lengths, fibre_cross_link_den)
