@@ -17,16 +17,17 @@ from networkx.algorithms import cluster
 from networkx.algorithms import approximation as approx
 from networkx.algorithms.efficiency import local_efficiency, global_efficiency
 
-from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage.filters import gaussian_filter, median_filter
 from scipy.ndimage.morphology import binary_fill_holes, binary_dilation, binary_closing, binary_opening
 
 from skimage import measure, draw
+from skimage.util import pad
 from skimage.transform import rescale, resize
 from skimage.feature import greycomatrix, greycoprops
 from skimage.morphology import remove_small_objects, remove_small_holes, dilation
 from skimage.color import grey2rgb, rgb2grey
 from skimage.filters import threshold_otsu, threshold_mean
-from skimage.exposure import rescale_intensity
+from skimage.exposure import rescale_intensity, equalize_hist
 
 from sklearn.cluster import MiniBatchKMeans
 
@@ -53,8 +54,6 @@ def create_binary_image(segments, shape):
 
 def find_holes(image, sigma=0.8, alpha=1.0, min_size=1250, iterations=2):
 
-	import matplotlib.pyplot as plt
-
 	image_TB = tubeness(image, sigma=sigma)
 
 	image_hyst = hysteresis(image_TB, alpha=alpha)
@@ -68,54 +67,104 @@ def find_holes(image, sigma=0.8, alpha=1.0, min_size=1250, iterations=2):
 	return image_hole
 
 
-def BD_filter(image, n_runs=3, n_clusters=4, p_intensity=(2, 98)):
+def BD_filter(image, n_runs=10, n_clusters=3, p_intensity=(2, 98)):
 	"Adapted from CurveAlign BDcreationHE routine"
+
+	import matplotlib.pyplot as plt
 
 	assert image.ndim == 3
 	
 	image_size = image.shape[0] * image.shape[1]
 	image_shape = (image.shape[0], image.shape[1])
 	image_channels = image.shape[-1]
-	image_scaled = np.zeros(image.shape)
+	image_scaled = np.zeros(image.shape, dtype=int)
+
+	plt.figure(0)
+	plt.imshow(image)
 
 	"Mimic contrast stretching decorrstrech routine in MatLab"
 	for i in range(image_channels):
 		low, high = np.percentile(image[:, :, i], p_intensity) 
-		image_scaled[:, :, i] = rescale_intensity(image[:, :, i], in_range=(low, high))
+		image_scaled[:, :, i] = 255 * rescale_intensity(image[:, :, i], in_range=(low, high))
 	
+	print(image_scaled.dtype, image_scaled.min(), image_scaled.max())
+
+	plt.figure(1)
+	plt.imshow(image_scaled)
+
+	"Pad each channel, equalise and smooth to remove salt and pepper noise"
+	for i in range(image_channels):
+		padded = pad(image_scaled[:, :, i], [70, 70], 'symmetric')
+		equalised = 255 * equalize_hist(padded)
+		smoothed = median_filter(equalised, size=(7, 7))
+		smoothed = median_filter(smoothed, size=(7, 7))
+		image_scaled[:, :, i] = smoothed[70 : 70 + image.shape[0],
+						 70 : 70 + image.shape[1]]
+
+	
+
+	plt.figure(2)
+	plt.imshow(image_scaled)
+	plt.show()
+
 	"Perform k-means clustering on PL image"
-	X = image_scaled.reshape((image_size, image_channels))[:, : 2]
+	X = np.array(image_scaled.reshape((image_size, image_channels)), dtype=float)
 	clustering = MiniBatchKMeans(n_clusters=n_clusters, n_init=n_runs)
 	clustering.fit(X)
 
 	labels = clustering.labels_.reshape(image_shape)
 	centres = clustering.cluster_centers_
+	print(centres)
 
 	"Reorder centres by mean centroid"
 	mean_centres = centres.mean(axis=-1)
 	sort_centres = np.argsort(mean_centres)
+	print(mean_centres, sort_centres)
 
 	"Reorder labels to represent average intensity"
 	unique_labels = np.unique(labels)
 	segmented_image = np.zeros((n_clusters,) + image.shape)
 	mean_intensity = np.zeros(unique_labels.shape)
-	for i, label in enumerate(unique_labels):
-		segmented_image[i][np.where(labels == label)] += image[np.where(labels == label)]
-		mean_intensity[i] += np.mean(np.nonzero(image[np.where(labels == label)]))
+	for i in range(n_clusters):
+		segmented_image[i][np.where(labels == i)] += image[np.where(labels == i)]
+		grey = rgb2grey(segmented_image[i])
+		mean_intensity[i] += np.median(np.nonzero(grey))
+
+		plt.figure(i)
+		plt.imshow(segmented_image[i])
+
 	sort_intensity = np.argsort(mean_intensity)
+	print(mean_intensity, sort_intensity)
+	plt.show()
 
 	"Calculate final order of labels"
+	"""
 	cluster_val = np.zeros(unique_labels.shape)
-	for i, label in enumerate(unique_labels):
+	for i in range(n_clusters):
 		cluster_val[i] = np.argwhere(sort_centres == i) * np.argwhere(sort_intensity == i)
+		print(i, np.argwhere(sort_centres == i), np.argwhere(sort_intensity == i), cluster_val[i])
+	"""
+	cluster_val = (mean_intensity / mean_intensity.max()) * (mean_centres / mean_centres.max())
 	sort_cluster = np.argsort(cluster_val)
+
+	print(cluster_val, sort_cluster)
+
+	for i in sort_cluster:
+		plt.figure(i)
+		plt.imshow(segmented_image[i])
+	plt.show()
+
 
 	"Blue light classed as first index of sort_cluster"
 	blue_cluster_number = sort_cluster[0]
 
-	"Select light blue regions to extrac epithelial cells"
+	"Select light blue regions to extract epithelial cells"
 	epith_cell = segmented_image[blue_cluster_number]
 	epith_grey = rgb2grey(epith_cell)
+
+	plt.imshow(epith_cell)
+	plt.show()
+
 
 	epith_cell_BW = np.where(epith_grey, True, False)
 	epith_cell_BW_open = binary_opening(epith_cell_BW, iterations=1)
@@ -130,7 +179,8 @@ def hole_segmentation(image_shg, image_pl, fibres, scale=2, sigma=0.8, alpha=1.0
 
 	import matplotlib.pyplot as plt
 
-	rgb_im = np.stack((image_shg, image_pl, np.sqrt(image_shg * image_pl)), axis=-1)
+	rgb_im = np.stack((image_pl, image_shg, abs(image_shg - image_pl)), axis=-1)
+	#rgb_im = grey2rgb(image_pl)
 	mask_image = BD_filter(rgb_im)
 
 	holes = []
