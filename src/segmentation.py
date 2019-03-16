@@ -158,6 +158,7 @@ def cell_segmentation(image_shg, image_pl, fibres, scale=2, sigma=0.8, alpha=1.0
 	mask_image = BD_filter(rgb_im)
 
 	cells = []
+	areas = []
 	cell_labels = measure.label(mask_image)
 
 	for cell in measure.regionprops(cell_labels, intensity_image=image_pl):
@@ -172,9 +173,14 @@ def cell_segmentation(image_shg, image_pl, fibres, scale=2, sigma=0.8, alpha=1.0
 
 		cell_check *= cell.area >= min_size
 
-		if cell_check: cells.append(cell)
+		if cell_check:
+			cells.append(cell)
+			areas.append(cell.area)
 
-	return cells
+	indices = np.argsort(areas)
+	sorted_cells = [cells[i] for i in indices]
+
+	return sorted_cells
 
 
 def cell_analysis(image, holes):
