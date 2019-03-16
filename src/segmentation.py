@@ -306,6 +306,7 @@ def network_extraction(image_shg, network_name='network', scale=1.25, sigma=0.5,
 	nx.write_gpickle(Aij, network_name + "_graph.pkl")
 
 	print("Extracting and simplifying fibre networks from graph")
+	n_nodes = []
 	networks = []
 	networks_red = []
 	fibres = []
@@ -315,11 +316,18 @@ def network_extraction(image_shg, network_name='network', scale=1.25, sigma=0.5,
 		fibre = fibre_assignment(subgraph)
 
 		if len(fibre) > 0:
+			n_nodes.append(subgraph.number_of_nodes())
 			networks.append(subgraph)
 			networks_red.append(simplify_network(subgraph))
 			fibres.append(fibre)		
 
-	return networks, networks_red, fibres
+	"Sort segments ranked by network size"
+	indices = np.argsort(n_nodes)
+	sorted_networks = [networks[i] for i in indices]
+	sorted_networks_red = [networks_red[i] for i in indices]
+	sorted_fibres = [fibres[i] for i in indices]
+
+	return sorted_networks, sorted_networks_red, sorted_fibres
 
 
 def fibre_segmentation(image_shg, networks, networks_red, area_threshold=200):
@@ -349,15 +357,6 @@ def fibre_segmentation(image_shg, networks, networks_red, area_threshold=200):
 
 		segment.label = (i + 1)
 		fibres.append(segment)
-	
-	"""	
-	"Sort segments ranked by area"
-	indices = np.argsort(areas)
-	sorted_areas = areas[indices]
-	sorted_segments = [segments[i] for i in indices]
-	sorted_networks = [networks[i] for i in indices]
-	sorted_networks_red = [networks_red[i] for i in indices]
-	"""
 
 	return fibres
 
