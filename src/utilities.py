@@ -41,7 +41,7 @@ def logo():
 	logo_text += "  | | |          __/                            |_|_|" + '\n'
 	logo_text += "  |_|_|                                         |_|_|" + '\n'
 	logo_text += " /_____\\" + ' ' * 16 + "/_____\\"  + ' ' * 16 + "/_____\\"  + '\n'
-	logo_text += "|_______|" + '_' * 14 + "|_______|" + '_' * 14 + "|_______|" + '  v1.0.1' + '\n'
+	logo_text += "|_______|" + '_' * 14 + "|_______|" + '_' * 14 + "|_______|" + '  v1.2' + '\n'
 	logo_text += "\n              Fibrous Tissue Image Toolkit\n"
 
 	return logo_text
@@ -298,6 +298,49 @@ def flatten_list(list_of_lists):
 	flat_list = [val for sublist in list_of_lists for val in sublist]
 
 	return flat_list
+
+
+def extract_prefix(image_name, label):
+	"Extract the prefix of image_name, before label"
+	directory = '/'.join(image_name.split('/')[ : -1])
+	filename = image_name.split('/')[-1]
+	filename_copy = filename.lower()
+
+	index = filename_copy.index(label.lower())
+	prefix = directory + '/' + filename[ : index]
+
+	return prefix
+
+
+def get_files_prefixes(file_list, label):
+	"Get the file path and file prefix of all files containin label"
+
+	files = [(filename,) for filename in file_list \
+	                 if label in filename.split('/')[-1].lower()]
+	prefixes = [extract_prefix(filename[0], label) for filename in files]
+
+	return files, prefixes
+
+    
+def get_image_lists(input_files):
+	"Automatically find all combined PL-SHG files or match up individual images if seperate"
+
+	shg_pl_files, shg_pl_prefixes = get_files_prefixes(input_files, '-pl-shg')
+
+	for filename in shg_pl_files: input_files.remove(filename[0])
+
+	shg_files, shg_prefixes = get_files_prefixes(input_files, '-shg')
+	pl_files, pl_prefixes = get_files_prefixes(input_files, '-pl')
+
+	for i, prefix in enumerate(shg_prefixes):
+		indices = [j for j, pl_prefix in enumerate(pl_prefixes) if prefix in pl_prefix]
+
+		if len(indices) > 0:
+			shg_pl_files += [(shg_files[i][0], pl_files[indices[0]][0])]
+			shg_pl_prefixes += [prefix]
+
+	return shg_pl_files, shg_pl_prefixes
+
 
 ####### OBSOLETE ########
 

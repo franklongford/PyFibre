@@ -23,7 +23,7 @@ from scipy.ndimage.morphology import binary_fill_holes, binary_dilation, binary_
 from skimage import measure, draw
 from skimage.util import pad
 from skimage.transform import rescale, resize
-from skimage.feature import greycomatrix, greycoprops
+from skimage.feature import greycomatrix
 from skimage.morphology import remove_small_objects, remove_small_holes, dilation
 from skimage.color import grey2rgb, rgb2grey
 from skimage.filters import threshold_otsu, threshold_mean
@@ -34,7 +34,8 @@ from sklearn.cluster import MiniBatchKMeans
 import utilities as ut
 from filters import tubeness, hysteresis
 from extraction import FIRE, fibre_assignment, simplify_network
-from analysis import fourier_transform_analysis, tensor_analysis, angle_analysis, fibre_analysis
+from analysis import (fourier_transform_analysis, tensor_analysis, angle_analysis, 
+					fibre_analysis, greycoprops_edit)
 from preprocessing import nl_means, clip_intensities
 
 
@@ -67,10 +68,8 @@ def find_holes(image, sigma=0.8, alpha=1.0, min_size=1250, iterations=2):
 	return image_hole
 
 
-def BD_filter(image, n_runs=10, n_clusters=3, p_intensity=(2, 98)):
+def BD_filter(image, n_runs=10, n_clusters=4, p_intensity=(2, 98)):
 	"Adapted from CurveAlign BDcreationHE routine"
-
-	import matplotlib.pyplot as plt
 
 	assert image.ndim == 3
 	
@@ -79,18 +78,10 @@ def BD_filter(image, n_runs=10, n_clusters=3, p_intensity=(2, 98)):
 	image_channels = image.shape[-1]
 	image_scaled = np.zeros(image.shape, dtype=int)
 
-	plt.figure(0)
-	plt.imshow(image)
-
 	"Mimic contrast stretching decorrstrech routine in MatLab"
 	for i in range(image_channels):
 		low, high = np.percentile(image[:, :, i], p_intensity) 
 		image_scaled[:, :, i] = 255 * rescale_intensity(image[:, :, i], in_range=(low, high))
-	
-	print(image_scaled.dtype, image_scaled.min(), image_scaled.max())
-
-	plt.figure(1)
-	plt.imshow(image_scaled)
 
 	"Pad each channel, equalise and smooth to remove salt and pepper noise"
 	for i in range(image_channels):
@@ -101,12 +92,6 @@ def BD_filter(image, n_runs=10, n_clusters=3, p_intensity=(2, 98)):
 		image_scaled[:, :, i] = smoothed[70 : 70 + image.shape[0],
 						 70 : 70 + image.shape[1]]
 
-	
-
-	plt.figure(2)
-	plt.imshow(image_scaled)
-	plt.show()
-
 	"Perform k-means clustering on PL image"
 	X = np.array(image_scaled.reshape((image_size, image_channels)), dtype=float)
 	clustering = MiniBatchKMeans(n_clusters=n_clusters, n_init=n_runs)
@@ -114,28 +99,22 @@ def BD_filter(image, n_runs=10, n_clusters=3, p_intensity=(2, 98)):
 
 	labels = clustering.labels_.reshape(image_shape)
 	centres = clustering.cluster_centers_
-	print(centres)
 
 	"Reorder centres by mean centroid"
 	mean_centres = centres.mean(axis=-1)
 	sort_centres = np.argsort(mean_centres)
-	print(mean_centres, sort_centres)
 
 	"Reorder labels to represent average intensity"
 	unique_labels = np.unique(labels)
 	segmented_image = np.zeros((n_clusters,) + image.shape)
-	mean_intensity = np.zeros(unique_labels.shape)
+	median_intensity = np.zeros(n_clusters)
+
 	for i in range(n_clusters):
 		segmented_image[i][np.where(labels == i)] += image[np.where(labels == i)]
 		grey = rgb2grey(segmented_image[i])
-		mean_intensity[i] += np.median(np.nonzero(grey))
+		median_intensity[i] += np.median(np.nonzero(grey))
 
-		plt.figure(i)
-		plt.imshow(segmented_image[i])
-
-	sort_intensity = np.argsort(mean_intensity)
-	print(mean_intensity, sort_intensity)
-	plt.show()
+	sort_intensity = np.argsort(median_intensity)
 
 	"Calculate final order of labels"
 	"""
@@ -144,66 +123,61 @@ def BD_filter(image, n_runs=10, n_clusters=3, p_intensity=(2, 98)):
 		cluster_val[i] = np.argwhere(sort_centres == i) * np.argwhere(sort_intensity == i)
 		print(i, np.argwhere(sort_centres == i), np.argwhere(sort_intensity == i), cluster_val[i])
 	"""
-	cluster_val = (mean_intensity / mean_intensity.max()) * (mean_centres / mean_centres.max())
+	cluster_val = (median_intensity / median_intensity.max()) * (mean_centres / mean_centres.max())
 	sort_cluster = np.argsort(cluster_val)
 
-	print(cluster_val, sort_cluster)
-
-	for i in sort_cluster:
-		plt.figure(i)
-		plt.imshow(segmented_image[i])
-	plt.show()
-
-
-	"Blue light classed as first index of sort_cluster"
-	blue_cluster_number = sort_cluster[0]
+	"Blue light classed as indicies with cluster_val < 0.45"
+	#blue_cluster_number = sort_cluster[0]
+	blue_clusters = np.argwhere(cluster_val < 0.45).flatten()
 
 	"Select light blue regions to extract epithelial cells"
-	epith_cell = segmented_image[blue_cluster_number]
+	epith_cell = np.zeros(image.shape)
+	for i in blue_clusters: epith_cell += segmented_image[i]
 	epith_grey = rgb2grey(epith_cell)
 
-	plt.imshow(epith_cell)
-	plt.show()
-
-
+	"Dilate binary image to smooth regions and remove small holes / objects"
 	epith_cell_BW = np.where(epith_grey, True, False)
 	epith_cell_BW_open = binary_opening(epith_cell_BW, iterations=1)
 	BWx = binary_fill_holes(epith_cell_BW_open)
 	BWy = remove_small_objects(~BWx, min_size=60);
+
+	"Return binary mask for cell identification"
 	mask_image = remove_small_objects(~BWy, min_size=35);
 
 	return mask_image
 
 
-def hole_segmentation(image_shg, image_pl, fibres, scale=2, sigma=0.8, alpha=1.0, min_size=1250, edges=False):
+def cell_segmentation(image_shg, image_pl, fibres, scale=2, sigma=0.8, alpha=1.0, min_size=1250, edges=False):
 
-	import matplotlib.pyplot as plt
+	"Imitate HE image by creating RGB composite of SHG and PL images"
+	channel_B = abs(image_shg - image_pl)
+	channel_B = clip_intensities(channel_B)
+	rgb_im = np.stack((image_shg, image_pl, channel_B), axis=-1)
 
-	rgb_im = np.stack((image_pl, image_shg, abs(image_shg - image_pl)), axis=-1)
-	#rgb_im = grey2rgb(image_pl)
+	"Return binary filter for cellular identification"
 	mask_image = BD_filter(rgb_im)
 
-	holes = []
-	hole_labels = measure.label(mask_image)
+	cells = []
+	cell_labels = measure.label(mask_image)
 
-	for hole in measure.regionprops(hole_labels, intensity_image=image_pl):
-		hole_check = True
+	for cell in measure.regionprops(cell_labels, intensity_image=image_pl):
+		cell_check = True
 
 		if edges:
-			edge_check = (hole.bbox[0] != 0) * (hole.bbox[1] != 0)
-			edge_check *= (hole.bbox[2] != image_hole.shape[0])
-			edge_check *= (hole.bbox[3] != image_hole.shape[1])
+			edge_check = (cell.bbox[0] != 0) * (cell.bbox[1] != 0)
+			edge_check *= (cell.bbox[2] != mask_image.shape[0])
+			edge_check *= (cell.bbox[3] != mask_image.shape[1])
 
-			hole_check *= edge_check
+			cell_check *= edge_check
 
-		hole_check *= hole.area >= min_size
+		cell_check *= cell.area >= min_size
 
-		if hole_check: holes.append(hole)
+		if cell_check: cells.append(cell)
 
-	return holes
+	return cells
 
 
-def hole_analysis(image, holes):
+def cell_analysis(image, holes):
 
 	l_holes = len(holes)
 
@@ -261,63 +235,6 @@ def hole_analysis(image, holes):
 		hole_glcm_homo, hole_glcm_dissim, hole_glcm_corr, hole_glcm_energy,
 		hole_glcm_IDM, hole_glcm_variance, hole_glcm_cluster, hole_glcm_entropy,
 		hole_linear, hole_eccent, hole_hu) 
-
-
-def greycoprops_edit(P, prop='contrast'):
-
-
-	(num_level, num_level2, num_dist, num_angle) = P.shape
-
-	assert num_level == num_level2
-	assert num_dist > 0
-	assert num_angle > 0
-
-	# create weights for specified property
-	I, J = np.ogrid[0:num_level, 0:num_level]
-	if prop == 'IDM': weights = 1. / (1. + abs(I - J))
-	elif prop in ['variance', 'cluster', 'entropy']: pass
-	else: return greycoprops(P, prop)
-
-	# normalize each GLCM
-	P = P.astype(np.float64)
-	glcm_sums = np.apply_over_axes(np.sum, P, axes=(0, 1))
-	glcm_sums[glcm_sums == 0] = 1
-	P /= glcm_sums
-
-	if prop in ['IDM']:
-		weights = weights.reshape((num_level, num_level, 1, 1))
-		results = np.apply_over_axes(np.sum, (P * weights), axes=(0, 1))[0, 0]
-
-	elif prop == 'variance':
-		I = np.array(range(num_level)).reshape((num_level, 1, 1, 1))
-		J = np.array(range(num_level)).reshape((1, num_level, 1, 1))
-		diff_i = I - np.apply_over_axes(np.sum, (I * P), axes=(0, 1))[0, 0]
-		diff_j = J - np.apply_over_axes(np.sum, (J * P), axes=(0, 1))[0, 0]
-
-		results = np.apply_over_axes(np.sum, (P * (diff_i * diff_j)),
-		                         axes=(0, 1))[0, 0]
-
-	elif prop == 'cluster':
-		I = np.array(range(num_level)).reshape((num_level, 1, 1, 1))
-		J = np.array(range(num_level)).reshape((1, num_level, 1, 1))
-		diff_i = I - np.apply_over_axes(np.sum, (I * P), axes=(0, 1))[0, 0]
-		diff_j = J - np.apply_over_axes(np.sum, (J * P), axes=(0, 1))[0, 0]
-
-		results = np.apply_over_axes(np.sum, (P * (I + J - diff_i - diff_j)),
-		                         axes=(0, 1))[0, 0]
-
-	elif prop == 'entropy':
-		nat_log = np.log(P)
-
-		mask_0 = P < 1e-15
-		mask_0[P < 1e-15] = True
-		nat_log[mask_0] = 0
-
-		results = np.apply_over_axes(np.sum, (P * (- nat_log)),
-		                         axes=(0, 1))[0, 0]
-
-
-	return results
 
 
 def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map, angle_map):

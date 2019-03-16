@@ -20,14 +20,14 @@ from skimage.measure import shannon_entropy, regionprops
 from multiprocessing import Pool, Process, JoinableQueue, Queue, current_process
 
 import utilities as ut
-from preprocessing import import_image, clip_intensities
+from preprocessing import load_shg_pl, clip_intensities
 import analysis as an
 import segmentation as seg
 from filters import form_nematic_tensor, form_structure_tensor
 from figures import create_figure, create_tensor_image, create_region_image, create_network_image
 
 
-def analyse_image(input_file_name, working_dir=None, scale=1, 
+def analyse_image(input_file_names, prefix, working_dir=None, scale=1, 
 				p_intensity=(1, 99), p_denoise=(2, 25), sigma=0.5, alpha=0.5,
 				ow_metric=False, ow_segment=False, ow_network=False, ow_figure=False,
 				threads=8):
@@ -108,13 +108,13 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 	if not os.path.exists(data_dir): os.mkdir(data_dir)
 	if not os.path.exists(fig_dir): os.mkdir(fig_dir)
 
-	file_name = input_file_name.split('/')[-1]
-	image_name = ut.check_file_name(file_name, extension='tif')
+	image_name = prefix.split('/')[-1]
 	filename = '{}'.format(data_dir + image_name)
 
-	print(f"Loading image {filename}")
+	print(f"Loading images for {prefix}")
+
 	"Load and preprocess image"
-	image_shg, image_pl = import_image(input_file_name)
+	image_shg, image_pl = load_shg_pl(input_file_names)
 	"Pre-process image to remove noise"
 	image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
 	image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
@@ -184,7 +184,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		fibre_seg = seg.fibre_segmentation(image_shg, networks, networks_red)
 		ut.save_region(fibre_seg, '{}_fibre_segment'.format(filename))
 
-		cell_seg  = seg.hole_segmentation(image_shg, image_pl, fibre_seg)
+		cell_seg  = seg.cell_segmentation(image_shg, image_pl, fibre_seg)
 		ut.save_region(cell_seg, '{}_cell_segment'.format(filename))
 
 		end_seg = time.time()
@@ -217,7 +217,7 @@ def analyse_image(input_file_name, working_dir=None, scale=1,
 		(cell_areas, cell_mean, cell_std, cell_entropy, cell_glcm_contrast, 
 		cell_glcm_homo, cell_glcm_dissim, cell_glcm_corr, cell_glcm_energy, 
 		cell_glcm_IDM, cell_glcm_variance, cell_glcm_cluster, cell_glcm_entropy,
-		cell_linear, cell_eccent, cell_hu) = seg.hole_analysis(image_pl, cell_seg)
+		cell_linear, cell_eccent, cell_hu) = seg.cell_analysis(image_pl, cell_seg)
 
 		filenames = pd.Series(['{}_cell_segment.pkl'.format(filename)] * len(cell_seg), name='File')		
 		cell_id = pd.Series(np.arange(len(cell_seg)), name='ID')
@@ -410,38 +410,41 @@ if __name__ == '__main__':
 		
 	for file_name in removed_files: input_files.remove(file_name)
 
-	removed_files = []
-	hole_database = pd.DataFrame()
+	files, prefixes = ut.get_image_lists(input_files)
+
+	print(input_files, files, prefixes)
+
+	cell_database = pd.DataFrame()
 	segment_database = pd.DataFrame()
 	global_database = pd.DataFrame()
    
-	for i, input_file_name in enumerate(input_files):
+	for i, input_file_names in enumerate(files):
 
-		image_path = '/'.join(input_file_name.split('/')[:-1])
+		image_path = '/'.join(prefixes[i].split('/')[:-1])
 
-		data_global, data_segment, data_hole = analyse_image(input_file_name, image_path, sigma=args.sigma, 
+		data_global, data_segment, data_cell = analyse_image(input_file_names, 
+			prefixes[i], image_path, sigma=args.sigma, 
 			ow_metric=args.ow_metric, ow_segment=args.ow_segment, 
 			ow_network=args.ow_network, ow_figure=args.ow_figure, 
 			threads=args.threads)
 
 		global_database = pd.concat([global_database, data_global])
 		segment_database = pd.concat([segment_database, data_segment])
-		hole_database = pd.concat([hole_database, data_hole])
+		cell_database = pd.concat([cell_database, data_cell])
 
-		print(input_file_name.split('/')[-1])
+		print(image_path)
 		print("Global Image Analysis Metrics:")
 		print(data_global.iloc[0])
 
-	for file_name in removed_files: input_files.remove(file_name)
 
 	if args.save_db != None: 
 		global_database.to_pickle('{}.pkl'.format(args.save_db))
 		global_database.to_excel('{}.xls'.format(args.save_db))
 		
-		segment_database.to_pickle('{}_segment.pkl'.format(args.save_db))
-		segment_database.to_excel('{}_segment.xls'.format(args.save_db))
+		segment_database.to_pickle('{}_fibre.pkl'.format(args.save_db))
+		segment_database.to_excel('{}_fibre.xls'.format(args.save_db))
 
-		hole_database.to_pickle('{}_hole.pkl'.format(args.save_db))
-		hole_database.to_excel('{}_hole.xls'.format(args.save_db))
+		cell_database.to_pickle('{}_cell.pkl'.format(args.save_db))
+		cell_database.to_excel('{}_cell.xls'.format(args.save_db))
 
 		

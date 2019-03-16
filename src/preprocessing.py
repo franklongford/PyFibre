@@ -40,6 +40,11 @@ def import_image(image_name):
 			image_mean = np.mean(image_orig_pl, axis=smallest_axis)
 			image_pl = np.sqrt(image_mean * image_euclid)
 
+			image_shg = image_shg / image_shg.max()
+			image_pl = image_pl / image_pl.max()
+
+			return image_shg, image_pl
+
 		else:
 			smallest_axis = np.argmin(image_orig.shape)
 
@@ -47,15 +52,23 @@ def import_image(image_name):
 			image_mean = np.mean(image_orig, axis=smallest_axis)
 			image_mix = np.sqrt(image_mean * image_euclid)
 
-			image_shg = image_mix
-			image_pl = image_mix
+			image = image_mix / image_mix.max()
 
-	else: 
-		image_shg = image_orig
-		image_pl = image_orig
+			return image
 
-	image_shg = image_shg / image_shg.max()
-	image_pl = image_pl / image_pl.max()
+	else: return image_orig / image_orig.max()
+
+	raise IOError
+
+
+def load_shg_pl(input_file_name):
+	"Load in SHG and PL files from file name tuple"
+
+	if len(input_file_name) == 1:
+		image_shg, image_pl = import_image(input_file_name[0])
+	else:
+		image_shg = import_image(input_file_name[0])
+		image_pl = import_image(input_file_name[1])
 
 	return image_shg, image_pl
 

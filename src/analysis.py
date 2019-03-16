@@ -14,6 +14,7 @@ import scipy as sp
 
 from scipy.ndimage.filters import gaussian_filter
 
+from skimage.feature import greycoprops
 from skimage.color import grey2rgb, rgb2grey, rgb2hsv, hsv2rgb
 
 import utilities as ut
@@ -128,4 +129,61 @@ def fibre_analysis(tot_fibres, verbose=False):
 		fibre_angles = np.concatenate((fibre_angles, np.arccos(cos_the) * 180 / np.pi))
 
 	return fibre_lengths, fibre_waviness, fibre_angles
+
+
+def greycoprops_edit(P, prop='contrast'):
+
+
+	(num_level, num_level2, num_dist, num_angle) = P.shape
+
+	assert num_level == num_level2
+	assert num_dist > 0
+	assert num_angle > 0
+
+	# create weights for specified property
+	I, J = np.ogrid[0:num_level, 0:num_level]
+	if prop == 'IDM': weights = 1. / (1. + abs(I - J))
+	elif prop in ['variance', 'cluster', 'entropy']: pass
+	else: return greycoprops(P, prop)
+
+	# normalize each GLCM
+	P = P.astype(np.float64)
+	glcm_sums = np.apply_over_axes(np.sum, P, axes=(0, 1))
+	glcm_sums[glcm_sums == 0] = 1
+	P /= glcm_sums
+
+	if prop in ['IDM']:
+		weights = weights.reshape((num_level, num_level, 1, 1))
+		results = np.apply_over_axes(np.sum, (P * weights), axes=(0, 1))[0, 0]
+
+	elif prop == 'variance':
+		I = np.array(range(num_level)).reshape((num_level, 1, 1, 1))
+		J = np.array(range(num_level)).reshape((1, num_level, 1, 1))
+		diff_i = I - np.apply_over_axes(np.sum, (I * P), axes=(0, 1))[0, 0]
+		diff_j = J - np.apply_over_axes(np.sum, (J * P), axes=(0, 1))[0, 0]
+
+		results = np.apply_over_axes(np.sum, (P * (diff_i * diff_j)),
+		                         axes=(0, 1))[0, 0]
+
+	elif prop == 'cluster':
+		I = np.array(range(num_level)).reshape((num_level, 1, 1, 1))
+		J = np.array(range(num_level)).reshape((1, num_level, 1, 1))
+		diff_i = I - np.apply_over_axes(np.sum, (I * P), axes=(0, 1))[0, 0]
+		diff_j = J - np.apply_over_axes(np.sum, (J * P), axes=(0, 1))[0, 0]
+
+		results = np.apply_over_axes(np.sum, (P * (I + J - diff_i - diff_j)),
+		                         axes=(0, 1))[0, 0]
+
+	elif prop == 'entropy':
+		nat_log = np.log(P)
+
+		mask_0 = P < 1e-15
+		mask_0[P < 1e-15] = True
+		nat_log[mask_0] = 0
+
+		results = np.apply_over_axes(np.sum, (P * (- nat_log)),
+		                         axes=(0, 1))[0, 0]
+
+
+	return results
 

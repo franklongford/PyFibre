@@ -1,11 +1,11 @@
-import matplotlib
-matplotlib.use("Agg")
-
 import os, sys, time
 from tkinter import *
 from tkinter import ttk, filedialog
 import queue, threading
 from multiprocessing import Pool, Process, JoinableQueue, Queue, current_process
+
+import matplotlib
+matplotlib.use("Agg")
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
@@ -27,7 +27,7 @@ from skimage.restoration import (estimate_sigma, denoise_tv_chambolle, denoise_b
 
 from main import analyse_image
 import utilities as ut
-from preprocessing import import_image, clip_intensities
+from preprocessing import load_shg_pl, clip_intensities
 from segmentation import draw_network
 from figures import create_tensor_image, create_region_image, create_network_image
 
@@ -45,6 +45,7 @@ class imagecol_gui:
 		self.Log = "Initiating PyFibre GUI\n"
 		self.queue = Queue()
 		self.input_files = []
+		self.input_prefixes = []
 		self.n_proc = n_proc
 		self.n_thread = n_thread
 
@@ -207,7 +208,7 @@ class imagecol_gui:
 
 		frame.select_dir_button = Button(frame, width=12,
 				   text="Filter",
-				   command=lambda : self.del_images([filename for filename in self.input_files \
+				   command=lambda : self.del_images([filename for filename in self.input_prefixes \
 							if (filename.find(frame.key.get()) == -1)]))
 		frame.select_dir_button.grid(column=2, row=0)
 
@@ -247,10 +248,17 @@ class imagecol_gui:
 	def add_images(self):
 		
 		new_files = filedialog.askopenfilenames(filetypes = (("tif files","*.tif"), ("all files","*.*")))
-		new_files = list(set(new_files).difference(set(self.input_files)))
+
+		files, prefixes = ut.get_image_lists(new_files)
+
+		new_indices = [i for i, prefix in prefixes if prefix not in self.input_prefixes]
+		new_files = [files[i] for i in new_indices]
+		new_prefixes = [prefixes[i] for i in new_indices]
 
 		self.input_files += new_files
-		for filename in new_files: 
+		self.input_prefixes += new_prefixes
+
+		for filename in new_prefixes: 
 			self.file_display.file_box.insert(END, filename)
 			self.update_log("Adding {}".format(filename))
 
@@ -258,13 +266,24 @@ class imagecol_gui:
 	def add_directory(self):
 		
 		directory = filedialog.askdirectory()
-		new_files = [directory + '/' + filename for filename in os.listdir(directory) \
-				 if filename.endswith('.tif')]
-		new_files = list(set(new_files).difference(set(self.input_files)))
+		new_files = []
+		for file_name in os.listdir(directory):
+			if file_name.endswith('.tif'):
+				if 'display' not in file_name: 
+					new_files.append( directory + '/' + file_name)
+
+
+		files, prefixes = ut.get_image_lists(new_files)
+
+		new_indices = [i for i, prefix in enumerate(prefixes)\
+						 if prefix not in self.input_prefixes]
+		new_files = [files[i] for i in new_indices]
+		new_prefixes = [prefixes[i] for i in new_indices]
 
 		self.input_files += new_files
+		self.input_prefixes += new_prefixes
 
-		for filename in new_files: 
+		for filename in new_prefixes: 
 			self.file_display.file_box.insert(END, filename)
 			self.update_log("Adding {}".format(filename))
 
@@ -272,8 +291,9 @@ class imagecol_gui:
 	def del_images(self, file_list):
 
 		for filename in file_list:
-			index = self.input_files.index(filename)
-			self.input_files.remove(filename)
+			index = self.input_prefixes.index(filename)
+			self.input_files.remove(self.input_files[index])
+			self.input_prefixes.remove(filename)
 			self.file_display.file_box.delete(index)
 			self.update_log("Removing {}".format(filename))
 
@@ -540,7 +560,10 @@ class imagecol_gui:
 		fig_name = ut.check_file_name(image_name, extension='tif')
 		data_dir = image_path + '/data/'
 
-		image_shg, image_pl = import_image(selected_file)
+		file_index = self.input_prefixes.index(selected_file)
+		print(selected_file, self.input_prefixes[file_index],
+			 self.input_files[file_index])
+		image_shg, image_pl = load_shg_pl(self.input_files[file_index])
 
 		self.image_shg = clip_intensities(image_shg, 
 				p_intensity=(self.p0.get(), self.p1.get())) * 255.999 
@@ -604,7 +627,7 @@ class imagecol_gui:
 		fibre_database = pd.DataFrame()
 		cell_database = pd.DataFrame()
 
-		for i, input_file_name in enumerate(self.input_files):
+		for i, input_file_name in enumerate(self.input_prefixes):
 
 			image_name = input_file_name.split('/')[-1]
 			image_path = '/'.join(input_file_name.split('/')[:-1])
@@ -635,7 +658,7 @@ class imagecol_gui:
 
 	def save_database(self):
 
-		db_filename = filedialog.asksaveasfilename(defaultextension='pkl')
+		db_filename = filedialog.asksaveasfilename()
 		db_filename = ut.check_file_name(db_filename, extension='pkl')
 		db_filename = ut.check_file_name(db_filename, extension='xls')
 
@@ -660,11 +683,17 @@ class imagecol_gui:
 
 		#"""Multi Processor version
 		proc_count = np.min((self.n_proc, len(self.input_files)))
-		batch_files = np.array_split(self.input_files, proc_count)
+		index_split = np.array_split(np.arange(len(self.input_prefixes)),
+						proc_count)
+
 		self.processes = []
-		for batch in batch_files:
+		for indices in index_split:
+
+			batch_files = [self.input_files[i] for i in indices]
+			batch_prefixes = [self.input_prefixes[i] for i in indices]
+
 			process = Process(target=image_analysis, 
-					args=(batch, 
+					args=(batch_files, batch_prefixes,
 					(self.p0.get(), self.p1.get()),
 					(self.n.get(), self.m.get()),
 					self.sigma.get(), self.alpha.get(),
@@ -721,25 +750,25 @@ class imagecol_gui:
 		self.file_display.stop_button.config(state=DISABLED)
 
 
-def image_analysis(input_files, p_intensity, p_denoise, sigma, alpha, 
+def image_analysis(input_files, input_prefixes, p_intensity, p_denoise, sigma, alpha, 
 			ow_metric, ow_segment, ow_network, ow_figure, 
 			queue, threads):
 
-	for input_file_name in input_files:
+	for input_file_names, prefix in zip(input_files, input_prefixes):
 
-		image_path = '/'.join(input_file_name.split('/')[:-1])
+		image_path = '/'.join(prefix.split('/')[:-1])
 
 		try:
-			analyse_image(input_file_name, image_path,
+			analyse_image(input_file_names, prefix, image_path,
 					scale=1, p_intensity=p_intensity,
 					p_denoise=p_denoise, sigma=sigma,
 					alpha=alpha,
 					ow_metric=ow_metric, ow_segment=ow_segment,
 					ow_network=ow_network, ow_figure=ow_figure,
 					threads=threads)
-			queue.put("Analysis of {} complete".format(input_file_name))
+			queue.put("Analysis of {} complete".format(prefix))
 
-		except Exception as err: queue.put("{} {}".format(err.message, input_file_name))
+		except Exception as err: queue.put("{} {}".format(err.message, prefix))
 
 
 N_PROC = 1#os.cpu_count() - 1
