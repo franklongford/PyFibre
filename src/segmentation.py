@@ -177,7 +177,7 @@ def cell_segmentation(image_shg, image_pl, fibres, scale=2, sigma=0.8, alpha=1.0
 			cells.append(cell)
 			areas.append(cell.area)
 
-	indices = np.argsort(areas)
+	indices = np.argsort(areas)[::-1]
 	sorted_cells = [cells[i] for i in indices]
 
 	return sorted_cells
@@ -328,7 +328,7 @@ def network_extraction(image_shg, network_name='network', scale=1.25, sigma=0.5,
 			fibres.append(fibre)		
 
 	"Sort segments ranked by network size"
-	indices = np.argsort(n_nodes)
+	indices = np.argsort(n_nodes)[::-1]
 	sorted_networks = [networks[i] for i in indices]
 	sorted_networks_red = [networks_red[i] for i in indices]
 	sorted_fibres = [fibres[i] for i in indices]
