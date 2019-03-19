@@ -28,13 +28,41 @@ Once installed, calling the executable `PyFibre_GUI` from the command line will 
 
 PyFibre is set by default to detect Tagged Image Format (tif) files. To load in individual files to analyse, use the `Load Files` button and use the pop up window to navigate through your file tree. Alternatively, you can load in all tif files within a single directory by using the `Load Folder` button.
 
+#### Automatic SHG and PL Image Detection
+
+If you have performed multiple imaging techniques on the same region, then PyFibre is able to take advantage of this to provide extra analysis. Currently both Second Harmonic Generation (SHG) and Phosporescne (PL) imaging techniques are supported. 
+
+Loading images containing the keyword `SHG` or `PL` in the file path (see below) will allow PyFibre automatically match these up based on the `{prefix}`.
+
+	{directory}/{prefix}-{keyword}{suffix}.tif
+
+The files will then appear as:
+
+	{directory}/{prefix}
+	
+#### File Management
+
 Once loaded, the files are visible in a scrollable list on the left hand side. They can be removed from here at any time by highlighting and clicking the `Delete` button, or automatically filtered for keywords using the `Filter` entry form. 
+
+#### Running Analysis
 
 Clicking the `GO` button at the bottom will begin a batch analysis of all the files listed within the box at the time of execution. This can be interrupted at any point using the `STOP` button.
 
 ### Image Viewer
 
-The image display notebook on the right hand side of the GUI can display individual images as well as overlay the extracted fibre network once complete. There is also a tab to display a dashboard of metrics for the selected images in the file list.
+The image display notebook on the right hand side of the GUI is able to show both the original images as well as results of PyFibre's analysis.
+
+Tab | Description
+--- | ---
+SHG Image | Greyscale SHG image
+PL Image | Greyscale PL image
+Tensor Image | RGB image, using hue, saturation and brightness based on pixel structure tensor
+Network | Greyscale SHG image with overlayed FIRE networks
+Network Segment | Greyscale SHG image with overlayed segmented regions base on position of FIRE networks
+Fibre | Greyscale SHG image with overlayed individual fibres extracted from FIRE networks
+Cell Segment| Greyscale PL image with overlayed segmented regions base on position of cellular regions
+Metrics | List of measured properties for SHG and PL images
+Log | System log
 
 ## Running in the Terminal
 
@@ -42,36 +70,68 @@ The image display notebook on the right hand side of the GUI can display individ
 Calling the executable `PyFibre` from the command line will initiate the terminal based version of PyFibre.
 
 	PyFibre [-h] [--name [NAME]] [--dir [DIR]] [--key [KEY]] 
-			[--ow_metric] [--ow_network] [--save_db [SAVE_DB]] 
+			[--ow_network] [--ow_segment] [--ow_metric] 
+			[--ow_figure] [--save_db [SAVE_DB]] 
 			[--threads [THREADS]]
 
 	--name [NAME]        Tif file names to load
 	--dir [DIR]          Directories to load tif files
 	--key [KEY]          Keywords to filter file names
-	--ow_metric          Toggles overwrite analytic metrics
 	--ow_network         Toggles overwrite network extraction
+	--ow_segment         Toggles overwrite segmentation
+	--ow_metric          Toggles overwrite analytic metrics
+	--ow_figure          Toggles overwrite figures
 	--save_db [SAVE_DB]  Output database filename
 	--threads [THREADS]  Number of threads per processor
 	
-At the moment the terminal version has
  
-# --- (Under Development) ---
 
 ## Metrics
 
-	Global SDI : Fourier analysis SDI for global image
-	Global Anisotropy : Anisotropy of nematic tensor for global image
-	Global Pixel Anisotropy : Average anisotropy of nematic tensor for each pixel in global image
-	
-	Local SDI : Average Fourier analysis SDI for all local segments in global image
-	Local Anisotropy : Average anisotropy of nematic tensor for all segments in global image
-	Local Pixel Anisotropy : Average anisotropy of nematic tensor for each pixel in all segments in global image
-	
-	Global Coverage : Measure of global segment coverage - ratio of segmented pixels with number pf pixels in whole image
-	Local Coverage : Measure of local segment coverage - average ratio of pixels in the segment to pixels of the segment convex hull image.
-	
-	Linearity : Measure of segment shape linearity - ratio of segment diameter to that of a circle with the same area as the segment
-	
-	Fibre Waviness : Measure of waviness of extracted fibres - ratio of fibre diameter to its euclidean displacement
-	Network Degree : Average number of edges per node for fibre network
-	Network Clustering 
+PyFibre calculates properties for the global images and each segmentd region. The resultant databases for each section are then labelled:
+
+	{directory}/data/{prefix}_global_metric.pkl = global image output (also in .xls format)
+	{directory}/data/{prefix}_fibre_metric.pkl = fibre segmented image output (also in .xls format)
+	{directory}/data/{prefix}_cell_metric.pkl = cell segmented image output (also in .xls format)
+
+Each database has the following columns:
+
+Metric | Description | Category
+--- | --- | ---
+Angle SDI | Angle spectrum SDI (mean / max) of all pixels| Texture
+Anisotropy | Anisotropy of structure tensor for total image/segment | Texture
+Pixel Anisotropy | Mean anisotropy of structure tensor for all pixels | Texture
+Intensity Mean | Mean pixel intensity of total image/segment | Texture
+Intensity STD | Standard deviation of pixel intensity of total image/segment | Texture
+Intensity Entropy | Average Shannon entropy of pixel intensities of total image/segment | Texture				
+GLCM Contrast | GLCM angle-averaged contrast | Texture
+GLCM Homogeneity | GLCM angle-averaged homogeneity | Texture
+GLCM Dissimilarity | GLCM angle-averaged dissimilarity | Texture
+GLCM Correlation | GLCM angle-averaged correlation | Texture
+GLCM Energy | GLCM angle-averaged energy | Texture
+GLCM IDM | GLCM angle-averaged inverse difference moment | Texture
+GLCM Variance | GLCM angle-averaged variance | Texture
+GLCM Cluster | GLCM angle-averaged clustering tendency | Texture
+GLCM Entropy | GLCM angle-averaged entropy | Texture
+No. Fibres | Number of extracted fibres | Content
+Fibre Area | Average number of pixels covered by fibres | Content
+Fibre Coverage | Ratio of image covered by fibres | Content
+Fibre Linearity | Average fibre segment linearity | Shape
+Fibre Eccentricity | Average fibre segment eccentricity | Shape
+Fibre Density | Average image fibre density | Texture
+Fibre Waviness | Average fibre waviness | Content
+Fibre Lengths | Average fibre pixel length | Content
+Fibre Cross-Link Density | Average cross-links per fibre | Content
+Fibre Hu Moment 1 | Average fibre segment Hu moment 1 | Shape
+Fibre Hu Moment 2 | Average fibre segment Hu moment 2 | Shape
+No. Cells | Number of cell segments | Content
+Cell Area | Average number of pixels covered by cells | Content
+Cell Linearity | Average cell segment linearity | Shape 
+Cell Coverage | Ratio of image covered by cell | Content
+Cell Eccentricity | Average cell segment eccentricity | Shape
+Cell Density | Average image cell density | Texture
+Network Degree | Average fibre network number of edges per node | Network
+Network Eigenvalue | Max eigenvalue of network adjacency matrix| Network
+Network Connectivity | Average fibre network connectivity | Network
+Cell Hu Moment 1 | Average cell segment Hu moment 1 | Shape
+Cell Hu Moment 2 | Average cell segment Hu moment 2 | Shape

@@ -302,15 +302,25 @@ class imagecol_gui:
 
 		#frame.grid(row=0, columnspan=3, sticky=(N,W,E,S))
 
-		notebook.image_tab = ttk.Frame(notebook)
-		notebook.add(notebook.image_tab, text='Image')
-		notebook.image_tab.canvas = Canvas(notebook.image_tab, width=width, height=height,
+		notebook.shg_image_tab = ttk.Frame(notebook)
+		notebook.add(notebook.shg_image_tab, text='SHG Image')
+		notebook.shg_image_tab.canvas = Canvas(notebook.shg_image_tab, width=width, height=height,
 								scrollregion=(0,0,675,700))  
-		notebook.image_tab.scrollbar = Scrollbar(notebook.image_tab, orient=VERTICAL, 
-							command=notebook.image_tab.canvas.yview)
-		notebook.image_tab.scrollbar.pack(side=RIGHT,fill=Y)
-		notebook.image_tab.canvas['yscrollcommand'] = notebook.image_tab.scrollbar.set
-		notebook.image_tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
+		notebook.shg_image_tab.scrollbar = Scrollbar(notebook.shg_image_tab, orient=VERTICAL, 
+							command=notebook.shg_image_tab.canvas.yview)
+		notebook.shg_image_tab.scrollbar.pack(side=RIGHT,fill=Y)
+		notebook.shg_image_tab.canvas['yscrollcommand'] = notebook.shg_image_tab.scrollbar.set
+		notebook.shg_image_tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
+
+		notebook.pl_image_tab = ttk.Frame(notebook)
+		notebook.add(notebook.pl_image_tab, text='PL Image')
+		notebook.pl_image_tab.canvas = Canvas(notebook.pl_image_tab, width=width, height=height,
+								scrollregion=(0,0,675,700))  
+		notebook.pl_image_tab.scrollbar = Scrollbar(notebook.pl_image_tab, orient=VERTICAL, 
+							command=notebook.pl_image_tab.canvas.yview)
+		notebook.pl_image_tab.scrollbar.pack(side=RIGHT,fill=Y)
+		notebook.pl_image_tab.canvas['yscrollcommand'] = notebook.pl_image_tab.scrollbar.set
+		notebook.pl_image_tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
 
 		notebook.tensor_tab = ttk.Frame(notebook)
 		notebook.add(notebook.tensor_tab, text='Tensor Image')
@@ -332,6 +342,16 @@ class imagecol_gui:
 		notebook.network_tab.canvas['yscrollcommand'] = notebook.network_tab.scrollbar.set
 		notebook.network_tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
 
+		notebook.segment_tab = ttk.Frame(notebook)
+		notebook.add(notebook.segment_tab, text='Network Segment')
+		notebook.segment_tab.canvas = Canvas(notebook.segment_tab, width=width, height=height,
+								scrollregion=(0,0,675,700))  
+		notebook.segment_tab.scrollbar = Scrollbar(notebook.segment_tab, orient=VERTICAL, 
+							command=notebook.segment_tab.canvas.yview)
+		notebook.segment_tab.scrollbar.pack(side=RIGHT,fill=Y)
+		notebook.segment_tab.canvas['yscrollcommand'] = notebook.segment_tab.scrollbar.set
+		notebook.segment_tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
+
 		notebook.fibre_tab = ttk.Frame(notebook)
 		notebook.add(notebook.fibre_tab, text='Fibre')
 		notebook.fibre_tab.canvas = Canvas(notebook.fibre_tab, width=width, height=height,
@@ -342,18 +362,8 @@ class imagecol_gui:
 		notebook.fibre_tab.canvas['yscrollcommand'] = notebook.fibre_tab.scrollbar.set
 		notebook.fibre_tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
 
-		notebook.segment_tab = ttk.Frame(notebook)
-		notebook.add(notebook.segment_tab, text='Segment')
-		notebook.segment_tab.canvas = Canvas(notebook.segment_tab, width=width, height=height,
-								scrollregion=(0,0,675,700))  
-		notebook.segment_tab.scrollbar = Scrollbar(notebook.segment_tab, orient=VERTICAL, 
-							command=notebook.segment_tab.canvas.yview)
-		notebook.segment_tab.scrollbar.pack(side=RIGHT,fill=Y)
-		notebook.segment_tab.canvas['yscrollcommand'] = notebook.segment_tab.scrollbar.set
-		notebook.segment_tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
-
 		notebook.hole_tab = ttk.Frame(notebook)
-		notebook.add(notebook.hole_tab, text='Hole')
+		notebook.add(notebook.hole_tab, text='Cell Segment')
 		notebook.hole_tab.canvas = Canvas(notebook.hole_tab, width=width, height=height,
 								scrollregion=(0,0,675,700))  
 		notebook.hole_tab.scrollbar = Scrollbar(notebook.hole_tab, orient=VERTICAL, 
@@ -569,8 +579,12 @@ class imagecol_gui:
 				p_intensity=(self.p0.get(), self.p1.get())) * 255.999
 
 		image_tk = ImageTk.PhotoImage(Image.fromarray(self.image_shg.astype('uint8')))
-		self.display_image(self.image_display.image_tab.canvas, image_tk)
-		self.update_log("Displaying image {}".format(fig_name))
+		self.display_image(self.image_display.shg_image_tab.canvas, image_tk)
+		self.update_log("Displaying SHG image {}".format(fig_name))
+
+		image_tk = ImageTk.PhotoImage(Image.fromarray(self.image_pl.astype('uint8')))
+		self.display_image(self.image_display.pl_image_tab.canvas, image_tk)
+		self.update_log("Displaying PL image {}".format(fig_name))
 
 		self.display_tensor(self.image_display.tensor_tab.canvas, self.image_shg)
 		self.update_log("Displaying image tensor {}".format(fig_name))
