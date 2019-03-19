@@ -183,84 +183,73 @@ def cell_segmentation(image_shg, image_pl, fibres, scale=2, sigma=0.8, alpha=1.0
 	return sorted_cells
 
 
-def cell_analysis(image, holes):
 
-	l_holes = len(holes)
+def cell_segment_analysis(image, cells, n_tensor, anis_map, angle_map):
 
-	hole_areas = np.zeros(l_holes)
-	hole_hu = np.zeros((l_holes, 7))
-	hole_mean = np.zeros(l_holes)
-	hole_std = np.zeros(l_holes)
-	hole_entropy = np.zeros(l_holes)
+	l_cells = len(cells)
 
-	hole_glcm_contrast = np.zeros(l_holes)
-	hole_glcm_dissim = np.zeros(l_holes)
-	hole_glcm_corr = np.zeros(l_holes)
-	hole_glcm_homo = np.zeros(l_holes)
-	hole_glcm_energy = np.zeros(l_holes)
-	hole_glcm_IDM = np.zeros(l_holes)
-	hole_glcm_variance = np.zeros(l_holes)
-	hole_glcm_cluster = np.zeros(l_holes)
-	hole_glcm_entropy = np.zeros(l_holes)
+	cell_angle_sdi = np.zeros(l_cells)
+	cell_anis = np.zeros(l_cells)
+	cell_pix_anis = np.zeros(l_cells)
 
-	hole_linear = np.zeros(l_holes)
-	hole_eccent = np.zeros(l_holes)
+	cell_areas = np.zeros(l_cells)
+	cell_hu = np.zeros((l_cells, 7))
+	cell_mean = np.zeros(l_cells)
+	cell_std = np.zeros(l_cells)
+	cell_entropy = np.zeros(l_cells)
 
-	for i, hole in enumerate(holes):
-		
-		minr, minc, maxr, maxc = hole.bbox
-		indices = np.mgrid[minr:maxr, minc:maxc]
+	cell_glcm_contrast = np.zeros(l_cells)
+	cell_glcm_dissim = np.zeros(l_cells)
+	cell_glcm_corr = np.zeros(l_cells)
+	cell_glcm_homo = np.zeros(l_cells)
+	cell_glcm_energy = np.zeros(l_cells)
+	cell_glcm_IDM = np.zeros(l_cells)
+	cell_glcm_variance = np.zeros(l_cells)
+	cell_glcm_cluster = np.zeros(l_cells)
+	cell_glcm_entropy = np.zeros(l_cells)
 
-		hole_image = image[(indices[0], indices[1])] * hole.image
+	cell_linear = np.zeros(l_cells)
+	cell_eccent = np.zeros(l_cells)
+	cell_density = np.zeros(l_cells)
+	cell_coverage = np.zeros(l_cells)
 
-		hole_areas[i] = hole.area
-		hole_hu[i] = hole.moments_hu
+	for i, cell in enumerate(cells):
 
-		glcm = greycomatrix((hole_image * 255.999).astype('uint8'),
-		                 [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256,
-		                 symmetric=True, normed=True)
+		metrics = segment_analysis(image, cell, n_tensor, anis_map,
+						angle_map)
 
-		hole_mean[i] = np.mean(hole_image)
-		hole_std[i] = np.std(hole_image)
-		hole_entropy[i] = measure.shannon_entropy(hole_image)
+		(__, cell_angle_sdi[i], cell_anis[i], cell_pix_anis[i], 
+		cell_areas[i], cell_linear[i], cell_eccent[i], 
+		cell_density[i], cell_coverage[i], cell_mean[i], cell_std[i],
+		cell_entropy[i], cell_glcm_contrast[i], cell_glcm_homo[i], cell_glcm_dissim[i], 
+		cell_glcm_corr[i], cell_glcm_energy[i], cell_glcm_IDM[i], 
+		cell_glcm_variance[i], cell_glcm_cluster[i], cell_glcm_entropy[i],
+		cell_hu[i]) = metrics
 
-		hole_glcm_contrast[i] = greycoprops_edit(glcm, 'contrast').mean()
-		hole_glcm_homo[i] = greycoprops_edit(glcm, 'homogeneity').mean()
-		hole_glcm_dissim[i] = greycoprops_edit(glcm, 'dissimilarity').mean()
-		hole_glcm_corr[i] = greycoprops_edit(glcm, 'correlation').mean()
-		hole_glcm_energy[i] = greycoprops_edit(glcm, 'energy').mean()
-		hole_glcm_IDM[i] = greycoprops_edit(glcm, 'IDM').mean()
-		hole_glcm_variance[i] = greycoprops_edit(glcm, 'variance').mean()
-		hole_glcm_cluster[i] = greycoprops_edit(glcm, 'cluster').mean()
-		hole_glcm_entropy[i] = greycoprops_edit(glcm, 'entropy').mean()
-
-		hole_linear[i] = 1 - hole.equivalent_diameter / hole.perimeter
-		hole_eccent[i] = hole.eccentricity
-
-	return (hole_areas, hole_mean, hole_std, hole_entropy, hole_glcm_contrast,
-		hole_glcm_homo, hole_glcm_dissim, hole_glcm_corr, hole_glcm_energy,
-		hole_glcm_IDM, hole_glcm_variance, hole_glcm_cluster, hole_glcm_entropy,
-		hole_linear, hole_eccent, hole_hu) 
+	return (cell_angle_sdi, cell_anis, cell_pix_anis, cell_areas, 
+		cell_mean, cell_std, cell_entropy, cell_glcm_contrast,
+		cell_glcm_homo, cell_glcm_dissim, cell_glcm_corr, cell_glcm_energy,
+		cell_glcm_IDM, cell_glcm_variance, cell_glcm_cluster, cell_glcm_entropy,
+		cell_linear, cell_eccent, cell_density, cell_coverage, cell_hu) 
 
 
-def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map, angle_map):
+def segment_analysis(image, segment, n_tensor, anis_map, angle_map):
 
 	minr, minc, maxr, maxc = segment.bbox
 	indices = np.mgrid[minr:maxr, minc:maxc]
 
-	segment_image_shg = image_shg[(indices[0], indices[1])]
-	segment_image_pl = image_pl[(indices[0], indices[1])]
+	segment_image = image[(indices[0], indices[1])]
 	#segment_image_comb = np.sqrt(segment_image_shg * segment_image_pl)
 	segment_anis_map = anis_map[(indices[0], indices[1])]
 	segment_angle_map = angle_map[(indices[0], indices[1])]
 	segment_n_tensor = n_tensor[(indices[0], indices[1])]
 
-	_, _, segment_fourier_sdi = fourier_transform_analysis(segment_image_shg)
+	_, _, segment_fourier_sdi = fourier_transform_analysis(segment_image)
 	segment_angle_sdi = angle_analysis(segment_angle_map, segment_anis_map)
 
-	segment_mean = np.mean(segment_image_shg)
-	segment_std = np.std(segment_image_shg)
-	segment_entropy = measure.shannon_entropy(segment_image_shg)
+	segment_mean = np.mean(segment_image)
+	segment_std = np.std(segment_image)
+	segment_entropy = measure.shannon_entropy(segment_image)
 
 	segment_anis, _ , _ = tensor_analysis(np.mean(segment_n_tensor, axis=(0, 1)))
 	segment_anis = segment_anis[0]
@@ -269,11 +258,11 @@ def segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map, angle_map
 	segment_area = np.sum(segment.image)
 	segment_linear = 1 - segment.equivalent_diameter / segment.perimeter
 	segment_eccent = segment.eccentricity
-	segment_density = np.sum(segment_image_shg * segment.image) / segment_area
+	segment_density = np.sum(segment_image * segment.image) / segment_area
 	segment_coverage = np.mean(segment.image)
 	segment_hu = segment.moments_hu
 
-	glcm = greycomatrix((segment_image_shg * segment.image * 255.999).astype('uint8'),
+	glcm = greycomatrix((segment_image * segment.image * 255.999).astype('uint8'),
                          [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256,
                          symmetric=True, normed=True)
 
@@ -423,7 +412,9 @@ def network_analysis(network, network_red):
 	return (network_degree, network_eigen, network_connect, network_cross_links)
 
 
-def total_analysis(image_shg, image_pl, networks, networks_red, 
+
+
+def fibre_segment_analysis(image_shg, networks, networks_red, 
 			fibres, segments, n_tensor, anis_map, angle_map):
 	"""
 	Analyse extracted fibre network
@@ -465,7 +456,6 @@ def total_analysis(image_shg, image_pl, networks, networks_red,
 	network_degree = np.zeros(l_regions)
 	network_eigen = np.zeros(l_regions)
 	network_connect = np.zeros(l_regions)
-	
 
 	iterator = zip(np.arange(l_regions), networks, networks_red, fibres, segments)
 
@@ -473,7 +463,7 @@ def total_analysis(image_shg, image_pl, networks, networks_red,
 
 		#if segment.filled_area >= 1E-2 * image_shg.size:
 
-		metrics = segment_analysis(image_shg, image_pl, segment, n_tensor, anis_map,
+		metrics = segment_analysis(image_shg, segment, n_tensor, anis_map,
 						angle_map)
 
 		(segment_fourier_sdi[i], segment_angle_sdi[i], segment_anis[i], 
@@ -497,7 +487,7 @@ def total_analysis(image_shg, image_pl, networks, networks_red,
 		#fibre_angle_sdi[i] = angle_analysis(fibre_ang, np.ones(fibre_ang.shape))
 
 
-	return (segment_fourier_sdi, segment_angle_sdi, segment_anis, segment_pix_anis, 
+	return (segment_angle_sdi, segment_anis, segment_pix_anis, 
 		segment_area, segment_linear, segment_eccent, segment_density, segment_coverage,
 		segment_mean, segment_std, segment_entropy, segment_glcm_contrast, 
 		segment_glcm_homo, segment_glcm_dissim, segment_glcm_corr, segment_glcm_energy, 

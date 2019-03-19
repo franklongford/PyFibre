@@ -20,6 +20,7 @@ import utilities as ut
 
 
 def import_image(image_name):
+	"Image importer able to automatically deal with stacks and mixed SHG/PL image types"
 
 	image_orig = ut.load_image(image_name)
 
@@ -61,16 +62,18 @@ def import_image(image_name):
 	raise IOError
 
 
-def load_shg_pl(input_file_name):
+def load_shg_pl(input_file_names):
 	"Load in SHG and PL files from file name tuple"
 
-	if len(input_file_name) == 1:
-		image_shg, image_pl = import_image(input_file_name[0])
-	else:
-		image_shg = import_image(input_file_name[0])
-		image_pl = import_image(input_file_name[1])
+	images = [None, None]
 
-	return image_shg, image_pl
+	for filename in input_file_names:
+		if '-pl-shg' in filename.lower():
+			images[0], images[1] = import_image(filename)
+		elif '-shg' in filename.lower(): images[0] = import_image(filename)
+		elif '-pl' in filename.lower(): images[1] = import_image(filename)
+
+	return images
 
 
 def clip_intensities(image, p_intensity=(1, 98)):

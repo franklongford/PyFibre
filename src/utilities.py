@@ -337,7 +337,9 @@ def get_image_lists(input_files):
 
 		if len(indices) > 0:
 			shg_pl_files += [(shg_files[i][0], pl_files[indices[0]][0])]
-			shg_pl_prefixes += [prefix]
+		else: shg_pl_files += [(shg_files[i][0],)]
+
+		shg_pl_prefixes += [prefix]
 
 	return shg_pl_files, shg_pl_prefixes
 
