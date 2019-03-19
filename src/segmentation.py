@@ -74,6 +74,11 @@ def BD_filter(image, n_runs=50, n_clusters=4, p_intensity=(2, 98), sm_size=7):
 	assert image.ndim == 3
 
 	import matplotlib.pyplot as plt
+
+	for i in range(3):
+		plt.imshow(image[:, :, i])
+		plt.show()
+
 	plt.imshow(image)
 	plt.show()
 	
@@ -159,6 +164,10 @@ def BD_filter(image, n_runs=50, n_clusters=4, p_intensity=(2, 98), sm_size=7):
 	for i in blue_clusters: epith_cell += segmented_image[i]
 	epith_grey = rgb2grey(epith_cell)
 
+	plt.imshow(epith_cell)
+	plt.show()
+
+
 	"Dilate binary image to smooth regions and remove small holes / objects"
 	epith_cell_BW = np.where(epith_grey, True, False)
 	
@@ -171,10 +180,10 @@ def BD_filter(image, n_runs=50, n_clusters=4, p_intensity=(2, 98), sm_size=7):
 	plt.show()	
 
 	BWx = binary_fill_holes(epith_cell_BW_open)
-	BWy = remove_small_objects(~BWx, min_size=10)
+	BWy = remove_small_objects(~BWx, min_size=50)
 
 	"Return binary mask for cell identification"
-	mask_image = remove_small_objects(~BWy, min_size=10)
+	mask_image = remove_small_objects(~BWy, min_size=50)
 
 	plt.imshow(mask_image)
 	plt.show()
@@ -182,17 +191,18 @@ def BD_filter(image, n_runs=50, n_clusters=4, p_intensity=(2, 98), sm_size=7):
 	return mask_image
 
 
-def cell_segmentation(image_shg, image_pl, fibre_seg, scale=2, sigma=0.8, alpha=1.0, weight=0.45,
+def cell_segmentation(image_shg, image_pl, fibre_seg, scale=2, sigma=0.8, alpha=1.0, weight=0.5,
 			min_size=1250, edges=False):
 
 	"Imitate HE image by creating RGB composite of SHG and PL images"
 
 	fibre_binary = create_binary_image(fibre_seg, image_shg.shape)
+	fibre_filter = gaussian_filter(np.where(fibre_binary, weight, 1), 1)
 
-	channel_R = image_shg * np.where(fibre_binary, 1, weight)
+	channel_R = image_shg / fibre_filter
 	channel_G = image_pl
 	channel_B = abs(image_shg - image_pl)
-	channel_B = clip_intensities(channel_B) * np.where(fibre_binary, weight, 1)
+	channel_B = clip_intensities(channel_B) * fibre_filter
 	rgb_im = np.stack((channel_R, channel_G, channel_B), axis=-1)
 
 	"Return binary filter for cellular identification"
