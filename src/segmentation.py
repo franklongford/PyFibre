@@ -68,15 +68,20 @@ def find_holes(image, sigma=0.8, alpha=1.0, min_size=1250, iterations=2):
 	return image_hole
 
 
-def BD_filter(image, n_runs=10, n_clusters=4, p_intensity=(2, 98)):
+def BD_filter(image, n_runs=50, n_clusters=4, p_intensity=(2, 98), sm_size=7):
 	"Adapted from CurveAlign BDcreationHE routine"
 
 	assert image.ndim == 3
+
+	import matplotlib.pyplot as plt
+	plt.imshow(image)
+	plt.show()
 	
 	image_size = image.shape[0] * image.shape[1]
 	image_shape = (image.shape[0], image.shape[1])
 	image_channels = image.shape[-1]
 	image_scaled = np.zeros(image.shape, dtype=int)
+	pad_size = 10 * sm_size
 
 	"Mimic contrast stretching decorrstrech routine in MatLab"
 	for i in range(image_channels):
@@ -85,20 +90,27 @@ def BD_filter(image, n_runs=10, n_clusters=4, p_intensity=(2, 98)):
 
 	"Pad each channel, equalise and smooth to remove salt and pepper noise"
 	for i in range(image_channels):
-		padded = pad(image_scaled[:, :, i], [70, 70], 'symmetric')
+		padded = pad(image_scaled[:, :, i], [pad_size, pad_size], 'symmetric')
 		equalised = 255 * equalize_hist(padded)
-		smoothed = median_filter(equalised, size=(7, 7))
-		smoothed = median_filter(smoothed, size=(7, 7))
-		image_scaled[:, :, i] = smoothed[70 : 70 + image.shape[0],
-						 70 : 70 + image.shape[1]]
+		smoothed = median_filter(equalised, size=(sm_size, sm_size))
+		smoothed = median_filter(smoothed, size=(sm_size, sm_size))
+		image_scaled[:, :, i] = smoothed[pad_size : pad_size + image.shape[0],
+						 pad_size : pad_size + image.shape[1]]
+
+	plt.imshow(image_scaled)
+	plt.show()
 
 	"Perform k-means clustering on PL image"
 	X = np.array(image_scaled.reshape((image_size, image_channels)), dtype=float)
-	clustering = MiniBatchKMeans(n_clusters=n_clusters, n_init=n_runs)
+	clustering = MiniBatchKMeans(n_clusters=n_clusters, n_init=n_runs, 
+				    reassignment_ratio=0.99, init_size=n_runs*100,
+				    max_no_improvement=10, tol=0.0)
 	clustering.fit(X)
 
 	labels = clustering.labels_.reshape(image_shape)
 	centres = clustering.cluster_centers_
+
+	print(centres)
 
 	"Reorder centres by mean centroid"
 	mean_centres = centres.mean(axis=-1)
@@ -112,7 +124,7 @@ def BD_filter(image, n_runs=10, n_clusters=4, p_intensity=(2, 98)):
 	for i in range(n_clusters):
 		segmented_image[i][np.where(labels == i)] += image[np.where(labels == i)]
 		grey = rgb2grey(segmented_image[i])
-		median_intensity[i] += np.median(np.nonzero(grey))
+		median_intensity[i] += 255.999 * np.mean(grey[np.nonzero(grey)])
 
 	sort_intensity = np.argsort(median_intensity)
 
@@ -123,12 +135,24 @@ def BD_filter(image, n_runs=10, n_clusters=4, p_intensity=(2, 98)):
 		cluster_val[i] = np.argwhere(sort_centres == i) * np.argwhere(sort_intensity == i)
 		print(i, np.argwhere(sort_centres == i), np.argwhere(sort_intensity == i), cluster_val[i])
 	"""
-	cluster_val = (median_intensity / median_intensity.max()) * (mean_centres / mean_centres.max())
-	sort_cluster = np.argsort(cluster_val)
+	cluster_val = np.sqrt(median_intensity *  mean_centres)	
 
 	"Blue light classed as indicies with cluster_val < 0.45"
 	#blue_cluster_number = sort_cluster[0]
-	blue_clusters = np.argwhere(cluster_val < 0.45).flatten()
+	print(median_intensity)
+	print(mean_centres)
+	print(cluster_val)
+
+	
+	for i in range(n_clusters):
+		plt.figure(i)
+		plt.imshow(segmented_image[i])
+	plt.show()
+
+
+	blue_clusters = np.argwhere(cluster_val < 70).flatten()
+	blue_clusters = np.argwhere([vector.argmax() == 2 for vector in centres]).flatten()
+	print(blue_clusters)
 
 	"Select light blue regions to extract epithelial cells"
 	epith_cell = np.zeros(image.shape)
@@ -137,22 +161,39 @@ def BD_filter(image, n_runs=10, n_clusters=4, p_intensity=(2, 98)):
 
 	"Dilate binary image to smooth regions and remove small holes / objects"
 	epith_cell_BW = np.where(epith_grey, True, False)
+	
+	plt.imshow(epith_cell_BW)
+	plt.show()
+
 	epith_cell_BW_open = binary_opening(epith_cell_BW, iterations=1)
+
+	plt.imshow(epith_cell_BW_open)
+	plt.show()	
+
 	BWx = binary_fill_holes(epith_cell_BW_open)
-	BWy = remove_small_objects(~BWx, min_size=60);
+	BWy = remove_small_objects(~BWx, min_size=10)
 
 	"Return binary mask for cell identification"
-	mask_image = remove_small_objects(~BWy, min_size=35);
+	mask_image = remove_small_objects(~BWy, min_size=10)
+
+	plt.imshow(mask_image)
+	plt.show()
 
 	return mask_image
 
 
-def cell_segmentation(image_shg, image_pl, fibres, scale=2, sigma=0.8, alpha=1.0, min_size=1250, edges=False):
+def cell_segmentation(image_shg, image_pl, fibre_seg, scale=2, sigma=0.8, alpha=1.0, weight=0.45,
+			min_size=1250, edges=False):
 
 	"Imitate HE image by creating RGB composite of SHG and PL images"
+
+	fibre_binary = create_binary_image(fibre_seg, image_shg.shape)
+
+	channel_R = image_shg * np.where(fibre_binary, 1, weight)
+	channel_G = image_pl
 	channel_B = abs(image_shg - image_pl)
-	channel_B = clip_intensities(channel_B)
-	rgb_im = np.stack((image_shg, image_pl, channel_B), axis=-1)
+	channel_B = clip_intensities(channel_B) * np.where(fibre_binary, weight, 1)
+	rgb_im = np.stack((channel_R, channel_G, channel_B), axis=-1)
 
 	"Return binary filter for cellular identification"
 	mask_image = BD_filter(rgb_im)
@@ -326,10 +367,12 @@ def network_extraction(image_shg, network_name='network', scale=1.25, sigma=0.5,
 	return sorted_networks, sorted_networks_red, sorted_fibres
 
 
-def fibre_segmentation(image_shg, networks, networks_red, area_threshold=200):
+def fibre_segmentation(image_shg, networks, networks_red, area_threshold=200, iterations=5):
 
 	n_net = len(networks)
 	fibres = []
+
+	import matplotlib.pyplot as plt
 
 	iterator = zip(np.arange(n_net), networks, networks_red)
 
@@ -338,9 +381,10 @@ def fibre_segmentation(image_shg, networks, networks_red, area_threshold=200):
 
 		label_image = np.zeros(image_shg.shape, dtype=int)
 		label_image = draw_network(network, label_image, 1)
-		dilated_image = binary_dilation(label_image, iterations=8)
+
+		dilated_image = binary_dilation(label_image, iterations=iterations)
 		filled_image = remove_small_holes(dilated_image, area_threshold=area_threshold)
-		smoothed_image = gaussian_filter(filled_image, sigma=0.25)
+		smoothed_image = gaussian_filter(filled_image, sigma=0.15)
 		binary_image = np.where(smoothed_image, 1, 0)
 
 		segment = measure.regionprops(binary_image, intensity_image=image_shg)[0]

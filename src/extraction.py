@@ -32,6 +32,7 @@ from filters import tubeness, hysteresis
 
 
 def check_2D_arrays(array1, array2, thresh=1):
+	"return indices where values of array1 are within thresh distance of array2"
 
 	array1_mat = np.tile(array1, (1, array2.shape[0]))\
 	                .reshape(array1.shape[0], array2.shape[0], 2)    
@@ -46,6 +47,7 @@ def check_2D_arrays(array1, array2, thresh=1):
 
 
 def distance_matrix(node_coord):
+	"calculate distances between each index value of node_coord"
 
 	node_coord_matrix = np.tile(node_coord, (node_coord.shape[0], 1))\
 	                    .reshape(node_coord.shape[0], node_coord.shape[0], node_coord.shape[1])
