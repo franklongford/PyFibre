@@ -98,40 +98,49 @@ Each database has the following columns:
 
 Metric | Description | Category
 --- | --- | ---
-Angle SDI | Angle spectrum SDI (mean / max) of all pixels| Texture
-Anisotropy | Anisotropy of structure tensor for total image/segment | Texture
-Pixel Anisotropy | Mean anisotropy of structure tensor for all pixels | Texture
-Intensity Mean | Mean pixel intensity of total image/segment | Texture
-Intensity STD | Standard deviation of pixel intensity of total image/segment | Texture
-Intensity Entropy | Average Shannon entropy of pixel intensities of total image/segment | Texture				
-GLCM Contrast | GLCM angle-averaged contrast | Texture
-GLCM Homogeneity | GLCM angle-averaged homogeneity | Texture
-GLCM Dissimilarity | GLCM angle-averaged dissimilarity | Texture
-GLCM Correlation | GLCM angle-averaged correlation | Texture
-GLCM Energy | GLCM angle-averaged energy | Texture
-GLCM IDM | GLCM angle-averaged inverse difference moment | Texture
-GLCM Variance | GLCM angle-averaged variance | Texture
-GLCM Cluster | GLCM angle-averaged clustering tendency | Texture
-GLCM Entropy | GLCM angle-averaged entropy | Texture
 No. Fibres | Number of extracted fibres | Content
+SHG Angle SDI | Angle spectrum SDI (mean / max) of all pixels| Texture
+SHG Anisotropy | Anisotropy of structure tensor for total image/segment | Texture
+SHG Pixel Anisotropy | Mean anisotropy of structure tensor for all pixels | Texture
+Fibre Intensity Mean | Mean pixel intensity of total image/segment | Texture
+Fibre Intensity STD | Standard deviation of pixel intensity of total image/segment | Texture
+Fibre Intensity Entropy | Average Shannon entropy of pixel intensities of total image/segment | Texture				
+Fibre GLCM Contrast | GLCM angle-averaged contrast | Texture
+Fibre GLCM Homogeneity | GLCM angle-averaged homogeneity | Texture
+Fibre GLCM Dissimilarity | GLCM angle-averaged dissimilarity | Texture
+Fibre GLCM Correlation | GLCM angle-averaged correlation | Texture
+Fibre GLCM Energy | GLCM angle-averaged energy | Texture
+Fibre GLCM IDM | GLCM angle-averaged inverse difference moment | Texture
+Fibre GLCM Variance | GLCM angle-averaged variance | Texture
+Fibre GLCM Cluster | GLCM angle-averaged clustering tendency | Texture
+Fibre GLCM Entropy | GLCM angle-averaged entropy | Texture
 Fibre Area | Average number of pixels covered by fibres | Content
 Fibre Coverage | Ratio of image covered by fibres | Content
 Fibre Linearity | Average fibre segment linearity | Shape
 Fibre Eccentricity | Average fibre segment eccentricity | Shape
 Fibre Density | Average image fibre density | Texture
+Fibre Hu Moment 1 | Average fibre segment Hu moment 1 | Shape
+Fibre Hu Moment 2 | Average fibre segment Hu moment 2 | Shape
+Network Degree | Average fibre network number of edges per node | Network
+Network Eigenvalue | Max eigenvalue of network adjacency matrix| Network
+Network Connectivity | Average fibre network connectivity | Network
 Fibre Waviness | Average fibre waviness | Content
 Fibre Lengths | Average fibre pixel length | Content
 Fibre Cross-Link Density | Average cross-links per fibre | Content
-Fibre Hu Moment 1 | Average fibre segment Hu moment 1 | Shape
-Fibre Hu Moment 2 | Average fibre segment Hu moment 2 | Shape
 No. Cells | Number of cell segments | Content
 Cell Area | Average number of pixels covered by cells | Content
 Cell Linearity | Average cell segment linearity | Shape 
 Cell Coverage | Ratio of image covered by cell | Content
 Cell Eccentricity | Average cell segment eccentricity | Shape
 Cell Density | Average image cell density | Texture
-Network Degree | Average fibre network number of edges per node | Network
-Network Eigenvalue | Max eigenvalue of network adjacency matrix| Network
-Network Connectivity | Average fibre network connectivity | Network
+Cell GLCM Contrast | GLCM angle-averaged contrast | Texture
+Cell GLCM Homogeneity | GLCM angle-averaged homogeneity | Texture
+Cell GLCM Dissimilarity | GLCM angle-averaged dissimilarity | Texture
+Cell GLCM Correlation | GLCM angle-averaged correlation | Texture
+Cell GLCM Energy | GLCM angle-averaged energy | Texture
+Cell GLCM IDM | GLCM angle-averaged inverse difference moment | Texture
+Cell GLCM Variance | GLCM angle-averaged variance | Texture
+Cell GLCM Cluster | GLCM angle-averaged clustering tendency | Texture
+Cell GLCM Entropy | GLCM angle-averaged entropy | Texture
 Cell Hu Moment 1 | Average cell segment Hu moment 1 | Shape
 Cell Hu Moment 2 | Average cell segment Hu moment 2 | Shape
