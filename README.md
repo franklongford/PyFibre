@@ -102,9 +102,9 @@ No. Fibres | Number of extracted fibres | Content
 SHG Angle SDI | Angle spectrum SDI (mean / max) of all pixels| Texture
 SHG Anisotropy | Anisotropy of structure tensor for total image/segment | Texture
 SHG Pixel Anisotropy | Mean anisotropy of structure tensor for all pixels | Texture
-Fibre Intensity Mean | Mean pixel intensity of total image/segment | Texture
-Fibre Intensity STD | Standard deviation of pixel intensity of total image/segment | Texture
-Fibre Intensity Entropy | Average Shannon entropy of pixel intensities of total image/segment | Texture				
+SHG Intensity Mean | Mean pixel intensity of total image/segment | Texture
+SHG Intensity STD | Standard deviation of pixel intensity of total image/segment | Texture
+SHG Intensity Entropy | Average Shannon entropy of pixel intensities of total image/segment | Texture				
 Fibre GLCM Contrast | GLCM angle-averaged contrast | Texture
 Fibre GLCM Homogeneity | GLCM angle-averaged homogeneity | Texture
 Fibre GLCM Dissimilarity | GLCM angle-averaged dissimilarity | Texture
@@ -133,6 +133,9 @@ Cell Linearity | Average cell segment linearity | Shape
 Cell Coverage | Ratio of image covered by cell | Content
 Cell Eccentricity | Average cell segment eccentricity | Shape
 Cell Density | Average image cell density | Texture
+PL Intensity Mean | Mean pixel intensity of total image/segment | Texture
+PL Intensity STD | Standard deviation of pixel intensity of total image/segment | Texture
+PL Intensity Entropy | Average Shannon entropy of pixel intensities of total image/segment | Texture
 Cell GLCM Contrast | GLCM angle-averaged contrast | Texture
 Cell GLCM Homogeneity | GLCM angle-averaged homogeneity | Texture
 Cell GLCM Dissimilarity | GLCM angle-averaged dissimilarity | Texture

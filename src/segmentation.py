@@ -318,6 +318,7 @@ def network_extraction(image_shg, network_name='network', scale=1.25, sigma=0.5,
 
 	"Sort segments ranked by network size"
 	indices = np.argsort(n_nodes)[::-1]
+
 	sorted_networks = [networks[i] for i in indices]
 	sorted_networks_red = [networks_red[i] for i in indices]
 	sorted_fibres = [fibres[i] for i in indices]
