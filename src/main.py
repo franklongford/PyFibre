@@ -113,7 +113,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 
 	"Load and preprocess image"
 	image_shg, image_pl, image_tran = load_shg_pl(input_file_names)
-	pl_analysis = ~np.any(image_pl == None)
+	pl_analysis = ~np.any(image_pl == None) * ~np.any(image_tran == None)
 
 	"Pre-process image to remove noise"
 	image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
