@@ -135,7 +135,7 @@ def BD_filter(image, n_runs=50, n_clusters=7, p_intensity=(2, 98), sm_size=7):
 
 	"Dilate binary image to smooth regions and remove small holes / objects"
 	epith_cell_BW = np.where(epith_grey, True, False)
-	epith_cell_BW_open = binary_opening(epith_cell_BW, iterations=2)
+	epith_cell_BW_open = binary_opening(epith_cell_BW, iterations=1)
 
 	BWx = binary_fill_holes(epith_cell_BW_open)
 	BWy = remove_small_objects(~BWx, min_size=15)

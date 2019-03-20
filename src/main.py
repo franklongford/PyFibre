@@ -226,8 +226,6 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 		fibre_glcm_IDM, fibre_glcm_variance, fibre_glcm_cluster, fibre_glcm_entropy,
 		fibre_hu, network_degree, network_eigen, network_connect, fibre_waviness, 
 		fibre_lengths, fibre_cross_link) = net_res
-
-		fibre_binary = seg.create_binary_image(fibre_seg, image_shg.shape)
 		
 		filenames = pd.Series(['{}_fibre_segment.pkl'.format(filename)] * len(fibre_seg), name='File')
 		fibre_id = pd.Series(np.arange(len(fibre_seg)), name='ID')
@@ -259,8 +257,6 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 
 			print("Performing cell segment analysis")
 			
-			cell_binary = seg.create_binary_image(cell_seg, image_pl.shape)
-
 			(cell_angle_sdi, cell_anis, cell_pix_anis, cell_areas, cell_mean, 
 			cell_std, cell_entropy, cell_glcm_contrast, 
 			cell_glcm_homo, cell_glcm_dissim, cell_glcm_corr, cell_glcm_energy, 
@@ -290,8 +286,10 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 
 		print("Performing Global Image analysis")
 
-		global_binary = np.where(fibre_binary, 0, 1)
+		fibre_binary = seg.create_binary_image(fibre_seg, image_shg.shape)
+		global_binary = np.where(fibre_binary, 1, 0)
 		global_segment = regionprops(global_binary)[0]
+
 		global_columns = ['No. Fibres'] + fibre_columns[:-5]
 		global_columns += ['No. Cells'] + cell_columns[:-5]
 
@@ -336,19 +334,19 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 
 		if pl_analysis: 
 
-			global_binary = np.where(cell_binary, 0, 1)
+			cell_binary = seg.create_binary_image(cell_seg, image_pl.shape)
+			global_binary = np.where(cell_binary, 1, 0)
 			global_segment = regionprops(global_binary)[0]
 
 			metrics = seg.segment_analysis(image_pl, global_segment, pl_j_tensor, 
 						pl_pix_j_anis, pl_pix_j_angle)
 
-			(__, global_cell_angle_sdi, global_cell_anis, global_cell_pix_anis, global_cell_area, 
+			(__, global_cell_angle_sdi, global_cell_anis, global_cell_pix_anis, global_cell_area,
+			global_cell_linear, global_cell_eccent, global_cell_density, global_cell_coverage, 
 			global_cell_mean, global_cell_std, global_cell_entropy, global_cell_glcm_contrast,
 			global_cell_glcm_homo, global_cell_glcm_dissim, global_cell_glcm_corr, 
 			global_cell_glcm_energy, global_cell_glcm_IDM, global_cell_glcm_variance, 
-			global_cell_glcm_cluster, global_cell_glcm_entropy,
-			global_cell_linear, global_cell_eccent, global_cell_density, 
-			global_cell_coverage, global_cell_hu) = metrics
+			global_cell_glcm_cluster, global_cell_glcm_entropy, global_cell_hu) = metrics
 
 			global_ncells = len(cell_seg)
 
