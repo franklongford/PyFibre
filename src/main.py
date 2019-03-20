@@ -115,6 +115,8 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 	image_shg, image_pl, image_tran = load_shg_pl(input_file_names)
 	pl_analysis = ~np.any(image_pl == None) * ~np.any(image_tran == None)
 
+	print(pl_analysis)
+
 	"Pre-process image to remove noise"
 	image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
 	if pl_analysis: 
@@ -140,8 +142,8 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 	try: 
 		global_dataframe = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + image_name))
 		fibre_dataframe = pd.read_pickle('{}_fibre_metric.pkl'.format(data_dir + image_name))
-		if pl_analysis:
-			cell_dataframe = pd.read_pickle('{}_cell_metric.pkl'.format(data_dir + image_name))
+		cell_dataframe = pd.read_pickle('{}_cell_metric.pkl'.format(data_dir + image_name))
+			
 	except IOError:
 		print("Cannot load metrics for {}".format(image_name))
 		ow_metric = True
@@ -150,6 +152,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 		\n ow_metric = {ow_metric}\n ow_figure = {ow_figure}")
 
 	start = time.time()
+
 
 	if ow_network:
 
@@ -382,7 +385,6 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 	
 		networks =  ut.load_region(data_dir + image_name + "_network")
 		fibre_seg = ut.load_region(data_dir + image_name + "_fibre_segment")
-		cell_seg = ut.load_region(data_dir + image_name + "_cell_segment")
 		fibres = ut.load_region(data_dir + image_name + "_fibre")
 		fibres = ut.flatten_list(fibres)
 		
@@ -398,6 +400,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 		create_figure(fibre_region_image, fig_dir + image_name + '_fibre_seg')
 
 		if pl_analysis:
+			cell_seg = ut.load_region(data_dir + image_name + "_cell_segment")
 			cell_region_image = create_region_image(image_pl, cell_seg)
 			create_figure(cell_region_image, fig_dir + image_name + '_cell_seg')
 
