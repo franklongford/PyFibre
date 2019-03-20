@@ -122,16 +122,11 @@ def BD_filter(image, n_runs=50, n_clusters=7, p_intensity=(2, 98), sm_size=7):
 	magnitudes = np.sqrt(np.sum(mean_intensity_vec**2, axis=-1))
 	norm_intensities = mean_intensity_vec / np.repeat(magnitudes, image_channels).reshape(mean_intensity_vec.shape)
 
-	print(norm_centres)
-	print(norm_intensities)
-
 	"""Light blue clusters classed as where kmeans centres have highest value in 
 	B channel (index 2) and average normalised channel intensities below 0.92"""
 	blue_clusters = np.array([vector.argmax() == 2 for vector in norm_centres], dtype=bool)
 	light_clusters = np.array([vector[2] >= 0.92 for vector in norm_intensities], dtype=bool)
 	light_blue_clusters = np.argwhere(blue_clusters + light_clusters).flatten()
-
-	print(light_blue_clusters)
 
 	"Select blue regions to extract epithelial cells"
 	epith_cell = np.zeros(image.shape)
@@ -148,7 +143,11 @@ def BD_filter(image, n_runs=50, n_clusters=7, p_intensity=(2, 98), sm_size=7):
 	"Return binary mask for cell identification"
 	mask_image = remove_small_objects(~BWy, min_size=15)
 
-	#"""
+	"""
+	print(norm_centres)
+	print(norm_intensities)
+	print(light_blue_clusters)
+
 	import matplotlib.pyplot as plt
 	for i in range(n_clusters):
 		plt.figure(i)
