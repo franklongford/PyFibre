@@ -72,7 +72,7 @@ def import_image(image_name):
 			image_mean = np.mean(image_orig, axis=smallest_axis)
 			image = np.sqrt(image_mean * image_euclid)
 
-			image = image / image_mix.max()
+			image = image / image.max()
 
 			return image
 
