@@ -32,8 +32,13 @@ def import_image(image_name):
 
 			if image_orig.shape[0] == 2:
 
-				image = np.mean(image_orig[0], axis=-1)
-				image_tran = np.mean(image_orig[1], axis=-1)
+				image_euclid = np.sqrt(np.sum(image_orig[0]**2, axis=-1))
+				image_mean = np.mean(image_orig, axis=-1)
+				image = np.sqrt(image_mean * image_euclid)
+
+				image_euclid = np.sqrt(np.sum(image_orig[1]**2, axis=-1))
+				image_mean = np.mean(image_orig[1], axis=-1)
+				image_tran = np.sqrt(image_mean * image_euclid)
 			
 				image = image / image.max()
 				image_tran = image_tran / image_tran.max()
@@ -42,9 +47,17 @@ def import_image(image_name):
 
 			elif image_orig.shape[0] == 3:
 	
-				image_shg = np.mean(image_orig[0],  axis=-1)
-				image_pl = np.mean(image_orig[1],  axis=-1)
-				image_tran = np.mean(image_orig[2],  axis=-1)
+				image_euclid = np.sqrt(np.sum(image_orig[0]**2, axis=-1))
+				image_mean = np.mean(image_orig[0], axis=-1)
+				image_shg = np.sqrt(image_mean * image_euclid)
+	
+				image_euclid = np.sqrt(np.sum(image_orig[1]**2, axis=-1))
+				image_mean = np.mean(image_orig[1], axis=-1)
+				image_pl = np.sqrt(image_mean * image_euclid)
+
+				image_euclid = np.sqrt(np.sum(image_orig[2]**2, axis=-1))
+				image_mean = np.mean(image_orig[2], axis=-1)
+				image_tran = np.sqrt(image_mean * image_euclid)
 			
 				image_shg = image_shg / image_shg.max()
 				image_pl = image_pl / image_pl.max()
@@ -57,9 +70,9 @@ def import_image(image_name):
 
 			image_euclid = np.sqrt(np.sum(image_orig**2, axis=smallest_axis))
 			image_mean = np.mean(image_orig, axis=smallest_axis)
-			image_mix = np.sqrt(image_mean * image_euclid)
+			image = np.sqrt(image_mean * image_euclid)
 
-			image = image_mean / image_mix.max()
+			image = image / image_mix.max()
 
 			return image
 

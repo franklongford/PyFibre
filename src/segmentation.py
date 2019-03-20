@@ -68,7 +68,7 @@ def find_holes(image, sigma=0.8, alpha=1.0, min_size=1250, iterations=2):
 	return image_hole
 
 
-def BD_filter(image, n_runs=50, n_clusters=6, p_intensity=(2, 98), sm_size=7):
+def BD_filter(image, n_runs=50, n_clusters=7, p_intensity=(2, 98), sm_size=7):
 	"Adapted from CurveAlign BDcreationHE routine"
 
 	assert image.ndim == 3
@@ -122,11 +122,16 @@ def BD_filter(image, n_runs=50, n_clusters=6, p_intensity=(2, 98), sm_size=7):
 	magnitudes = np.sqrt(np.sum(mean_intensity_vec**2, axis=-1))
 	norm_intensities = mean_intensity_vec / np.repeat(magnitudes, image_channels).reshape(mean_intensity_vec.shape)
 
+	print(norm_centres)
+	print(norm_intensities)
+
 	"""Light blue clusters classed as where kmeans centres have highest value in 
 	B channel (index 2) and average normalised channel intensities below 0.92"""
-	blue_clusters = np.array([vector[2] >= 0.4 for vector in norm_centres], dtype=bool)
+	blue_clusters = np.array([vector.argmax() == 2 for vector in norm_centres], dtype=bool)
 	light_clusters = np.array([vector[2] >= 0.92 for vector in norm_intensities], dtype=bool)
-	light_blue_clusters = np.argwhere(light_clusters).flatten()
+	light_blue_clusters = np.argwhere(blue_clusters + light_clusters).flatten()
+
+	print(light_blue_clusters)
 
 	"Select blue regions to extract epithelial cells"
 	epith_cell = np.zeros(image.shape)
@@ -143,7 +148,7 @@ def BD_filter(image, n_runs=50, n_clusters=6, p_intensity=(2, 98), sm_size=7):
 	"Return binary mask for cell identification"
 	mask_image = remove_small_objects(~BWy, min_size=15)
 
-	"""
+	#"""
 	import matplotlib.pyplot as plt
 	for i in range(n_clusters):
 		plt.figure(i)
@@ -152,12 +157,12 @@ def BD_filter(image, n_runs=50, n_clusters=6, p_intensity=(2, 98), sm_size=7):
 
 	plt.imshow(mask_image)
 	plt.show()
-	"""
+	#"""
 	return mask_image
 
 
 def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alpha=1.0,
-			min_size=750, edges=False):
+			min_size=100, edges=False):
 
 	"Return binary filter for cellular identification"
 	
