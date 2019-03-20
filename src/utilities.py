@@ -325,7 +325,7 @@ def get_files_prefixes(file_list, label):
 	return files, prefixes
 
     
-def get_image_lists(input_files):
+def get_image_lists(input_files, include_shg=True):
 	"Automatically find all combined PL-SHG files or match up individual images if seperate"
 
 	shg_pl_files, shg_pl_prefixes = get_files_prefixes(input_files, '-pl-shg')
@@ -340,12 +340,14 @@ def get_image_lists(input_files):
 		if prefix not in shg_pl_prefixes:
 			indices = [j for j, pl_prefix in enumerate(pl_prefixes) if prefix in pl_prefix]
 
-			#if len(indices) > 0:
-			#	shg_pl_files += [(shg_files[i][0], pl_files[indices[0]][0])]
-			#	shg_pl_prefixes += [prefix]
-			if len(indices) > 0: shg_pl_files += [(shg_files[i][0], pl_files[indices[0]][0])]
-			else: shg_pl_files += [(shg_files[i][0],)]
-			shg_pl_prefixes += [prefix]
+			if include_shg:
+				if len(indices) > 0: shg_pl_files += [(shg_files[i][0], pl_files[indices[0]][0])]
+				else: shg_pl_files += [(shg_files[i][0],)]
+				shg_pl_prefixes += [prefix]
+			else:
+				if len(indices) > 0:
+					shg_pl_files += [(shg_files[i][0], pl_files[indices[0]][0])]
+					shg_pl_prefixes += [prefix]
 
 
 	return shg_pl_files, shg_pl_prefixes

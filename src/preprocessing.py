@@ -24,8 +24,6 @@ def import_image(image_name):
 
 	image_orig = ut.load_image(image_name)
 
-	print(image_orig.shape)
-
 	if image_orig.ndim > 2:
 
 		if image_orig.ndim == 4:
@@ -33,7 +31,7 @@ def import_image(image_name):
 			if image_orig.shape[0] == 2:
 
 				image_euclid = np.sqrt(np.sum(image_orig[0]**2, axis=-1))
-				image_mean = np.mean(image_orig, axis=-1)
+				image_mean = np.mean(image_orig[0], axis=-1)
 				image = np.sqrt(image_mean * image_euclid)
 
 				image_euclid = np.sqrt(np.sum(image_orig[1]**2, axis=-1))
@@ -92,8 +90,7 @@ def load_shg_pl(input_file_names):
 		elif '-shg' in filename.lower(): 
 			image_stack[0] = import_image(filename)
 		elif '-pl' in filename.lower(): 
-			image_stack[1] = import_image(filename)[0]
-			image_stack[2] = import_image(filename)[1]
+			image_stack[1], image_stack[2] = import_image(filename)
 
 	return image_stack
 
