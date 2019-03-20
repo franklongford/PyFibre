@@ -579,7 +579,7 @@ class imagecol_gui:
 		data_dir = image_path + '/data/'
 
 		file_index = self.input_prefixes.index(selected_file)
-		image_shg, image_pl = load_shg_pl(self.input_files[file_index])
+		image_shg, image_pl, _ = load_shg_pl(self.input_files[file_index])
 
 		shg_analysis = ~np.any(image_shg == None)
 		pl_analysis = ~np.any(image_pl == None)

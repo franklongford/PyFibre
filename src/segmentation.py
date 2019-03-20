@@ -68,20 +68,11 @@ def find_holes(image, sigma=0.8, alpha=1.0, min_size=1250, iterations=2):
 	return image_hole
 
 
-def BD_filter(image, n_runs=50, n_clusters=4, p_intensity=(2, 98), sm_size=7):
+def BD_filter(image, n_runs=50, n_clusters=6, p_intensity=(2, 98), sm_size=7):
 	"Adapted from CurveAlign BDcreationHE routine"
 
 	assert image.ndim == 3
 
-	import matplotlib.pyplot as plt
-
-	for i in range(3):
-		plt.imshow(image[:, :, i])
-		plt.show()
-
-	plt.imshow(image)
-	plt.show()
-	
 	image_size = image.shape[0] * image.shape[1]
 	image_shape = (image.shape[0], image.shape[1])
 	image_channels = image.shape[-1]
@@ -102,111 +93,81 @@ def BD_filter(image, n_runs=50, n_clusters=4, p_intensity=(2, 98), sm_size=7):
 		image_scaled[:, :, i] = smoothed[pad_size : pad_size + image.shape[0],
 						 pad_size : pad_size + image.shape[1]]
 
-	plt.imshow(image_scaled)
-	plt.show()
-
 	"Perform k-means clustering on PL image"
 	X = np.array(image_scaled.reshape((image_size, image_channels)), dtype=float)
 	clustering = MiniBatchKMeans(n_clusters=n_clusters, n_init=n_runs, 
 				    reassignment_ratio=0.99, init_size=n_runs*100,
-				    max_no_improvement=10, tol=0.0)
+				    max_no_improvement=10)
 	clustering.fit(X)
 
 	labels = clustering.labels_.reshape(image_shape)
 	centres = clustering.cluster_centers_
 
-	print(centres)
-
-	"Reorder centres by mean centroid"
-	mean_centres = centres.mean(axis=-1)
-	sort_centres = np.argsort(mean_centres)
-
 	"Reorder labels to represent average intensity"
 	unique_labels = np.unique(labels)
 	segmented_image = np.zeros((n_clusters,) + image.shape)
-	median_intensity = np.zeros(n_clusters)
+	mean_intensity = np.zeros(n_clusters)
+	mean_intensity_vec = np.zeros((n_clusters, 3))
 
 	for i in range(n_clusters):
-		segmented_image[i][np.where(labels == i)] += image[np.where(labels == i)]
+		segmented_image[i][np.where(labels == i)] += 255 * image[np.where(labels == i)]
 		grey = rgb2grey(segmented_image[i])
-		median_intensity[i] += 255.999 * np.mean(grey[np.nonzero(grey)])
+		mean_intensity[i] += np.mean(grey[np.nonzero(grey)])
+		mean_intensity_vec[i] += segmented_image[i].sum(axis=(0,1))
+		mean_intensity_vec[i] /= np.where(segmented_image[i], 1, 0).sum(axis=(0, 1))
 
-	sort_intensity = np.argsort(median_intensity)
+	magnitudes = np.sqrt(np.sum(centres**2, axis=-1))
+	norm_centres = centres / np.repeat(magnitudes, image_channels).reshape(centres.shape)
 
-	"Calculate final order of labels"
-	"""
-	cluster_val = np.zeros(unique_labels.shape)
-	for i in range(n_clusters):
-		cluster_val[i] = np.argwhere(sort_centres == i) * np.argwhere(sort_intensity == i)
-		print(i, np.argwhere(sort_centres == i), np.argwhere(sort_intensity == i), cluster_val[i])
-	"""
-	cluster_val = np.sqrt(median_intensity *  mean_centres)	
+	magnitudes = np.sqrt(np.sum(mean_intensity_vec**2, axis=-1))
+	norm_intensities = mean_intensity_vec / np.repeat(magnitudes, image_channels).reshape(mean_intensity_vec.shape)
 
-	"Blue light classed as indicies with cluster_val < 0.45"
-	#blue_cluster_number = sort_cluster[0]
-	print(median_intensity)
-	print(mean_centres)
-	print(cluster_val)
+	"""Light blue clusters classed as where kmeans centres have highest value in 
+	B channel (index 2) and average normalised channel intensities below 0.92"""
+	blue_clusters = np.array([vector[2] >= 0.4 for vector in norm_centres], dtype=bool)
+	light_clusters = np.array([vector[2] >= 0.92 for vector in norm_intensities], dtype=bool)
+	light_blue_clusters = np.argwhere(light_clusters).flatten()
 
-	
-	for i in range(n_clusters):
-		plt.figure(i)
-		plt.imshow(segmented_image[i])
-	plt.show()
-
-
-	blue_clusters = np.argwhere(cluster_val < 70).flatten()
-	blue_clusters = np.argwhere([vector.argmax() == 2 for vector in centres]).flatten()
-	print(blue_clusters)
-
-	"Select light blue regions to extract epithelial cells"
+	"Select blue regions to extract epithelial cells"
 	epith_cell = np.zeros(image.shape)
-	for i in blue_clusters: epith_cell += segmented_image[i]
+	for i in light_blue_clusters: epith_cell += segmented_image[i]
 	epith_grey = rgb2grey(epith_cell)
-
-	plt.imshow(epith_cell)
-	plt.show()
-
 
 	"Dilate binary image to smooth regions and remove small holes / objects"
 	epith_cell_BW = np.where(epith_grey, True, False)
-	
-	plt.imshow(epith_cell_BW)
-	plt.show()
-
-	epith_cell_BW_open = binary_opening(epith_cell_BW, iterations=1)
-
-	plt.imshow(epith_cell_BW_open)
-	plt.show()	
+	epith_cell_BW_open = binary_opening(epith_cell_BW, iterations=2)
 
 	BWx = binary_fill_holes(epith_cell_BW_open)
-	BWy = remove_small_objects(~BWx, min_size=50)
+	BWy = remove_small_objects(~BWx, min_size=15)
 
 	"Return binary mask for cell identification"
-	mask_image = remove_small_objects(~BWy, min_size=50)
+	mask_image = remove_small_objects(~BWy, min_size=15)
+
+	"""
+	import matplotlib.pyplot as plt
+	for i in range(n_clusters):
+		plt.figure(i)
+		plt.imshow(np.array(segmented_image[i], dtype=int))
+	plt.show()
 
 	plt.imshow(mask_image)
 	plt.show()
-
+	"""
 	return mask_image
 
 
-def cell_segmentation(image_shg, image_pl, fibre_seg, scale=2, sigma=0.8, alpha=1.0, weight=0.5,
-			min_size=1250, edges=False):
-
-	"Imitate HE image by creating RGB composite of SHG and PL images"
-
-	fibre_binary = create_binary_image(fibre_seg, image_shg.shape)
-	fibre_filter = gaussian_filter(np.where(fibre_binary, weight, 1), 1)
-
-	channel_R = image_shg / fibre_filter
-	channel_G = image_pl
-	channel_B = abs(image_shg - image_pl)
-	channel_B = clip_intensities(channel_B) * fibre_filter
-	rgb_im = np.stack((channel_R, channel_G, channel_B), axis=-1)
+def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alpha=1.0,
+			min_size=750, edges=False):
 
 	"Return binary filter for cellular identification"
-	mask_image = BD_filter(rgb_im)
+	
+	image_scale_shg = rescale(image_shg, scale)
+	image_scale_pl = rescale(image_pl, scale)
+	image_scale_tran = rescale(image_tran, scale)
+
+	image_stack = np.stack((image_scale_shg, image_scale_pl, image_scale_tran), axis=-1)
+	mask_image = BD_filter(image_stack)
+	mask_image = resize(mask_image, image_shg.shape)
 
 	cells = []
 	areas = []
@@ -377,12 +338,10 @@ def network_extraction(image_shg, network_name='network', scale=1.25, sigma=0.5,
 	return sorted_networks, sorted_networks_red, sorted_fibres
 
 
-def fibre_segmentation(image_shg, networks, networks_red, area_threshold=200, iterations=5):
+def fibre_segmentation(image_shg, networks, networks_red, area_threshold=200, iterations=6):
 
 	n_net = len(networks)
 	fibres = []
-
-	import matplotlib.pyplot as plt
 
 	iterator = zip(np.arange(n_net), networks, networks_red)
 
@@ -394,7 +353,7 @@ def fibre_segmentation(image_shg, networks, networks_red, area_threshold=200, it
 
 		dilated_image = binary_dilation(label_image, iterations=iterations)
 		filled_image = remove_small_holes(dilated_image, area_threshold=area_threshold)
-		smoothed_image = gaussian_filter(filled_image, sigma=0.15)
+		smoothed_image = gaussian_filter(filled_image, sigma=0.5)
 		binary_image = np.where(smoothed_image, 1, 0)
 
 		segment = measure.regionprops(binary_image, intensity_image=image_shg)[0]

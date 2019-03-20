@@ -112,39 +112,39 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 	print(f"Loading images for {prefix}")
 
 	"Load and preprocess image"
-	image_shg, image_pl = load_shg_pl(input_file_names)
+	image_shg, image_pl, image_tran = load_shg_pl(input_file_names)
 	pl_analysis = ~np.any(image_pl == None)
+
 	"Pre-process image to remove noise"
 	image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
-	if pl_analysis: image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
+	if pl_analysis: 
+		image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
 	
-	if not np.any([ow_metric, ow_segment, ow_network]):
+	try:
+		networks = ut.load_region(data_dir + image_name + "_network")
+		networks_red = ut.load_region(data_dir + image_name + "_network_reduced")
+		fibres = ut.load_region(data_dir + image_name + "_fibre")
+	except IOError:
+		print("Cannot load networks for {}".format(image_name))
+		ow_network = True
 
-		try:
-			networks = ut.load_region(data_dir + image_name + "_network")
-			networks_red = ut.load_region(data_dir + image_name + "_network_reduced")
-			fibres = ut.load_region(data_dir + image_name + "_fibre")
-		except IOError:
-			print("Cannot load networks for {}".format(image_name))
-			ow_network = True
+	try:
+		fibre_seg = ut.load_region(data_dir + image_name + "_fibre_segment")
+		if pl_analysis: cell_seg = ut.load_region(data_dir + image_name + "_cell_segment")
+	except IOError:
+		print("Cannot load segments for {}".format(image_name))
+		ow_segment = True
+		ow_metric = True
+		ow_figure = True
 
-		try:
-			fibre_seg = ut.load_region(data_dir + image_name + "_fibre_segment")
-			if pl_analysis: cell_seg = ut.load_region(data_dir + image_name + "_cell_segment")
-		except IOError:
-			print("Cannot load segments for {}".format(image_name))
-			ow_segment = True
-			ow_metric = True
-			ow_figure = True
-
-		try: 
-			global_dataframe = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + image_name))
-			fibre_dataframe = pd.read_pickle('{}_fibre_metric.pkl'.format(data_dir + image_name))
-			if pl_analysis:
-				cell_dataframe = pd.read_pickle('{}_cell_metric.pkl'.format(data_dir + image_name))
-		except IOError:
-			print("Cannot load metrics for {}".format(image_name))
-			ow_metric = True
+	try: 
+		global_dataframe = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + image_name))
+		fibre_dataframe = pd.read_pickle('{}_fibre_metric.pkl'.format(data_dir + image_name))
+		if pl_analysis:
+			cell_dataframe = pd.read_pickle('{}_cell_metric.pkl'.format(data_dir + image_name))
+	except IOError:
+		print("Cannot load metrics for {}".format(image_name))
+		ow_metric = True
 
 	print(f"Overwrite options:\n ow_network = {ow_network}\n ow_segment = {ow_segment}\
 		\n ow_metric = {ow_metric}\n ow_figure = {ow_figure}")
@@ -185,7 +185,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 		ut.save_region(fibre_seg, '{}_fibre_segment'.format(filename))
 
 		if pl_analysis:
-			cell_seg  = seg.cell_segmentation(image_shg, image_pl, fibre_seg)
+			cell_seg  = seg.cell_segmentation(image_shg, image_pl, image_tran)
 			ut.save_region(cell_seg, '{}_cell_segment'.format(filename))
 
 		end_seg = time.time()
@@ -390,14 +390,16 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 		network_image = create_network_image(image_shg, networks)
 		fibre_image = create_network_image(image_shg, fibres, 1)
 		fibre_region_image = create_region_image(image_shg, fibre_seg)
-		cell_region_image = create_region_image(image_pl, cell_seg)
 
 		create_figure(image_shg, fig_dir + image_name)
 		create_figure(tensor_image, fig_dir + image_name + '_tensor')
 		create_figure(network_image, fig_dir + image_name + '_network')
 		create_figure(fibre_image, fig_dir + image_name + '_fibre')
 		create_figure(fibre_region_image, fig_dir + image_name + '_fibre_seg')
-		create_figure(cell_region_image, fig_dir + image_name + '_cell_seg')
+
+		if pl_analysis:
+			cell_region_image = create_region_image(image_pl, cell_seg)
+			create_figure(cell_region_image, fig_dir + image_name + '_cell_seg')
 
 		end_fig = time.time()
 

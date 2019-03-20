@@ -30,7 +30,7 @@ PyFibre is set by default to detect Tagged Image Format (tif) files. To load in 
 
 #### Automatic SHG and PL Image Detection
 
-If you have performed multiple imaging techniques on the same region, then PyFibre is able to take advantage of this to provide extra analysis. Currently both Second Harmonic Generation (SHG) and Phosporescne (PL) imaging techniques are supported. 
+If you have performed multiple imaging techniques on the same region, then PyFibre is able to take advantage of this to provide extra analysis. Currently both Second Harmonic Generation (SHG) and Photoluminescence (PL) imaging techniques are supported. 
 
 Loading images containing the keyword `SHG` or `PL` in the file path (see below) will allow PyFibre automatically match these up based on the `{prefix}`.
 

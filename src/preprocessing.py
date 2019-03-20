@@ -24,27 +24,33 @@ def import_image(image_name):
 
 	image_orig = ut.load_image(image_name)
 
+	print(image_orig.shape)
+
 	if image_orig.ndim > 2:
 
 		if image_orig.ndim == 4:
+
+			if image_orig.shape[0] == 2:
+
+				image = np.mean(image_orig[0], axis=-1)
+				image_tran = np.mean(image_orig[1], axis=-1)
 			
-			image_orig_shg = image_orig[0]
-			smallest_axis = np.argmin(image_orig_shg.shape)
+				image = image / image.max()
+				image_tran = image_tran / image_tran.max()
 
-			image_euclid = np.sqrt(np.sum(image_orig_shg**2, axis=smallest_axis))
-			image_mean = np.mean(image_orig_shg, axis=smallest_axis)
-			image_shg = np.sqrt(image_mean * image_euclid)
+				return image, image_tran
 
-			image_orig_pl = image_orig[1]
+			elif image_orig.shape[0] == 3:
+	
+				image_shg = np.mean(image_orig[0],  axis=-1)
+				image_pl = np.mean(image_orig[1],  axis=-1)
+				image_tran = np.mean(image_orig[2],  axis=-1)
+			
+				image_shg = image_shg / image_shg.max()
+				image_pl = image_pl / image_pl.max()
+				image_tran = image_tran / image_tran.max()
 
-			image_euclid = np.sqrt(np.sum(image_orig_pl**2, axis=smallest_axis))
-			image_mean = np.mean(image_orig_pl, axis=smallest_axis)
-			image_pl = np.sqrt(image_mean * image_euclid)
-
-			image_shg = image_shg / image_shg.max()
-			image_pl = image_pl / image_pl.max()
-
-			return image_shg, image_pl
+				return image_shg, image_pl, image_tran
 
 		else:
 			smallest_axis = np.argmin(image_orig.shape)
@@ -53,7 +59,7 @@ def import_image(image_name):
 			image_mean = np.mean(image_orig, axis=smallest_axis)
 			image_mix = np.sqrt(image_mean * image_euclid)
 
-			image = image_mix / image_mix.max()
+			image = image_mean / image_mix.max()
 
 			return image
 
@@ -65,15 +71,18 @@ def import_image(image_name):
 def load_shg_pl(input_file_names):
 	"Load in SHG and PL files from file name tuple"
 
-	images = [None, None]
+	image_stack = [None, None, None]
 
 	for filename in input_file_names:
 		if '-pl-shg' in filename.lower():
-			images[0], images[1] = import_image(filename)
-		elif '-shg' in filename.lower(): images[0] = import_image(filename)
-		elif '-pl' in filename.lower(): images[1] = import_image(filename)
+			image_stack[0], image_stack[1], image_stack[2] = import_image(filename)
+		elif '-shg' in filename.lower(): 
+			image_stack[0] = import_image(filename)
+		elif '-pl' in filename.lower(): 
+			image_stack[1] = import_image(filename)[0]
+			image_stack[2] = import_image(filename)[1]
 
-	return images
+	return image_stack
 
 
 def clip_intensities(image, p_intensity=(1, 98)):
