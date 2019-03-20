@@ -340,12 +340,12 @@ def get_image_lists(input_files):
 		if prefix not in shg_pl_prefixes:
 			indices = [j for j, pl_prefix in enumerate(pl_prefixes) if prefix in pl_prefix]
 
-			if len(indices) > 0:
-				shg_pl_files += [(shg_files[i][0], pl_files[indices[0]][0])]
-				shg_pl_prefixes += [prefix]
-			#if len(indices) > 0: shg_pl_files += [(shg_files[i][0], pl_files[indices[0]][0])]
-			#else: shg_pl_files += [(shg_files[i][0],)]
-			#shg_pl_prefixes += [prefix]
+			#if len(indices) > 0:
+			#	shg_pl_files += [(shg_files[i][0], pl_files[indices[0]][0])]
+			#	shg_pl_prefixes += [prefix]
+			if len(indices) > 0: shg_pl_files += [(shg_files[i][0], pl_files[indices[0]][0])]
+			else: shg_pl_files += [(shg_files[i][0],)]
+			shg_pl_prefixes += [prefix]
 
 
 	return shg_pl_files, shg_pl_prefixes
