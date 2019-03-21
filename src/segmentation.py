@@ -68,7 +68,7 @@ def find_holes(image, sigma=0.8, alpha=1.0, min_size=1250, iterations=2):
 	return image_hole
 
 
-def BD_filter(image, n_runs=50, n_clusters=7, p_intensity=(2, 98), sm_size=7):
+def BD_filter(image, n_runs=75, n_clusters=7, p_intensity=(2, 98), sm_size=7):
 	"Adapted from CurveAlign BDcreationHE routine"
 
 	assert image.ndim == 3
@@ -126,7 +126,7 @@ def BD_filter(image, n_runs=50, n_clusters=7, p_intensity=(2, 98), sm_size=7):
 	B channel (index 2) and average normalised channel intensities below 0.92"""
 	blue_clusters = np.array([vector.argmax() == 2 for vector in norm_centres], dtype=bool)
 	blue_clusters *= np.array([vector[2] >= 0.85 for vector in norm_intensities], dtype=bool)
-	light_clusters = np.array([vector[2] >= 0.95 for vector in norm_intensities], dtype=bool)
+	light_clusters = np.array([vector[2] >= 0.94 for vector in norm_intensities], dtype=bool)
 	light_blue_clusters = np.argwhere(blue_clusters + light_clusters).flatten()
 
 	"Select blue regions to extract epithelial cells"

@@ -325,7 +325,7 @@ def get_files_prefixes(file_list, label):
 	return files, prefixes
 
     
-def get_image_lists(input_files, include_shg=True):
+def get_image_lists(input_files, include_shg=False):
 	"Automatically find all combined PL-SHG files or match up individual images if seperate"
 
 	shg_pl_files, shg_pl_prefixes = get_files_prefixes(input_files, '-pl-shg')
