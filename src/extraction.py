@@ -107,13 +107,13 @@ def cos_sin_theta_2D(vector, r_vector):
 	    Product of radial distance between each pair of displacement vectors
 	"""
 
-	n_vector = int(vector.shape[0])
+	n_vector = vector.shape[0]
 	n_dim = vector.shape[1]
 
-	temp_vector = np.reshape(vector, (int(n_vector/2), 2, n_dim))
+	temp_vector = np.reshape(vector, (n_vector // 2, 2, n_dim))
 
 	"Calculate |rij||rjk| product for each pair of vectors"
-	r_prod = np.prod(np.reshape(r_vector, (int(n_vector/2), 2)), axis = 1)
+	r_prod = np.prod(np.reshape(r_vector, (n_vector // 2, 2)), axis = 1)
 
 	"Form dot product of each vector pair rij*rjk in vector array corresponding to an angle"
 	dot_prod = np.sum(np.prod(temp_vector, axis=1), axis=1)
@@ -125,17 +125,18 @@ def cos_sin_theta_2D(vector, r_vector):
 
 
 def new_branches(image, coord, ring_filter, max_thresh=0.2):
+	"Find local maxima in image within max_thresh of coord, exlcuding pixels in ring filter"
 
-        filtered = image * ring_filter
-        branch_coord = np.argwhere(local_maxima(filtered) * image >= max_thresh)
-        branch_coord = reduce_coord(branch_coord, 
-				    image[branch_coord[:,0], branch_coord[:,1]])
-        
-        n_branch = branch_coord.shape[0]
-        branch_vector = np.tile(coord, (n_branch, 1)) - branch_coord
-        branch_r = np.sqrt(np.sum(branch_vector**2, axis=1))
-        
-        return branch_coord, branch_vector, branch_r
+	filtered = image * ring_filter
+	branch_coord = np.argwhere(local_maxima(filtered) * image >= max_thresh)
+	branch_coord = reduce_coord(branch_coord, 
+			    image[branch_coord[:,0], branch_coord[:,1]])
+
+	n_branch = branch_coord.shape[0]
+	branch_vector = np.tile(coord, (n_branch, 1)) - branch_coord
+	branch_r = np.sqrt(np.sum(branch_vector**2, axis=1))
+
+	return branch_coord, branch_vector, branch_r
 
 
 def branch_angles(direction, branch_vector, branch_r):

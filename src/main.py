@@ -391,7 +391,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 		fibre_image = create_network_image(image_shg, fibres, 1)
 		fibre_region_image = create_region_image(image_shg, fibre_seg)
 
-		create_figure(image_shg, fig_dir + image_name)
+		create_figure(image_shg, fig_dir + image_name + '_SHG')
 		create_figure(tensor_image, fig_dir + image_name + '_tensor')
 		create_figure(network_image, fig_dir + image_name + '_network')
 		create_figure(fibre_image, fig_dir + image_name + '_fibre')
@@ -400,6 +400,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 		if pl_analysis:
 			cell_seg = ut.load_region(data_dir + image_name + "_cell_segment")
 			cell_region_image = create_region_image(image_pl, cell_seg)
+			create_figure(image_pl, fig_dir + image_name + '_PL')
 			create_figure(cell_region_image, fig_dir + image_name + '_cell_seg')
 
 		end_fig = time.time()

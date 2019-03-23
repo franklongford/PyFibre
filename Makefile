@@ -39,7 +39,7 @@ test:
 	@echo
 	@echo "Running unit tests"
 	@echo
-	@pytest tests/ -v -l
+	@pytest tests/test* -v -l
 
 
 uninstall:

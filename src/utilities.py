@@ -41,13 +41,16 @@ def logo():
 	logo_text += "  | | |          __/                            |_|_|" + '\n'
 	logo_text += "  |_|_|                                         |_|_|" + '\n'
 	logo_text += " /_____\\" + ' ' * 16 + "/_____\\"  + ' ' * 16 + "/_____\\"  + '\n'
-	logo_text += "|_______|" + '_' * 14 + "|_______|" + '_' * 14 + "|_______|" + '  v1.2' + '\n'
+	logo_text += "|_______|" + '_' * 14 + "|_______|" + '_' * 14 + "|_______|" + '  v1.2.3a' + '\n'
 	logo_text += "\n              Fibrous Tissue Image Toolkit\n"
 
 	return logo_text
 
 
 def check_string(string, pos, sep, word):
+	"""Checks index 'pos' of 'string' seperated by 'sep' for substring 'word'
+	If present, removes 'word' and returns amended string
+	"""
 
 	if sep in string: 
 		temp_string = string.split(sep)
@@ -61,7 +64,8 @@ def check_file_name(file_name, file_type="", extension=""):
 	"""
 	check_file_name(file_name, file_type="", extension="")
 	
-	Checks file_name for file_type or extension
+	Checks file_name for file_type or extension. If present, returns
+	amended file_name without extension or file_type
 
 	"""
 
@@ -325,7 +329,7 @@ def get_files_prefixes(file_list, label):
 	return files, prefixes
 
     
-def get_image_lists(input_files, include_shg=False):
+def get_image_lists(input_files, include_shg=True):
 	"Automatically find all combined PL-SHG files or match up individual images if seperate"
 
 	shg_pl_files, shg_pl_prefixes = get_files_prefixes(input_files, '-pl-shg')
