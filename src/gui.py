@@ -142,8 +142,7 @@ class pyfibre_gui:
 
 		frame.delete_im_button = Button(frame, width=12,
 				   text="Delete",
-				   command=lambda : self.del_images([self.file_display.file_box.get(idx)\
-							 for idx in self.file_display.file_box.curselection()]))
+				   command=lambda : self.del_images(self.file_display.tree.selection()))
 		frame.delete_im_button.grid(column=4, row=0)
 
 		frame.tree = ttk.Treeview(frame, columns=('shg', 'pl'))
@@ -225,7 +224,7 @@ class pyfibre_gui:
 			index = self.input_prefixes.index(filename)
 			self.input_files.remove(self.input_files[index])
 			self.input_prefixes.remove(filename)
-			self.file_display.file_box.delete(index)
+			self.file_display.tree.delete(filename)
 			self.update_log("Removing {}".format(filename))
 
 
