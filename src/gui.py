@@ -70,7 +70,7 @@ class pyfibre_gui:
 
 		"Define GUI objects"
 		self.master = master
-		self.master.geometry("600x720")
+		self.master.geometry("700x720")
 		self.master.configure(background='#d8baa9')
 		self.master.protocol("WM_DELETE_WINDOW", lambda: quit())
 
@@ -88,7 +88,7 @@ class pyfibre_gui:
 
 		self.file_display = Frame(self.master)
 		self.create_file_display(self.file_display)
-		self.file_display.place(x=5, y=220, height=600, width=1000)
+		self.file_display.place(x=5, y=220, height=600, width=1200)
 
 		self.image_display = Frame(self.master)
 		self.image_display.configure(background='#d8baa9')
@@ -192,19 +192,6 @@ class pyfibre_gui:
 
 		frame.configure(background='#d8baa9')
 
-
-	def OnVsb(self, *args):
-		self.file_display.file_box.yview(*args)
-		self.file_display.check_box_shg.yview(*args)
-		self.file_display.check_box_shg.yview(*args)
-
-	def OnMouseWheel(self, event):
-		self.file_display.file_box.yview("scroll", event.delta,"units")
-		self.file_display.check_box_shg.yview("scroll", event.delta,"units")
-		self.file_display.check_box_pl.yview("scroll", event.delta,"units")
-		# this prevents default bindings from firing, which
-		# would end up scrolling the widget twice
-		return "break"
 
 	def create_file_display(self, frame):
 
@@ -669,7 +656,7 @@ class pyfibre_viewer:
 		image_tk = ImageTk.PhotoImage(image_pil)
 
 		self.display_image(canvas, image_tk)
-
+		canvas.create_window()
 
 	def update_log(self, text):
 
@@ -681,8 +668,7 @@ class pyfibre_viewer:
 
 	def display_notebook(self):
 
-		selected_file = [self.parent.file_display.file_box.get(idx)\
-					for idx in self.parent.file_display.file_box.curselection()][0]
+		selected_file = self.parent.file_display.tree.selection()[0]
 
 		image_name = selected_file.split('/')[-1]
 		image_path = '/'.join(selected_file.split('/')[:-1])
