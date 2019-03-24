@@ -78,25 +78,23 @@ class pyfibre_gui:
 		self.create_title(self.title)
 		self.title.place(bordermode=OUTSIDE, height=200, width=300)
 
-		self.options = Frame(self.master)
-		self.options.configure(background='#d8baa9')
-		self.options.options_button = Button(self.options, width=15,
+		self.toggle = Frame(self.master)
+		self.toggle.configure(background='#d8baa9')
+		self.toggle.options_button = Button(self.toggle, width=15,
 				   text="Options",
 				   command=self.create_options)
-		self.options.options_button.pack()
-		self.options.place(x=300, y=10, height=50, width=250)
+		self.toggle.options_button.pack()
+
+		self.toggle.configure(background='#d8baa9')
+		self.toggle.display_button = Button(self.toggle, width=15,
+				   text="Viewer",
+				   command=self.create_image_display)
+		self.toggle.display_button.pack()
+		self.toggle.place(x=300, y=10, height=50, width=250)
 
 		self.file_display = Frame(self.master)
 		self.create_file_display(self.file_display)
 		self.file_display.place(x=5, y=220, height=600, width=1200)
-
-		self.image_display = Frame(self.master)
-		self.image_display.configure(background='#d8baa9')
-		self.image_display.display_button = Button(self.image_display, width=15,
-				   text="Viewer",
-				   command=self.create_image_display)
-		self.image_display.display_button.pack()
-		self.image_display.place(x=300, y=50, height=50, width=250)
 
 
 	def create_title(self, frame):
@@ -115,82 +113,9 @@ class pyfibre_gui:
 
 	def create_options(self):
 
-		"Initialise option parameters"
-		frame = Toplevel(self.master)
-		frame.tk.call('wm', 'iconphoto', frame._w, self.title.image)
-		frame.title('PyFibre - Options')
-		frame.geometry('310x620-100+40')
-
-		frame.title_sigma = Label(frame, text="Gaussian Std Dev (pix)")
-		frame.title_sigma.configure(background='#d8baa9')
-		frame.sigma = Scale(frame, from_=0, to=10, tickinterval=1, resolution=0.1, 
-				length=300, orient=HORIZONTAL, variable=self.sigma)
-
-		frame.title_sigma.grid(column=0, row=2, rowspan=1)
-		frame.sigma.grid(column=0, row=3, sticky=(N,W,E,S))
-
-		frame.title_p0 = Label(frame, text="Low Clip Intensity (%)")
-		frame.title_p0.configure(background='#d8baa9')
-		frame.p0 = Scale(frame, from_=0, to=100, tickinterval=10, 
-				length=300, orient=HORIZONTAL, variable=self.p0)
-
-		frame.title_p1 = Label(frame, text="High Clip Intensity (%)")
-		frame.title_p1.configure(background='#d8baa9')
-		frame.p1 = Scale(frame, from_=0, to=100,tickinterval=10, 
-				length=300, orient=HORIZONTAL, variable=self.p1)
-
-		frame.title_p0.grid(column=0, row=4, rowspan=1)
-		frame.p0.grid(column=0, row=5)
-		frame.title_p1.grid(column=0, row=6, rowspan=1)
-		frame.p1.grid(column=0, row=7)
-
-		frame.title_n = Label(frame, text="NL-Mean Neighbourhood 1 (pix)")
-		frame.title_n.configure(background='#d8baa9')
-		frame.n = Scale(frame, from_=0, to=100, tickinterval=10, 
-				length=300, orient=HORIZONTAL, variable=self.n)
-		frame.title_m = Label(frame, text="NL-Mean Neighbourhood 2 (pix)")
-		frame.title_m.configure(background='#d8baa9')
-		frame.m = Scale(frame, from_=0, to=100,tickinterval=10,
-				length=300, orient=HORIZONTAL, variable=self.m)
-
-		frame.title_n.grid(column=0, row=8, rowspan=1)
-		frame.n.grid(column=0, row=9)
-		frame.title_m.grid(column=0, row=10, rowspan=1)
-		frame.m.grid(column=0, row=11)
-
-		frame.title_alpha = Label(frame, text="Alpha network coefficient")
-		frame.title_alpha.configure(background='#d8baa9')
-		frame.alpha = Scale(frame, from_=0, to=1, tickinterval=0.1, resolution=0.01,
-						length=300, orient=HORIZONTAL, variable=self.alpha)
-
-		frame.title_alpha.grid(column=0, row=12, rowspan=1)
-		frame.alpha.grid(column=0, row=13)
-
-		frame.chk_metric = Checkbutton(frame, text="o/w metrics", variable=self.ow_metric)
-		frame.chk_metric.configure(background='#d8baa9')
-		frame.chk_metric.grid(column=0, row=14, sticky=(N,W,E,S))
-		#frame.chk_anis.pack(side=LEFT)
-
-		frame.chk_segment = Checkbutton(frame, text="o/w segment", variable=self.ow_segment)
-		frame.chk_segment.configure(background='#d8baa9')
-		frame.chk_segment.grid(column=0, row=15, sticky=(N,W,E,S))
-		#frame.chk_graph.pack(side=LEFT)
-
-		frame.chk_network = Checkbutton(frame, text="o/w network", variable=self.ow_network)
-		frame.chk_network.configure(background='#d8baa9')
-		frame.chk_network.grid(column=0, row=16, sticky=(N,W,E,S))
-		#frame.chk_graph.pack(side=LEFT)
-	
-		frame.chk_figure = Checkbutton(frame, text="o/w figure", variable=self.ow_figure)
-		frame.chk_figure.configure(background='#d8baa9')
-		frame.chk_figure.grid(column=0, row=17, sticky=(N,W,E,S))
-		#frame.chk_graph.pack(side=LEFT)
-
-		frame.chk_db = Checkbutton(frame, text="Save Database", variable=self.save_db)
-		frame.chk_db.configure(background='#d8baa9')
-		frame.chk_db.grid(column=0, row=18, sticky=(N,W,E,S))
-
-		frame.configure(background='#d8baa9')
+		try: self.options.window.lift()
+		except AttributeError: 
+			self.options = pyfibre_options(self)
 
 
 	def create_file_display(self, frame):
@@ -306,8 +231,10 @@ class pyfibre_gui:
 
 	def create_image_display(self):
 
-		self.viewer = pyfibre_viewer(self)
-		self.master.bind('<Double-1>', lambda e: self.viewer.display_notebook())
+		try: self.viewer.window.lift()
+		except AttributeError:
+			self.viewer = pyfibre_viewer(self)
+			self.master.bind('<Double-1>', lambda e: self.viewer.display_notebook())
 		
 
 	def generate_db(self):
@@ -465,18 +392,112 @@ def image_analysis(input_files, input_prefixes, p_intensity, p_denoise, sigma, a
 		except Exception as err: queue.put("{} {}".format(err.message, prefix))
 
 
+class pyfibre_options:
+
+	def __init__(self, parent, width=320, height=620):
+
+		self.parent = parent
+		self.width = width
+		self.height = height
+
+		"Initialise option parameters"
+		self.window = Toplevel(self.parent.master)
+		self.window.tk.call('wm', 'iconphoto', self.window._w, self.parent.title.image)
+		self.window.title('PyFibre - Options')
+		self.window.geometry(f"{width}x{height}-100+40")
+
+		self.frame = Frame(self.window)
+		self.create_options()
+
+	def create_options(self):
+
+		self.title_sigma = Label(self.frame, text="Gaussian Std Dev (pix)")
+		self.title_sigma.configure(background='#d8baa9')
+		self.sigma = Scale(self.frame, from_=0, to=10, tickinterval=1, resolution=0.1, 
+				length=300, orient=HORIZONTAL, variable=self.parent.sigma)
+
+		self.title_sigma.grid(column=0, row=2, rowspan=1)
+		self.sigma.grid(column=0, row=3, sticky=(N,W,E,S))
+
+		self.title_p0 = Label(self.frame, text="Low Clip Intensity (%)")
+		self.title_p0.configure(background='#d8baa9')
+		self.p0 = Scale(self.frame, from_=0, to=100, tickinterval=10, 
+				length=300, orient=HORIZONTAL, variable=self.parent.p0)
+
+		self.title_p1 = Label(self.frame, text="High Clip Intensity (%)")
+		self.title_p1.configure(background='#d8baa9')
+		self.p1 = Scale(self.frame, from_=0, to=100,tickinterval=10, 
+				length=300, orient=HORIZONTAL, variable=self.parent.p1)
+
+		self.title_p0.grid(column=0, row=4, rowspan=1)
+		self.p0.grid(column=0, row=5)
+		self.title_p1.grid(column=0, row=6, rowspan=1)
+		self.p1.grid(column=0, row=7)
+
+		self.title_n = Label(self.frame, text="NL-Mean Neighbourhood 1 (pix)")
+		self.title_n.configure(background='#d8baa9')
+		self.n = Scale(self.frame, from_=0, to=100, tickinterval=10, 
+				length=300, orient=HORIZONTAL, variable=self.parent.n)
+
+		self.title_m = Label(self.frame, text="NL-Mean Neighbourhood 2 (pix)")
+		self.title_m.configure(background='#d8baa9')
+		self.m = Scale(self.frame, from_=0, to=100,tickinterval=10,
+				length=300, orient=HORIZONTAL, variable=self.parent.m)
+
+		self.title_n.grid(column=0, row=8, rowspan=1)
+		self.n.grid(column=0, row=9)
+		self.title_m.grid(column=0, row=10, rowspan=1)
+		self.m.grid(column=0, row=11)
+
+		self.title_alpha = Label(self.frame, text="Alpha network coefficient")
+		self.title_alpha.configure(background='#d8baa9')
+		self.alpha = Scale(self.frame, from_=0, to=1, tickinterval=0.1, resolution=0.01,
+						length=300, orient=HORIZONTAL, variable=self.parent.alpha)
+
+		self.title_alpha.grid(column=0, row=12, rowspan=1)
+		self.alpha.grid(column=0, row=13)
+
+		self.chk_metric = Checkbutton(self.frame, text="o/w metrics", variable=self.parent.ow_metric)
+		self.chk_metric.configure(background='#d8baa9')
+		self.chk_metric.grid(column=0, row=14, sticky=(N,W,E,S))
+
+		self.chk_segment = Checkbutton(self.frame, text="o/w segment", variable=self.parent.ow_segment)
+		self.chk_segment.configure(background='#d8baa9')
+		self.chk_segment.grid(column=0, row=15, sticky=(N,W,E,S))
+
+		self.chk_network = Checkbutton(self.frame, text="o/w network", variable=self.parent.ow_network)
+		self.chk_network.configure(background='#d8baa9')
+		self.chk_network.grid(column=0, row=16, sticky=(N,W,E,S))
+
+		self.chk_figure = Checkbutton(self.frame, text="o/w figure", variable=self.parent.ow_figure)
+		self.chk_figure.configure(background='#d8baa9')
+		self.chk_figure.grid(column=0, row=17, sticky=(N,W,E,S))
+
+		self.chk_db = Checkbutton(self.frame, text="Save Database", variable=self.parent.save_db)
+		self.chk_db.configure(background='#d8baa9')
+		self.chk_db.grid(column=0, row=18, sticky=(N,W,E,S))
+
+		self.frame.configure(background='#d8baa9')
+		self.frame.pack()
+
+
 class pyfibre_viewer:
 
 	def __init__(self, parent, width=750, height=650):
 
 		self.parent = parent
+		self.width = width
+		self.height = height
 
-		self.frame = Toplevel(self.parent.master)
-		self.frame.tk.call('wm', 'iconphoto', self.frame._w, self.parent.title.image)
-		self.frame.title('PyFibre - Viewer')
-		self.frame.geometry(f"{width}x{height}-100+40")
+		self.window = Toplevel(self.parent.master)
+		self.window.tk.call('wm', 'iconphoto', self.window._w, self.parent.title.image)
+		self.window.title('PyFibre - Viewer')
+		self.window.geometry(f"{width}x{height}-100+40")
 
-		self.notebook = ttk.Notebook(self.frame)
+		self.notebook = ttk.Notebook(self.window)
+		self.create_tabs()
+
+	def create_tabs(self):
 
 		self.shg_image_tab = ttk.Frame(self.notebook)
 		self.pl_image_tab = ttk.Frame(self.notebook)
@@ -497,8 +518,8 @@ class pyfibre_viewer:
 		
 		for key, tab in self.tab_dict.items():
 			self.notebook.add(tab, text=key)
-			tab.canvas = Canvas(tab, width=width, height=height,
-									scrollregion=(0,0,675,700))  
+			tab.canvas = Canvas(tab, width=self.width, height=self.height,
+									scrollregion=(0,0,self.height + 50 ,self.width + 50))  
 			tab.scrollbar = Scrollbar(tab, orient=VERTICAL, 
 								command=tab.canvas.yview)
 			tab.scrollbar.pack(side=RIGHT,fill=Y)
@@ -570,13 +591,13 @@ class pyfibre_viewer:
 		self.metric_tab.metrics = []
 
 		self.metric_tab.texture = ttk.Labelframe(self.metric_tab, text="Texture",
-						width=width-50, height=height-50)
+						width=self.width-50, height=self.height-50)
 		self.metric_tab.content = ttk.Labelframe(self.metric_tab, text="Content",
-						width=width-50, height=height-50)
+						width=self.width-50, height=self.height-50)
 		self.metric_tab.shape = ttk.Labelframe(self.metric_tab, text="Shape",
-						width=width-50, height=height-50)
+						width=self.width-50, height=self.height-50)
 		self.metric_tab.network = ttk.Labelframe(self.metric_tab, text="Network",
-						width=width-50, height=height-50)
+						width=self.width-50, height=self.height-50)
 		
 		self.metric_tab.frame_dict = {"texture" : {'tab' : self.metric_tab.texture, "count" : 0},
 									  "content" : {'tab' : self.metric_tab.content, "count" : 0},
@@ -606,7 +627,7 @@ class pyfibre_viewer:
 		
 		self.log_tab = ttk.Frame(self.notebook)
 		self.notebook.add(self.log_tab, text='Log')
-		self.log_tab.text = Text(self.log_tab, width=675, height=650)
+		self.log_tab.text = Text(self.log_tab, width=self.width-25, height=self.height-25)
 		self.log_tab.text.insert(END, self.parent.Log)
 		self.log_tab.text.config(state=DISABLED)
 
@@ -621,11 +642,11 @@ class pyfibre_viewer:
 		#frame.notebook.BFrame.configure(background='#d8baa9')
 
 
-	def display_image(self, canvas, image):
+	def display_image(self, canvas, image, x=40, y=20):
 
 		canvas.delete('all')
 
-		canvas.create_image(40, 20, image=image, anchor=NW)
+		canvas.create_image(x, y, image=image, anchor=NW)
 		canvas.image = image
 		canvas.pack(side = LEFT, fill = "both", expand = "yes")
 
@@ -636,7 +657,8 @@ class pyfibre_viewer:
 
 		tensor_image = create_tensor_image(image) * 255.999
 
-		image_tk = ImageTk.PhotoImage(Image.fromarray(tensor_image.astype('uint8')))
+		image_pil = Image.fromarray(tensor_image.astype('uint8'))
+		image_tk = ImageTk.PhotoImage(image_pil)
 		self.display_image(canvas, image_tk)
 
 
@@ -656,7 +678,7 @@ class pyfibre_viewer:
 		image_tk = ImageTk.PhotoImage(image_pil)
 
 		self.display_image(canvas, image_tk)
-		canvas.create_window()
+
 
 	def update_log(self, text):
 
@@ -710,23 +732,23 @@ class pyfibre_viewer:
 			fibres = ut.load_region(data_dir + fig_name + "_fibre")
 			fibres = ut.flatten_list(fibres)
 			self.display_network(self.fibre_tab.canvas, self.image_shg, fibres, 1)
-			self.update_log("Displaying segments for {}".format(fig_name))
+			self.update_log("Displaying fibres for {}".format(fig_name))
 		except IOError:
-			self.update_log("Unable to display segments for {}".format(fig_name))
+			self.update_log("Unable to display fibres for {}".format(fig_name))
 
 		try:
 			segments = ut.load_region(data_dir + fig_name + "_fibre_segment")
 			self.display_regions(self.segment_tab.canvas, self.image_shg, segments)
-			self.update_log("Displaying segments for {}".format(fig_name))
+			self.update_log("Displaying fibre segments for {}".format(fig_name))
 		except IOError:
-			self.update_log("Unable to display segments for {}".format(fig_name))
+			self.update_log("Unable to display fibre segments for {}".format(fig_name))
 		
 		try:	
-			holes = ut.load_region(data_dir + fig_name + "_cell_segment")
-			self.display_regions(self.cell_tab.canvas, self.image_pl, holes)
-			self.update_log("Displaying holes for {}".format(fig_name))
+			cells = ut.load_region(data_dir + fig_name + "_cell_segment")
+			self.display_regions(self.cell_tab.canvas, self.image_pl, cells)
+			self.update_log("Displaying cell segments for {}".format(fig_name))
 		except IOError:
-			self.update_log("Unable to display holes for {}".format(fig_name))
+			self.update_log("Unable to display cell segments for {}".format(fig_name))
 
 		try:
 			loaded_metrics = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + fig_name)).iloc[0]

@@ -344,13 +344,13 @@ def get_image_lists(input_files, include_shg=True):
 		if prefix not in shg_pl_prefixes:
 			indices = [j for j, pl_prefix in enumerate(pl_prefixes) if prefix in pl_prefix]
 
-			if include_shg:
-				if len(indices) > 0: shg_pl_files += [(shg_files[i][0], pl_files[indices[0]][0])]
-				else: shg_pl_files += [(shg_files[i][0],)]
-				shg_pl_prefixes += [prefix]
-			else:
-				if len(indices) > 0:
+			if len(indices) > 0:
+				pl_check = (load_image(pl_files[indices[0]][0]).shape[0] == 2)
+				if pl_check:
 					shg_pl_files += [(shg_files[i][0], pl_files[indices[0]][0])]
+					shg_pl_prefixes += [prefix]
+				elif include_shg:
+					shg_pl_files += [(shg_files[i][0],)]
 					shg_pl_prefixes += [prefix]
 
 

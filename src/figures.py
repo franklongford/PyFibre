@@ -14,7 +14,10 @@ import scipy as sp
 import networkx as nx
 
 from skimage import draw
+from skimage.transform import rotate
 from skimage.color import label2rgb, grey2rgb, rgb2grey, rgb2hsv, hsv2rgb
+
+from scipy.ndimage.filters import gaussian_filter
 
 import utilities as ut
 from filters import form_structure_tensor
@@ -46,7 +49,7 @@ def set_HSB(image, hue, saturation=1, brightness=1):
 	return hsv2rgb(hsv)
 
 
-def create_tensor_image(image):
+def create_tensor_image(image, N=120):
 
 	"Form nematic and structure tensors for each pixel"
 	j_tensor = form_structure_tensor(image, sigma=1.0)
@@ -57,6 +60,26 @@ def create_tensor_image(image):
 	hue = (pix_j_angle + 90) / 180
 	saturation = pix_j_anis / pix_j_anis.max()
 	brightness = image / image.max()
+
+	"Make circular test image"
+	image_grid = np.mgrid[:N, :N]
+	for i in range(2): 
+		image_grid[i] -= N * np.array(2 * image_grid[i] / N, dtype=int)
+		image_grid[i] = np.fft.fftshift(image_grid[i])
+
+	image_radius = np.sqrt(np.sum(image_grid**2, axis=0))
+	image_rings = np.sin(4 * np.pi * image_radius / N ) * np.cos(4 * np.pi * image_radius / N)
+
+	j_tensor = form_structure_tensor(image_rings, sigma=1.0)
+	pix_j_anis, pix_j_angle, pix_j_energy = tensor_analysis(j_tensor)
+
+	pix_j_angle = rotate(pix_j_angle, 90)[ : N // 2  ]
+	pix_j_anis = pix_j_anis[ : N // 2 ]
+	pix_j_energy = np.where(image_radius < (N / 2), pix_j_energy, 0)[ : N // 2 ]
+
+	hue[- N // 2 : image.shape[0], : N] = (pix_j_angle + 90) / 180
+	saturation[- N // 2 : image.shape[0], : N] = pix_j_anis / pix_j_anis.max()
+	brightness[- N // 2 : image.shape[0], : N] = pix_j_energy / pix_j_energy.max()
 
 	"Form structure tensor image"
 	rgb_image = set_HSB(image, hue, saturation, brightness)
