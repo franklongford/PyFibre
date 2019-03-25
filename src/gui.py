@@ -511,8 +511,8 @@ class pyfibre_viewer:
 						 'PL Image'  : self.pl_image_tab,
 						 'Tensor Image': self.tensor_tab,
 						 'Network' : self.network_tab,
-						 'Network Segment' : self.segment_tab,
 						 'Fibre' :  self.fibre_tab,
+						 'Fibre Segment' : self.segment_tab,
 						 'Cell Segment' : self.cell_tab}
 		
 		for key, tab in self.tab_dict.items():

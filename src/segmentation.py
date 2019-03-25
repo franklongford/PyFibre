@@ -27,7 +27,7 @@ from skimage.feature import greycomatrix
 from skimage.morphology import remove_small_objects, remove_small_holes, dilation
 from skimage.color import grey2rgb, rgb2grey
 from skimage.filters import threshold_otsu, threshold_mean
-from skimage.exposure import rescale_intensity, equalize_hist
+from skimage.exposure import rescale_intensity, equalize_hist, equalize_adapthist
 
 from sklearn.cluster import MiniBatchKMeans
 
@@ -68,7 +68,7 @@ def find_holes(image, sigma=0.8, alpha=1.0, min_size=1250, iterations=2):
 	return image_hole
 
 
-def BD_filter(image, n_runs=75, n_clusters=7, p_intensity=(2, 98), sm_size=7):
+def BD_filter(image, n_runs=100, n_clusters=10, p_intensity=(2, 98), sm_size=7):
 	"Adapted from CurveAlign BDcreationHE routine"
 
 	assert image.ndim == 3
@@ -117,6 +117,7 @@ def BD_filter(image, n_runs=75, n_clusters=7, p_intensity=(2, 98), sm_size=7):
 		mean_intensity_vec[i] /= np.where(segmented_image[i], 1, 0).sum(axis=(0, 1))
 
 	magnitudes = np.sqrt(np.sum(centres**2, axis=-1))
+	mean_centres = centres.mean(axis=-1)
 	norm_centres = centres / np.repeat(magnitudes, image_channels).reshape(centres.shape)
 
 	magnitudes = np.sqrt(np.sum(mean_intensity_vec**2, axis=-1))
@@ -124,14 +125,14 @@ def BD_filter(image, n_runs=75, n_clusters=7, p_intensity=(2, 98), sm_size=7):
 
 	"""Light blue clusters classed as where kmeans centres have highest value in 
 	B channel (index 2) and average normalised channel intensities below 0.92"""
-	blue_clusters = np.array([vector.argmax() == 2 for vector in norm_centres], dtype=bool)
-	blue_clusters *= np.array([vector[2] >= 0.85 for vector in norm_intensities], dtype=bool)
-	light_clusters = np.array([vector[2] >= 0.94 for vector in norm_intensities], dtype=bool)
-	light_blue_clusters = np.argwhere(blue_clusters + light_clusters).flatten()
+	green_blue_clusters = np.array([vector.argmax() == 2 for vector in norm_centres], dtype=bool)
+	green_blue_clusters += np.array([vector[2] >= 0.75 for vector in norm_intensities], dtype=bool)
+	dark_clusters = np.array([vector <= 120 for vector in 0.5 * (mean_centres + mean_intensity)], dtype=bool)
+	chosen_clusters = np.argwhere(green_blue_clusters * dark_clusters).flatten()
 
 	"Select blue regions to extract epithelial cells"
 	epith_cell = np.zeros(image.shape)
-	for i in light_blue_clusters: epith_cell += segmented_image[i]
+	for i in chosen_clusters: epith_cell += segmented_image[i]
 	epith_grey = rgb2grey(epith_cell)
 
 	"Dilate binary image to smooth regions and remove small holes / objects"
@@ -144,28 +145,18 @@ def BD_filter(image, n_runs=75, n_clusters=7, p_intensity=(2, 98), sm_size=7):
 	"Return binary mask for cell identification"
 	mask_image = remove_small_objects(~BWy, min_size=15)
 
-	"""
-	print(norm_centres)
-	print(norm_intensities)
-	print(light_blue_clusters)
-
-	import matplotlib.pyplot as plt
-	for i in range(n_clusters):
-		plt.figure(i)
-		plt.imshow(np.array(segmented_image[i], dtype=int))
-	plt.show()
-
-	plt.imshow(mask_image)
-	plt.show()
-	#"""
 	return mask_image
 
 
 def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alpha=1.0,
-			min_size=100, edges=False):
+			min_size=500, edges=False):
 
 	"Return binary filter for cellular identification"
 	
+	image_shg = equalize_adapthist(image_shg)
+	image_pl = equalize_adapthist(image_pl)
+	image_tran = equalize_adapthist(image_tran)
+
 	image_scale_shg = rescale(image_shg, scale)
 	image_scale_pl = rescale(image_pl, scale)
 	image_scale_tran = rescale(image_tran, scale)
@@ -180,11 +171,12 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alp
 
 	for cell in measure.regionprops(cell_labels, intensity_image=image_pl):
 		cell_check = True
+		minr, minc, maxr, maxc = cell.bbox
 
 		if edges:
-			edge_check = (cell.bbox[0] != 0) * (cell.bbox[1] != 0)
-			edge_check *= (cell.bbox[2] != mask_image.shape[0])
-			edge_check *= (cell.bbox[3] != mask_image.shape[1])
+			edge_check = (minr != 0) * (minc != 0)
+			edge_check *= (maxr != mask_image.shape[0])
+			edge_check *= (maxc != mask_image.shape[1])
 
 			cell_check *= edge_check
 
@@ -193,11 +185,38 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alp
 		if cell_check:
 			cells.append(cell)
 			areas.append(cell.area)
+		else:
+			indices = np.mgrid[minr:maxr, minc:maxc]
+			mask_image[(indices[0], indices[1])] = 0
 
 	indices = np.argsort(areas)[::-1]
 	sorted_cells = [cells[i] for i in indices]
 
-	return sorted_cells
+	fibres = []
+	areas = []
+	mask_image = np.where(mask_image, 0, 1)
+	fibre_labels = measure.label(mask_image)
+
+	for fibre in measure.regionprops(fibre_labels, intensity_image=image_shg):
+		fibre_check = True
+
+		if edges:
+			edge_check = (fibre.bbox[0] != 0) * (fibre.bbox[1] != 0)
+			edge_check *= (fibre.bbox[2] != mask_image.shape[0])
+			edge_check *= (fibre.bbox[3] != mask_image.shape[1])
+
+			fibre_check *= edge_check
+
+		fibre_check *= fibre.area >= min_size
+
+		if fibre_check:
+			fibres.append(fibre)
+			areas.append(fibre.area)
+
+	indices = np.argsort(areas)[::-1]
+	sorted_fibres = [fibres[i] for i in indices]
+
+	return sorted_cells, sorted_fibres
 
 
 

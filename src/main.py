@@ -15,11 +15,13 @@ import numpy as np
 import pandas as pd
 
 import matplotlib
-#matplotlib.use("Agg")
+matplotlib.use("Agg")
 
 from scipy.ndimage.filters import gaussian_filter
 
 from skimage.measure import shannon_entropy, regionprops
+from skimage.exposure import equalize_adapthist
+
 from multiprocessing import Pool, Process, JoinableQueue, Queue, current_process
 
 import utilities as ut
@@ -121,6 +123,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 	image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
 	if pl_analysis: 
 		image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
+		image_tran = equalize_adapthist(image_tran)
 	
 	try:
 		networks = ut.load_region(data_dir + image_name + "_network")
@@ -184,12 +187,13 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 		networks = ut.load_region(data_dir + image_name + "_network")
 		networks_red = ut.load_region(data_dir + image_name + "_network_reduced")
 
-		fibre_seg = seg.fibre_segmentation(image_shg, networks, networks_red)
-		ut.save_region(fibre_seg, '{}_fibre_segment'.format(filename))
-
 		if pl_analysis:
-			cell_seg  = seg.cell_segmentation(image_shg, image_pl, image_tran)
+			cell_seg, fibre_seg = seg.cell_segmentation(image_shg, image_pl, image_tran)
 			ut.save_region(cell_seg, '{}_cell_segment'.format(filename))
+			ut.save_region(fibre_seg, '{}_fibre_segment'.format(filename))
+		else:
+			fibre_seg = seg.fibre_segmentation(image_shg, networks, networks_red)
+			ut.save_region(fibre_seg, '{}_fibre_segment'.format(filename))
 
 		end_seg = time.time()
 
