@@ -24,9 +24,9 @@ from skimage import measure, draw
 from skimage.util import pad
 from skimage.transform import rescale, resize
 from skimage.feature import greycomatrix
-from skimage.morphology import remove_small_objects, remove_small_holes, dilation
+from skimage.morphology import remove_small_objects, remove_small_holes, dilation, disk
 from skimage.color import grey2rgb, rgb2grey
-from skimage.filters import threshold_otsu, threshold_mean
+from skimage.filters import threshold_otsu, threshold_mean, rank
 from skimage.exposure import rescale_intensity, equalize_hist, equalize_adapthist
 
 from sklearn.cluster import MiniBatchKMeans
@@ -68,7 +68,7 @@ def find_holes(image, sigma=0.8, alpha=1.0, min_size=1250, iterations=2):
 	return image_hole
 
 
-def BD_filter(image, n_runs=100, n_clusters=10, p_intensity=(2, 98), sm_size=7):
+def BD_filter(image, n_runs=5, n_clusters=6, p_intensity=(2, 98), sm_size=7):
 	"Adapted from CurveAlign BDcreationHE routine"
 
 	assert image.ndim == 3
@@ -106,14 +106,19 @@ def BD_filter(image, n_runs=100, n_clusters=10, p_intensity=(2, 98), sm_size=7):
 	"Reorder labels to represent average intensity"
 	unique_labels = np.unique(labels)
 	segmented_image = np.zeros((n_clusters,) + image.shape)
+	segmented_image_scaled = np.zeros((n_clusters,) + image.shape, dtype=int)
 	mean_intensity = np.zeros(n_clusters)
 	mean_intensity_vec = np.zeros((n_clusters, 3))
 
+	import matplotlib.pyplot as plt
+
 	for i in range(n_clusters):
-		segmented_image[i][np.where(labels == i)] += 255 * image[np.where(labels == i)]
+		segmented_image[i][np.where(labels == i)] += image[np.where(labels == i)]
+		segmented_image_scaled[i][np.where(labels == i)] += image_scaled[np.where(labels == i)]
+
 		grey = rgb2grey(segmented_image[i])
-		mean_intensity[i] += np.mean(grey[np.nonzero(grey)])
-		mean_intensity_vec[i] += segmented_image[i].sum(axis=(0,1))
+		mean_intensity[i] += 255 * np.mean(grey[np.nonzero(grey)])
+		mean_intensity_vec[i] += 255 * segmented_image[i].sum(axis=(0,1))
 		mean_intensity_vec[i] /= np.where(segmented_image[i], 1, 0).sum(axis=(0, 1))
 
 	magnitudes = np.sqrt(np.sum(centres**2, axis=-1))
@@ -124,16 +129,55 @@ def BD_filter(image, n_runs=100, n_clusters=10, p_intensity=(2, 98), sm_size=7):
 	norm_intensities = mean_intensity_vec / np.repeat(magnitudes, image_channels).reshape(mean_intensity_vec.shape)
 
 	"""Light blue clusters classed as where kmeans centres have highest value in 
-	B channel (index 2) and average normalised channel intensities below 0.92"""
-	green_blue_clusters = np.array([vector.argmax() == 2 for vector in norm_centres], dtype=bool)
-	green_blue_clusters += np.array([vector[2] >= 0.75 for vector in norm_intensities], dtype=bool)
-	dark_clusters = np.array([vector <= 120 for vector in 0.5 * (mean_centres + mean_intensity)], dtype=bool)
-	chosen_clusters = np.argwhere(green_blue_clusters * dark_clusters).flatten()
+	norm_centres B channel (index 2), and average normalised channel intensities below 0.92"""
+	X = np.arcsin(norm_centres[:, 0])
+	Y = np.arcsin(norm_centres[:, 1])
+	Z = np.arccos(norm_centres[:, 2])
+	a = 0.70
+	b = 0.85
+	c = 1.20
 
+	"""
+	for i in range(n_clusters):
+		plt.figure(i)
+		plt.imshow(segmented_image_scaled[i])
+
+	plt.show()
+	chosen_clusters = input("Enter cluster numbers:")
+	chosen_clusters = [int(value) for value in chosen_clusters.split()]
+	non_clusters = [value for value in range(n_clusters) if value not in chosen_clusters]
+	"""	
+	blue_clusters = (X <= a) * (Y <= b) * (Z <= c)
+	dark_clusters = (X**2 + Y**2 + Z**2 <= np.max([a, b, c])**2)
+	chosen_clusters = np.argwhere(blue_clusters * dark_clusters).flatten()
+	non_clusters = np.argwhere(blue_clusters * dark_clusters == 0).flatten()
+	#"""
 	"Select blue regions to extract epithelial cells"
 	epith_cell = np.zeros(image.shape)
 	for i in chosen_clusters: epith_cell += segmented_image[i]
 	epith_grey = rgb2grey(epith_cell)
+
+	#"""
+	import matplotlib.pyplot as plt
+	from mpl_toolkits.mplot3d import Axes3D
+	plt.figure(100)
+	plt.imshow(epith_cell)
+
+	fig = plt.figure(101)
+	plt.scatter(X[chosen_clusters], Z[chosen_clusters])
+	plt.scatter(X[non_clusters], Z[non_clusters])
+
+	fig = plt.figure(102)
+	plt.scatter(Y[chosen_clusters], Z[chosen_clusters])
+	plt.scatter(Y[non_clusters], Z[non_clusters])
+
+	
+	fig = plt.figure(103)
+	ax = fig.add_subplot(111, projection='3d')
+	ax.scatter(X[chosen_clusters], Y[chosen_clusters], Z[chosen_clusters])
+	ax.scatter(X[non_clusters], Y[non_clusters], Z[non_clusters])
+	plt.show()
+	#"""	
 
 	"Dilate binary image to smooth regions and remove small holes / objects"
 	epith_cell_BW = np.where(epith_grey, True, False)
@@ -152,16 +196,12 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alp
 			min_size=500, edges=False):
 
 	"Return binary filter for cellular identification"
-	
-	image_shg = equalize_adapthist(image_shg)
-	image_pl = equalize_adapthist(image_pl)
-	image_tran = equalize_adapthist(image_tran)
 
-	image_scale_shg = rescale(image_shg, scale)
-	image_scale_pl = rescale(image_pl, scale)
-	image_scale_tran = rescale(image_tran, scale)
+	image_stack = np.stack((image_shg, image_pl, image_tran), axis=-1)
+	magnitudes = np.sqrt(np.sum(image_stack**2, axis=-1))
+	image_stack /= np.repeat(magnitudes, 3).reshape(image_stack.shape)
 
-	image_stack = np.stack((image_scale_shg, image_scale_pl, image_scale_tran), axis=-1)
+	image_stack = rescale(image_stack, scale, multichannel=True)
 	mask_image = BD_filter(image_stack)
 	mask_image = resize(mask_image, image_shg.shape)
 

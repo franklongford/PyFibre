@@ -304,7 +304,7 @@ def FIRE(image, scale=1, alpha=0.70, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_th
 
 	"Prepare input image to gain distance matrix of foreground from background"
 
-	image_scale = rescale(image, scale)
+	image_scale = rescale(image, scale, multichannel=False)
 
 	sigma *= scale
 

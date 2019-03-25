@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 import matplotlib
-matplotlib.use("Agg")
+#matplotlib.use("Agg")
 
 from scipy.ndimage.filters import gaussian_filter
 
@@ -124,7 +124,6 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 	if pl_analysis: 
 		image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
 		image_tran = equalize_adapthist(image_tran)
-	
 	try:
 		networks = ut.load_region(data_dir + image_name + "_network")
 		networks_red = ut.load_region(data_dir + image_name + "_network_reduced")
