@@ -53,22 +53,7 @@ def create_binary_image(segments, shape):
 	return binary_image
 
 
-def find_holes(image, sigma=0.8, alpha=1.0, min_size=1250, iterations=2):
-
-	image_TB = tubeness(image, sigma=sigma)
-
-	image_hyst = hysteresis(image_TB, alpha=alpha)
-	image_hyst = remove_small_objects(image_hyst)
-	image_hyst = binary_closing(image_hyst, iterations=iterations)
-
-	image_hole = remove_small_holes(~image_hyst, min_size=min_size)
-	image_hole = binary_opening(image_hole, iterations=iterations)
-	image_hole = binary_fill_holes(image_hole)
-	
-	return image_hole
-
-
-def BD_filter(image, n_runs=5, n_clusters=6, p_intensity=(2, 98), sm_size=7):
+def BD_filter(image, n_runs=5, n_clusters=5, p_intensity=(2, 98), sm_size=7):
 	"Adapted from CurveAlign BDcreationHE routine"
 
 	assert image.ndim == 3
@@ -106,38 +91,21 @@ def BD_filter(image, n_runs=5, n_clusters=6, p_intensity=(2, 98), sm_size=7):
 	"Reorder labels to represent average intensity"
 	unique_labels = np.unique(labels)
 	segmented_image = np.zeros((n_clusters,) + image.shape)
-	segmented_image_scaled = np.zeros((n_clusters,) + image.shape, dtype=int)
-	mean_intensity = np.zeros(n_clusters)
-	mean_intensity_vec = np.zeros((n_clusters, 3))
-
-	import matplotlib.pyplot as plt
 
 	for i in range(n_clusters):
 		segmented_image[i][np.where(labels == i)] += image[np.where(labels == i)]
-		segmented_image_scaled[i][np.where(labels == i)] += image_scaled[np.where(labels == i)]
-
-		grey = rgb2grey(segmented_image[i])
-		mean_intensity[i] += 255 * np.mean(grey[np.nonzero(grey)])
-		mean_intensity_vec[i] += 255 * segmented_image[i].sum(axis=(0,1))
-		mean_intensity_vec[i] /= np.where(segmented_image[i], 1, 0).sum(axis=(0, 1))
 
 	magnitudes = np.sqrt(np.sum(centres**2, axis=-1))
 	mean_centres = centres.mean(axis=-1)
 	norm_centres = centres / np.repeat(magnitudes, image_channels).reshape(centres.shape)
 
-	magnitudes = np.sqrt(np.sum(mean_intensity_vec**2, axis=-1))
-	norm_intensities = mean_intensity_vec / np.repeat(magnitudes, image_channels).reshape(mean_intensity_vec.shape)
-
-	"""Light blue clusters classed as where kmeans centres have highest value in 
-	norm_centres B channel (index 2), and average normalised channel intensities below 0.92"""
+	"Convert RGB centroids to spherical coordinates"
 	X = np.arcsin(norm_centres[:, 0])
 	Y = np.arcsin(norm_centres[:, 1])
 	Z = np.arccos(norm_centres[:, 2])
-	a = 0.70
-	b = 0.85
-	c = 1.20
-
 	"""
+	import matplotlib.pyplot as plt
+
 	for i in range(n_clusters):
 		plt.figure(i)
 		plt.imshow(segmented_image_scaled[i])
@@ -145,19 +113,22 @@ def BD_filter(image, n_runs=5, n_clusters=6, p_intensity=(2, 98), sm_size=7):
 	plt.show()
 	chosen_clusters = input("Enter cluster numbers:")
 	chosen_clusters = [int(value) for value in chosen_clusters.split()]
-	non_clusters = [value for value in range(n_clusters) if value not in chosen_clusters]
-	"""	
-	blue_clusters = (X <= a) * (Y <= b) * (Z <= c)
-	dark_clusters = (X**2 + Y**2 + Z**2 <= np.max([a, b, c])**2)
-	chosen_clusters = np.argwhere(blue_clusters * dark_clusters).flatten()
-	non_clusters = np.argwhere(blue_clusters * dark_clusters == 0).flatten()
+	"""
+	"Define the plane of division between cellular and fibourus clusters"	
+	a = 0.6
+	b = 0.9
+	c = 1.1
+	cell_clusters = (X <= a) * (Y <= b) * (Z <= c)
+	#cell_clusters = (X**2 + Y**2 + Z**2 <= np.max([a, b, c])**2)
+	chosen_clusters = np.argwhere(cell_clusters).flatten()
 	#"""
+	non_clusters = [value for value in range(n_clusters) if value not in chosen_clusters]
+
 	"Select blue regions to extract epithelial cells"
 	epith_cell = np.zeros(image.shape)
 	for i in chosen_clusters: epith_cell += segmented_image[i]
 	epith_grey = rgb2grey(epith_cell)
-
-	#"""
+	"""
 	import matplotlib.pyplot as plt
 	from mpl_toolkits.mplot3d import Axes3D
 	plt.figure(100)
@@ -193,15 +164,18 @@ def BD_filter(image, n_runs=5, n_clusters=6, p_intensity=(2, 98), sm_size=7):
 
 
 def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alpha=1.0,
-			min_size=500, edges=False):
-
+			min_size=750, edges=False):
 	"Return binary filter for cellular identification"
 
+	"Create composite RGB image from SHG, PL and transmission"
 	image_stack = np.stack((image_shg, image_pl, image_tran), axis=-1)
 	magnitudes = np.sqrt(np.sum(image_stack**2, axis=-1))
 	image_stack /= np.repeat(magnitudes, 3).reshape(image_stack.shape)
 
+	"Up-scale image to impove accuracy of clustering"
 	image_stack = rescale(image_stack, scale, multichannel=True)
+
+	"Form mask using Kmeans Background filter"
 	mask_image = BD_filter(image_stack)
 	mask_image = resize(mask_image, image_shg.shape)
 
@@ -257,7 +231,6 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alp
 	sorted_fibres = [fibres[i] for i in indices]
 
 	return sorted_cells, sorted_fibres
-
 
 
 def cell_segment_analysis(image, cells, n_tensor, anis_map, angle_map):
