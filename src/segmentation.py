@@ -53,7 +53,7 @@ def create_binary_image(segments, shape):
 	return binary_image
 
 
-def BD_filter(image, n_runs=5, n_clusters=5, p_intensity=(2, 98), sm_size=7):
+def BD_filter(image, n_runs=40, n_clusters=8, p_intensity=(2, 98), sm_size=7):
 	"Adapted from CurveAlign BDcreationHE routine"
 
 	assert image.ndim == 3
@@ -90,10 +90,10 @@ def BD_filter(image, n_runs=5, n_clusters=5, p_intensity=(2, 98), sm_size=7):
 
 	"Reorder labels to represent average intensity"
 	unique_labels = np.unique(labels)
-	segmented_image = np.zeros((n_clusters,) + image.shape)
+	segmented_image = np.zeros((n_clusters,) + image.shape, dtype=int)
 
 	for i in range(n_clusters):
-		segmented_image[i][np.where(labels == i)] += image[np.where(labels == i)]
+		segmented_image[i][np.where(labels == i)] += image_scaled[np.where(labels == i)]
 
 	magnitudes = np.sqrt(np.sum(centres**2, axis=-1))
 	mean_centres = centres.mean(axis=-1)
@@ -115,9 +115,9 @@ def BD_filter(image, n_runs=5, n_clusters=5, p_intensity=(2, 98), sm_size=7):
 	chosen_clusters = [int(value) for value in chosen_clusters.split()]
 	"""
 	"Define the plane of division between cellular and fibourus clusters"	
-	a = 0.6
-	b = 0.9
-	c = 1.1
+	a = 0.68
+	b = 0.82
+	c = np.pi / 2
 	cell_clusters = (X <= a) * (Y <= b) * (Z <= c)
 	#cell_clusters = (X**2 + Y**2 + Z**2 <= np.max([a, b, c])**2)
 	chosen_clusters = np.argwhere(cell_clusters).flatten()
@@ -128,25 +128,41 @@ def BD_filter(image, n_runs=5, n_clusters=5, p_intensity=(2, 98), sm_size=7):
 	epith_cell = np.zeros(image.shape)
 	for i in chosen_clusters: epith_cell += segmented_image[i]
 	epith_grey = rgb2grey(epith_cell)
-	"""
+	#"""
 	import matplotlib.pyplot as plt
 	from mpl_toolkits.mplot3d import Axes3D
+
+	print(X, Y, Z)
+
 	plt.figure(100)
+	plt.imshow(image[:, :, 0])
+
+	plt.figure(1000)
+	plt.imshow(image_scaled)
+
+	#for i in range(n_clusters):
+	#	plt.figure(i)
+	#	plt.imshow(segmented_image[i])
+
+	plt.figure(1001)
 	plt.imshow(epith_cell)
 
-	fig = plt.figure(101)
+	fig = plt.figure(1002)
 	plt.scatter(X[chosen_clusters], Z[chosen_clusters])
 	plt.scatter(X[non_clusters], Z[non_clusters])
+	for i in range(n_clusters): plt.annotate(i, (X[i], Z[i]))
 
-	fig = plt.figure(102)
+	fig = plt.figure(1003)
 	plt.scatter(Y[chosen_clusters], Z[chosen_clusters])
 	plt.scatter(Y[non_clusters], Z[non_clusters])
-
+	for i in range(n_clusters): plt.annotate(i, (Y[i], Z[i]))
 	
-	fig = plt.figure(103)
+	fig = plt.figure(1004)
 	ax = fig.add_subplot(111, projection='3d')
 	ax.scatter(X[chosen_clusters], Y[chosen_clusters], Z[chosen_clusters])
+	for i in chosen_clusters: ax.text(X[i], Y[i], Z[i], i)
 	ax.scatter(X[non_clusters], Y[non_clusters], Z[non_clusters])
+	for i in non_clusters: ax.text(X[i], Y[i], Z[i], i)
 	plt.show()
 	#"""	
 
@@ -164,11 +180,13 @@ def BD_filter(image, n_runs=5, n_clusters=5, p_intensity=(2, 98), sm_size=7):
 
 
 def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alpha=1.0,
-			min_size=750, edges=False):
+			min_size=500, edges=False):
 	"Return binary filter for cellular identification"
 
+
 	"Create composite RGB image from SHG, PL and transmission"
-	image_stack = np.stack((image_shg, image_pl, image_tran), axis=-1)
+	image_stack = np.stack((1.2 * equalize_adapthist(image_shg),
+			 image_pl, image_tran), axis=-1)
 	magnitudes = np.sqrt(np.sum(image_stack**2, axis=-1))
 	image_stack /= np.repeat(magnitudes, 3).reshape(image_stack.shape)
 
