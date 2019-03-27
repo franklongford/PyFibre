@@ -97,7 +97,7 @@ def cluster_colours(image, n_clusters=8, n_init=5):
 	return labels, centres
 
 
-def BD_filter(image, n_runs=5, n_clusters=8, p_intensity=(2, 98), sm_size=7, param=[0.69, 1.1, 1.40, 0.73]):
+def BD_filter(image, n_runs=5, n_clusters=10, p_intensity=(2, 98), sm_size=7, param=[0.7, 1.1, 1.40, 0.73]):
 	"Adapted from CurveAlign BDcreationHE routine"
 
 	assert image.ndim == 3
@@ -217,7 +217,7 @@ def segment_check(segment, min_size=0, min_frac=0, edges=False, max_x=0, max_y=0
 
 
 def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alpha=1.0,
-			min_size=300, edges=False):
+			min_size=200, edges=False):
 	"Return binary filter for cellular identification"
 
 
