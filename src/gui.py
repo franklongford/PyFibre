@@ -404,6 +404,7 @@ class pyfibre_options:
 		self.window.tk.call('wm', 'iconphoto', self.window._w, self.parent.title.image)
 		self.window.title('PyFibre - Options')
 		self.window.geometry(f"{width}x{height}-100+40")
+		self.window.configure(background='#d8baa9')
 
 		self.frame = Frame(self.window)
 		self.create_options()
