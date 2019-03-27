@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 import matplotlib
-#matplotlib.use("Agg")
+matplotlib.use("Agg")
 
 from scipy.ndimage.filters import gaussian_filter
 
