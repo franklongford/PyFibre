@@ -53,10 +53,7 @@ def create_binary_image(segments, shape):
 	return binary_image
 
 
-def BD_filter(image, n_runs=40, n_clusters=8, p_intensity=(2, 98), sm_size=7):
-	"Adapted from CurveAlign BDcreationHE routine"
-
-	assert image.ndim == 3
+def prepare_composite_image(image, p_intensity=(2, 98), sm_size=7):
 
 	image_size = image.shape[0] * image.shape[1]
 	image_shape = (image.shape[0], image.shape[1])
@@ -78,61 +75,101 @@ def BD_filter(image, n_runs=40, n_clusters=8, p_intensity=(2, 98), sm_size=7):
 		image_scaled[:, :, i] = smoothed[pad_size : pad_size + image.shape[0],
 						 pad_size : pad_size + image.shape[1]]
 
+	return image_scaled
+
+
+def cluster_colours(image, n_clusters=8, n_init=5):
+
+	image_size = image.shape[0] * image.shape[1]
+	image_shape = (image.shape[0], image.shape[1])
+	image_channels = image.shape[-1]
+
 	"Perform k-means clustering on PL image"
-	X = np.array(image_scaled.reshape((image_size, image_channels)), dtype=float)
-	clustering = MiniBatchKMeans(n_clusters=n_clusters, n_init=n_runs, 
-				    reassignment_ratio=0.99, init_size=n_runs*100,
+	X = np.array(image.reshape((image_size, image_channels)), dtype=float)
+	clustering = MiniBatchKMeans(n_clusters=n_clusters, n_init=n_init, 
+				    reassignment_ratio=0.99, init_size=n_init*100,
 				    max_no_improvement=10)
 	clustering.fit(X)
 
 	labels = clustering.labels_.reshape(image_shape)
 	centres = clustering.cluster_centers_
 
-	"Reorder labels to represent average intensity"
-	unique_labels = np.unique(labels)
-	segmented_image = np.zeros((n_clusters,) + image.shape, dtype=int)
+	return labels, centres
 
+
+def BD_filter(image, n_runs=5, n_clusters=8, p_intensity=(2, 98), sm_size=7, param=[0.69, 1.1, 1.40, 0.73]):
+	"Adapted from CurveAlign BDcreationHE routine"
+
+	assert image.ndim == 3
+
+	image_size = image.shape[0] * image.shape[1]
+	image_shape = (image.shape[0], image.shape[1])
+	image_channels = image.shape[-1]
+
+	image_scaled = prepare_composite_image(image, p_intensity, sm_size)
+	greyscale = rgb2grey(image_scaled)
+	greyscale /= greyscale.max()	
+	
+	tot_labels = []
+	tot_centres = []
+	tot_cell_clusters = []
+	cost_func = np.zeros(n_runs)
+
+	for run in range(n_runs):
+
+		labels, centres = cluster_colours(image_scaled, n_clusters)
+		tot_labels.append(labels)
+
+		"Reorder labels to represent average intensity"
+		intensities = np.zeros(n_clusters)
+
+		for i in range(n_clusters):
+			intensities[i] = greyscale[np.where(labels == i)].sum() / np.where(labels == i, 1, 0).sum()
+
+		magnitudes = np.sqrt(np.sum(centres**2, axis=-1))
+		norm_centres = centres / np.repeat(magnitudes, image_channels).reshape(centres.shape)
+		tot_centres.append(norm_centres)
+
+		"Convert RGB centroids to spherical coordinates"
+		X = np.arcsin(norm_centres[:, 0])
+		Y = np.arcsin(norm_centres[:, 1])
+		Z = np.arccos(norm_centres[:, 2])
+		I = intensities
+
+		"Define the plane of division between cellular and fibourus clusters"	
+		cell_clusters = (X <= param[0]) * (Y <= param[1]) * (Z <= param[2]) * (I <= param[3])
+		chosen_clusters = np.argwhere(cell_clusters).flatten()
+		cost_func[run] += X[chosen_clusters].mean() +  Y[chosen_clusters].mean() \
+				 + Z[chosen_clusters].mean() + I[chosen_clusters].mean()
+		tot_cell_clusters.append(chosen_clusters)
+
+	labels = tot_labels[cost_func.argmin()]
+	norm_centres = tot_centres[cost_func.argmin()]
+	cell_clusters = tot_cell_clusters[cost_func.argmin()]
+
+	intensities = np.zeros(n_clusters)
+	segmented_image = np.zeros((n_clusters,) + image.shape, dtype=int)
 	for i in range(n_clusters):
 		segmented_image[i][np.where(labels == i)] += image_scaled[np.where(labels == i)]
+		intensities[i] = greyscale[np.where(labels == i)].sum() / np.where(labels == i, 1, 0).sum()
 
-	magnitudes = np.sqrt(np.sum(centres**2, axis=-1))
-	mean_centres = centres.mean(axis=-1)
-	norm_centres = centres / np.repeat(magnitudes, image_channels).reshape(centres.shape)
+	"Select blue regions to extract epithelial cells"
+	epith_cell = np.zeros(image.shape)
+	for i in cell_clusters: epith_cell += segmented_image[i]
+	epith_grey = rgb2grey(epith_cell)
 
+	"""	
 	"Convert RGB centroids to spherical coordinates"
 	X = np.arcsin(norm_centres[:, 0])
 	Y = np.arcsin(norm_centres[:, 1])
 	Z = np.arccos(norm_centres[:, 2])
-	"""
-	import matplotlib.pyplot as plt
+	I = intensities
 
-	for i in range(n_clusters):
-		plt.figure(i)
-		plt.imshow(segmented_image_scaled[i])
+	print(X, Y, Z, I)
+	print((X <= param[0]) * (Y <= param[1]) * (Z <= param[2]) * (I <= param[3]))
 
-	plt.show()
-	chosen_clusters = input("Enter cluster numbers:")
-	chosen_clusters = [int(value) for value in chosen_clusters.split()]
-	"""
-	"Define the plane of division between cellular and fibourus clusters"	
-	a = 0.68
-	b = 0.82
-	c = np.pi / 2
-	cell_clusters = (X <= a) * (Y <= b) * (Z <= c)
-	#cell_clusters = (X**2 + Y**2 + Z**2 <= np.max([a, b, c])**2)
-	chosen_clusters = np.argwhere(cell_clusters).flatten()
-	#"""
-	non_clusters = [value for value in range(n_clusters) if value not in chosen_clusters]
-
-	"Select blue regions to extract epithelial cells"
-	epith_cell = np.zeros(image.shape)
-	for i in chosen_clusters: epith_cell += segmented_image[i]
-	epith_grey = rgb2grey(epith_cell)
-	#"""
 	import matplotlib.pyplot as plt
 	from mpl_toolkits.mplot3d import Axes3D
-
-	print(X, Y, Z)
 
 	plt.figure(100)
 	plt.imshow(image[:, :, 0])
@@ -140,52 +177,52 @@ def BD_filter(image, n_runs=40, n_clusters=8, p_intensity=(2, 98), sm_size=7):
 	plt.figure(1000)
 	plt.imshow(image_scaled)
 
-	#for i in range(n_clusters):
-	#	plt.figure(i)
-	#	plt.imshow(segmented_image[i])
+	for i in range(n_clusters):
+		plt.figure(i)
+		plt.imshow(segmented_image[i])
 
-	plt.figure(1001)
-	plt.imshow(epith_cell)
-
-	fig = plt.figure(1002)
-	plt.scatter(X[chosen_clusters], Z[chosen_clusters])
-	plt.scatter(X[non_clusters], Z[non_clusters])
-	for i in range(n_clusters): plt.annotate(i, (X[i], Z[i]))
-
-	fig = plt.figure(1003)
-	plt.scatter(Y[chosen_clusters], Z[chosen_clusters])
-	plt.scatter(Y[non_clusters], Z[non_clusters])
-	for i in range(n_clusters): plt.annotate(i, (Y[i], Z[i]))
-	
-	fig = plt.figure(1004)
-	ax = fig.add_subplot(111, projection='3d')
-	ax.scatter(X[chosen_clusters], Y[chosen_clusters], Z[chosen_clusters])
-	for i in chosen_clusters: ax.text(X[i], Y[i], Z[i], i)
-	ax.scatter(X[non_clusters], Y[non_clusters], Z[non_clusters])
-	for i in non_clusters: ax.text(X[i], Y[i], Z[i], i)
 	plt.show()
 	#"""	
 
 	"Dilate binary image to smooth regions and remove small holes / objects"
 	epith_cell_BW = np.where(epith_grey, True, False)
-	epith_cell_BW_open = binary_opening(epith_cell_BW, iterations=1)
+	epith_cell_BW_open = binary_opening(epith_cell_BW, iterations=2)
 
 	BWx = binary_fill_holes(epith_cell_BW_open)
-	BWy = remove_small_objects(~BWx, min_size=15)
+	BWy = remove_small_objects(~BWx, min_size=20)
 
 	"Return binary mask for cell identification"
-	mask_image = remove_small_objects(~BWy, min_size=15)
+	mask_image = remove_small_objects(~BWy, min_size=20)
 
 	return mask_image
 
 
+def segment_check(segment, min_size=0, min_frac=0, edges=False, max_x=0, max_y=0):
+
+	segment_check = True
+	minr, minc, maxr, maxc = segment.bbox
+
+	if edges:
+		edge_check = (minr != 0) * (minc != 0)
+		edge_check *= (maxr != max_x)
+		edge_check *= (maxc != max_y)
+
+		segment_check *= edge_check
+
+	segment_check *= segment.filled_area >= min_size
+	segment_frac = (segment.image * segment.intensity_image).sum() / segment.filled_area
+	segment_check *= segment_frac >= min_frac
+
+	return segment_check
+
+
 def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alpha=1.0,
-			min_size=500, edges=False):
+			min_size=300, edges=False):
 	"Return binary filter for cellular identification"
 
 
 	"Create composite RGB image from SHG, PL and transmission"
-	image_stack = np.stack((1.2 * equalize_adapthist(image_shg),
+	image_stack = np.stack((1.1 * equalize_adapthist(image_shg),
 			 image_pl, image_tran), axis=-1)
 	magnitudes = np.sqrt(np.sum(image_stack**2, axis=-1))
 	image_stack /= np.repeat(magnitudes, 3).reshape(image_stack.shape)
@@ -198,55 +235,48 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alp
 	mask_image = resize(mask_image, image_shg.shape)
 
 	cells = []
-	areas = []
+	cell_areas = []
+	fibres = []
+	fibre_areas = []
+
 	cell_labels = measure.label(mask_image)
-
 	for cell in measure.regionprops(cell_labels, intensity_image=image_pl):
-		cell_check = True
-		minr, minc, maxr, maxc = cell.bbox
+		cell_check = segment_check(cell, min_size, 0.01)
 
-		if edges:
-			edge_check = (minr != 0) * (minc != 0)
-			edge_check *= (maxr != mask_image.shape[0])
-			edge_check *= (maxc != mask_image.shape[1])
-
-			cell_check *= edge_check
-
-		cell_check *= cell.area >= min_size
-
-		if cell_check:
-			cells.append(cell)
-			areas.append(cell.area)
-		else:
+		if not cell_check:
+			minr, minc, maxr, maxc = cell.bbox
 			indices = np.mgrid[minr:maxr, minc:maxc]
 			mask_image[(indices[0], indices[1])] = 0
 
-	indices = np.argsort(areas)[::-1]
-	sorted_cells = [cells[i] for i in indices]
-
-	fibres = []
-	areas = []
 	mask_image = np.where(mask_image, 0, 1)
 	fibre_labels = measure.label(mask_image)
-
 	for fibre in measure.regionprops(fibre_labels, intensity_image=image_shg):
-		fibre_check = True
-
-		if edges:
-			edge_check = (fibre.bbox[0] != 0) * (fibre.bbox[1] != 0)
-			edge_check *= (fibre.bbox[2] != mask_image.shape[0])
-			edge_check *= (fibre.bbox[3] != mask_image.shape[1])
-
-			fibre_check *= edge_check
-
-		fibre_check *= fibre.area >= min_size
+		fibre_check = segment_check(fibre, min_size, 0.1)
 
 		if fibre_check:
 			fibres.append(fibre)
-			areas.append(fibre.area)
+			fibre_areas.append(fibre.filled_area)
+		else:
+			minr, minc, maxr, maxc = fibre.bbox
+			indices = np.mgrid[minr:maxr, minc:maxc]
+			mask_image[(indices[0], indices[1])] = 0
 
-	indices = np.argsort(areas)[::-1]
+	mask_image = np.where(mask_image, 0, 1)
+	cell_labels = measure.label(mask_image)
+
+	for cell in measure.regionprops(cell_labels, intensity_image=image_pl):
+		cell_check = segment_check(cell, min_size, 0.01)
+
+		if cell_check:
+			cells.append(cell)
+			cell_areas.append(cell.filled_area)
+
+	indices = np.argsort(fibre_areas)[::-1]
 	sorted_fibres = [fibres[i] for i in indices]
+
+	indices = np.argsort(cell_areas)[::-1]
+	sorted_cells = [cells[i] for i in indices]
+
 
 	return sorted_cells, sorted_fibres
 
