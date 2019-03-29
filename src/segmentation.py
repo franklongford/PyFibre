@@ -97,7 +97,7 @@ def cluster_colours(image, n_clusters=8, n_init=5):
 	return labels, centres
 
 
-def BD_filter(image, n_runs=5, n_clusters=10, p_intensity=(2, 98), sm_size=7, param=[0.7, 1.1, 1.40, 0.73]):
+def BD_filter(image, n_runs=5, n_clusters=10, p_intensity=(2, 98), sm_size=7, param=[0.7, 1.1, 1.40, 0.785]):
 	"Adapted from CurveAlign BDcreationHE routine"
 
 	assert image.ndim == 3
@@ -217,13 +217,13 @@ def segment_check(segment, min_size=0, min_frac=0, edges=False, max_x=0, max_y=0
 
 
 def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alpha=1.0,
-			min_size=200, edges=False):
+			min_size=400, edges=False):
 	"Return binary filter for cellular identification"
 
 
 	"Create composite RGB image from SHG, PL and transmission"
-	image_stack = np.stack((1.1 * equalize_adapthist(image_shg),
-			 image_pl, image_tran), axis=-1)
+	image_stack = np.stack((1.05 * equalize_adapthist(image_shg),
+			 image_pl, equalize_adapthist(image_tran)), axis=-1)
 	magnitudes = np.sqrt(np.sum(image_stack**2, axis=-1))
 	image_stack /= np.repeat(magnitudes, 3).reshape(image_stack.shape)
 
@@ -251,7 +251,7 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alp
 	mask_image = np.where(mask_image, 0, 1)
 	fibre_labels = measure.label(mask_image)
 	for fibre in measure.regionprops(fibre_labels, intensity_image=image_shg):
-		fibre_check = segment_check(fibre, min_size, 0.1)
+		fibre_check = segment_check(fibre, min_size, 0.075)
 
 		if fibre_check:
 			fibres.append(fibre)
