@@ -17,6 +17,7 @@ from networkx.algorithms import cluster
 from networkx.algorithms import approximation as approx
 from networkx.algorithms.efficiency import local_efficiency, global_efficiency
 
+import scipy.ndimage as ndi
 from scipy.ndimage.filters import gaussian_filter, median_filter
 from scipy.ndimage.morphology import binary_fill_holes, binary_dilation, binary_closing, binary_opening
 
@@ -26,7 +27,7 @@ from skimage.transform import rescale, resize
 from skimage.feature import greycomatrix
 from skimage.morphology import remove_small_objects, remove_small_holes, dilation, disk
 from skimage.color import grey2rgb, rgb2grey
-from skimage.filters import threshold_otsu, threshold_mean, rank
+from skimage.filters import threshold_otsu, threshold_mean, rank, apply_hysteresis_threshold
 from skimage.exposure import rescale_intensity, equalize_hist, equalize_adapthist
 
 from sklearn.cluster import MiniBatchKMeans
@@ -51,6 +52,43 @@ def create_binary_image(segments, shape):
 	binary_image = np.where(binary_image, 1, 0)
 
 	return binary_image
+
+
+def segment_check(segment, min_size=0, min_frac=0, edges=False, max_x=0, max_y=0):
+
+	segment_check = True
+	minr, minc, maxr, maxc = segment.bbox
+
+	if edges:
+		edge_check = (minr != 0) * (minc != 0)
+		edge_check *= (maxr != max_x)
+		edge_check *= (maxc != max_y)
+
+		segment_check *= edge_check
+
+	segment_check *= segment.filled_area >= min_size
+	segment_frac = (segment.image * segment.intensity_image).sum() / segment.filled_area
+	segment_check *= (segment_frac >= min_frac)
+
+	return segment_check
+
+def get_segments(image, binary, min_size=0, min_frac=0):
+
+	labels = measure.label(binary)
+	segments = []
+	areas = []
+
+	for segment in measure.regionprops(labels, intensity_image=image):
+		seg_check = segment_check(segment, min_size, min_frac)
+
+		if seg_check:
+			segments.append(segment)
+			areas.append(segment.filled_area)
+
+	indices = np.argsort(areas)[::-1]
+	sorted_segs = [segments[i] for i in indices]
+
+	return sorted_segs
 
 
 def prepare_composite_image(image, p_intensity=(2, 98), sm_size=7):
@@ -97,7 +135,7 @@ def cluster_colours(image, n_clusters=8, n_init=5):
 	return labels, centres
 
 
-def BD_filter(image, n_runs=5, n_clusters=10, p_intensity=(2, 98), sm_size=7, param=[0.7, 1.1, 1.40, 0.785]):
+def BD_filter(image, n_runs=5, n_clusters=10, p_intensity=(2, 98), sm_size=7, param=[0.7, 1.1, 1.40, 0.8]):
 	"Adapted from CurveAlign BDcreationHE routine"
 
 	assert image.ndim == 3
@@ -107,6 +145,11 @@ def BD_filter(image, n_runs=5, n_clusters=10, p_intensity=(2, 98), sm_size=7, pa
 	image_channels = image.shape[-1]
 
 	image_scaled = prepare_composite_image(image, p_intensity, sm_size)
+
+	#from figures import create_figure
+	#create_figure(image, 'example_rgb_composite')
+	#create_figure(image_scaled, 'example_scaled_rgb_composite')
+
 	greyscale = rgb2grey(image_scaled)
 	greyscale /= greyscale.max()	
 	
@@ -171,11 +214,13 @@ def BD_filter(image, n_runs=5, n_clusters=10, p_intensity=(2, 98), sm_size=7, pa
 	import matplotlib.pyplot as plt
 	from mpl_toolkits.mplot3d import Axes3D
 
-	plt.figure(100)
-	plt.imshow(image[:, :, 0])
+	plt.figure(100, figsize=(10, 10))
+	plt.imshow(image)
+	plt.axis('off')
 
-	plt.figure(1000)
+	plt.figure(1000, figsize=(10, 10))
 	plt.imshow(image_scaled)
+	plt.axis('off')
 
 	for i in range(n_clusters):
 		plt.figure(i)
@@ -196,24 +241,6 @@ def BD_filter(image, n_runs=5, n_clusters=10, p_intensity=(2, 98), sm_size=7, pa
 
 	return mask_image
 
-
-def segment_check(segment, min_size=0, min_frac=0, edges=False, max_x=0, max_y=0):
-
-	segment_check = True
-	minr, minc, maxr, maxc = segment.bbox
-
-	if edges:
-		edge_check = (minr != 0) * (minc != 0)
-		edge_check *= (maxr != max_x)
-		edge_check *= (maxc != max_y)
-
-		segment_check *= edge_check
-
-	segment_check *= segment.filled_area >= min_size
-	segment_frac = (segment.image * segment.intensity_image).sum() / segment.filled_area
-	segment_check *= segment_frac >= min_frac
-
-	return segment_check
 
 
 def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alpha=1.0,
@@ -239,46 +266,51 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alp
 	fibres = []
 	fibre_areas = []
 
-	cell_labels = measure.label(mask_image)
+	cell_binary = mask_image
+	fibre_binary = np.where(mask_image, 0, 1)
+
+	cell_labels = measure.label(cell_binary)
 	for cell in measure.regionprops(cell_labels, intensity_image=image_pl):
 		cell_check = segment_check(cell, min_size, 0.01)
 
 		if not cell_check:
 			minr, minc, maxr, maxc = cell.bbox
 			indices = np.mgrid[minr:maxr, minc:maxc]
-			mask_image[(indices[0], indices[1])] = 0
+			cell_binary[(indices[0], indices[1])] = 0
 
-	mask_image = np.where(mask_image, 0, 1)
-	fibre_labels = measure.label(mask_image)
-	for fibre in measure.regionprops(fibre_labels, intensity_image=image_shg):
-		fibre_check = segment_check(fibre, min_size, 0.075)
+			fibre = measure.regionprops(np.array(cell.image, dtype=int),
+							intensity_image=image_shg[(indices[0], indices[1])])[0]
 
-		if fibre_check:
-			fibres.append(fibre)
-			fibre_areas.append(fibre.filled_area)
-		else:
-			minr, minc, maxr, maxc = fibre.bbox
-			indices = np.mgrid[minr:maxr, minc:maxc]
-			mask_image[(indices[0], indices[1])] = 0
+			fibre_check = segment_check(fibre, 0, 0.075)
+			if fibre_check: fibre_binary[(indices[0], indices[1])] = 0
 
-	mask_image = np.where(mask_image, 0, 1)
-	cell_labels = measure.label(mask_image)
-
-	for cell in measure.regionprops(cell_labels, intensity_image=image_pl):
-		cell_check = segment_check(cell, min_size, 0.01)
-
-		if cell_check:
-			cells.append(cell)
-			cell_areas.append(cell.filled_area)
-
-	indices = np.argsort(fibre_areas)[::-1]
-	sorted_fibres = [fibres[i] for i in indices]
-
-	indices = np.argsort(cell_areas)[::-1]
-	sorted_cells = [cells[i] for i in indices]
-
+	sorted_fibres = get_segments(image_shg, fibre_binary, min_size, 0.075)
+	sorted_cells = get_segments(image_pl, cell_binary, min_size, 0.01)
 
 	return sorted_cells, sorted_fibres
+
+
+def hysteresis_segmentation(image, segments_low, segments_high, min_size=0, min_frac=0):
+
+	binary_low = create_binary_image(segments_low, image.shape)
+	binary_high = create_binary_image(segments_high, image.shape)
+
+	from figures import create_figure
+	create_figure(binary_low, 'binary_low_{}'.format(min_frac))
+	create_figure(binary_high, 'binary_high_{}'.format(min_frac))
+
+	labels_low, num_labels = ndi.label(binary_low)
+	# Check which connected components contain pixels from mask_high
+	sums = ndi.sum(binary_high, labels_low, np.arange(num_labels + 1))
+
+	connected_to_high = sums > 0
+	connected_to_high[0] = False
+
+	thresholded = connected_to_high[labels_low]
+
+	sorted_segs = get_segments(image, thresholded, min_size, min_frac)
+
+	return sorted_segs
 
 
 def cell_segment_analysis(image, cells, n_tensor, anis_map, angle_map):
@@ -423,7 +455,7 @@ def network_extraction(image_shg, network_name='network', scale=1.25, sigma=0.5,
 	return sorted_networks, sorted_networks_red, sorted_fibres
 
 
-def fibre_segmentation(image_shg, networks, networks_red, area_threshold=200, iterations=6):
+def fibre_segmentation(image_shg, networks, networks_red, area_threshold=200, iterations=8):
 
 	n_net = len(networks)
 	fibres = []
@@ -437,9 +469,9 @@ def fibre_segmentation(image_shg, networks, networks_red, area_threshold=200, it
 		label_image = draw_network(network, label_image, 1)
 
 		dilated_image = binary_dilation(label_image, iterations=iterations)
-		filled_image = remove_small_holes(dilated_image, area_threshold=area_threshold)
-		smoothed_image = gaussian_filter(filled_image, sigma=0.5)
-		binary_image = np.where(smoothed_image, 1, 0)
+		smoothed_image = gaussian_filter(dilated_image, sigma=0.5)
+		filled_image = remove_small_holes(smoothed_image, area_threshold=area_threshold)
+		binary_image = np.where(filled_image > 0, 1, 0)
 
 		segment = measure.regionprops(binary_image, intensity_image=image_shg)[0]
 		area = np.sum(segment.image)

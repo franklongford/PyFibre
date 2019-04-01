@@ -314,24 +314,24 @@ def FIRE(image, scale=1, alpha=0.70, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_th
 	cleaned = remove_small_objects(threshold)
 	distance = distance_transform_edt(cleaned)
 	smoothed = gaussian_filter(distance, sigma=sigma)
-	smoothed = clear_border(smoothed)
+	cleared = clear_border(smoothed)
 
 	"Set distance and angle thresholds for fibre iterator"
-	nuc_thresh = np.min([nuc_thresh, 1E-1 * scale**2 * smoothed.max()])
-	lmp_thresh = np.min([lmp_thresh, 1E-2 * scale**2 * smoothed[np.nonzero(smoothed)].mean()])
+	nuc_thresh = np.min([nuc_thresh, 1E-1 * scale**2 * cleared.max()])
+	lmp_thresh = np.min([lmp_thresh, 1E-2 * scale**2 * cleared[np.nonzero(cleared)].mean()])
 	theta_thresh = np.cos((180-angle_thresh) * np.pi / 180) + 1
 	r_thresh = int(r_thresh * scale)
 	nuc_rad = int(nuc_rad * scale)
 
-	print("Maximum distance = {}".format(smoothed.max()))
-	print("Mean distance = {}".format(smoothed[np.nonzero(smoothed)].mean()))
+	print("Maximum distance = {}".format(cleared.max()))
+	print("Mean distance = {}".format(cleared[np.nonzero(cleared)].mean()))
 	print("Using thresholds:\n nuc = {} pix\n lmp = {} pix\n angle = {} deg\n edge = {} pix".format(
 		    nuc_thresh, lmp_thresh, angle_thresh, r_thresh))
 
 	"Get global maxima for smoothed distance matrix"
-	maxima = local_maxima(smoothed, connectivity=nuc_rad)
-	nuc_node_coord = reduce_coord(np.argwhere(maxima * smoothed >= nuc_thresh),
-		            smoothed[np.where(maxima * smoothed >= nuc_thresh)], r_thresh)
+	maxima = local_maxima(cleared, connectivity=nuc_rad)
+	nuc_node_coord = reduce_coord(np.argwhere(maxima * cleared >= nuc_thresh),
+		            cleared[np.where(maxima * cleared >= nuc_thresh)], r_thresh)
 
 	"Set up network arrays"
 	n_nuc = nuc_node_coord.shape[0]
@@ -349,8 +349,8 @@ def FIRE(image, scale=1, alpha=0.70, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_th
 		Aij.nodes[nuc]['nuc'] = nuc
 		Aij.nodes[nuc]['growing'] = False
 
-		ring_filter = ring(np.zeros(smoothed.shape), nuc_coord, [r_thresh // 2], 1)
-		lmp_coord, lmp_vectors, lmp_r = new_branches(smoothed, nuc_coord, ring_filter, 
+		ring_filter = ring(np.zeros(cleared.shape), nuc_coord, [r_thresh // 2], 1)
+		lmp_coord, lmp_vectors, lmp_r = new_branches(cleared, nuc_coord, ring_filter, 
 				                             lmp_thresh)
 		n_lmp = lmp_coord.shape[0]
 
@@ -388,7 +388,7 @@ def FIRE(image, scale=1, alpha=0.70, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_th
 
 		#"""Serial Version
 		for fibre in fibre_grow:
-			grow(fibre, smoothed, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh)
+			grow(fibre, cleared, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh)
 		#"""
 
 		"""Multi Threading Version
@@ -400,7 +400,7 @@ def FIRE(image, scale=1, alpha=0.70, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_th
 
 			for fibre in batch:
 
-				thread = threading.Thread(target=grow, args=(fibre, smoothed, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh))
+				thread = threading.Thread(target=grow, args=(fibre, cleared, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh))
 				thread.daemon = True
 				thread_pool.append(thread)			
 		

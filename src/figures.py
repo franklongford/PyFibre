@@ -24,13 +24,15 @@ from filters import form_structure_tensor
 from analysis import tensor_analysis
 
 
-def create_figure(image, filename, figsize=(10, 10), ext='png'):
+def create_figure(image, filename, figsize=(10, 10), ext='png', cmap='viridis'):
 
 	import matplotlib.pyplot as plt
 
 	plt.figure(figsize=figsize)
-	plt.imshow(image)
+	if image.ndim == 2: plt.imshow(image, cmap=cmap)
+	else: plt.imshow(image)
 	plt.axis('off')
+	plt.tight_layout()
 	plt.savefig(filename + '.' + ext)
 
 

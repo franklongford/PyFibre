@@ -574,6 +574,14 @@ class pyfibre_viewer:
 			'Cell GLCM IDM' : {"info" : "PL GLCM angle-averaged inverse difference moment", "metric" : DoubleVar(), "tag" : "texture"},
 			'Cell GLCM Variance' : {"info" : "PL GLCM angle-averaged variance", "metric" : DoubleVar(), "tag" : "texture"},
 			'Cell GLCM Cluster' : {"info" : "PL GLCM angle-averaged clustering tendency", "metric" : DoubleVar(), "tag" : "texture"},
+			'Muscle GLCM Contrast' : {"info" : "PL GLCM angle-averaged contrast", "metric" : DoubleVar(), "tag" : "texture"},
+			'Muscle GLCM Homogeneity' : {"info" : "PL GLCM angle-averaged homogeneity", "metric" : DoubleVar(), "tag" : "texture"},
+			'Muscle GLCM Dissimilarity' : {"info" : "PL GLCM angle-averaged dissimilarity", "metric" : DoubleVar(), "tag" : "texture"},
+			'Muscle GLCM Correlation' : {"info" : "PL GLCM angle-averaged correlation", "metric" : DoubleVar(), "tag" : "texture"},
+			'Muscle GLCM Energy' : {"info" : "PL GLCM angle-averaged energy", "metric" : DoubleVar(), "tag" : "texture"},
+			'Muscle GLCM IDM' : {"info" : "PL GLCM angle-averaged inverse difference moment", "metric" : DoubleVar(), "tag" : "texture"},
+			'Muscle GLCM Variance' : {"info" : "PL GLCM angle-averaged variance", "metric" : DoubleVar(), "tag" : "texture"},
+			'Muscle GLCM Cluster' : {"info" : "PL GLCM angle-averaged clustering tendency", "metric" : DoubleVar(), "tag" : "texture"},
 			'Cell Area' : {"info" : "Average number of pixels covered by cells", "metric" : DoubleVar(), "tag" : "content"},
 			'Cell Linearity' : {"info" : "Average cell segment linearity", "metric" : DoubleVar(), "tag" : "shape"}, 
 			'Cell Coverage' : {"info" : "Ratio of image covered by cell", "metric" : DoubleVar(), "tag" : "content"},		
@@ -713,6 +721,28 @@ class pyfibre_viewer:
 			self.display_tensor(self.tensor_tab.canvas, self.image_shg)
 			self.update_log("Displaying SHG tensor image {}".format(fig_name))
 
+			try:
+				networks = ut.load_region(data_dir + fig_name + "_network")
+				self.display_network(self.network_tab.canvas, self.image_shg, networks)
+				self.update_log("Displaying network for {}".format(fig_name))
+			except IOError:
+				self.update_log("Unable to display network for {}".format(fig_name))
+
+			try:
+				fibres = ut.load_region(data_dir + fig_name + "_fibre")
+				fibres = ut.flatten_list(fibres)
+				self.display_network(self.fibre_tab.canvas, self.image_shg, fibres, 1)
+				self.update_log("Displaying fibres for {}".format(fig_name))
+			except IOError:
+				self.update_log("Unable to display fibres for {}".format(fig_name))
+
+			try:
+				segments = ut.load_region(data_dir + fig_name + "_fibre_segment")
+				self.display_regions(self.segment_tab.canvas, self.image_shg, segments)
+				self.update_log("Displaying fibre segments for {}".format(fig_name))
+			except IOError:
+				self.update_log("Unable to display fibre segments for {}".format(fig_name))
+
 		if pl_analysis:
 			self.image_pl = clip_intensities(image_pl, 
 					p_intensity=(self.parent.p0.get(), self.parent.p1.get())) * 255.999
@@ -720,35 +750,13 @@ class pyfibre_viewer:
 			pl_image_tk = ImageTk.PhotoImage(Image.fromarray(self.image_pl.astype('uint8')))
 			self.display_image(self.pl_image_tab.canvas, pl_image_tk)
 			self.update_log("Displaying PL image {}".format(fig_name))
-
-		try:
-			networks = ut.load_region(data_dir + fig_name + "_network")
-			self.display_network(self.network_tab.canvas, self.image_shg, networks)
-			self.update_log("Displaying network for {}".format(fig_name))
-		except IOError:
-			self.update_log("Unable to display network for {}".format(fig_name))
-
-		try:
-			fibres = ut.load_region(data_dir + fig_name + "_fibre")
-			fibres = ut.flatten_list(fibres)
-			self.display_network(self.fibre_tab.canvas, self.image_shg, fibres, 1)
-			self.update_log("Displaying fibres for {}".format(fig_name))
-		except IOError:
-			self.update_log("Unable to display fibres for {}".format(fig_name))
-
-		try:
-			segments = ut.load_region(data_dir + fig_name + "_fibre_segment")
-			self.display_regions(self.segment_tab.canvas, self.image_shg, segments)
-			self.update_log("Displaying fibre segments for {}".format(fig_name))
-		except IOError:
-			self.update_log("Unable to display fibre segments for {}".format(fig_name))
 		
-		try:	
-			cells = ut.load_region(data_dir + fig_name + "_cell_segment")
-			self.display_regions(self.cell_tab.canvas, self.image_pl, cells)
-			self.update_log("Displaying cell segments for {}".format(fig_name))
-		except IOError:
-			self.update_log("Unable to display cell segments for {}".format(fig_name))
+			try:	
+				cells = ut.load_region(data_dir + fig_name + "_cell_segment")
+				self.display_regions(self.cell_tab.canvas, self.image_pl, cells)
+				self.update_log("Displaying cell segments for {}".format(fig_name))
+			except IOError:
+				self.update_log("Unable to display cell segments for {}".format(fig_name))
 
 		try:
 			loaded_metrics = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + fig_name)).iloc[0]

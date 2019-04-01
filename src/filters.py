@@ -56,6 +56,7 @@ def vesselness(eig1, eig2, beta1=0.1, beta2=0.1):
 
 
 def hysteresis(image, alpha=1.0):
+	""
 
 	low = np.min([alpha * threshold_mean(image), threshold_li(image)])
 	high = threshold_isodata(image)
