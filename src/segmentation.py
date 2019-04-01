@@ -18,6 +18,7 @@ from networkx.algorithms import approximation as approx
 from networkx.algorithms.efficiency import local_efficiency, global_efficiency
 
 import scipy.ndimage as ndi
+from scipy.ndimage import distance_transform_edt
 from scipy.ndimage.filters import gaussian_filter, median_filter
 from scipy.ndimage.morphology import binary_fill_holes, binary_dilation, binary_closing, binary_opening
 
@@ -27,7 +28,7 @@ from skimage.transform import rescale, resize
 from skimage.feature import greycomatrix
 from skimage.morphology import remove_small_objects, remove_small_holes, dilation, disk
 from skimage.color import grey2rgb, rgb2grey
-from skimage.filters import threshold_otsu, threshold_mean, rank, apply_hysteresis_threshold
+from skimage.filters import threshold_otsu, threshold_isodata, threshold_mean, rank, apply_hysteresis_threshold
 from skimage.exposure import rescale_intensity, equalize_hist, equalize_adapthist
 
 from sklearn.cluster import MiniBatchKMeans
@@ -266,7 +267,7 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alp
 	fibres = []
 	fibre_areas = []
 
-	cell_binary = mask_image
+	cell_binary = np.array(mask_image, dtype=int)
 	fibre_binary = np.where(mask_image, 0, 1)
 
 	cell_labels = measure.label(cell_binary)
@@ -282,7 +283,10 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alp
 							intensity_image=image_shg[(indices[0], indices[1])])[0]
 
 			fibre_check = segment_check(fibre, 0, 0.075)
-			if fibre_check: fibre_binary[(indices[0], indices[1])] = 0
+			if fibre_check: fibre_binary[(indices[0], indices[1])] = 1
+
+	fibre_binary = remove_small_holes(fibre_binary)
+	cell_binary = remove_small_holes(cell_binary)
 
 	sorted_fibres = get_segments(image_shg, fibre_binary, min_size, 0.075)
 	sorted_cells = get_segments(image_pl, cell_binary, min_size, 0.01)
@@ -299,6 +303,29 @@ def hysteresis_segmentation(image, segments_low, segments_high, min_size=0, min_
 	create_figure(binary_low, 'binary_low_{}'.format(min_frac))
 	create_figure(binary_high, 'binary_high_{}'.format(min_frac))
 
+	"""
+	distance_low = distance_transform_edt(binary_low)
+	distance_high = distance_transform_edt(binary_high)
+
+	import matplotlib.pyplot as plt
+
+	sum_distance = (distance_low + distance_high)
+	diff_distance = abs(distance_low - distance_high) 
+	thresholded = np.where(sum_distance > 8, 1, 0) * np.where(diff_distance > 8, 1, 0)
+
+	plt.figure(0)
+	plt.imshow(sum_distance)
+	plt.figure(1)
+	plt.imshow(diff_distance)
+	plt.figure(2)
+	plt.imshow(np.where(sum_distance > 5, 1, 0))
+	plt.figure(3)
+	plt.imshow(np.where(diff_distance > 3, 1, 0))
+	plt.figure(4)
+	plt.imshow(thresholded)
+	plt.show()
+
+	"""
 	labels_low, num_labels = ndi.label(binary_low)
 	# Check which connected components contain pixels from mask_high
 	sums = ndi.sum(binary_high, labels_low, np.arange(num_labels + 1))
@@ -307,6 +334,7 @@ def hysteresis_segmentation(image, segments_low, segments_high, min_size=0, min_
 	connected_to_high[0] = False
 
 	thresholded = connected_to_high[labels_low]
+	
 
 	sorted_segs = get_segments(image, thresholded, min_size, min_frac)
 
