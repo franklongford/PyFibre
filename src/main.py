@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 import matplotlib
-matplotlib.use("Agg")
+#matplotlib.use("Agg")
 
 from scipy.ndimage.filters import gaussian_filter
 
@@ -32,8 +32,8 @@ from filters import form_nematic_tensor, form_structure_tensor
 from figures import create_figure, create_tensor_image, create_region_image, create_network_image
 
 
-def analyse_image(input_file_names, prefix, working_dir=None, scale=1, 
-				p_intensity=(1, 99), p_denoise=(2, 25), sigma=0.5, alpha=0.2,
+def analyse_image(input_file_names, prefix, working_dir=None, scale=1.4, 
+				p_intensity=(1, 99), p_denoise=(5, 35), sigma=0.5, alpha=0.5,
 				ow_metric=False, ow_segment=False, ow_network=False, ow_figure=False,
 				threads=8):
 	"""
@@ -169,7 +169,8 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 		start_net = time.time()
 
 		networks, networks_red, fibres = seg.network_extraction(image_shg, data_dir + image_name,
-						sigma=sigma, p_denoise=p_denoise, threads=threads)
+						scale=scale, sigma=sigma, alpha=alpha, p_denoise=p_denoise,
+						threads=threads)
 
 		ut.save_region(networks, data_dir + image_name + "_network")
 		ut.save_region(networks_red, data_dir + image_name + "_network_reduced")
@@ -201,7 +202,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 			fibre_seg = seg.hysteresis_segmentation(image_shg, fibre_col_seg, fibre_net_seg, 400, 0.075)
 
 			fibre_binary = seg.create_binary_image(fibre_seg, image_shg.shape)
-			fibre_filter = np.where(fibre_binary, 2.5, 0.25)
+			fibre_filter = np.where(fibre_binary, 3, 0.1)
 			fibre_filter = gaussian_filter(fibre_filter, 1.0)
 
 			cell_seg, _ = seg.cell_segmentation(image_shg * fibre_filter, 

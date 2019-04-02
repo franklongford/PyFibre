@@ -23,11 +23,14 @@ def import_image(image_name):
 	"Image importer able to automatically deal with stacks and mixed SHG/PL image types"
 
 	image_orig = ut.load_image(image_name)
+	print("Input image shape = {}".format(image_orig.shape))
 
 	if image_orig.ndim > 2:
-
+		
 		if image_orig.ndim == 4:
-
+			print("Number of image types = {}".format(image_orig.shape[0]))
+			print("Size of image = {}".format(image_orig.shape[1:3]))
+			print("Number of stacks = {}".format(image_orig.shape[3]))
 			if image_orig.shape[0] == 2:
 
 				image_euclid = np.sqrt(np.sum(image_orig[0]**2, axis=-1))
@@ -64,6 +67,8 @@ def import_image(image_name):
 				return image_shg, image_pl, image_tran
 
 		else:
+			print("Size of image = {}".format(image_orig.shape[:2]))
+			print("Number of stacks = {}".format(image_orig.shape[2]))
 			smallest_axis = np.argmin(image_orig.shape)
 
 			image_euclid = np.sqrt(np.sum(image_orig**2, axis=smallest_axis))

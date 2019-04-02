@@ -136,7 +136,7 @@ def cluster_colours(image, n_clusters=8, n_init=5):
 	return labels, centres
 
 
-def BD_filter(image, n_runs=1, n_clusters=10, p_intensity=(2, 98), sm_size=7, param=[0.7, 1.1, 1.40, 0.78]):
+def BD_filter(image, n_runs=1, n_clusters=10, p_intensity=(2, 98), sm_size=7, param=[0.7, 1.1, 1.40, 0.82]):
 	"Adapted from CurveAlign BDcreationHE routine"
 
 	assert image.ndim == 3
@@ -254,14 +254,17 @@ def BD_filter(image, n_runs=1, n_clusters=10, p_intensity=(2, 98), sm_size=7, pa
 	plt.figure(1001)
 	plt.scatter(X[cell_clusters], Y[cell_clusters])
 	plt.scatter(X[not_clusters], Y[not_clusters])
+	for i in range(n_clusters): plt.annotate(i, (X[i], Y[i]))
 
 	plt.figure(1002)
 	plt.scatter(X[cell_clusters], Z[cell_clusters])
 	plt.scatter(X[not_clusters], Z[not_clusters])
+	for i in range(n_clusters): plt.annotate(i, (X[i], Z[i]))
 
 	plt.figure(1003)
 	plt.scatter(X[cell_clusters], I[cell_clusters])
 	plt.scatter(X[not_clusters], I[not_clusters])
+	for i in range(n_clusters): plt.annotate(i, (X[i], I[i]))
 
 	plt.show()	
 	#"""
@@ -461,8 +464,8 @@ def segment_analysis(image, segment, n_tensor, anis_map, angle_map):
 		segment_hu)
 
 
-def network_extraction(image_shg, network_name='network', scale=1.25, sigma=0.5, p_denoise=(2, 25), 
-			threads=8):
+def network_extraction(image_shg, network_name='network', scale=1, sigma=0.75, alpha=0.5,
+			p_denoise=(3, 30), threads=8):
 	"""
 	Extract fibre network using modified FIRE algorithm
 	"""
@@ -471,8 +474,8 @@ def network_extraction(image_shg, network_name='network', scale=1.25, sigma=0.5,
 	image_nl = nl_means(image_shg, p_denoise=p_denoise)
 
 	"Call FIRE algorithm to extract full image network"
-	print("Calling FIRE algorithm using image scale {}".format(scale))
-	Aij = FIRE(image_nl, scale=scale, sigma=sigma, max_threads=threads)
+	print("Calling FIRE algorithm using image scale {}  alpha  {}".format(scale, alpha))
+	Aij = FIRE(image_nl, scale=scale, sigma=sigma, alpha=alpha, max_threads=threads)
 	nx.write_gpickle(Aij, network_name + "_graph.pkl")
 
 	print("Extracting and simplifying fibre networks from graph")

@@ -269,7 +269,7 @@ def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 			Aij.nodes[fibre]['direction'] = (new_dir_vector / new_dir_r)
 
 
-def FIRE(image, scale=1, alpha=0.25, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_thresh=0.15, 
+def FIRE(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_thresh=0.15, 
              angle_thresh=70, r_thresh=8, max_threads=8):
 	"""
 	FIRE algorithm to extract fibre network
@@ -311,14 +311,34 @@ def FIRE(image, scale=1, alpha=0.25, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_th
 	"Apply tubeness transform to enhance image fibres"
 	image_TB = tubeness(image_scale, 2 * sigma)
 	threshold = hysteresis(image_TB, alpha=alpha)
-	cleaned = remove_small_objects(threshold)
+	cleaned = remove_small_objects(threshold, min_size=int(64*scale**2))
 	distance = distance_transform_edt(cleaned)
 	smoothed = gaussian_filter(distance, sigma=sigma)
 	cleared = clear_border(smoothed)
 
+	"""
+	import matplotlib.pyplot as plt
+
+	plt.figure(0)
+	plt.imshow(image_scale)
+	plt.figure(1)
+	plt.imshow(image_TB)
+	plt.figure(2)
+	plt.imshow(threshold)
+	plt.figure(3)
+	plt.imshow(cleaned)
+	plt.figure(4)
+	plt.imshow(distance)
+	plt.figure(5)
+	plt.imshow(smoothed)
+	plt.figure(6)
+	plt.imshow(cleared)
+	plt.show()
+	#"""
+
 	"Set distance and angle thresholds for fibre iterator"
-	nuc_thresh = np.min([nuc_thresh, 1E-1 * scale**2 * cleared.max()])
-	lmp_thresh = np.min([lmp_thresh, 1E-2 * scale**2 * cleared[np.nonzero(cleared)].mean()])
+	nuc_thresh = np.min([nuc_thresh * scale**2, 1E-1 * scale**2 * cleared.max()])
+	lmp_thresh = np.min([lmp_thresh * scale**2, 1E-1 * scale**2 * cleared[np.nonzero(cleared)].mean()])
 	theta_thresh = np.cos((180-angle_thresh) * np.pi / 180) + 1
 	r_thresh = int(r_thresh * scale)
 	nuc_rad = int(nuc_rad * scale)

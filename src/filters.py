@@ -35,7 +35,7 @@ def spiral_tv(image):
 
 def tubeness(image, sigma=None):
 
-	H_elems = hessian_matrix(image, order="xy", sigma=sigma, mode='wrap')
+	H_elems = hessian_matrix(image, order="xy", sigma=sigma, mode='reflect')
 	H_eigen = hessian_matrix_eigvals(H_elems)
 	tube = np.where(H_eigen[1] < 0, abs(H_eigen[1]), 0)
 
