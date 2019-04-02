@@ -308,17 +308,21 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.4,
 			filenames = pd.Series(['{}_cell_segment.pkl'.format(filename)], name='File')		
 			cell_id = pd.Series(np.arange(1), name='ID')
 			cell_metrics = np.full_like(np.ones((1, len(cell_columns))), None)
-			muscle_metrics = np.full_like(np.ones((1, 9)), None)
+			muscle_metrics = np.full_like(np.ones((len(fibre_seg), len(muscle_columns))), None)
 
-		fibre_metrics = np.concatenate((fibre_metrics, fibre_hu, muscle_metrics), axis=-1)
+		fibre_metrics = np.concatenate((fibre_metrics, fibre_hu), axis=-1)
 
-		fibre_dataframe = pd.DataFrame(data=fibre_metrics, columns=fibre_columns + muscle_columns)
+		fibre_dataframe = pd.DataFrame(data=fibre_metrics, columns=fibre_columns)
 		fibre_dataframe = pd.concat((filenames, fibre_id, fibre_dataframe), axis=1)
 		fibre_dataframe.to_pickle('{}_fibre_metric.pkl'.format(filename))
 
 		cell_dataframe = pd.DataFrame(data=cell_metrics, columns=cell_columns)
 		cell_dataframe = pd.concat((filenames, cell_id, cell_dataframe), axis=1)
 		cell_dataframe.to_pickle('{}_cell_metric.pkl'.format(filename))
+
+		muscle_dataframe = pd.DataFrame(data=muscle_metrics, columns=muscle_columns)
+		muscle_dataframe = pd.concat((filenames, fibre_id, muscle_dataframe), axis=1)
+		muscle_dataframe.to_pickle('{}_muscle_metric.pkl'.format(filename))
 
 		print("Performing Global Image analysis")
 
@@ -407,8 +411,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.4,
 
 		else: 
 			global_cell_metrics = np.full_like(np.ones((len(['No. Cells'] + cell_columns[:-5]))), None)
-			global_muscle_metrics = np.full_like(np.ones((1, 9)), None)
-
+			global_muscle_metrics = np.full_like(np.ones((len(muscle_columns))), None)
 
 		global_metrics = np.concatenate((global_fibre_metrics, global_muscle_metrics, 
 			global_cell_metrics), axis=-1)
