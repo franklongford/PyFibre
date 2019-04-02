@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 import matplotlib
-#matplotlib.use("Agg")
+matplotlib.use("Agg")
 
 from scipy.ndimage.filters import gaussian_filter
 
@@ -33,7 +33,7 @@ from figures import create_figure, create_tensor_image, create_region_image, cre
 
 
 def analyse_image(input_file_names, prefix, working_dir=None, scale=1, 
-				p_intensity=(1, 99), p_denoise=(2, 25), sigma=0.5, alpha=0.5,
+				p_intensity=(1, 99), p_denoise=(2, 25), sigma=0.5, alpha=0.2,
 				ow_metric=False, ow_segment=False, ow_network=False, ow_figure=False,
 				threads=8):
 	"""
@@ -122,13 +122,14 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 	image_shg, image_pl, image_tran = load_shg_pl(input_file_names)
 	pl_analysis = ~np.any(image_pl == None) * ~np.any(image_tran == None)
 
-	print(pl_analysis)
-
 	"Pre-process image to remove noise"
-	image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
 	if pl_analysis: 
+		image_shg *= image_tran
+		image_pl *= image_tran
 		image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
 		image_tran = equalize_adapthist(image_tran)
+	image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
+
 	try:
 		networks = ut.load_region(data_dir + image_name + "_network")
 		networks_red = ut.load_region(data_dir + image_name + "_network_reduced")
@@ -196,9 +197,17 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1,
 		if pl_analysis:
 
 			cell_seg, fibre_col_seg = seg.cell_segmentation(image_shg, image_pl, image_tran)
-			ut.save_region(cell_seg, '{}_cell_segment'.format(filename))
 
 			fibre_seg = seg.hysteresis_segmentation(image_shg, fibre_col_seg, fibre_net_seg, 400, 0.075)
+
+			fibre_binary = seg.create_binary_image(fibre_seg, image_shg.shape)
+			fibre_filter = np.where(fibre_binary, 2.5, 0.25)
+			fibre_filter = gaussian_filter(fibre_filter, 1.0)
+
+			cell_seg, _ = seg.cell_segmentation(image_shg * fibre_filter, 
+							image_pl, image_tran)
+
+			ut.save_region(cell_seg, '{}_cell_segment'.format(filename))		
 			ut.save_region(fibre_seg, '{}_fibre_segment'.format(filename))
 
 		else:

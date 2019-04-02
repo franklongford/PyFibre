@@ -269,7 +269,7 @@ def grow(fibre, image, Aij, tot_node_coord, lmp_thresh, theta_thresh, r_thresh):
 			Aij.nodes[fibre]['direction'] = (new_dir_vector / new_dir_r)
 
 
-def FIRE(image, scale=1, alpha=0.70, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_thresh=0.15, 
+def FIRE(image, scale=1, alpha=0.25, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_thresh=0.15, 
              angle_thresh=70, r_thresh=8, max_threads=8):
 	"""
 	FIRE algorithm to extract fibre network

@@ -94,7 +94,7 @@ class pyfibre_gui:
 
 		self.file_display = Frame(self.master)
 		self.create_file_display(self.file_display)
-		self.file_display.place(x=5, y=220, height=600, width=1200)
+		self.file_display.place(x=5, y=220, height=600, width=800)
 
 
 	def create_title(self, frame):
@@ -118,29 +118,29 @@ class pyfibre_gui:
 			self.options = pyfibre_options(self)
 
 
-	def create_file_display(self, frame):
+	def create_file_display(self, frame,  button_w= 18):
 
-		frame.select_im_button = Button(frame, width=12,
+		frame.select_im_button = Button(frame, width=button_w,
 				   text="Load Files",
 				   command=self.add_images)
 		frame.select_im_button.grid(column=0, row=0)
 
-		frame.select_dir_button = Button(frame, width=12,
+		frame.select_dir_button = Button(frame, width=button_w,
 				   text="Load Folder",
 				   command=self.add_directory)
 		frame.select_dir_button.grid(column=1, row=0)
 
-		frame.key = Entry(frame, width=10)
+		frame.key = Entry(frame, width=button_w)
 		frame.key.configure(background='#d8baa9')
 		frame.key.grid(column=3, row=0, sticky=(N,W,E,S))
 
-		frame.select_dir_button = Button(frame, width=12,
+		frame.select_dir_button = Button(frame, width=button_w,
 				   text="Filter",
 				   command=lambda : self.del_images([filename for filename in self.input_prefixes \
 							if (filename.find(frame.key.get()) == -1)]))
 		frame.select_dir_button.grid(column=2, row=0)
 
-		frame.delete_im_button = Button(frame, width=12,
+		frame.delete_im_button = Button(frame, width=button_w,
 				   text="Delete",
 				   command=lambda : self.del_images(self.file_display.tree.selection()))
 		frame.delete_im_button.grid(column=4, row=0)
@@ -153,15 +153,15 @@ class pyfibre_gui:
 		frame.tree.heading('pl', text='PL')
 		frame.tree.grid(column=0, row=1, columnspan=5, sticky=(N,W,E,S))
 
-		frame.run_button = Button(frame, width=40,
+		frame.run_button = Button(frame, width=3*button_w,
 				   text="GO",
 				   command=self.write_run)
 		frame.run_button.grid(column=0, row=2, columnspan=3)
 
-		frame.stop_button = Button(frame, width=20,
+		frame.stop_button = Button(frame, width=2*button_w,
 				   text="STOP",
 				   command=self.stop_run, state=DISABLED)
-		frame.stop_button.grid(column=2, row=2, columnspan=3)
+		frame.stop_button.grid(column=2, row=2, columnspan=2)
 
 		frame.progress = ttk.Progressbar(frame, orient=HORIZONTAL, length=400, mode='determinate')
 		frame.progress.grid(column=0, row=3, columnspan=5)

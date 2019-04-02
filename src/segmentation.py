@@ -127,7 +127,7 @@ def cluster_colours(image, n_clusters=8, n_init=5):
 	X = np.array(image.reshape((image_size, image_channels)), dtype=float)
 	clustering = MiniBatchKMeans(n_clusters=n_clusters, n_init=n_init, 
 				    reassignment_ratio=0.99, init_size=n_init*100,
-				    max_no_improvement=10)
+				    max_no_improvement=15)
 	clustering.fit(X)
 
 	labels = clustering.labels_.reshape(image_shape)
@@ -136,7 +136,7 @@ def cluster_colours(image, n_clusters=8, n_init=5):
 	return labels, centres
 
 
-def BD_filter(image, n_runs=5, n_clusters=10, p_intensity=(2, 98), sm_size=7, param=[0.7, 1.1, 1.40, 0.8]):
+def BD_filter(image, n_runs=1, n_clusters=10, p_intensity=(2, 98), sm_size=7, param=[0.7, 1.1, 1.40, 0.78]):
 	"Adapted from CurveAlign BDcreationHE routine"
 
 	assert image.ndim == 3
@@ -147,13 +147,35 @@ def BD_filter(image, n_runs=5, n_clusters=10, p_intensity=(2, 98), sm_size=7, pa
 
 	image_scaled = prepare_composite_image(image, p_intensity, sm_size)
 
-	#from figures import create_figure
-	#create_figure(image, 'example_rgb_composite')
-	#create_figure(image_scaled, 'example_scaled_rgb_composite')
-
 	greyscale = rgb2grey(image_scaled)
-	greyscale /= greyscale.max()	
+	greyscale /= greyscale.max()
+
+	"""
+	import matplotlib.pyplot as plt	
+
+	plt.figure(0)
+	plt.imshow(greyscale, cmap='binary_r')
+
+	low = threshold_mean(greyscale)
+	high = threshold_otsu(greyscale)
+
+	hyst = apply_hysteresis_threshold(greyscale, low, high)
+
+	plt.figure(1)
+	plt.imshow(hyst, cmap='binary_r')
 	
+	plt.show()
+
+	hyst = remove_small_objects(hyst, min_size=64)
+	hyst = binary_closing(hyst, iterations=1)
+
+	holes = remove_small_objects(~hyst, min_size=1000)
+
+	holes = binary_closing(holes)
+	mask_image = binary_fill_holes(holes)
+
+	"""
+
 	tot_labels = []
 	tot_centres = []
 	tot_cell_clusters = []
@@ -202,13 +224,13 @@ def BD_filter(image, n_runs=5, n_clusters=10, p_intensity=(2, 98), sm_size=7, pa
 	for i in cell_clusters: epith_cell += segmented_image[i]
 	epith_grey = rgb2grey(epith_cell)
 
-	"""	
 	"Convert RGB centroids to spherical coordinates"
 	X = np.arcsin(norm_centres[:, 0])
 	Y = np.arcsin(norm_centres[:, 1])
 	Z = np.arccos(norm_centres[:, 2])
 	I = intensities
 
+	"""
 	print(X, Y, Z, I)
 	print((X <= param[0]) * (Y <= param[1]) * (Z <= param[2]) * (I <= param[3]))
 
@@ -227,8 +249,22 @@ def BD_filter(image, n_runs=5, n_clusters=10, p_intensity=(2, 98), sm_size=7, pa
 		plt.figure(i)
 		plt.imshow(segmented_image[i])
 
-	plt.show()
-	#"""	
+	not_clusters = [i for i in range(n_clusters) if i not in cell_clusters]
+
+	plt.figure(1001)
+	plt.scatter(X[cell_clusters], Y[cell_clusters])
+	plt.scatter(X[not_clusters], Y[not_clusters])
+
+	plt.figure(1002)
+	plt.scatter(X[cell_clusters], Z[cell_clusters])
+	plt.scatter(X[not_clusters], Z[not_clusters])
+
+	plt.figure(1003)
+	plt.scatter(X[cell_clusters], I[cell_clusters])
+	plt.scatter(X[not_clusters], I[not_clusters])
+
+	plt.show()	
+	#"""
 
 	"Dilate binary image to smooth regions and remove small holes / objects"
 	epith_cell_BW = np.where(epith_grey, True, False)
@@ -245,13 +281,12 @@ def BD_filter(image, n_runs=5, n_clusters=10, p_intensity=(2, 98), sm_size=7, pa
 
 
 def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alpha=1.0,
-			min_size=400, edges=False):
+			min_size=500, edges=False):
 	"Return binary filter for cellular identification"
 
 
 	"Create composite RGB image from SHG, PL and transmission"
-	image_stack = np.stack((1.05 * equalize_adapthist(image_shg),
-			 image_pl, equalize_adapthist(image_tran)), axis=-1)
+	image_stack = np.stack((image_shg, image_pl, image_tran), axis=-1)
 	magnitudes = np.sqrt(np.sum(image_stack**2, axis=-1))
 	image_stack /= np.repeat(magnitudes, 3).reshape(image_stack.shape)
 
@@ -294,38 +329,20 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alp
 	return sorted_cells, sorted_fibres
 
 
-def hysteresis_segmentation(image, segments_low, segments_high, min_size=0, min_frac=0):
+def hysteresis_segmentation(image, segments_low, segments_high, iterations=2, min_size=0, min_frac=0):
 
 	binary_low = create_binary_image(segments_low, image.shape)
 	binary_high = create_binary_image(segments_high, image.shape)
 
-	from figures import create_figure
-	create_figure(binary_low, 'binary_low_{}'.format(min_frac))
-	create_figure(binary_high, 'binary_high_{}'.format(min_frac))
+	binary_low = binary_dilation(binary_low, iterations=1)
+	binary_high = binary_dilation(binary_high, iterations=2)
+
+	#"""
+	overlap = np.where(binary_low * binary_high + binary_high, 1, 0)
+	thresholded = remove_small_holes(overlap)
 
 	"""
-	distance_low = distance_transform_edt(binary_low)
-	distance_high = distance_transform_edt(binary_high)
-
-	import matplotlib.pyplot as plt
-
-	sum_distance = (distance_low + distance_high)
-	diff_distance = abs(distance_low - distance_high) 
-	thresholded = np.where(sum_distance > 8, 1, 0) * np.where(diff_distance > 8, 1, 0)
-
-	plt.figure(0)
-	plt.imshow(sum_distance)
-	plt.figure(1)
-	plt.imshow(diff_distance)
-	plt.figure(2)
-	plt.imshow(np.where(sum_distance > 5, 1, 0))
-	plt.figure(3)
-	plt.imshow(np.where(diff_distance > 3, 1, 0))
-	plt.figure(4)
-	plt.imshow(thresholded)
-	plt.show()
-
-	"""
+	
 	labels_low, num_labels = ndi.label(binary_low)
 	# Check which connected components contain pixels from mask_high
 	sums = ndi.sum(binary_high, labels_low, np.arange(num_labels + 1))
@@ -334,9 +351,10 @@ def hysteresis_segmentation(image, segments_low, segments_high, min_size=0, min_
 	connected_to_high[0] = False
 
 	thresholded = connected_to_high[labels_low]
+	#"""
 	
-
-	sorted_segs = get_segments(image, thresholded, min_size, min_frac)
+	smoothed = gaussian_filter(thresholded, sigma=0.15)
+	sorted_segs = get_segments(image, smoothed, min_size, min_frac)
 
 	return sorted_segs
 
