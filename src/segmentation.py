@@ -343,7 +343,6 @@ def hysteresis_segmentation(image, segments_low, segments_high, iterations=2, mi
 	#"""
 	overlap = np.where(binary_low * binary_high + binary_high, 1, 0)
 	thresholded = remove_small_holes(overlap)
-
 	"""
 	
 	labels_low, num_labels = ndi.label(binary_low)
@@ -356,7 +355,7 @@ def hysteresis_segmentation(image, segments_low, segments_high, iterations=2, mi
 	thresholded = connected_to_high[labels_low]
 	#"""
 	
-	smoothed = gaussian_filter(thresholded, sigma=0.15)
+	smoothed = gaussian_filter(thresholded, sigma=0.10)
 	sorted_segs = get_segments(image, smoothed, min_size, min_frac)
 
 	return sorted_segs
