@@ -343,7 +343,7 @@ def hysteresis_segmentation(image, segments_low, segments_high, iterations=2, mi
 	binary_high = create_binary_image(segments_high, image.shape)
 
 	binary_low = binary_dilation(binary_low, iterations=1)
-	binary_high = binary_dilation(binary_high, iterations=2)
+	binary_high = binary_dilation(binary_high, iterations=1)
 
 	#"""
 	overlap = np.where(binary_low * binary_high + binary_high, True, False)

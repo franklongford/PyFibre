@@ -25,12 +25,19 @@ def import_image(image_name):
 	image_orig = ut.load_image(image_name)
 	print("Input image shape = {}".format(image_orig.shape))
 
+	if '-pl-shg' in image_name.lower() and image_orig.shape[0] != 3:
+		print(f"Reordering image shape from {image_orig.shape} to {image_orig.shape[2:] + image_orig.shape[:2]}")
+		image_orig_reorder = np.moveaxis(image_orig, (0, 1, 2), (1, 2, 0))
+		assert abs(image_orig_reorder[0] - image_orig[:, :, 0]).sum() < 1E-5
+		image_orig = image_orig_reorder
+
 	if image_orig.ndim > 2:
+		print("Number of image types = {}".format(image_orig.shape[0]))
 		
 		if image_orig.ndim == 4:
-			print("Number of image types = {}".format(image_orig.shape[0]))
 			print("Size of image = {}".format(image_orig.shape[1:3]))
 			print("Number of stacks = {}".format(image_orig.shape[3]))
+
 			if image_orig.shape[0] == 2:
 
 				image_mean = np.mean(image_orig[0], axis=-1)
@@ -56,6 +63,16 @@ def import_image(image_name):
 				image_tran = clip_intensities(image_mean, p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
 
 				return image_shg, image_pl, image_tran
+
+		elif image_orig.ndim == 3:
+			print("Size of image = {}".format(image_orig.shape[1:]))
+			image_shg = clip_intensities(image_orig[0], p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
+
+			image_pl = clip_intensities(image_orig[1], p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
+
+			image_tran = clip_intensities(image_orig[2], p_intensity=(0, 100))
+
+			return image_shg, image_pl, image_tran
 
 		else:
 			print("Size of image = {}".format(image_orig.shape[:2]))
