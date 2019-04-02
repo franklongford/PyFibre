@@ -33,36 +33,27 @@ def import_image(image_name):
 			print("Number of stacks = {}".format(image_orig.shape[3]))
 			if image_orig.shape[0] == 2:
 
-				image_euclid = np.sqrt(np.sum(image_orig[0]**2, axis=-1))
 				image_mean = np.mean(image_orig[0], axis=-1)
-				image = image_mean#np.sqrt(image_mean * image_euclid)
+				image = image = clip_intensities(image_mean, p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
 
-				image_euclid = np.sqrt(np.sum(image_orig[1]**2, axis=-1))
 				image_mean = np.mean(image_orig[1], axis=-1)
-				image_tran = image_mean#np.sqrt(image_mean * image_euclid)
+				image_tran = clip_intensities(image_mean, p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
 			
-				image = image / image.max()
-				image_tran = image_tran / image_tran.max()
+				image = image
+				image_tran = image_tran
 
 				return image, image_tran
 
 			elif image_orig.shape[0] == 3:
 	
-				image_euclid = np.sqrt(np.sum(image_orig[0]**2, axis=-1))
 				image_mean = np.mean(image_orig[0], axis=-1)
-				image_shg = image_mean#np.sqrt(image_mean * image_euclid)
+				image_shg = clip_intensities(image_mean, p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
 	
-				image_euclid = np.sqrt(np.sum(image_orig[1]**2, axis=-1))
 				image_mean = np.mean(image_orig[1], axis=-1)
-				image_pl = image_mean#np.sqrt(image_mean * image_euclid)
+				image_pl = clip_intensities(image_mean, p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
 
-				image_euclid = np.sqrt(np.sum(image_orig[2]**2, axis=-1))
 				image_mean = np.mean(image_orig[2], axis=-1)
-				image_tran = image_mean#np.sqrt(image_mean * image_euclid)
-			
-				image_shg = image_shg / image_shg.max()
-				image_pl = image_pl / image_pl.max()
-				image_tran = image_tran / image_tran.max()
+				image_tran = clip_intensities(image_mean, p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
 
 				return image_shg, image_pl, image_tran
 
@@ -71,15 +62,12 @@ def import_image(image_name):
 			print("Number of stacks = {}".format(image_orig.shape[2]))
 			smallest_axis = np.argmin(image_orig.shape)
 
-			image_euclid = np.sqrt(np.sum(image_orig**2, axis=smallest_axis))
 			image_mean = np.mean(image_orig, axis=smallest_axis)
-			image = image_mean#np.sqrt(image_mean * image_euclid)
-
-			image = image / image.max()
+			image = clip_intensities(image_mean, p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
 
 			return image
 
-	else: return image_orig / image_orig.max()
+	else: return clip_intensities(image_orig, p_intensity=(0, 100))
 
 	raise IOError
 
@@ -122,10 +110,8 @@ def clip_intensities(image, p_intensity=(1, 98)):
 
 	"""
 
-
 	low, high = np.percentile(image, p_intensity)
-	image = rescale_intensity(image, in_range=(low, high))
-	image /= image.max()
+	image = rescale_intensity(image, in_range=(low, high), out_range=(0.0, 1.0))
 
 	return image
 

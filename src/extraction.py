@@ -304,8 +304,7 @@ def FIRE(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_thr
 
 	"Prepare input image to gain distance matrix of foreground from background"
 
-	image_scale = rescale(image, scale, multichannel=False)
-
+	image_scale = rescale(image, scale, multichannel=False, mode='constant', anti_aliasing=None)
 	sigma *= scale
 
 	"Apply tubeness transform to enhance image fibres"
@@ -349,7 +348,7 @@ def FIRE(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_thr
 		    nuc_thresh, lmp_thresh, angle_thresh, r_thresh))
 
 	"Get global maxima for smoothed distance matrix"
-	maxima = local_maxima(cleared, connectivity=nuc_rad)
+	maxima = local_maxima(cleared, connectivity=nuc_rad, allow_borders=True)
 	nuc_node_coord = reduce_coord(np.argwhere(maxima * cleared >= nuc_thresh),
 		            cleared[np.where(maxima * cleared >= nuc_thresh)], r_thresh)
 
@@ -561,6 +560,8 @@ def fibre_assignment(network, angle_thresh=70, verbose=False, min_n=4):
 			new_node = new_nodes[np.argsort(edge_list)][-1]
 			coord_vec = -d_coord[node][new_node]
 			coord_r = network[node][new_node]['r']
+
+			print(coord_r)
 
 			fibre.direction = coord_vec / coord_r
 			fibre.fibre_l = coord_r

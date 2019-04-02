@@ -77,7 +77,7 @@ def check_file_name(file_name, file_type="", extension=""):
 
 def load_image(image_name):
 
-	image = io.imread(image_name).astype(float)
+	image = io.imread(image_name).astype(np.float64)
 
 	return image
 

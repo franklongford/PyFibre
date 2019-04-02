@@ -75,11 +75,11 @@ def segment_check(segment, min_size=0, min_frac=0, edges=False, max_x=0, max_y=0
 
 def get_segments(image, binary, min_size=0, min_frac=0):
 
-	labels = measure.label(binary)
+	labels = measure.label(binary.astype(np.int))
 	segments = []
 	areas = []
 
-	for segment in measure.regionprops(labels, intensity_image=image):
+	for segment in measure.regionprops(labels, intensity_image=image, coordinates='xy'):
 		seg_check = segment_check(segment, min_size, min_frac)
 
 		if seg_check:
@@ -102,8 +102,7 @@ def prepare_composite_image(image, p_intensity=(2, 98), sm_size=7):
 
 	"Mimic contrast stretching decorrstrech routine in MatLab"
 	for i in range(image_channels):
-		low, high = np.percentile(image[:, :, i], p_intensity) 
-		image_scaled[:, :, i] = 255 * rescale_intensity(image[:, :, i], in_range=(low, high))
+		image_scaled[:, :, i] = 255 * clip_intensities(image[:, :, i], p_intensity=p_intensity)
 
 	"Pad each channel, equalise and smooth to remove salt and pepper noise"
 	for i in range(image_channels):
@@ -112,7 +111,7 @@ def prepare_composite_image(image, p_intensity=(2, 98), sm_size=7):
 		smoothed = median_filter(equalised, size=(sm_size, sm_size))
 		smoothed = median_filter(smoothed, size=(sm_size, sm_size))
 		image_scaled[:, :, i] = smoothed[pad_size : pad_size + image.shape[0],
-						 pad_size : pad_size + image.shape[1]]
+						 				pad_size : pad_size + image.shape[1]]
 
 	return image_scaled
 
@@ -147,7 +146,8 @@ def BD_filter(image, n_runs=1, n_clusters=10, p_intensity=(2, 98), sm_size=7, pa
 
 	image_scaled = prepare_composite_image(image, p_intensity, sm_size)
 
-	greyscale = rgb2grey(image_scaled)
+	print("Making greyscale")
+	greyscale = rgb2grey(image_scaled.astype(np.float64))
 	greyscale /= greyscale.max()
 
 	"""
@@ -291,38 +291,43 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alp
 	"Create composite RGB image from SHG, PL and transmission"
 	image_stack = np.stack((image_shg, image_pl, image_tran), axis=-1)
 	magnitudes = np.sqrt(np.sum(image_stack**2, axis=-1))
-	image_stack /= np.repeat(magnitudes, 3).reshape(image_stack.shape)
+	indices = np.nonzero(magnitudes)
+	image_stack[indices] /= np.repeat(magnitudes[indices], 3).reshape(indices[0].shape + (3,))
 
 	"Up-scale image to impove accuracy of clustering"
-	image_stack = rescale(image_stack, scale, multichannel=True)
+	print("Rescaling")
+	image_stack = rescale(image_stack, scale, multichannel=True, mode='constant', anti_aliasing=None)
 
 	"Form mask using Kmeans Background filter"
 	mask_image = BD_filter(image_stack)
-	mask_image = resize(mask_image, image_shg.shape)
+	print("Resizing")
+	mask_image = resize(mask_image, image_shg.shape, mode='reflect', anti_aliasing=True)
 
 	cells = []
 	cell_areas = []
 	fibres = []
 	fibre_areas = []
 
-	cell_binary = np.array(mask_image, dtype=int)
-	fibre_binary = np.where(mask_image, 0, 1)
+	cell_binary = np.array(mask_image, dtype=bool)
+	fibre_binary = np.where(mask_image, False, True)
 
-	cell_labels = measure.label(cell_binary)
-	for cell in measure.regionprops(cell_labels, intensity_image=image_pl):
+	cell_labels = measure.label(cell_binary.astype(np.int))
+	for cell in measure.regionprops(cell_labels, intensity_image=image_pl, coordinates='xy'):
 		cell_check = segment_check(cell, min_size, 0.01)
 
 		if not cell_check:
 			minr, minc, maxr, maxc = cell.bbox
 			indices = np.mgrid[minr:maxr, minc:maxc]
-			cell_binary[(indices[0], indices[1])] = 0
+			cell_binary[(indices[0], indices[1])] = False
 
 			fibre = measure.regionprops(np.array(cell.image, dtype=int),
-							intensity_image=image_shg[(indices[0], indices[1])])[0]
+							intensity_image=image_shg[(indices[0], indices[1])],
+							coordinates='xy')[0]
 
 			fibre_check = segment_check(fibre, 0, 0.075)
-			if fibre_check: fibre_binary[(indices[0], indices[1])] = 1
+			if fibre_check: fibre_binary[(indices[0], indices[1])] = True
 
+	print("Removing small holes")
 	fibre_binary = remove_small_holes(fibre_binary)
 	cell_binary = remove_small_holes(cell_binary)
 
@@ -341,7 +346,7 @@ def hysteresis_segmentation(image, segments_low, segments_high, iterations=2, mi
 	binary_high = binary_dilation(binary_high, iterations=2)
 
 	#"""
-	overlap = np.where(binary_low * binary_high + binary_high, 1, 0)
+	overlap = np.where(binary_low * binary_high + binary_high, True, False)
 	thresholded = remove_small_holes(overlap)
 	"""
 	
@@ -355,7 +360,7 @@ def hysteresis_segmentation(image, segments_low, segments_high, iterations=2, mi
 	thresholded = connected_to_high[labels_low]
 	#"""
 	
-	smoothed = gaussian_filter(thresholded, sigma=0.10)
+	smoothed = gaussian_filter(thresholded.astype(np.int), sigma=0.10)
 	sorted_segs = get_segments(image, smoothed, min_size, min_frac)
 
 	return sorted_segs
@@ -463,8 +468,8 @@ def segment_analysis(image, segment, n_tensor, anis_map, angle_map):
 		segment_hu)
 
 
-def network_extraction(image_shg, network_name='network', scale=1, sigma=0.75, alpha=0.5,
-			p_denoise=(3, 30), threads=8):
+def network_extraction(image_shg, network_name='network', scale=1.0, sigma=0.75, alpha=0.5,
+			p_denoise=(5, 35), threads=8):
 	"""
 	Extract fibre network using modified FIRE algorithm
 	"""
@@ -521,7 +526,7 @@ def fibre_segmentation(image_shg, networks, networks_red, area_threshold=200, it
 		filled_image = remove_small_holes(smoothed_image, area_threshold=area_threshold)
 		binary_image = np.where(filled_image > 0, 1, 0)
 
-		segment = measure.regionprops(binary_image, intensity_image=image_shg)[0]
+		segment = measure.regionprops(binary_image, intensity_image=image_shg, coordinates='xy')[0]
 		area = np.sum(segment.image)
 
 		minr, minc, maxr, maxc = segment.bbox

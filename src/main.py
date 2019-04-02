@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 import matplotlib
-#matplotlib.use("Agg")
+matplotlib.use("Agg")
 
 from scipy.ndimage.filters import gaussian_filter
 
@@ -122,12 +122,17 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.4,
 	image_shg, image_pl, image_tran = load_shg_pl(input_file_names)
 	pl_analysis = ~np.any(image_pl == None) * ~np.any(image_tran == None)
 
+	print(f"Preprocessing images using clipped intensity percentages {p_intensity}")
 	"Pre-process image to remove noise"
-	if pl_analysis: 
-		image_shg *= image_tran
-		image_pl *= image_tran
+
+	if pl_analysis:
+		image_shg = np.sqrt(image_shg * image_tran)
+		image_pl = np.sqrt(image_pl * image_tran)
+
 		image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
 		image_tran = equalize_adapthist(image_tran)
+
+	else: image_shg = equalize_adapthist(image_shg)
 	image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
 
 	try:
@@ -328,7 +333,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.4,
 
 		fibre_binary = seg.create_binary_image(fibre_seg, image_shg.shape)
 		global_binary = np.where(fibre_binary, 1, 0)
-		global_segment = regionprops(global_binary)[0]
+		global_segment = regionprops(global_binary, coordinates='xy')[0]
 
 		global_columns = ['No. Fibres'] + fibre_columns[:-5]
 		global_columns += muscle_columns
@@ -386,7 +391,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.4,
 
 			cell_binary = seg.create_binary_image(cell_seg, image_pl.shape)
 			global_binary = np.where(cell_binary, 1, 0)
-			global_segment = regionprops(global_binary)[0]
+			global_segment = regionprops(global_binary, coordinates='xy')[0]
 
 			(__, global_cell_angle_sdi, global_cell_anis, global_cell_pix_anis, global_cell_area,
 			global_cell_linear, global_cell_eccent, global_cell_density, global_cell_coverage, 

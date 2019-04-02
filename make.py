@@ -19,12 +19,12 @@ if task in ['install', 'install_mpi']:
 	if task == 'install':
 		with open(current_dir + '/bin/' + program_name, 'w') as outfile:
 			outfile.write('#!/bin/bash\n\n')
-			outfile.write(f"{python_command} {current_dir}/src/main.py \"$@\"")
+			outfile.write(f"{python_command} -W {current_dir}/src/main.py \"$@\"")
 
 	else:
 		with open(current_dir + '/bin/' + program_name, 'w') as outfile:
 			outfile.write('#!/bin/bash\n\n')
-			outfile.write(f"{python_command} {current_dir}/src/main_mpi.py \"$@\"")
+			outfile.write(f"{python_command} -W {current_dir}/src/main_mpi.py \"$@\"")
 
 		bashCommand = f"chmod +x {current_dir + '/bin/' + speed_test_name}"
 		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -32,7 +32,7 @@ if task in ['install', 'install_mpi']:
 
 	with open(current_dir + '/bin/' + program_name + '_GUI', 'w') as outfile:
 		outfile.write('#!/bin/bash\n\n')
-		outfile.write(f"{python_command} {current_dir}/src/gui.py")
+		outfile.write(f"{python_command} -W {current_dir}/src/gui.py")
 
 	bashCommand = f"chmod +x {current_dir + '/bin/' + program_name}"
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
