@@ -66,7 +66,7 @@ class pyfibre_gui:
 		self.m = IntVar()
 		self.m.set(25)
 		self.alpha = DoubleVar()
-		self.alpha.set(0.5)
+		self.alpha.set(0.3)
 
 		"Define GUI objects"
 		self.master = master
