@@ -14,6 +14,7 @@ from PIL import ImageTk, Image
 import networkx as nx
 import numpy as np
 import pandas as pd
+from pickle import UnpicklingError
 
 from scipy.ndimage import imread
 from scipy.ndimage.filters import gaussian_filter
@@ -732,7 +733,8 @@ class pyfibre_viewer:
 				networks = ut.load_region(data_dir + fig_name + "_network")
 				self.display_network(self.network_tab.canvas, self.image_shg, networks)
 				self.update_log("Displaying network for {}".format(fig_name))
-			except IOError:
+			except (UnpicklingError, IOError):
+				self.network_tab.canvas.delete('all')
 				self.update_log("Unable to display network for {}".format(fig_name))
 
 			try:
@@ -740,14 +742,16 @@ class pyfibre_viewer:
 				fibres = ut.flatten_list(fibres)
 				self.display_network(self.fibre_tab.canvas, self.image_shg, fibres, 1)
 				self.update_log("Displaying fibres for {}".format(fig_name))
-			except IOError:
+			except (UnpicklingError, IOError):
+				self.fibre_tab.canvas.delete('all')
 				self.update_log("Unable to display fibres for {}".format(fig_name))
 
 			try:
 				segments = ut.load_region(data_dir + fig_name + "_fibre_segment")
 				self.display_regions(self.segment_tab.canvas, self.image_shg, segments)
 				self.update_log("Displaying fibre segments for {}".format(fig_name))
-			except IOError:
+			except (UnpicklingError, IOError):
+				self.segment_tab.canvas.delete('all')
 				self.update_log("Unable to display fibre segments for {}".format(fig_name))
 
 		if pl_analysis:
@@ -764,8 +768,12 @@ class pyfibre_viewer:
 				cells = ut.load_region(data_dir + fig_name + "_cell_segment")
 				self.display_regions(self.cell_tab.canvas, self.image_pl, cells)
 				self.update_log("Displaying cell segments for {}".format(fig_name))
-			except IOError:
+			except (UnpicklingError, IOError):
+				self.cell_tab.canvas.delete('all')
 				self.update_log("Unable to display cell segments for {}".format(fig_name))
+		else: 
+			self.pl_image_tab.canvas.delete('all')
+			self.cell_tab.canvas.delete('all')
 
 		try:
 			loaded_metrics = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + fig_name)).iloc[0]
@@ -774,7 +782,7 @@ class pyfibre_viewer:
 				self.metric_tab.metric_dict[metric]["metric"].set(value)
 			self.update_log("Displaying metrics for {}".format(fig_name))
 
-		except IOError:
+		except (UnpicklingError, IOError):
 			self.update_log("Unable to display metrics for {}".format(fig_name))
 			for i, metric in enumerate(self.metric_tab.titles):
 				self.metric_tab.metric_dict[metric]["metric"].set(0)

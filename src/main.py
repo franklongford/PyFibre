@@ -15,7 +15,8 @@ import numpy as np
 import pandas as pd
 
 import matplotlib
-#matplotlib.use("Agg")
+from pickle import UnpicklingError
+matplotlib.use("Agg")
 
 from scipy.ndimage.filters import gaussian_filter
 
@@ -125,22 +126,21 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.4,
 	print(f"Preprocessing images using clipped intensity percentages {p_intensity}")
 	"Pre-process image to remove noise"
 
-	"NOTE - NEEDS TO BE CHANGED to reduce noise!"
-	if pl_analysis: image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
 	image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
+	if pl_analysis: image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
 
 	try:
 		networks = ut.load_region(data_dir + image_name + "_network")
 		networks_red = ut.load_region(data_dir + image_name + "_network_reduced")
 		fibres = ut.load_region(data_dir + image_name + "_fibre")
-	except IOError:
+	except (UnpicklingError, IOError):
 		print("Cannot load networks for {}".format(image_name))
 		ow_network = True
 
 	try:
 		fibre_seg = ut.load_region(data_dir + image_name + "_fibre_segment")
 		if pl_analysis: cell_seg = ut.load_region(data_dir + image_name + "_cell_segment")
-	except IOError:
+	except (UnpicklingError, IOError):
 		print("Cannot load segments for {}".format(image_name))
 		ow_segment = True
 		ow_metric = True
@@ -151,7 +151,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.4,
 		fibre_dataframe = pd.read_pickle('{}_fibre_metric.pkl'.format(data_dir + image_name))
 		cell_dataframe = pd.read_pickle('{}_cell_metric.pkl'.format(data_dir + image_name))
 			
-	except IOError:
+	except (UnpicklingError, IOError):
 		print("Cannot load metrics for {}".format(image_name))
 		ow_metric = True
 

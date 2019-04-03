@@ -111,7 +111,7 @@ def prepare_composite_image(image, p_intensity=(2, 98), sm_size=7):
 		smoothed = median_filter(equalised, size=(sm_size, sm_size))
 		smoothed = median_filter(smoothed, size=(sm_size, sm_size))
 		image_scaled[:, :, i] = smoothed[pad_size : pad_size + image.shape[0],
-						 				pad_size : pad_size + image.shape[1]]
+						 	pad_size : pad_size + image.shape[1]]
 
 	return image_scaled
 
@@ -479,6 +479,7 @@ def network_extraction(image_shg, network_name='network', scale=1.0, sigma=0.75,
 	"""
 
 	print("Performing NL Denoise using local windows {} {}".format(*p_denoise))
+	image_shg = equalize_adapthist(image_shg)
 	image_nl = nl_means(image_shg, p_denoise=p_denoise)
 
 	"Call FIRE algorithm to extract full image network"
