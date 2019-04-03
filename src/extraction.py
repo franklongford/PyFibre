@@ -572,14 +572,12 @@ def fibre_assignment(network, angle_thresh=70, verbose=False, min_n=4):
 				r=network[new_node][node]['r'])
 			fibre.node_list = list(fibre.nodes)
 
-			if verbose or (coord_r == 0):
+			if verbose:
 				print("Start node = ", node, "  coord: ", node_coord[node])
 				print("Connected nodes = ", new_nodes)
 				print("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
 				print("Fibre length = ", coord_r)
 				print("Fibre direction = ", fibre.direction)
-				nx.draw_networkx(network)
-				plt.show()
 
 			while fibre.growing:
 
