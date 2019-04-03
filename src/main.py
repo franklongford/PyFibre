@@ -200,12 +200,19 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 			fibre_filter = np.where(fibre_binary, 3, 0.5)
 			fibre_filter = gaussian_filter(fibre_filter, 1.0)
 
+			import matplotlib.pyplot as plt
+			plt.imshow(fibre_filter)
+			plt.show()
+
 			cell_seg, fibre_col_seg = seg.cell_segmentation(image_shg * fibre_filter, 
 							image_pl, image_tran, scale=scale)
 
 			fibre_binary = seg.hysteresis_binary(image_shg, fibre_col_seg, fibre_net_seg, 500, 0.075)
-			fibre_filter = np.where(fibre_binary, 3, 0.5)
-			fibre_filter = gaussian_filter(fibre_filter, 1.0)
+			fibre_filter = np.where(fibre_binary, 5, 0.1)
+			fibre_filter = gaussian_filter(fibre_filter, 0.5)
+
+			plt.imshow(fibre_filter)
+			plt.show()
 
 			cell_seg, fibre_seg = seg.cell_segmentation(image_shg * fibre_filter, 
 							image_pl, image_tran, scale=scale)
