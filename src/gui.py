@@ -710,11 +710,6 @@ class pyfibre_viewer:
 
 		shg_analysis = ~np.any(image_shg == None)
 		pl_analysis = ~np.any(image_pl == None)
-
-		if pl_analysis:
-			image_shg = np.sqrt(image_shg * image_tran)
-			image_pl = np.sqrt(image_pl * image_tran)
-		else: image_shg = equalize_adapthist(image_shg)
 		
 		if shg_analysis:
 			self.image_shg = clip_intensities(image_shg, 

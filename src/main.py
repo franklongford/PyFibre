@@ -125,6 +125,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.4,
 	print(f"Preprocessing images using clipped intensity percentages {p_intensity}")
 	"Pre-process image to remove noise"
 
+	"NOTE - NEEDS TO BE CHANGED to reduce noise!"
 	if pl_analysis:
 		image_shg = np.sqrt(image_shg * image_tran)
 		image_pl = np.sqrt(image_pl * image_tran)
@@ -132,7 +133,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.4,
 		image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
 		image_tran = equalize_adapthist(image_tran)
 
-	else: image_shg = equalize_adapthist(image_shg)
+	image_shg = equalize_adapthist(image_shg)
 	image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
 
 	try:
