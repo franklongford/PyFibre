@@ -116,7 +116,7 @@ def prepare_composite_image(image, p_intensity=(2, 98), sm_size=7):
 	return image_scaled
 
 
-def cluster_colours(image, n_clusters=8, n_init=5):
+def cluster_colours(image, n_clusters=8, n_init=10):
 
 	image_size = image.shape[0] * image.shape[1]
 	image_shape = (image.shape[0], image.shape[1])
@@ -149,32 +149,6 @@ def BD_filter(image, n_runs=1, n_clusters=10, p_intensity=(2, 98), sm_size=7, pa
 	print("Making greyscale")
 	greyscale = rgb2grey(image_scaled.astype(np.float64))
 	greyscale /= greyscale.max()
-
-	"""
-	import matplotlib.pyplot as plt	
-
-	plt.figure(0)
-	plt.imshow(greyscale, cmap='binary_r')
-
-	low = threshold_mean(greyscale)
-	high = threshold_otsu(greyscale)
-
-	hyst = apply_hysteresis_threshold(greyscale, low, high)
-
-	plt.figure(1)
-	plt.imshow(hyst, cmap='binary_r')
-	
-	plt.show()
-
-	hyst = remove_small_objects(hyst, min_size=64)
-	hyst = binary_closing(hyst, iterations=1)
-
-	holes = remove_small_objects(~hyst, min_size=1000)
-
-	holes = binary_closing(holes)
-	mask_image = binary_fill_holes(holes)
-
-	"""
 
 	tot_labels = []
 	tot_centres = []
@@ -284,9 +258,11 @@ def BD_filter(image, n_runs=1, n_clusters=10, p_intensity=(2, 98), sm_size=7, pa
 
 
 def cell_segmentation(image_shg, image_pl, image_tran, scale=1.0, sigma=0.8, alpha=1.0,
-			min_size=500, edges=False):
+			min_size=400, edges=False):
 	"Return binary filter for cellular identification"
 
+
+	min_size *= scale**2
 
 	image_shg = np.sqrt(image_shg * image_tran)
 	image_pl = np.sqrt(image_pl * image_tran)
@@ -299,7 +275,7 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.0, sigma=0.8, alp
 	image_stack[indices] /= np.repeat(magnitudes[indices], 3).reshape(indices[0].shape + (3,))
 
 	"Up-scale image to impove accuracy of clustering"
-	print("Rescaling")
+	print(f"Rescaling by {scale}")
 	image_stack = rescale(image_stack, scale, multichannel=True, mode='constant', anti_aliasing=None)
 
 	"Form mask using Kmeans Background filter"
@@ -341,18 +317,27 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.0, sigma=0.8, alp
 	return sorted_cells, sorted_fibres
 
 
-def hysteresis_segmentation(image, segments_low, segments_high, iterations=1, min_size=0, min_frac=0):
+def hysteresis_binary(image, segments_low, segments_high, iterations=1, min_size=0, min_frac=0):
+
+	image = equalize_adapthist(image)
 
 	binary_low = create_binary_image(segments_low, image.shape)
 	binary_high = create_binary_image(segments_high, image.shape)
 
 	binary_high = binary_dilation(binary_high, iterations=1)
+	binary_high = binary_closing(binary_high)
 
-	#"""
-	overlap = np.where(binary_low * binary_high + binary_high, True, False)
-	thresholded = remove_small_holes(overlap)
+	intensity_map_low = image * binary_low
+	intensity_map_high = image * binary_high
+
+	intensity_map = 0.5 * (intensity_map_low + intensity_map_high)
+	intensity_binary = np.where(intensity_map >= 0.15, True, False)
+
+	intensity_binary = remove_small_holes(intensity_binary)
+	intensity_binary = remove_small_objects(intensity_binary)
+	thresholded = binary_dilation(intensity_binary, iterations=1)
+
 	"""
-	
 	labels_low, num_labels = ndi.label(binary_low)
 	# Check which connected components contain pixels from mask_high
 	sums = ndi.sum(binary_high, labels_low, np.arange(num_labels + 1))
@@ -363,11 +348,20 @@ def hysteresis_segmentation(image, segments_low, segments_high, iterations=1, mi
 	thresholded = connected_to_high[labels_low]
 	#"""
 	
-	smoothed = gaussian_filter(thresholded.astype(np.float), sigma=2.0)
-	smoothed = np.where(smoothed >= 0.9, 1, 0)
-	sorted_segs = get_segments(image, smoothed, min_size, min_frac)
+	smoothed = gaussian_filter(thresholded.astype(np.float), sigma=1.5)
+	smoothed = np.where(smoothed >= 0.75, True, False)
 
-	return sorted_segs
+	"""
+	plt.figure(0)
+	plt.imshow(intensity_map)
+	plt.figure(1)
+	plt.imshow(thresholded)
+	plt.figure(2)
+	plt.imshow(smoothed)
+	plt.show()
+	"""
+
+	return smoothed
 
 
 def cell_segment_analysis(image, cells, n_tensor, anis_map, angle_map):
