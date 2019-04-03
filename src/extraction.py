@@ -534,6 +534,8 @@ def simplify_network(Aij):
 
 def fibre_assignment(network, angle_thresh=70, verbose=False, min_n=4):
 
+	import matplotlib.pyplot as plt
+
 	mapping = dict(zip(network.nodes, np.arange(network.number_of_nodes())))
 	network = nx.relabel_nodes(network, mapping)
 
@@ -556,12 +558,11 @@ def fibre_assignment(network, angle_thresh=70, verbose=False, min_n=4):
 			fibre.nodes[node]['xy'] = network.nodes[node]['xy']
 
 			new_nodes = np.array(list(network.adj[node]))
+			new_nodes = numpy_remove(new_nodes, [node])
 			edge_list = edge_count[new_nodes]
 			new_node = new_nodes[np.argsort(edge_list)][-1]
 			coord_vec = -d_coord[node][new_node]
 			coord_r = network[node][new_node]['r']
-
-			print(coord_r)
 
 			fibre.direction = coord_vec / coord_r
 			fibre.fibre_l = coord_r
@@ -571,11 +572,14 @@ def fibre_assignment(network, angle_thresh=70, verbose=False, min_n=4):
 				r=network[new_node][node]['r'])
 			fibre.node_list = list(fibre.nodes)
 
-			if verbose:
+			if verbose or (coord_r == 0):
 				print("Start node = ", node, "  coord: ", node_coord[node])
+				print("Connected nodes = ", new_nodes)
 				print("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
 				print("Fibre length = ", coord_r)
 				print("Fibre direction = ", fibre.direction)
+				nx.draw_networkx(network)
+				plt.show()
 
 			while fibre.growing:
 

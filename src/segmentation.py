@@ -288,6 +288,10 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alp
 	"Return binary filter for cellular identification"
 
 
+	image_shg = np.sqrt(image_shg * image_tran)
+	image_pl = np.sqrt(image_pl * image_tran)
+	image_tran = equalize_adapthist(image_tran)
+
 	"Create composite RGB image from SHG, PL and transmission"
 	image_stack = np.stack((image_shg, image_pl, image_tran), axis=-1)
 	magnitudes = np.sqrt(np.sum(image_stack**2, axis=-1))

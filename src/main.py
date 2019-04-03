@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 import matplotlib
-matplotlib.use("Agg")
+#matplotlib.use("Agg")
 
 from scipy.ndimage.filters import gaussian_filter
 
@@ -33,7 +33,7 @@ from figures import create_figure, create_tensor_image, create_region_image, cre
 
 
 def analyse_image(input_file_names, prefix, working_dir=None, scale=1.4, 
-				p_intensity=(1, 99), p_denoise=(5, 35), sigma=0.5, alpha=0.5,
+				p_intensity=(1, 99), p_denoise=(3, 25), sigma=0.5, alpha=0.3,
 				ow_metric=False, ow_segment=False, ow_network=False, ow_figure=False,
 				threads=8):
 	"""
@@ -126,14 +126,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.4,
 	"Pre-process image to remove noise"
 
 	"NOTE - NEEDS TO BE CHANGED to reduce noise!"
-	if pl_analysis:
-		image_shg = np.sqrt(image_shg * image_tran)
-		image_pl = np.sqrt(image_pl * image_tran)
-
-		image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
-		image_tran = equalize_adapthist(image_tran)
-
-	image_shg = equalize_adapthist(image_shg)
+	if pl_analysis: image_pl = clip_intensities(image_pl, p_intensity=p_intensity)
 	image_shg = clip_intensities(image_shg, p_intensity=p_intensity)
 
 	try:

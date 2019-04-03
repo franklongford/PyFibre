@@ -62,9 +62,9 @@ class pyfibre_gui:
 		self.p1 = IntVar()
 		self.p1.set(99)
 		self.n = IntVar()
-		self.n.set(5)
+		self.n.set(3)
 		self.m = IntVar()
-		self.m.set(35)
+		self.m.set(25)
 		self.alpha = DoubleVar()
 		self.alpha.set(0.5)
 
