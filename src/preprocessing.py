@@ -25,11 +25,15 @@ def import_image(image_name):
 	image_orig = ut.load_image(image_name)
 	print("Input image shape = {}".format(image_orig.shape))
 
-	if '-pl-shg' in image_name.lower() and image_orig.shape[0] != 3:
+	pl_shg_check = ('-pl-shg' in image_name.lower()) * (image_orig.shape[0] != 3)
+	shg_check = ('-pl-shg' not in image_name.lower()) * ('-shg' in image_name.lower()) * (image_orig.shape[0] == 3)
+
+	if pl_shg_check or shg_check:
 		print(f"Reordering image shape from {image_orig.shape} to {image_orig.shape[2:] + image_orig.shape[:2]}")
 		image_orig_reorder = np.moveaxis(image_orig, (0, 1, 2), (1, 2, 0))
 		assert abs(image_orig_reorder[0] - image_orig[:, :, 0]).sum() < 1E-5
 		image_orig = image_orig_reorder
+
 
 	if image_orig.ndim > 2:
 		print("Number of image types = {}".format(image_orig.shape[0]))

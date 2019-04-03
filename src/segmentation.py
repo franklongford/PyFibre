@@ -298,20 +298,36 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.0, sigma=0.8, alp
 		if not cell_check:
 			minr, minc, maxr, maxc = cell.bbox
 			indices = np.mgrid[minr:maxr, minc:maxc]
-			cell_binary[(indices[0], indices[1])] = False
+			cell_binary[np.where(cell_labels == cell.label)] = False
 
 			fibre = measure.regionprops(np.array(cell.image, dtype=int),
 							intensity_image=image_shg[(indices[0], indices[1])],
 							coordinates='xy')[0]
 
-			fibre_check = segment_check(fibre, 0, 0.075)
-			if fibre_check: fibre_binary[(indices[0], indices[1])] = True
+			fibre_check = segment_check(fibre, 0, 0.2)
+			if fibre_check: fibre_binary[np.where(cell_labels == cell.label)] = True
+
+	fibre_labels = measure.label(fibre_binary.astype(np.int))
+	for fibre in measure.regionprops(fibre_labels, intensity_image=image_shg, coordinates='xy'):
+		fibre_check = segment_check(fibre, min_size, 0.2)
+
+		if not fibre_check:
+			minr, minc, maxr, maxc = fibre.bbox
+			indices = np.mgrid[minr:maxr, minc:maxc]
+			fibre_binary[np.where(fibre_labels == fibre.label)] = False
+
+			cell = measure.regionprops(np.array(fibre.image, dtype=int),
+							intensity_image=image_pl[(indices[0], indices[1])],
+							coordinates='xy')[0]
+
+			cell_check = segment_check(cell, 0, 0.01)
+			if cell_check: cell_binary[np.where(fibre_labels == fibre.label)] = True
 
 	print("Removing small holes")
 	fibre_binary = remove_small_holes(fibre_binary)
 	cell_binary = remove_small_holes(cell_binary)
 
-	sorted_fibres = get_segments(image_shg, fibre_binary, min_size, 0.075)
+	sorted_fibres = get_segments(image_shg, fibre_binary, min_size, 0.2)
 	sorted_cells = get_segments(image_pl, cell_binary, min_size, 0.01)
 
 	return sorted_cells, sorted_fibres

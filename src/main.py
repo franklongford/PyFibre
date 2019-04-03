@@ -33,7 +33,7 @@ from filters import form_nematic_tensor, form_structure_tensor
 from figures import create_figure, create_tensor_image, create_region_image, create_network_image
 
 
-def analyse_image(input_file_names, prefix, working_dir=None, scale=1.5, 
+def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25, 
 				p_intensity=(1, 99), p_denoise=(5, 35), sigma=0.5, alpha=0.5,
 				ow_metric=False, ow_segment=False, ow_network=False, ow_figure=False,
 				threads=8):
