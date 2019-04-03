@@ -63,11 +63,11 @@ class pyfibre_gui:
 		self.p1 = IntVar()
 		self.p1.set(99)
 		self.n = IntVar()
-		self.n.set(3)
+		self.n.set(5)
 		self.m = IntVar()
-		self.m.set(25)
+		self.m.set(30)
 		self.alpha = DoubleVar()
-		self.alpha.set(0.3)
+		self.alpha.set(0.5)
 
 		"Define GUI objects"
 		self.master = master
@@ -381,7 +381,7 @@ def image_analysis(input_files, input_prefixes, p_intensity, p_denoise, sigma, a
 
 		try:
 			analyse_image(input_file_names, prefix, image_path,
-					scale=1.4, p_intensity=p_intensity,
+					scale=1.25, p_intensity=p_intensity,
 					p_denoise=p_denoise, sigma=sigma,
 					alpha=alpha,
 					ow_metric=ow_metric, ow_segment=ow_segment,

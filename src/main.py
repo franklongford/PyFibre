@@ -33,8 +33,8 @@ from filters import form_nematic_tensor, form_structure_tensor
 from figures import create_figure, create_tensor_image, create_region_image, create_network_image
 
 
-def analyse_image(input_file_names, prefix, working_dir=None, scale=1.4, 
-				p_intensity=(1, 99), p_denoise=(3, 25), sigma=0.5, alpha=0.3,
+def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25, 
+				p_intensity=(1, 99), p_denoise=(5, 30), sigma=0.5, alpha=0.5,
 				ow_metric=False, ow_segment=False, ow_network=False, ow_figure=False,
 				threads=8):
 	"""
@@ -196,16 +196,16 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.4,
 
 		if pl_analysis:
 
-			cell_seg, fibre_col_seg = seg.cell_segmentation(image_shg, image_pl, image_tran)
+			cell_seg, fibre_col_seg = seg.cell_segmentation(image_shg, image_pl, image_tran, scale=scale)
 
-			fibre_seg = seg.hysteresis_segmentation(image_shg, fibre_col_seg, fibre_net_seg, 400, 0.075)
+			fibre_seg = seg.hysteresis_segmentation(image_shg, fibre_col_seg, fibre_net_seg, 500, 0.075)
 
 			fibre_binary = seg.create_binary_image(fibre_seg, image_shg.shape)
 			fibre_filter = np.where(fibre_binary, 3, 0.1)
 			fibre_filter = gaussian_filter(fibre_filter, 1.0)
 
-			cell_seg, _ = seg.cell_segmentation(image_shg * fibre_filter, 
-							image_pl, image_tran)
+			cell_seg, fibre_seg = seg.cell_segmentation(image_shg * fibre_filter, 
+							image_pl, image_tran, scale=scale)
 
 			ut.save_region(cell_seg, '{}_cell_segment'.format(filename))		
 			ut.save_region(fibre_seg, '{}_fibre_segment'.format(filename))

@@ -534,8 +534,6 @@ def simplify_network(Aij):
 
 def fibre_assignment(network, angle_thresh=70, verbose=False, min_n=4):
 
-	import matplotlib.pyplot as plt
-
 	mapping = dict(zip(network.nodes, np.arange(network.number_of_nodes())))
 	network = nx.relabel_nodes(network, mapping)
 

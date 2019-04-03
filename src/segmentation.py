@@ -283,7 +283,7 @@ def BD_filter(image, n_runs=1, n_clusters=10, p_intensity=(2, 98), sm_size=7, pa
 
 
 
-def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alpha=1.0,
+def cell_segmentation(image_shg, image_pl, image_tran, scale=1.0, sigma=0.8, alpha=1.0,
 			min_size=500, edges=False):
 	"Return binary filter for cellular identification"
 
@@ -341,12 +341,11 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.5, sigma=0.8, alp
 	return sorted_cells, sorted_fibres
 
 
-def hysteresis_segmentation(image, segments_low, segments_high, iterations=2, min_size=0, min_frac=0):
+def hysteresis_segmentation(image, segments_low, segments_high, iterations=1, min_size=0, min_frac=0):
 
 	binary_low = create_binary_image(segments_low, image.shape)
 	binary_high = create_binary_image(segments_high, image.shape)
 
-	binary_low = binary_dilation(binary_low, iterations=1)
 	binary_high = binary_dilation(binary_high, iterations=1)
 
 	#"""
@@ -364,7 +363,8 @@ def hysteresis_segmentation(image, segments_low, segments_high, iterations=2, mi
 	thresholded = connected_to_high[labels_low]
 	#"""
 	
-	smoothed = gaussian_filter(thresholded.astype(np.int), sigma=0.10)
+	smoothed = gaussian_filter(thresholded.astype(np.float), sigma=2.0)
+	smoothed = np.where(smoothed >= 0.9, 1, 0)
 	sorted_segs = get_segments(image, smoothed, min_size, min_frac)
 
 	return sorted_segs
@@ -478,8 +478,9 @@ def network_extraction(image_shg, network_name='network', scale=1.0, sigma=0.75,
 	Extract fibre network using modified FIRE algorithm
 	"""
 
-	print("Performing NL Denoise using local windows {} {}".format(*p_denoise))
+	print("Applying AHE to SHG image")
 	image_shg = equalize_adapthist(image_shg)
+	print("Performing NL Denoise using local windows {} {}".format(*p_denoise))
 	image_nl = nl_means(image_shg, p_denoise=p_denoise)
 
 	"Call FIRE algorithm to extract full image network"
