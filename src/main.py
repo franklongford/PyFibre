@@ -16,7 +16,7 @@ import pandas as pd
 
 import matplotlib
 from pickle import UnpicklingError
-matplotlib.use("Agg")
+#matplotlib.use("Agg")
 
 from scipy.ndimage.filters import gaussian_filter
 
@@ -197,8 +197,11 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.5,
 		if pl_analysis:
 
 			fibre_binary = seg.create_binary_image(fibre_net_seg, image_shg.shape)
-			fibre_filter = np.where(fibre_binary, 2, 0.1)
-			fibre_filter = gaussian_filter(fibre_filter, 0.5)
+			fibre_filter = np.where(fibre_binary, 3, 0.5)
+			fibre_filter = gaussian_filter(fibre_filter, 1.0)
+
+			plt.imshow(fibre_filter)
+			plt.show()
 
 			cell_seg, fibre_col_seg = seg.cell_segmentation(image_shg * fibre_filter, 
 							image_pl, image_tran, scale=scale)

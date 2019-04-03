@@ -65,24 +65,28 @@ def import_image(image_name):
 				return image_shg, image_pl, image_tran
 
 		elif image_orig.ndim == 3:
-			print("Size of image = {}".format(image_orig.shape[1:]))
-			image_shg = clip_intensities(image_orig[0], p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
 
-			image_pl = clip_intensities(image_orig[1], p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
-
-			image_tran = clip_intensities(image_orig[2], p_intensity=(0, 100))
-
-			return image_shg, image_pl, image_tran
-
-		else:
-			print("Size of image = {}".format(image_orig.shape[:2]))
-			print("Number of stacks = {}".format(image_orig.shape[2]))
 			smallest_axis = np.argmin(image_orig.shape)
 
-			image_mean = np.mean(image_orig, axis=smallest_axis)
-			image = clip_intensities(image_mean, p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
+			if smallest_axis == 0:
 
-			return image
+				print("Size of image = {}".format(image_orig.shape[1:]))
+				image_shg = clip_intensities(image_orig[0], p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
+
+				image_pl = clip_intensities(image_orig[1], p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
+
+				image_tran = clip_intensities(image_orig[2], p_intensity=(0, 100))
+
+				return image_shg, image_pl, image_tran
+
+			else:
+				print("Size of image = {}".format(image_orig.shape[:2]))
+				print("Number of stacks = {}".format(image_orig.shape[2]))
+				
+				image_mean = np.mean(image_orig, axis=smallest_axis)
+				image = clip_intensities(image_mean, p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
+
+				return image
 
 	else: return clip_intensities(image_orig, p_intensity=(0, 100))
 
