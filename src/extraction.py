@@ -315,7 +315,7 @@ def FIRE(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_thr
 	smoothed = gaussian_filter(distance, sigma=sigma)
 	cleared = clear_border(smoothed)
 
-	#"""
+	"""
 	import matplotlib.pyplot as plt
 
 	plt.figure(0)
