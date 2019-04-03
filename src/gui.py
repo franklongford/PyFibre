@@ -380,7 +380,7 @@ def image_analysis(input_files, input_prefixes, p_intensity, p_denoise, sigma, a
 
 		try:
 			analyse_image(input_file_names, prefix, image_path,
-					scale=1, p_intensity=p_intensity,
+					scale=1.4, p_intensity=p_intensity,
 					p_denoise=p_denoise, sigma=sigma,
 					alpha=alpha,
 					ow_metric=ow_metric, ow_segment=ow_segment,
@@ -483,7 +483,7 @@ class pyfibre_options:
 
 class pyfibre_viewer:
 
-	def __init__(self, parent, width=750, height=650):
+	def __init__(self, parent, width=750, height=750):
 
 		self.parent = parent
 		self.width = width
@@ -650,7 +650,7 @@ class pyfibre_viewer:
 		#frame.notebook.BFrame.configure(background='#d8baa9')
 
 
-	def display_image(self, canvas, image, x=40, y=20):
+	def display_image(self, canvas, image, x=0, y=0):
 
 		canvas.delete('all')
 
@@ -666,6 +666,7 @@ class pyfibre_viewer:
 		tensor_image = create_tensor_image(image) * 255.999
 
 		image_pil = Image.fromarray(tensor_image.astype('uint8'))
+		image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
 		image_tk = ImageTk.PhotoImage(image_pil)
 		self.display_image(canvas, image_tk)
 
@@ -674,7 +675,9 @@ class pyfibre_viewer:
 
 		image_network_overlay = create_network_image(image, networks, c_mode)
 
-		image_tk = ImageTk.PhotoImage(Image.fromarray(image_network_overlay.astype('uint8')))
+		image_pil = Image.fromarray(image_network_overlay.astype('uint8'))
+		image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
+		image_tk = ImageTk.PhotoImage(image_pil)
 		self.display_image(canvas, image_tk)
 
 
@@ -683,6 +686,7 @@ class pyfibre_viewer:
 		image_label_overlay = create_region_image(image, regions) * 255.999
 
 		image_pil = Image.fromarray(image_label_overlay.astype('uint8'))
+		image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
 		image_tk = ImageTk.PhotoImage(image_pil)
 
 		self.display_image(canvas, image_tk)
@@ -714,7 +718,10 @@ class pyfibre_viewer:
 		if shg_analysis:
 			self.image_shg = clip_intensities(image_shg, 
 					p_intensity=(self.parent.p0.get(), self.parent.p1.get())) * 255.999
-			shg_image_tk = ImageTk.PhotoImage(Image.fromarray(self.image_shg.astype('uint8')))
+			image_pil = Image.fromarray(self.image_shg.astype('uint8'))
+			image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
+			shg_image_tk = ImageTk.PhotoImage(image_pil)
+			
 			self.display_image(self.shg_image_tab.canvas, shg_image_tk)
 			self.update_log("Displaying SHG image {}".format(fig_name))
 
@@ -747,7 +754,9 @@ class pyfibre_viewer:
 			self.image_pl = clip_intensities(image_pl, 
 					p_intensity=(self.parent.p0.get(), self.parent.p1.get())) * 255.999
 
-			pl_image_tk = ImageTk.PhotoImage(Image.fromarray(self.image_pl.astype('uint8')))
+			image_pil = Image.fromarray(self.image_pl.astype('uint8'))
+			image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
+			pl_image_tk = ImageTk.PhotoImage(image_pil)
 			self.display_image(self.pl_image_tab.canvas, pl_image_tk)
 			self.update_log("Displaying PL image {}".format(fig_name))
 		
