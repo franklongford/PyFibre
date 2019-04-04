@@ -364,6 +364,18 @@ def get_image_lists(input_files, include_shg=True):
 	return shg_pl_files, shg_pl_prefixes
 
 
+def matrix_split(array, nrows, ncols):
+	"""Split a matrix into sub-matrices."""
+
+	r, h = array.shape
+	columns = np.array_split(array, ncols, axis=-1)
+	rows = []
+	for item in columns:
+	rows += np.array_split(item, nrows, axis=0)
+
+	return rows
+
+
 ####### OBSOLETE ########
 
 def gaussian_filter(histogram, std, r, n_xyz):

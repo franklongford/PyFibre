@@ -21,39 +21,78 @@ import utilities as ut
 from extraction import branch_angles
 
 
-def fourier_transform_analysis(image, sigma=None, n_sample=100, size=100, nbins=200):
-    """
-    Calculates fourier amplitude spectrum for image
+def fourier_transform_analysis(image, n_split=1, sigma=None, nbins=200):
+	"""
+	Calculates fourier amplitude spectrum for image
 
-    Parameters
-    ----------
+	Parameters
+	----------
 
-    image:  array_like (float); shape=(n_x, n_y)
-        Image to analyse
+	image:  array_like (float); shape=(n_x, n_y)
+	Image to analyse
 
-    Returns
-    -------
+	Returns
+	-------
 
-    angles:  array_like (float); shape=(n_bins)
-        Angles corresponding to fourier amplitudes
+	angles:  array_like (float); shape=(n_bins)
+	Angles corresponding to fourier amplitudes
 
-    fourier_spec:  array_like (float); shape=(n_bins)
-        Average Fouier amplitudes of FT of image_shg
+	fourier_spec:  array_like (float); shape=(n_bins)
+	Average Fouier amplitudes of FT of image_shg
 
-    """
+	"""
 
-    if sigma != None: image = gaussian_filter(image, sigma)
-    
-    image_fft = np.fft.fft2(image)
-    image_ifft =  np.fft.ifft2(image_fft)
-    
-    fft_angle = np.angle(image_fft, deg=True)
-    fft_magnitude = np.where(fft_angle == 0, 0, np.abs(image_fft))
-    fft_order = np.argsort(fft_angle.flatten())
-    
-    sdi = np.mean(fft_magnitude) / np.max(fft_magnitude)
+	if sigma != None: image = filters.gaussian_filter(image, sigma)
 
-    return fft_angle.flatten()[fft_order], fft_magnitude.flatten()[fft_order], sdi
+	sampled_regions = matrix_split(image, n_split, n_split)
+
+	for region in sampled_regions:
+	plt.figure(0, figsize=(10, 10))
+	plt.imshow(region)
+	plt.show()
+
+	image_fft = np.fft.fft2(region)
+	image_fft[0][0] = 0
+	image_fft = np.fft.fftshift(image_fft)
+
+	real = np.real(image_fft)
+	imag = np.imag(image_fft)
+
+	magnitude = np.abs(image_fft)
+	phase = np.angle(image_fft, deg=True)
+
+	plt.figure(1, figsize=(10, 10))
+	plt.imshow(magnitude)
+	plt.show()
+
+	plt.figure(2, figsize=(10, 10))
+	plt.imshow(phase)
+	plt.show()
+
+	image_grid = np.mgrid[:region.shape[0], :region.shape[1]]
+	for i in range(2): 
+	    image_grid[i] -= region.shape[0] * np.array(2 * image_grid[i] / region.shape[0],
+		                dtype=int)
+	image_radius = np.sqrt(np.sum(image_grid**2, axis=0))
+
+	angles = image_grid[0] / image_radius
+	angles = (np.arccos(angles) * 360 / np.pi)
+	angles[0][0] = 0
+	angles = np.fft.fftshift(angles)
+
+	print(angles.max(), angles.min())
+
+	plt.figure(1, figsize=(10, 10))
+	plt.imshow(angles)
+	plt.show()
+
+	plt.figure(1, figsize=(10, 10))
+	plt.hist(angles.flatten(), weights=magnitude.flatten(), bins=nbins)
+	plt.show()
+
+	sdi = np.mean(fourier_spec) / np.max(fourier_spec)
+
+	return angles, fourier_spec, sdi
 
 
 def tensor_analysis(tensor):
