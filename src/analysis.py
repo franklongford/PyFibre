@@ -47,50 +47,34 @@ def fourier_transform_analysis(image, n_split=1, sigma=None, nbins=200):
 	sampled_regions = matrix_split(image, n_split, n_split)
 
 	for region in sampled_regions:
-	plt.figure(0, figsize=(10, 10))
-	plt.imshow(region)
-	plt.show()
 
-	image_fft = np.fft.fft2(region)
-	image_fft[0][0] = 0
-	image_fft = np.fft.fftshift(image_fft)
+		image_fft = np.fft.fft2(region)
+		image_fft[0][0] = 0
+		image_fft = np.fft.fftshift(image_fft)
 
-	real = np.real(image_fft)
-	imag = np.imag(image_fft)
+		real = np.real(image_fft)
+		imag = np.imag(image_fft)
 
-	magnitude = np.abs(image_fft)
-	phase = np.angle(image_fft, deg=True)
+		magnitude = np.abs(image_fft)
+		phase = np.angle(image_fft, deg=True)
 
-	plt.figure(1, figsize=(10, 10))
-	plt.imshow(magnitude)
-	plt.show()
 
-	plt.figure(2, figsize=(10, 10))
-	plt.imshow(phase)
-	plt.show()
 
-	image_grid = np.mgrid[:region.shape[0], :region.shape[1]]
-	for i in range(2): 
-	    image_grid[i] -= region.shape[0] * np.array(2 * image_grid[i] / region.shape[0],
-		                dtype=int)
-	image_radius = np.sqrt(np.sum(image_grid**2, axis=0))
+		image_grid = np.mgrid[:region.shape[0], :region.shape[1]]
+		for i in range(2): 
+		    image_grid[i] -= region.shape[0] * np.array(2 * image_grid[i] / region.shape[0],
+			                dtype=int)
+		image_radius = np.sqrt(np.sum(image_grid**2, axis=0))
 
-	angles = image_grid[0] / image_radius
-	angles = (np.arccos(angles) * 360 / np.pi)
-	angles[0][0] = 0
-	angles = np.fft.fftshift(angles)
+		angles = image_grid[0] / image_radius
+		angles = (np.arccos(angles) * 360 / np.pi)
+		angles[0][0] = 0
+		angles = np.fft.fftshift(angles)
 
-	print(angles.max(), angles.min())
+		print(angles.max(), angles.min())
 
-	plt.figure(1, figsize=(10, 10))
-	plt.imshow(angles)
-	plt.show()
 
-	plt.figure(1, figsize=(10, 10))
-	plt.hist(angles.flatten(), weights=magnitude.flatten(), bins=nbins)
-	plt.show()
-
-	sdi = np.mean(fourier_spec) / np.max(fourier_spec)
+		sdi = np.mean(fourier_spec) / np.max(fourier_spec)
 
 	return angles, fourier_spec, sdi
 

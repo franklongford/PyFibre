@@ -25,74 +25,100 @@ def import_image(image_name):
 	image_orig = ut.load_image(image_name)
 	print("Input image shape = {}".format(image_orig.shape))
 
-	pl_shg_check = ('-pl-shg' in image_name.lower()) * (image_orig.shape[0] != 3)
-	shg_check = ('-pl-shg' not in image_name.lower()) * ('-shg' in image_name.lower()) * (image_orig.shape[0] == 3)
+	if '-pl-shg' in image_name.lower():
 
-	if pl_shg_check or shg_check:
-		print(f"Reordering image shape from {image_orig.shape} to {image_orig.shape[2:] + image_orig.shape[:2]}")
-		image_orig_reorder = np.moveaxis(image_orig, (0, 1, 2), (1, 2, 0))
-		assert abs(image_orig_reorder[0] - image_orig[:, :, 0]).sum() < 1E-5
-		image_orig = image_orig_reorder
-
-
-	if image_orig.ndim > 2:
-		print("Number of image types = {}".format(image_orig.shape[0]))
-		
 		if image_orig.ndim == 4:
-			print("Size of image = {}".format(image_orig.shape[1:3]))
-			print("Number of stacks = {}".format(image_orig.shape[3]))
+			print("Number of image types = {}".format(image_orig.shape[0]))
+			shape_check = (image_orig.shape[0] == 3)
+			if not shape_check: raise IOError
 
-			if image_orig.shape[0] == 2:
+			image_shape = image_orig[0].shape
+			smallest_axis = np.argmin(image_shape)
+			xy_dim = tuple(x for i, x in enumerate(image_shape) if i != smallest_axis)
 
-				image_mean = np.mean(image_orig[0], axis=-1)
-				image = image = clip_intensities(image_mean, p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
-
-				image_mean = np.mean(image_orig[1], axis=-1)
-				image_tran = clip_intensities(image_mean, p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
-			
-				image = image
-				image_tran = image_tran
-
-				return image, image_tran
-
-			elif image_orig.shape[0] == 3:
+			print("Size of image = {}".format(xy_dim))
+			print("Number of stacks = {}".format(image_shape[smallest_axis]))
 	
-				image_mean = np.mean(image_orig[0], axis=-1)
-				image_shg = clip_intensities(image_mean, p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
-	
-				image_mean = np.mean(image_orig[1], axis=-1)
-				image_pl = clip_intensities(image_mean, p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
-
-				image_mean = np.mean(image_orig[2], axis=-1)
-				image_tran = clip_intensities(image_mean, p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
-
-				return image_shg, image_pl, image_tran
+			image_shg = np.mean(image_orig[0], axis=smallest_axis)
+			image_pl = np.mean(image_orig[1], axis=smallest_axis)
+			image_tran = np.mean(image_orig[2], axis=smallest_axis)
 
 		elif image_orig.ndim == 3:
+			image_shape = image_orig.shape
+			smallest_axis = np.argmin(image_shape)
+			xy_dim = tuple(x for i, x in enumerate(image_shape) if i != smallest_axis)
 
-			smallest_axis = np.argmin(image_orig.shape)
+			print("Number of image types = {}".format(image_orig.shape[smallest_axis]))
+			shape_check = (image_orig.shape[smallest_axis] == 3)
+			if not shape_check: raise IOError
 
-			if smallest_axis == 0:
+			image_shg = np.take(image_orig, 0, smallest_axis)
+			image_pl = np.take(image_orig, 1, smallest_axis)
+			image_tran = np.take(image_orig, 2, smallest_axis)
 
-				print("Size of image = {}".format(image_orig.shape[1:]))
-				image_shg = clip_intensities(image_orig[0], p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
+			print("Size of image = {}".format(xy_dim))
 
-				image_pl = clip_intensities(image_orig[1], p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
+		image_shg = clip_intensities(image_shg, p_intensity=(0, 100))
+		image_pl = clip_intensities(image_pl, p_intensity=(0, 100))
+		image_tran = clip_intensities(image_tran, p_intensity=(0, 100))
 
-				image_tran = clip_intensities(image_orig[2], p_intensity=(0, 100))
+		return image_shg, image_pl, image_tran
+		
+	elif '-pl' in image_name.lower():
 
-				return image_shg, image_pl, image_tran
+		if image_orig.ndim == 4:
+			print("Number of image types = {}".format(image_orig.shape[0]))
+			shape_check = (image_orig.shape[0] == 2)
+			if not shape_check: raise IOError
 
-			else:
-				print("Size of image = {}".format(image_orig.shape[:2]))
-				print("Number of stacks = {}".format(image_orig.shape[2]))
-				
-				image_mean = np.mean(image_orig, axis=smallest_axis)
-				image = clip_intensities(image_mean, p_intensity=(0, 100))#np.sqrt(image_mean * image_euclid)
+			image_shape = image_orig[0].shape
+			smallest_axis = np.argmin(image_shape)
+			xy_dim = tuple(x for i, x in enumerate(image_shape) if i != smallest_axis)
 
-				return image
+			print("Size of image = {}".format(xy_dim))
+			print("Number of stacks = {}".format(image_shape[smallest_axis]))
+	
+			image_pl = np.mean(image_orig[0], axis=smallest_axis)
+			image_tran = np.mean(image_orig[1], axis=smallest_axis)
 
-	else: return clip_intensities(image_orig, p_intensity=(0, 100))
+		elif image_orig.ndim == 3:
+			image_shape = image_orig.shape
+			smallest_axis = np.argmin(image_shape)
+			xy_dim = tuple(x for i, x in enumerate(image_shape) if i != smallest_axis)
+
+			print("Number of image types = {}".format(image_orig.shape[smallest_axis]))
+			shape_check = (image_orig.shape[smallest_axis] == 3)
+			if not shape_check: raise IOError
+
+			image_pl = np.take(image_orig, 0, smallest_axis)
+			image_tran = np.take(image_orig, 1, smallest_axis)
+
+			print("Size of image = {}".format(image_shape))
+
+		image_pl = clip_intensities(image_pl, p_intensity=(0, 100))
+		image_tran = clip_intensities(image_tran, p_intensity=(0, 100))
+
+		return image_pl, image_tran
+
+	elif '-shg' in image_name.lower():
+
+		if image_orig.ndim == 3:
+			image_shape = image_orig.shape
+			smallest_axis = np.argmin(image_shape)
+			xy_dim = tuple(x for i, x in enumerate(image_shape) if i != smallest_axis)
+
+			print("Size of image = {}".format(xy_dim))
+			print("Number of stacks = {}".format(image_shape[smallest_axis]))
+
+			image_shg = np.mean(image_orig, axis=smallest_axis)
+
+		else: 
+			print("Size of image = {}".format(image_orig.shape))
+			image_shg = image_orig
+
+		image_shg = clip_intensities(image_shg, p_intensity=(0, 100))
+
+		return image_shg
 
 	raise IOError
 

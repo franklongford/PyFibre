@@ -440,7 +440,7 @@ def segment_analysis(image, segment, n_tensor, anis_map, angle_map):
 	segment_angle_map = angle_map[(indices[0], indices[1])]
 	segment_n_tensor = n_tensor[(indices[0], indices[1])]
 
-	_, _, segment_fourier_sdi = fourier_transform_analysis(segment_image)
+	_, _, segment_fourier_sdi = (0, 0, 0)#fourier_transform_analysis(segment_image)
 	segment_angle_sdi = angle_analysis(segment_angle_map, segment_anis_map)
 
 	segment_mean = np.mean(segment_image)

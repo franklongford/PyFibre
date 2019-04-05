@@ -370,8 +370,7 @@ def matrix_split(array, nrows, ncols):
 	r, h = array.shape
 	columns = np.array_split(array, ncols, axis=-1)
 	rows = []
-	for item in columns:
-	rows += np.array_split(item, nrows, axis=0)
+	for item in columns: rows += np.array_split(item, nrows, axis=0)
 
 	return rows
 
