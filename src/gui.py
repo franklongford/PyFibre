@@ -502,6 +502,7 @@ class pyfibre_viewer:
 
 		self.shg_image_tab = ttk.Frame(self.notebook)
 		self.pl_image_tab = ttk.Frame(self.notebook)
+		self.tran_image_tab = ttk.Frame(self.notebook)
 		self.tensor_tab = ttk.Frame(self.notebook)
 		self.network_tab = ttk.Frame(self.notebook)
 		self.segment_tab = ttk.Frame(self.notebook)
@@ -511,6 +512,7 @@ class pyfibre_viewer:
 
 		self.tab_dict = {'SHG Image' : self.shg_image_tab,
 						 'PL Image'  : self.pl_image_tab,
+						 'Transmission Image'  : self.tran_image_tab,
 						 'Tensor Image': self.tensor_tab,
 						 'Network' : self.network_tab,
 						 'Fibre' :  self.fibre_tab,
@@ -757,12 +759,19 @@ class pyfibre_viewer:
 		if pl_analysis:
 			self.image_pl = clip_intensities(image_pl, 
 					p_intensity=(self.parent.p0.get(), self.parent.p1.get())) * 255.999
-
 			image_pil = Image.fromarray(self.image_pl.astype('uint8'))
 			image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
 			pl_image_tk = ImageTk.PhotoImage(image_pil)
 			self.display_image(self.pl_image_tab.canvas, pl_image_tk)
 			self.update_log("Displaying PL image {}".format(fig_name))
+
+			self.image_tran = clip_intensities(image_tran, 
+					p_intensity=(self.parent.p0.get(), self.parent.p1.get())) * 255.999
+			image_pil = Image.fromarray(self.image_tran.astype('uint8'))
+			image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
+			tran_image_tk = ImageTk.PhotoImage(image_pil)
+			self.display_image(self.tran_image_tab.canvas, tran_image_tk)
+			self.update_log("Displaying PL Transmission image {}".format(fig_name))
 		
 			try:	
 				cells = ut.load_region(data_dir + fig_name + "_cell_segment")

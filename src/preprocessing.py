@@ -102,7 +102,21 @@ def import_image(image_name):
 
 	elif '-shg' in image_name.lower():
 
-		if image_orig.ndim == 3:
+		if image_orig.ndim == 4:
+			print("Number of image types = {}".format(image_orig.shape[0]))
+			shape_check = (image_orig.shape[0] == 2)
+			if not shape_check: raise IOError
+
+			image_shape = image_orig[0].shape
+			smallest_axis = np.argmin(image_shape)
+			xy_dim = tuple(x for i, x in enumerate(image_shape) if i != smallest_axis)
+
+			print("Size of image = {}".format(xy_dim))
+			print("Number of stacks = {}".format(image_shape[smallest_axis]))
+	
+			image_shg = np.mean(image_orig[1], axis=smallest_axis)
+
+		elif image_orig.ndim == 3:
 			image_shape = image_orig.shape
 			smallest_axis = np.argmin(image_shape)
 			xy_dim = tuple(x for i, x in enumerate(image_shape) if i != smallest_axis)

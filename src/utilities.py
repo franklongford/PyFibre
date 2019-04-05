@@ -333,6 +333,10 @@ def get_files_prefixes(file_list, label):
 def get_image_lists(input_files, include_shg=True):
 	"Automatically find all combined PL-SHG files or match up individual images if seperate"
 
+	remove_list = [filename for filename in input_files if 'virada' in filename]
+
+	for filename in remove_list: input_files.remove(filename)
+
 	shg_pl_files, shg_pl_prefixes = get_files_prefixes(input_files, '-pl-shg')
 
 	for filename in shg_pl_files: input_files.remove(filename[0])
