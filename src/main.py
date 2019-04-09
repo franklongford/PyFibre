@@ -218,7 +218,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 			#"""
 
 			ut.save_region(cell_seg, '{}_cell_segment'.format(filename))		
-			ut.save_region(fibre_net_seg, '{}_fibre_segment'.format(filename))
+			ut.save_region(fibre_seg, '{}_fibre_segment'.format(filename))
 
 		else:
 			ut.save_region(fibre_net_seg, '{}_fibre_segment'.format(filename))

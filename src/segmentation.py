@@ -135,9 +135,10 @@ def cluster_colours(image, n_clusters=8, n_init=10):
 	return labels, centres
 
 
-def BD_filter(image, n_runs=1, n_clusters=10, p_intensity=(2, 98), sm_size=4, param=[0.7, 1.1, 1.40, 0.82]):
+def BD_filter(image, n_runs=3, n_clusters=10, p_intensity=(2, 98), sm_size=5, param=[0.6, 1.1, 1.40, 0.92]):
 	"Adapted from CurveAlign BDcreationHE routine"
 
+	from sklearn.cluster import KMeans
 	assert image.ndim == 3
 
 	image_size = image.shape[0] * image.shape[1]
@@ -176,7 +177,12 @@ def BD_filter(image, n_runs=1, n_clusters=10, p_intensity=(2, 98), sm_size=4, pa
 		Z = np.arccos(norm_centres[:, 2])
 		I = intensities
 
-		"Define the plane of division between cellular and fibourus clusters"	
+		"Define the plane of division between cellular and fibourus clusters"
+		#data = np.stack((X, Y, Z, I), axis=1)
+		#clusterer = KMeans(n_clusters=2)
+		#clusterer.fit(data)
+		#cell_clusters = clusterer.labels_
+			
 		cell_clusters = (X <= param[0]) * (Y <= param[1]) * (Z <= param[2]) * (I <= param[3])
 		chosen_clusters = np.argwhere(cell_clusters).flatten()
 		cost_func[run] += X[chosen_clusters].mean() +  Y[chosen_clusters].mean() \
@@ -264,7 +270,7 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.0, sigma=0.8, alp
 
 	min_size *= scale**2
 
-	image_shg = np.sqrt(image_shg * image_tran)
+	#image_shg = np.sqrt(image_shg * image_tran)
 	image_pl = np.sqrt(image_pl * image_tran)
 	image_tran = equalize_adapthist(image_tran)
 
