@@ -97,7 +97,7 @@ Each database has the following columns:
 
 Metric | Description | Category
 --- | --- | ---
-No. Fibres | Number of extracted fibres | Content
+No. Fibres | Number of extracted fibres | Network
 SHG Angle SDI | Angle spectrum SDI (mean / max) for all SHG image pixels| Texture
 SHG Anisotropy | Anisotropy of structure tensor for SHG total image/segment | Texture
 SHG Pixel Anisotropy | Mean anisotropy of structure tensor for all SHG image pixels | Texture

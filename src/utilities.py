@@ -30,19 +30,14 @@ class NoiseError(Exception):
 
 def logo():
 
-	logo_text = ' ' + '_' * 54 + '\n'
-	logo_text += "|_______|" + ' ' * 14 + "|_______|" + ' ' * 14 + "|_______|" + '\n'
-	logo_text += " \\_____/" + ' ' * 16 + "\\_____/"  + ' ' * 16 + "\\_____/"  + '\n'
-	logo_text += "  | | |    ___         ___                      | | |" + '\n'
-	logo_text += "  | | |    |  \       |    .  |                 | | |" + '\n'
-	logo_text += "  | | |    |__/       |__     |__    __  __     | | |" + '\n'
-	logo_text += "  | | |    |    |  |  |    |  |  \  |   |__|    | | |" + '\n'
-	logo_text += "  | | |    |    \__|  |    |  |__/  |   |__     | | |" + '\n'
-	logo_text += "  | | |          __/                            |_|_|" + '\n'
-	logo_text += "  |_|_|                                         |_|_|" + '\n'
-	logo_text += " /_____\\" + ' ' * 16 + "/_____\\"  + ' ' * 16 + "/_____\\"  + '\n'
-	logo_text += "|_______|" + '_' * 14 + "|_______|" + '_' * 14 + "|_______|" + '  v1.4.3' + '\n'
-	logo_text += "\n              Fibrous Tissue Image Toolkit\n"
+
+	logo_text  = "           ___       ___                  " + '\n'
+	logo_text += "           |  \\     |   . |              " + '\n'
+	logo_text += "           |__/     |__   |__   __  __  " + '\n'
+	logo_text += "           |   |  | |   | |  | |   |__| " + '\n'
+	logo_text += "           |   \\__| |   | |__/ |   |__  " + '\n'
+	logo_text += "                __/                       " + '\n'
+	logo_text += "\n    Fibrous Tissue Image Toolkit  v1.4.3b\n"
 
 	return logo_text
 
@@ -333,9 +328,13 @@ def get_files_prefixes(file_list, label):
 def get_image_lists(input_files, include_shg=True):
 	"Automatically find all combined PL-SHG files or match up individual images if seperate"
 
-	remove_list = [filename for filename in input_files if 'virada' in filename]
+	removed_files = []
+	for filename in input_files:
+		if not (filename.endswith('.tif')): removed_files.append(filename)
+		elif (filename.find('display') != -1): removed_files.append(filename)
+		elif (filename.find('virada') != -1): removed_files.append(filename)
 
-	for filename in remove_list: input_files.remove(filename)
+	for filename in removed_files: input_files.remove(filename)
 
 	shg_pl_files, shg_pl_prefixes = get_files_prefixes(input_files, '-pl-shg')
 
@@ -368,15 +367,16 @@ def get_image_lists(input_files, include_shg=True):
 	return shg_pl_files, shg_pl_prefixes
 
 
-def matrix_split(array, nrows, ncols):
-	"""Split a matrix into sub-matrices."""
+def matrix_split(matrix, nrows, ncols):
+	"Split a matrix into sub-matrices"
 
-	r, h = array.shape
-	columns = np.array_split(array, ncols, axis=-1)
-	rows = []
-	for item in columns: rows += np.array_split(item, nrows, axis=0)
+	assert matrix.ndim == 2
 
-	return rows
+	rows = np.array_split(matrix, ncols, axis=0)
+	grid = []
+	for item in rows: grid += np.array_split(item, nrows, axis=-1)
+
+	return grid
 
 
 ####### OBSOLETE ########

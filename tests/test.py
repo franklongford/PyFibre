@@ -58,7 +58,7 @@ def test_string_functions():
 
 def test_numeric_functions():
 
-	from utilities import unit_vector, numpy_remove, nanmean, ring
+	from utilities import unit_vector, numpy_remove, nanmean, ring, matrix_split
 
 	vector = np.array([-3, 2, 6])
 	answer = np.array([-0.42857143,  0.28571429,  0.85714286])
@@ -84,15 +84,23 @@ def test_numeric_functions():
 
 	assert nanmean(array_nan) == 2
 
-	ring_answer = np.array([[0, 0, 0, 0, 0],
-						 [0, 1, 1, 1, 0],
-						 [0, 1, 0, 1, 0],
-						 [0, 1, 1, 1, 0],
-						 [0, 0, 0, 0, 0]])
+	ring_answer = np.array([[0, 0, 0, 0, 0, 0],
+						 [0, 1, 1, 1, 0, 0],
+						 [0, 1, 0, 1, 0, 0],
+						 [0, 1, 1, 1, 0, 0],
+						 [0, 0, 0, 0, 0, 0],
+						 [0, 0, 0, 0, 0, 0]])
 
-	ring_filter = ring(np.zeros((5, 5)), [2, 2], [1], 1)
+	ring_filter = ring(np.zeros((6, 6)), [2, 2], [1], 1)
 
 	assert abs(ring_answer - ring_filter).sum() <= THRESH
+
+	split_filter = matrix_split(ring_answer, 2, 2)
+
+	assert abs(split_filter[0] - np.array([[0, 0, 0], [0, 1, 1], [0, 1, 0]])).sum() <= THRESH
+	assert abs(split_filter[1] - np.array([[0, 0, 0], [1, 0, 0], [1, 0, 0]])).sum() <= THRESH
+	assert abs(split_filter[2] - np.array([[0, 1, 1], [0, 0, 0], [0, 0, 0]])).sum() <= THRESH
+	assert abs(split_filter[3] - np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]])).sum() <= THRESH
 
 
 def test_FIRE():

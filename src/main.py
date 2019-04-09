@@ -133,14 +133,14 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 		networks = ut.load_region(data_dir + image_name + "_network")
 		networks_red = ut.load_region(data_dir + image_name + "_network_reduced")
 		fibres = ut.load_region(data_dir + image_name + "_fibre")
-	except (UnpicklingError, IOError):
+	except (UnpicklingError, IOError, EOFError):
 		print("Cannot load networks for {}".format(image_name))
 		ow_network = True
 
 	try:
 		fibre_seg = ut.load_region(data_dir + image_name + "_fibre_segment")
 		if pl_analysis: cell_seg = ut.load_region(data_dir + image_name + "_cell_segment")
-	except (UnpicklingError, IOError):
+	except (UnpicklingError, IOError, EOFError):
 		print("Cannot load segments for {}".format(image_name))
 		ow_segment = True
 		ow_metric = True
@@ -151,7 +151,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 		fibre_dataframe = pd.read_pickle('{}_fibre_metric.pkl'.format(data_dir + image_name))
 		cell_dataframe = pd.read_pickle('{}_cell_metric.pkl'.format(data_dir + image_name))
 			
-	except (UnpicklingError, IOError):
+	except (UnpicklingError, IOError, EOFError):
 		print("Cannot load metrics for {}".format(image_name))
 		ow_metric = True
 
@@ -218,7 +218,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 			#"""
 
 			ut.save_region(cell_seg, '{}_cell_segment'.format(filename))		
-			ut.save_region(fibre_seg, '{}_fibre_segment'.format(filename))
+			ut.save_region(fibre_net_seg, '{}_fibre_segment'.format(filename))
 
 		else:
 			ut.save_region(fibre_net_seg, '{}_fibre_segment'.format(filename))
@@ -506,11 +506,6 @@ if __name__ == '__main__':
 
 	removed_files = []
 
-	for file_name in input_files:
-		if not (file_name.endswith('.tif')): removed_files.append(file_name)
-		elif (file_name.find('display') != -1): removed_files.append(file_name)
-		#elif (file_name.find('AVG') == -1): removed_files.append(file_name)
-
 	for key in args.key.split(','):
 		for file_name in input_files:
 			if (file_name.find(key) == -1) and (file_name not in removed_files): 
@@ -519,8 +514,6 @@ if __name__ == '__main__':
 	for file_name in removed_files: input_files.remove(file_name)
 
 	files, prefixes = ut.get_image_lists(input_files)
-
-	print(input_files, files, prefixes)
 
 	cell_database = pd.DataFrame()
 	segment_database = pd.DataFrame()

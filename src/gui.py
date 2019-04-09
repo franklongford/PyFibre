@@ -1,6 +1,7 @@
 import os, sys, time
 from tkinter import *
 from tkinter import ttk, filedialog
+
 import queue, threading
 from multiprocessing import Pool, Process, JoinableQueue, Queue, current_process
 
@@ -79,6 +80,7 @@ class pyfibre_gui:
 		self.create_title(self.title)
 		self.title.place(bordermode=OUTSIDE, height=200, width=300)
 
+		self.options = None
 		self.toggle = Frame(self.master)
 		self.toggle.configure(background='#d8baa9')
 		self.toggle.options_button = Button(self.toggle, width=15,
@@ -86,6 +88,7 @@ class pyfibre_gui:
 				   command=self.create_options)
 		self.toggle.options_button.pack()
 
+		self.viewer = None
 		self.toggle.configure(background='#d8baa9')
 		self.toggle.display_button = Button(self.toggle, width=15,
 				   text="Viewer",
@@ -115,7 +118,7 @@ class pyfibre_gui:
 	def create_options(self):
 
 		try: self.options.window.lift()
-		except AttributeError: 
+		except (TclError, AttributeError): 
 			self.options = pyfibre_options(self)
 
 
@@ -232,7 +235,7 @@ class pyfibre_gui:
 	def create_image_display(self):
 
 		try: self.viewer.window.lift()
-		except AttributeError:
+		except (TclError, AttributeError):
 			self.viewer = pyfibre_viewer(self)
 			self.master.bind('<Double-1>', lambda e: self.viewer.display_notebook())
 		
@@ -498,6 +501,7 @@ class pyfibre_viewer:
 		self.notebook = ttk.Notebook(self.window)
 		self.create_tabs()
 
+
 	def create_tabs(self):
 
 		self.shg_image_tab = ttk.Frame(self.notebook)
@@ -521,6 +525,7 @@ class pyfibre_viewer:
 		
 		for key, tab in self.tab_dict.items():
 			self.notebook.add(tab, text=key)
+
 			tab.canvas = Canvas(tab, width=self.width, height=self.height,
 									scrollregion=(0,0,self.height + 50 ,self.width + 50))  
 			tab.scrollbar = Scrollbar(tab, orient=VERTICAL, 
@@ -529,10 +534,21 @@ class pyfibre_viewer:
 			tab.canvas['yscrollcommand'] = tab.scrollbar.set
 			tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
 
+			if key in ['Tensor Image']:
+
+				tab.figure = Figure(figsize=(5, 5))
+				tab.fig_canvas = FigureCanvasTkAgg(tab.figure, tab)  
+				tab.fig_canvas.get_tk_widget().pack(side = RIGHT, fill = "both", expand = "yes")
+				tab.fig_canvas.draw()
+
+				#tab.fig_toolbar = NavigationToolbar2Tk(tab.fig_canvas, tab)
+				#tab.fig_toolbar.update()
+				#tab.fig_toolbar.pack(side = TOP, fill = "both", expand = "yes")
+
 		
 		self.notebook.add(self.metric_tab, text='Metrics')
 		self.metric_tab.metric_dict = {
-			'No. Fibres' : {"info" : "Number of extracted fibres", "metric" : IntVar(), "tag" : "content"},
+			'No. Fibres' : {"info" : "Number of extracted fibres", "metric" : IntVar(), "tag" : "network"},
 			'SHG Angle SDI' : {"info" : "Angle spectrum SDI of total image", "metric" : DoubleVar(), "tag" : "texture"},
 			'SHG Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar(), "tag" : "texture"},
 			'SHG Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar(), "tag" : "texture"},
@@ -659,7 +675,7 @@ class pyfibre_viewer:
 
 		canvas.create_image(x, y, image=image, anchor=NW)
 		canvas.image = image
-		canvas.pack(side = LEFT, fill = "both", expand = "yes")
+		canvas.pack(side = LEFT, fill = "both", expand = True)
 
 		self.parent.master.update_idletasks()
 
@@ -735,7 +751,7 @@ class pyfibre_viewer:
 				networks = ut.load_region(data_dir + fig_name + "_network")
 				self.display_network(self.network_tab.canvas, self.image_shg, networks)
 				self.update_log("Displaying network for {}".format(fig_name))
-			except (UnpicklingError, IOError):
+			except (UnpicklingError, IOError, EOFError):
 				self.network_tab.canvas.delete('all')
 				self.update_log("Unable to display network for {}".format(fig_name))
 
@@ -744,7 +760,7 @@ class pyfibre_viewer:
 				fibres = ut.flatten_list(fibres)
 				self.display_network(self.fibre_tab.canvas, self.image_shg, fibres, 1)
 				self.update_log("Displaying fibres for {}".format(fig_name))
-			except (UnpicklingError, IOError):
+			except (UnpicklingError, IOError, EOFError):
 				self.fibre_tab.canvas.delete('all')
 				self.update_log("Unable to display fibres for {}".format(fig_name))
 
@@ -752,7 +768,7 @@ class pyfibre_viewer:
 				segments = ut.load_region(data_dir + fig_name + "_fibre_segment")
 				self.display_regions(self.segment_tab.canvas, self.image_shg, segments)
 				self.update_log("Displaying fibre segments for {}".format(fig_name))
-			except (UnpicklingError, IOError):
+			except (UnpicklingError, IOError, EOFError):
 				self.segment_tab.canvas.delete('all')
 				self.update_log("Unable to display fibre segments for {}".format(fig_name))
 
@@ -777,11 +793,12 @@ class pyfibre_viewer:
 				cells = ut.load_region(data_dir + fig_name + "_cell_segment")
 				self.display_regions(self.cell_tab.canvas, self.image_pl, cells)
 				self.update_log("Displaying cell segments for {}".format(fig_name))
-			except (UnpicklingError, IOError):
+			except (UnpicklingError, IOError, EOFError):
 				self.cell_tab.canvas.delete('all')
 				self.update_log("Unable to display cell segments for {}".format(fig_name))
 		else: 
 			self.pl_image_tab.canvas.delete('all')
+			self.tran_image_tab.canvas.delete('all')
 			self.cell_tab.canvas.delete('all')
 
 		try:
@@ -791,7 +808,7 @@ class pyfibre_viewer:
 				self.metric_tab.metric_dict[metric]["metric"].set(value)
 			self.update_log("Displaying metrics for {}".format(fig_name))
 
-		except (UnpicklingError, IOError):
+		except (UnpicklingError, IOError, EOFError):
 			self.update_log("Unable to display metrics for {}".format(fig_name))
 			for i, metric in enumerate(self.metric_tab.titles):
 				self.metric_tab.metric_dict[metric]["metric"].set(0)
@@ -799,9 +816,10 @@ class pyfibre_viewer:
 		self.parent.master.update_idletasks()
 
 
-
 N_PROC = 1#os.cpu_count() - 1
 N_THREAD = 8
+
+print(ut.logo())
 
 root = Tk()
 GUI = pyfibre_gui(root, N_PROC, N_THREAD)

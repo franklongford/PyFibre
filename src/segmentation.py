@@ -135,7 +135,7 @@ def cluster_colours(image, n_clusters=8, n_init=10):
 	return labels, centres
 
 
-def BD_filter(image, n_runs=1, n_clusters=10, p_intensity=(2, 98), sm_size=7, param=[0.7, 1.1, 1.40, 0.82]):
+def BD_filter(image, n_runs=1, n_clusters=10, p_intensity=(2, 98), sm_size=4, param=[0.7, 1.1, 1.40, 0.82]):
 	"Adapted from CurveAlign BDcreationHE routine"
 
 	assert image.ndim == 3
@@ -585,7 +585,6 @@ def filter_segments(segments, network, network_red, min_size=200):
 	
 	return 	segments, network, network_red
 		 
-
 
 def network_analysis(network, network_red):
 
