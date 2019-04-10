@@ -558,7 +558,7 @@ def fibre_assignment(network, angle_thresh=70, verbose=False, min_n=4):
 		if tracing[node]:
 
 			fibre = Fibre([node])
-			fibre.nodes[node]['xy'] = network.nodes[node]['xy']
+			fibre.nodes[node]['xy'] = network.nodes[node]['xy'].copy()
 
 			new_nodes = np.array(list(network.adj[node]))
 			new_nodes = numpy_remove(new_nodes, [node])
@@ -570,7 +570,7 @@ def fibre_assignment(network, angle_thresh=70, verbose=False, min_n=4):
 			fibre.direction = coord_vec / coord_r
 			fibre.fibre_l = coord_r
 			fibre.euclid_l = np.sqrt(r2_coord[new_node][node])
-			fibre.add_node(new_node, xy= network.nodes[new_node]['xy'])
+			fibre.add_node(new_node, xy= network.nodes[new_node]['xy'].copy())
 			fibre.add_edge(node, new_node, 
 				r=network[new_node][node]['r'])
 			fibre.node_list = list(fibre.nodes)
@@ -617,20 +617,19 @@ def fibre_assignment(network, angle_thresh=70, verbose=False, min_n=4):
 						coord_vec = - new_coord_vec[index]
 						coord_r = new_coord_r[index]
 
-						fibre.direction = coord_vec / coord_r
+						fibre.direction = -d_coord[node][new_node] / np.sqrt(r2_coord[new_node][node])
 						fibre.fibre_l += coord_r
 						fibre.euclid_l = np.sqrt(r2_coord[node][end_node])
-						fibre.add_node(new_node, xy= network.nodes[new_node]['xy'])
+						fibre.add_node(new_node, xy= network.nodes[new_node]['xy'].copy())
 						fibre.add_edge(end_node, new_node, 
 							r=network[new_node][end_node]['r'])
 						fibre.node_list = list(fibre.nodes)
 						
-						if verbose: 
+						if verbose:
 							print("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
 							print("New fibre length = ", fibre.fibre_l, "(+{})".format(coord_r))
 							print("New fibre displacement = ", fibre.euclid_l)
 							print("New fibre direction = ", fibre.direction)
-
 
 					except (ValueError, IndexError):fibre.growing = False
 				else: fibre.growing = False

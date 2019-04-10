@@ -32,6 +32,8 @@ import utilities as ut
 from preprocessing import load_shg_pl, clip_intensities
 from segmentation import draw_network
 from figures import create_tensor_image, create_region_image, create_network_image
+from filters import form_structure_tensor
+from analysis import tensor_analysis, fibre_analysis
 
 
 class pyfibre_gui:
@@ -83,22 +85,37 @@ class pyfibre_gui:
 		self.options = None
 		self.toggle = Frame(self.master)
 		self.toggle.configure(background='#d8baa9')
+
 		self.toggle.options_button = Button(self.toggle, width=15,
 				   text="Options",
 				   command=self.create_options)
 		self.toggle.options_button.pack()
 
 		self.viewer = None
-		self.toggle.configure(background='#d8baa9')
-		self.toggle.display_button = Button(self.toggle, width=15,
+		self.toggle.viewer_button = Button(self.toggle, width=15,
 				   text="Viewer",
-				   command=self.create_image_display)
-		self.toggle.display_button.pack()
-		self.toggle.place(x=300, y=10, height=50, width=250)
+				   command=self.create_image_viewer)
+		self.toggle.viewer_button.pack()
+
+		self.metrics = None
+		self.toggle.metric_button = Button(self.toggle, width=15,
+				   text="Metrics",
+				   command=self.create_metric_display)
+		self.toggle.metric_button.pack()
+
+		self.graphs = None
+		self.toggle.graph_button = Button(self.toggle, width=15,
+				   text="Graphs",
+				   command=self.create_graph_display)
+		self.toggle.graph_button.pack()
+
+		self.toggle.place(x=300, y=10, height=100, width=250)
 
 		self.file_display = Frame(self.master)
 		self.create_file_display(self.file_display)
 		self.file_display.place(x=5, y=220, height=600, width=800)
+
+		self.master.bind('<Double-1>', lambda e: self.update_windows())
 
 
 	def create_title(self, frame):
@@ -232,13 +249,36 @@ class pyfibre_gui:
 			self.update_log("Removing {}".format(filename))
 
 
-	def create_image_display(self):
+	def create_image_viewer(self):
 
 		try: self.viewer.window.lift()
 		except (TclError, AttributeError):
 			self.viewer = pyfibre_viewer(self)
-			self.master.bind('<Double-1>', lambda e: self.viewer.display_notebook())
+
+	def create_metric_display(self):
+
+		try: self.metrics.window.lift()
+		except (TclError, AttributeError):
+			self.metrics = pyfibre_metrics(self)
+
+	def create_graph_display(self):
+
+		try: self.graphs.window.lift()
+		except (TclError, AttributeError):
+			self.graphs = pyfibre_graphs(self)
 		
+
+	def update_windows(self):
+
+		try: self.viewer.display_notebook()
+		except (TclError, AttributeError): pass
+
+		try: self.metrics.get_metrics()
+		except (TclError, AttributeError): pass
+
+		try: self.graphs.display_figures()
+		except (TclError, AttributeError): pass
+
 
 	def generate_db(self):
 
@@ -534,123 +574,6 @@ class pyfibre_viewer:
 			tab.canvas['yscrollcommand'] = tab.scrollbar.set
 			tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
 
-			if key in ['Tensor Image']:
-
-				tab.figure = Figure(figsize=(5, 5))
-				tab.fig_canvas = FigureCanvasTkAgg(tab.figure, tab)  
-				tab.fig_canvas.get_tk_widget().pack(side = RIGHT, fill = "both", expand = "yes")
-				tab.fig_canvas.draw()
-
-				#tab.fig_toolbar = NavigationToolbar2Tk(tab.fig_canvas, tab)
-				#tab.fig_toolbar.update()
-				#tab.fig_toolbar.pack(side = TOP, fill = "both", expand = "yes")
-
-		
-		self.notebook.add(self.metric_tab, text='Metrics')
-		self.metric_tab.metric_dict = {
-			'No. Fibres' : {"info" : "Number of extracted fibres", "metric" : IntVar(), "tag" : "network"},
-			'SHG Angle SDI' : {"info" : "Angle spectrum SDI of total image", "metric" : DoubleVar(), "tag" : "texture"},
-			'SHG Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar(), "tag" : "texture"},
-			'SHG Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar(), "tag" : "texture"},
-			'SHG Intensity Mean' : {"info" : "Average pixel intensity of total image", "metric" : DoubleVar(), "tag" : "texture"},
-			'SHG Intensity STD' : {"info" : "Pixel intensity standard deviation of total image", "metric" : DoubleVar(), "tag" : "texture"},
-			'SHG Intensity Entropy' : {"info" : "Average Shannon entropy of total image", "metric" : DoubleVar(), "tag" : "texture"},						
-			'Fibre GLCM Contrast' : {"info" : "SHG GLCM angle-averaged contrast", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre GLCM Homogeneity' : {"info" : "SHG GLCM angle-averaged homogeneity", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre GLCM Dissimilarity' : {"info" : "SHG GLCM angle-averaged dissimilarity", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre GLCM Correlation' : {"info" : "SHG GLCM angle-averaged correlation", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre GLCM Energy' : {"info" : "SHG GLCM angle-averaged energy", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre GLCM IDM' : {"info" : "SHG GLCM angle-averaged inverse difference moment", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre GLCM Variance' : {"info" : "SHG GLCM angle-averaged variance", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre GLCM Cluster' : {"info" : "SHG GLCM angle-averaged clustering tendency", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre GLCM Entropy' : {"info" : "SHG GLCM angle-averaged entropy", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre Area' : {"info" : "Average number of pixels covered by fibres", "metric" : DoubleVar(), "tag" : "content"},			
-			'Fibre Coverage' : {"info" : "Ratio of image covered by fibres", "metric" : DoubleVar(), "tag" : "content"},
-			'Fibre Linearity' : {"info" : "Average fibre segment linearity", "metric" : DoubleVar(), "tag" : "shape"},
-			'Fibre Eccentricity' : {"info" : "Average fibre segment eccentricity", "metric" : DoubleVar(), "tag" : "shape"},
-			'Fibre Density' : {"info" : "Average image fibre density", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre Hu Moment 1'  : {"info" : "Average fibre segment Hu moment 1", "metric" : DoubleVar(), "tag" : "shape"},
-			'Fibre Hu Moment 2'  : {"info" : "Average fibre segment Hu moment 2", "metric" : DoubleVar(), "tag" : "shape"},
-			'Fibre Waviness' : {"info" : "Average fibre waviness", "metric" : DoubleVar(), "tag" : "content"},
-			'Fibre Lengths' : {"info" : "Average fibre pixel length", "metric" : DoubleVar(), "tag" : "content"},
-			'Fibre Cross-Link Density' : {"info" : "Average cross-links per fibre", "metric" : DoubleVar(), "tag" : "content"},
-			'Network Degree' : {"info" : "Average fibre network number of edges per node", "metric" : DoubleVar(), "tag" : "network"},
-			'Network Eigenvalue' : {"info" : "Max Eigenvalue of network", "metric" : DoubleVar(), "tag" : "network"},
-			'Network Connectivity' : {"info" : "Average fibre network connectivity", "metric" : DoubleVar(), "tag" : "network"},
-
-			'No. Cells' : {"info" : "Number of cell segments", "metric" : IntVar(), "tag" : "content"},
-			'PL Angle SDI' : {"info" : "Angle spectrum SDI of total image", "metric" : DoubleVar(), "tag" : "texture"},
-			'PL Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar(), "tag" : "texture"},
-			'PL Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar(), "tag" : "texture"},
-			'PL Intensity Mean' : {"info" : "Average pixel intensity of total image", "metric" : DoubleVar(), "tag" : "texture"},
-			'PL Intensity STD' : {"info" : "Pixel intensity standard deviation of total image", "metric" : DoubleVar(), "tag" : "texture"},
-			'PL Intensity Entropy' : {"info" : "Average Shannon entropy of total image", "metric" : DoubleVar(), "tag" : "texture"},						
-			'Cell GLCM Contrast' : {"info" : "PL GLCM angle-averaged contrast", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell GLCM Homogeneity' : {"info" : "PL GLCM angle-averaged homogeneity", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell GLCM Dissimilarity' : {"info" : "PL GLCM angle-averaged dissimilarity", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell GLCM Correlation' : {"info" : "PL GLCM angle-averaged correlation", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell GLCM Energy' : {"info" : "PL GLCM angle-averaged energy", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell GLCM IDM' : {"info" : "PL GLCM angle-averaged inverse difference moment", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell GLCM Variance' : {"info" : "PL GLCM angle-averaged variance", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell GLCM Cluster' : {"info" : "PL GLCM angle-averaged clustering tendency", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Contrast' : {"info" : "PL GLCM angle-averaged contrast", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Homogeneity' : {"info" : "PL GLCM angle-averaged homogeneity", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Dissimilarity' : {"info" : "PL GLCM angle-averaged dissimilarity", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Correlation' : {"info" : "PL GLCM angle-averaged correlation", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Energy' : {"info" : "PL GLCM angle-averaged energy", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM IDM' : {"info" : "PL GLCM angle-averaged inverse difference moment", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Variance' : {"info" : "PL GLCM angle-averaged variance", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Cluster' : {"info" : "PL GLCM angle-averaged clustering tendency", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell Area' : {"info" : "Average number of pixels covered by cells", "metric" : DoubleVar(), "tag" : "content"},
-			'Cell Linearity' : {"info" : "Average cell segment linearity", "metric" : DoubleVar(), "tag" : "shape"}, 
-			'Cell Coverage' : {"info" : "Ratio of image covered by cell", "metric" : DoubleVar(), "tag" : "content"},		
-			'Cell Eccentricity' : {"info" : "Average cell segment eccentricity", "metric" : DoubleVar(), "tag" : "shape"},				
-			'Cell Density' : {"info" : "Average image cell density", "metric" : DoubleVar(), "tag" : "texture"},						
-			'Cell Hu Moment 1'  : {"info" : "Average cell segment Hu moment 1", "metric" : DoubleVar(), "tag" : "shape"},
-			'Cell Hu Moment 2'  : {"info" : "Average cell segment Hu moment 2", "metric" : DoubleVar(), "tag" : "shape"}
-										}
-
-		self.metric_tab.titles = list(self.metric_tab.metric_dict.keys())
-
-		self.notebook.metrics = [DoubleVar() for i in range(len(self.metric_tab.titles))]
-		self.metric_tab.headings = []
-		self.metric_tab.info = []
-		self.metric_tab.metrics = []
-
-		self.metric_tab.texture = ttk.Labelframe(self.metric_tab, text="Texture",
-						width=self.width-50, height=self.height-50)
-		self.metric_tab.content = ttk.Labelframe(self.metric_tab, text="Content",
-						width=self.width-50, height=self.height-50)
-		self.metric_tab.shape = ttk.Labelframe(self.metric_tab, text="Shape",
-						width=self.width-50, height=self.height-50)
-		self.metric_tab.network = ttk.Labelframe(self.metric_tab, text="Network",
-						width=self.width-50, height=self.height-50)
-		
-		self.metric_tab.frame_dict = {"texture" : {'tab' : self.metric_tab.texture, "count" : 0},
-									  "content" : {'tab' : self.metric_tab.content, "count" : 0},
-									  "shape"  : {'tab' : self.metric_tab.shape, "count" : 0},
-									  "network" : {'tab' : self.metric_tab.network, "count" : 0}}
-
-		for i, metric in enumerate(self.metric_tab.titles):
-
-			tag = self.metric_tab.metric_dict[metric]["tag"]
-
-			self.metric_tab.headings += [Label(self.metric_tab.frame_dict[tag]['tab'], 
-				text="{}:".format(metric), font=("Ariel", 8))]
-			self.metric_tab.info += [Label(self.metric_tab.frame_dict[tag]['tab'], 
-				text=self.metric_tab.metric_dict[metric]["info"], font=("Ariel", 8))]
-			self.metric_tab.metrics += [Label(self.metric_tab.frame_dict[tag]['tab'], 
-				textvariable=self.metric_tab.metric_dict[metric]["metric"], font=("Ariel", 8))]
-
-			self.metric_tab.headings[i].grid(column=0, row=self.metric_tab.frame_dict[tag]['count'])
-			self.metric_tab.info[i].grid(column=1, row=self.metric_tab.frame_dict[tag]['count'])
-			self.metric_tab.metrics[i].grid(column=2, row=self.metric_tab.frame_dict[tag]['count'])
-			self.metric_tab.frame_dict[tag]['count'] += 1
-
-		self.metric_tab.texture.pack()
-		self.metric_tab.content.pack()
-		self.metric_tab.shape.pack()
-		self.metric_tab.network.pack()
 		
 		self.log_tab = ttk.Frame(self.notebook)
 		self.notebook.add(self.log_tab, text='Log')
@@ -803,20 +726,245 @@ class pyfibre_viewer:
 			self.tran_image_tab.canvas.delete('all')
 			self.cell_tab.canvas.delete('all')
 
+		self.parent.master.update_idletasks()
+
+
+class pyfibre_metrics:
+
+	def __init__(self, parent, width=750, height=750):
+
+		self.parent = parent
+		self.width = width
+		self.height = height
+
+		self.window = Toplevel(self.parent.master)
+		self.window.tk.call('wm', 'iconphoto', self.window._w, self.parent.title.image)
+		self.window.title('PyFibre - Metrics')
+		self.window.geometry(f"{width}x{height}-100+40")
+
+		self.frame = Frame(self.window)
+		self.create_metrics()
+
+
+	def create_metrics(self):
+
+		self.metric_dict = {
+			'No. Fibres' : {"info" : "Number of extracted fibres", "metric" : IntVar(), "tag" : "network"},
+			'SHG Angle SDI' : {"info" : "Angle spectrum SDI of total image", "metric" : DoubleVar(), "tag" : "texture"},
+			'SHG Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar(), "tag" : "texture"},
+			'SHG Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar(), "tag" : "texture"},
+			'SHG Intensity Mean' : {"info" : "Average pixel intensity of total image", "metric" : DoubleVar(), "tag" : "texture"},
+			'SHG Intensity STD' : {"info" : "Pixel intensity standard deviation of total image", "metric" : DoubleVar(), "tag" : "texture"},
+			'SHG Intensity Entropy' : {"info" : "Average Shannon entropy of total image", "metric" : DoubleVar(), "tag" : "texture"},						
+			'Fibre GLCM Contrast' : {"info" : "SHG GLCM angle-averaged contrast", "metric" : DoubleVar(), "tag" : "texture"},
+			'Fibre GLCM Homogeneity' : {"info" : "SHG GLCM angle-averaged homogeneity", "metric" : DoubleVar(), "tag" : "texture"},
+			'Fibre GLCM Dissimilarity' : {"info" : "SHG GLCM angle-averaged dissimilarity", "metric" : DoubleVar(), "tag" : "texture"},
+			'Fibre GLCM Correlation' : {"info" : "SHG GLCM angle-averaged correlation", "metric" : DoubleVar(), "tag" : "texture"},
+			'Fibre GLCM Energy' : {"info" : "SHG GLCM angle-averaged energy", "metric" : DoubleVar(), "tag" : "texture"},
+			'Fibre GLCM IDM' : {"info" : "SHG GLCM angle-averaged inverse difference moment", "metric" : DoubleVar(), "tag" : "texture"},
+			'Fibre GLCM Variance' : {"info" : "SHG GLCM angle-averaged variance", "metric" : DoubleVar(), "tag" : "texture"},
+			'Fibre GLCM Cluster' : {"info" : "SHG GLCM angle-averaged clustering tendency", "metric" : DoubleVar(), "tag" : "texture"},
+			'Fibre GLCM Entropy' : {"info" : "SHG GLCM angle-averaged entropy", "metric" : DoubleVar(), "tag" : "texture"},
+			'Fibre Area' : {"info" : "Average number of pixels covered by fibres", "metric" : DoubleVar(), "tag" : "content"},			
+			'Fibre Coverage' : {"info" : "Ratio of image covered by fibres", "metric" : DoubleVar(), "tag" : "content"},
+			'Fibre Linearity' : {"info" : "Average fibre segment linearity", "metric" : DoubleVar(), "tag" : "shape"},
+			'Fibre Eccentricity' : {"info" : "Average fibre segment eccentricity", "metric" : DoubleVar(), "tag" : "shape"},
+			'Fibre Density' : {"info" : "Average image fibre density", "metric" : DoubleVar(), "tag" : "texture"},
+			'Fibre Hu Moment 1'  : {"info" : "Average fibre segment Hu moment 1", "metric" : DoubleVar(), "tag" : "shape"},
+			'Fibre Hu Moment 2'  : {"info" : "Average fibre segment Hu moment 2", "metric" : DoubleVar(), "tag" : "shape"},
+			'Fibre Waviness' : {"info" : "Average fibre waviness", "metric" : DoubleVar(), "tag" : "content"},
+			'Fibre Lengths' : {"info" : "Average fibre pixel length", "metric" : DoubleVar(), "tag" : "content"},
+			'Fibre Cross-Link Density' : {"info" : "Average cross-links per fibre", "metric" : DoubleVar(), "tag" : "content"},
+			'Network Degree' : {"info" : "Average fibre network number of edges per node", "metric" : DoubleVar(), "tag" : "network"},
+			'Network Eigenvalue' : {"info" : "Max Eigenvalue of network", "metric" : DoubleVar(), "tag" : "network"},
+			'Network Connectivity' : {"info" : "Average fibre network connectivity", "metric" : DoubleVar(), "tag" : "network"},
+
+			'No. Cells' : {"info" : "Number of cell segments", "metric" : IntVar(), "tag" : "content"},
+			'PL Angle SDI' : {"info" : "Angle spectrum SDI of total image", "metric" : DoubleVar(), "tag" : "texture"},
+			'PL Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar(), "tag" : "texture"},
+			'PL Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar(), "tag" : "texture"},
+			'PL Intensity Mean' : {"info" : "Average pixel intensity of total image", "metric" : DoubleVar(), "tag" : "texture"},
+			'PL Intensity STD' : {"info" : "Pixel intensity standard deviation of total image", "metric" : DoubleVar(), "tag" : "texture"},
+			'PL Intensity Entropy' : {"info" : "Average Shannon entropy of total image", "metric" : DoubleVar(), "tag" : "texture"},						
+			'Cell GLCM Contrast' : {"info" : "PL GLCM angle-averaged contrast", "metric" : DoubleVar(), "tag" : "texture"},
+			'Cell GLCM Homogeneity' : {"info" : "PL GLCM angle-averaged homogeneity", "metric" : DoubleVar(), "tag" : "texture"},
+			'Cell GLCM Dissimilarity' : {"info" : "PL GLCM angle-averaged dissimilarity", "metric" : DoubleVar(), "tag" : "texture"},
+			'Cell GLCM Correlation' : {"info" : "PL GLCM angle-averaged correlation", "metric" : DoubleVar(), "tag" : "texture"},
+			'Cell GLCM Energy' : {"info" : "PL GLCM angle-averaged energy", "metric" : DoubleVar(), "tag" : "texture"},
+			'Cell GLCM IDM' : {"info" : "PL GLCM angle-averaged inverse difference moment", "metric" : DoubleVar(), "tag" : "texture"},
+			'Cell GLCM Variance' : {"info" : "PL GLCM angle-averaged variance", "metric" : DoubleVar(), "tag" : "texture"},
+			'Cell GLCM Cluster' : {"info" : "PL GLCM angle-averaged clustering tendency", "metric" : DoubleVar(), "tag" : "texture"},
+			'Muscle GLCM Contrast' : {"info" : "PL GLCM angle-averaged contrast", "metric" : DoubleVar(), "tag" : "texture"},
+			'Muscle GLCM Homogeneity' : {"info" : "PL GLCM angle-averaged homogeneity", "metric" : DoubleVar(), "tag" : "texture"},
+			'Muscle GLCM Dissimilarity' : {"info" : "PL GLCM angle-averaged dissimilarity", "metric" : DoubleVar(), "tag" : "texture"},
+			'Muscle GLCM Correlation' : {"info" : "PL GLCM angle-averaged correlation", "metric" : DoubleVar(), "tag" : "texture"},
+			'Muscle GLCM Energy' : {"info" : "PL GLCM angle-averaged energy", "metric" : DoubleVar(), "tag" : "texture"},
+			'Muscle GLCM IDM' : {"info" : "PL GLCM angle-averaged inverse difference moment", "metric" : DoubleVar(), "tag" : "texture"},
+			'Muscle GLCM Variance' : {"info" : "PL GLCM angle-averaged variance", "metric" : DoubleVar(), "tag" : "texture"},
+			'Muscle GLCM Cluster' : {"info" : "PL GLCM angle-averaged clustering tendency", "metric" : DoubleVar(), "tag" : "texture"},
+			'Cell Area' : {"info" : "Average number of pixels covered by cells", "metric" : DoubleVar(), "tag" : "content"},
+			'Cell Linearity' : {"info" : "Average cell segment linearity", "metric" : DoubleVar(), "tag" : "shape"}, 
+			'Cell Coverage' : {"info" : "Ratio of image covered by cell", "metric" : DoubleVar(), "tag" : "content"},		
+			'Cell Eccentricity' : {"info" : "Average cell segment eccentricity", "metric" : DoubleVar(), "tag" : "shape"},				
+			'Cell Density' : {"info" : "Average image cell density", "metric" : DoubleVar(), "tag" : "texture"},						
+			'Cell Hu Moment 1'  : {"info" : "Average cell segment Hu moment 1", "metric" : DoubleVar(), "tag" : "shape"},
+			'Cell Hu Moment 2'  : {"info" : "Average cell segment Hu moment 2", "metric" : DoubleVar(), "tag" : "shape"}
+										}
+
+		self.metric_titles = list(self.metric_dict.keys())
+
+		self.metrics = [DoubleVar() for i in range(len(self.metric_titles))]
+		self.headings = []
+		self.info = []
+		self.metrics = []
+
+		self.texture = ttk.Labelframe(self.frame, text="Texture",
+						width=self.width-50, height=self.height-50)
+		self.content = ttk.Labelframe(self.frame, text="Content",
+						width=self.width-50, height=self.height-50)
+		self.shape = ttk.Labelframe(self.frame, text="Shape",
+						width=self.width-50, height=self.height-50)
+		self.network = ttk.Labelframe(self.frame, text="Network",
+						width=self.width-50, height=self.height-50)
+		
+		self.frame_dict = {"texture" : {'tab' : self.texture, "count" : 0},
+									  "content" : {'tab' : self.content, "count" : 0},
+									  "shape"  : {'tab' : self.shape, "count" : 0},
+									  "network" : {'tab' : self.network, "count" : 0}}
+
+		for i, metric in enumerate(self.metric_titles):
+
+			tag = self.metric_dict[metric]["tag"]
+
+			self.headings += [Label(self.frame_dict[tag]['tab'], 
+				text="{}:".format(metric), font=("Ariel", 8))]
+			self.info += [Label(self.frame_dict[tag]['tab'], 
+				text=self.metric_dict[metric]["info"], font=("Ariel", 8))]
+			self.metrics += [Label(self.frame_dict[tag]['tab'], 
+				textvariable=self.metric_dict[metric]["metric"], font=("Ariel", 8))]
+
+			self.headings[i].grid(column=0, row=self.frame_dict[tag]['count'])
+			self.info[i].grid(column=1, row=self.frame_dict[tag]['count'])
+			self.metrics[i].grid(column=2, row=self.frame_dict[tag]['count'])
+			self.frame_dict[tag]['count'] += 1
+
+		self.texture.grid(column=0, row=0, rowspan=3)
+		self.content.grid(column=1, row=0)
+		self.shape.grid(column=1, row=1)
+		self.network.grid(column=1, row=2)
+
+		self.frame.configure(background='#d8baa9')
+		self.frame.pack()
+
+
+	def get_metrics(self):
+
+		selected_file = self.parent.file_display.tree.selection()[0]
+
+		image_name = selected_file.split('/')[-1]
+		image_path = '/'.join(selected_file.split('/')[:-1])
+		fig_name = ut.check_file_name(image_name, extension='tif')
+		data_dir = image_path + '/data/'
+
 		try:
 			loaded_metrics = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + fig_name)).iloc[0]
-			for i, metric in enumerate(self.metric_tab.metric_dict.keys()):
+			for i, metric in enumerate(self.metric_dict.keys()):
 				value = round(loaded_metrics[metric], 2)
-				self.metric_tab.metric_dict[metric]["metric"].set(value)
-			self.update_log("Displaying metrics for {}".format(fig_name))
+				self.metric_dict[metric]["metric"].set(value)
+			print("Displaying metrics for {}".format(fig_name))
 
 		except (UnpicklingError, IOError, EOFError):
-			self.update_log("Unable to display metrics for {}".format(fig_name))
-			for i, metric in enumerate(self.metric_tab.titles):
-				self.metric_tab.metric_dict[metric]["metric"].set(0)
+			print("Unable to display metrics for {}".format(fig_name))
+			for i, metric in enumerate(self.metric_titles):
+				self.metric_dict[metric]["metric"].set(0)
 
 		self.parent.master.update_idletasks()
 
+
+class pyfibre_graphs:
+
+	def __init__(self, parent, width=750, height=750):
+
+		self.parent = parent
+		self.width = width
+		self.height = height
+
+		self.window = Toplevel(self.parent.master)
+		self.window.tk.call('wm', 'iconphoto', self.window._w, self.parent.title.image)
+		self.window.title('PyFibre - Graphs')
+		self.window.geometry(f"{width}x{height}-100+40")
+
+		self.frame = Frame(self.window)
+		self.create_graphs()
+
+
+	def create_graphs(self):
+
+		self.figure = Figure(figsize=(8, 4))
+		self.angle_ax = self.figure.add_subplot(121, polar=True)
+		self.angle_ax.set_title('Pixel Angle Histogram')
+
+		self.fibre_ax = self.figure.add_subplot(122, polar=True)
+		self.fibre_ax.set_title('Fibre Angle Histogram')
+
+		self.fig_canvas = FigureCanvasTkAgg(self.figure, self.frame)  
+		self.fig_canvas.get_tk_widget().pack(side = TOP, fill = "both", expand = "yes")
+		self.fig_canvas.draw()
+
+		self.toolbar = NavigationToolbar2Tk(self.fig_canvas, self.frame)
+		self.toolbar.update()
+		self.toolbar.pack(side = TOP, fill = "both", expand = "yes")
+
+		self.frame.pack()
+
+	def display_figures(self):
+
+		selected_file = self.parent.file_display.tree.selection()[0]
+
+		image_name = selected_file.split('/')[-1]
+		image_path = '/'.join(selected_file.split('/')[:-1])
+		fig_name = ut.check_file_name(image_name, extension='tif')
+		data_dir = image_path + '/data/'
+
+		file_index = self.parent.input_prefixes.index(selected_file)
+		image_shg, image_pl, image_tran = load_shg_pl(self.parent.input_files[file_index])
+
+		shg_analysis = ~np.any(image_shg == None)
+		pl_analysis = ~np.any(image_pl == None)
+
+		if shg_analysis:
+
+			"Form nematic and structure tensors for each pixel"
+			j_tensor = form_structure_tensor(image_shg, sigma=1.0)
+
+			"Perform anisotropy analysis on each pixel"
+			pix_j_anis, pix_j_angle, pix_j_energy = tensor_analysis(j_tensor)
+
+			pix_j_angle = (pix_j_angle.flatten() + 90) * np.pi / 180 
+			print(pix_j_angle.min(), pix_j_angle.max(), pix_j_angle.shape)
+
+			self.angle_ax.clear()
+			self.angle_ax.set_title('Pixel Angle Histogram')
+			self.angle_ax.hist(pix_j_angle, bins=50, density=True)
+			#self.angle_ax.set_xlim(0, 180)
+
+			try:
+				fibres = ut.load_region(data_dir + fig_name + "_fibre")
+				fibres = ut.flatten_list(fibres)
+				
+				_, _, angles = fibre_analysis(fibres)
+
+				self.fibre_ax.clear()
+				self.fibre_ax.set_title('Fibre Angle Histogram')
+				self.fibre_ax.hist(angles.flatten() * np.pi / 180, bins=50, density=True)
+				#self.fibre_ax.set_xlim(0, 180)
+
+				print("Displaying fibres for {}".format(fig_name))
+			except (UnpicklingError, IOError, EOFError):
+				self.fibre_tab.canvas.delete('all')
+				print("Unable to display fibres for {}".format(fig_name))
+
+		self.fig_canvas.draw()
 
 N_PROC = 1#os.cpu_count() - 1
 N_THREAD = 8

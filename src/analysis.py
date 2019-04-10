@@ -143,7 +143,8 @@ def fibre_analysis(tot_fibres, verbose=False):
 		start = fibre.node_list[0]
 		end = fibre.node_list[-1]
 
-		if verbose: print("Length", fibre.fibre_l, "Displacement", fibre.euclid_l, "\n")
+		if verbose: print("N nodes", len(fibre.node_list), "Length", fibre.fibre_l, 
+					"Displacement", fibre.euclid_l, "Direction", fibre.direction, "\n")
 
 		fibre_lengths = np.concatenate((fibre_lengths, [fibre.fibre_l]))
 		fibre_waviness = np.concatenate((fibre_waviness, [fibre.euclid_l / fibre.fibre_l]))
