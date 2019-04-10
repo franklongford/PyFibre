@@ -16,7 +16,7 @@ import pandas as pd
 
 import matplotlib
 from pickle import UnpicklingError
-#matplotlib.use("Agg")
+matplotlib.use("Agg")
 
 from scipy.ndimage.filters import gaussian_filter
 
