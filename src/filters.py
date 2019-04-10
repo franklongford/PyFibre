@@ -33,7 +33,7 @@ def spiral_tv(image):
 	pass
 
 
-def tubeness(image):
+def tubeness(image, sigma_max=3):
 
 	"""
 	H_elems = hessian_matrix(image, order="xy", sigma=sigma, mode='reflect')
@@ -41,7 +41,7 @@ def tubeness(image):
 	tube = np.where(H_eigen[1] < 0, abs(H_eigen[1]), 0)
 	"""
 	
-	tube = sato(image, sigmas=range(1, 5, 1), black_ridges=False)
+	tube = sato(image, sigmas=range(1, sigma_max+1), black_ridges=False)
 	
 	return tube
 
