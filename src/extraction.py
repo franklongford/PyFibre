@@ -308,7 +308,7 @@ def FIRE(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_thr
 	sigma *= scale
 
 	"Apply tubeness transform to enhance image fibres"
-	image_TB = tubeness(image_scale, 2 * sigma)
+	image_TB = tubeness(image_scale)
 	threshold = hysteresis(image_TB, alpha=alpha)
 	cleaned = remove_small_objects(threshold, min_size=int(64*scale**2))
 	distance = distance_transform_edt(cleaned)
@@ -440,6 +440,11 @@ def FIRE(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_thr
 
 	for node in Aij.nodes(): Aij.nodes[node]['xy'] = np.array(Aij.nodes[node]['xy'] // scale, dtype=int)
 	for edge in Aij.edges(): Aij.edges[edge]['r'] *= 1. / scale
+
+	"Remove all nodes with no edges to help with distance matrix calculation memory"
+	Aij.remove_nodes_from(list(nx.isolates(Aij)))
+	mapping = dict(zip(Aij.nodes, np.arange(Aij.number_of_nodes())))
+	Aij = nx.relabel_nodes(Aij, mapping)
 
 	print("Checking for redundant nodes")
 	checking = True

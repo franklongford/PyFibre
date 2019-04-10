@@ -135,7 +135,7 @@ def cluster_colours(image, n_clusters=8, n_init=10):
 	return labels, centres
 
 
-def BD_filter(image, n_runs=3, n_clusters=10, p_intensity=(2, 98), sm_size=5, param=[0.6, 1.1, 1.40, 0.92]):
+def BD_filter(image, n_runs=2, n_clusters=10, p_intensity=(2, 98), sm_size=5, param=[0.65, 1.1, 1.40, 0.92]):
 	"Adapted from CurveAlign BDcreationHE routine"
 
 	from sklearn.cluster import KMeans
@@ -299,7 +299,7 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.0, sigma=0.8, alp
 
 	cell_labels = measure.label(cell_binary.astype(np.int))
 	for cell in measure.regionprops(cell_labels, intensity_image=image_pl, coordinates='xy'):
-		cell_check = segment_check(cell, min_size, 0.01)
+		cell_check = segment_check(cell, 250, 0.01)
 
 		if not cell_check:
 			minr, minc, maxr, maxc = cell.bbox
@@ -310,12 +310,12 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.0, sigma=0.8, alp
 							intensity_image=image_shg[(indices[0], indices[1])],
 							coordinates='xy')[0]
 
-			fibre_check = segment_check(fibre, 0, 0.2)
+			fibre_check = segment_check(fibre, 0, 0.1)
 			if fibre_check: fibre_binary[np.where(cell_labels == cell.label)] = True
 
 	fibre_labels = measure.label(fibre_binary.astype(np.int))
 	for fibre in measure.regionprops(fibre_labels, intensity_image=image_shg, coordinates='xy'):
-		fibre_check = segment_check(fibre, min_size, 0.2)
+		fibre_check = segment_check(fibre, 150, 0.1)
 
 		if not fibre_check:
 			minr, minc, maxr, maxc = fibre.bbox
@@ -333,27 +333,27 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.0, sigma=0.8, alp
 	fibre_binary = remove_small_holes(fibre_binary)
 	cell_binary = remove_small_holes(cell_binary)
 
-	sorted_fibres = get_segments(image_shg, fibre_binary, min_size, 0.2)
-	sorted_cells = get_segments(image_pl, cell_binary, min_size, 0.01)
+	sorted_fibres = get_segments(image_shg, fibre_binary, 150, 0.1)
+	sorted_cells = get_segments(image_pl, cell_binary, 250, 0.01)
 
 	return sorted_cells, sorted_fibres
 
 
-def hysteresis_binary(image, segments_low, segments_high, iterations=1, min_size=0, min_frac=0):
+def hysteresis_binary(image, segments_low, segments_high, iterations=2, min_size=0, min_frac=0, thresh=0.6):
 
 	image = equalize_adapthist(image)
 
 	binary_low = create_binary_image(segments_low, image.shape)
 	binary_high = create_binary_image(segments_high, image.shape)
 
-	binary_high = binary_dilation(binary_high, iterations=1)
+	binary_high = binary_dilation(binary_high, iterations=iterations)
 	binary_high = binary_closing(binary_high)
 
 	intensity_map_low = image * binary_low
 	intensity_map_high = image * binary_high
 
 	intensity_map = 0.5 * (intensity_map_low + intensity_map_high)
-	intensity_binary = np.where(intensity_map >= 0.15, True, False)
+	intensity_binary = np.where(intensity_map >= min_frac, True, False)
 
 	intensity_binary = remove_small_holes(intensity_binary)
 	intensity_binary = remove_small_objects(intensity_binary)
@@ -371,9 +371,10 @@ def hysteresis_binary(image, segments_low, segments_high, iterations=1, min_size
 	#"""
 	
 	smoothed = gaussian_filter(thresholded.astype(np.float), sigma=1.5)
-	smoothed = np.where(smoothed >= 0.75, True, False)
+	smoothed = np.where(smoothed >= thresh, True, False)
 
 	"""
+	import matplotlib.pyplot as plt
 	plt.figure(0)
 	plt.imshow(intensity_map)
 	plt.figure(1)
@@ -381,7 +382,7 @@ def hysteresis_binary(image, segments_low, segments_high, iterations=1, min_size
 	plt.figure(2)
 	plt.imshow(smoothed)
 	plt.show()
-	"""
+	#"""
 
 	return smoothed
 
@@ -530,7 +531,7 @@ def network_extraction(image_shg, network_name='network', scale=1.0, sigma=0.75,
 	return sorted_networks, sorted_networks_red, sorted_fibres
 
 
-def fibre_segmentation(image_shg, networks, networks_red, area_threshold=200, iterations=8):
+def fibre_segmentation(image_shg, networks, networks_red, area_threshold=200, iterations=9):
 
 	n_net = len(networks)
 	fibres = []

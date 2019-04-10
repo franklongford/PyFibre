@@ -16,7 +16,7 @@ import pandas as pd
 
 import matplotlib
 from pickle import UnpicklingError
-matplotlib.use("Agg")
+#matplotlib.use("Agg")
 
 from scipy.ndimage.filters import gaussian_filter
 
@@ -197,25 +197,25 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 		if pl_analysis:
 
 			fibre_binary = seg.create_binary_image(fibre_net_seg, image_shg.shape)
-			fibre_filter = np.where(fibre_binary, 3, 0.5)
+			fibre_filter = np.where(fibre_binary, 2, 0.25)
 			fibre_filter = gaussian_filter(fibre_filter, 1.0)
+
+			import matplotlib.pyplot as plt
+
+			plt.imshow(fibre_binary)
+			plt.show()
 
 			cell_seg, fibre_col_seg = seg.cell_segmentation(image_shg * fibre_filter, 
 							image_pl, image_tran, scale=scale)
 
-			fibre_binary = seg.hysteresis_binary(image_shg, fibre_col_seg, fibre_net_seg, 500, 0.2)
+			fibre_binary = seg.hysteresis_binary(image_shg, fibre_col_seg, fibre_net_seg, 
+							min_size=150, min_frac=0.1)
 
-			"""
-			fibre_seg = seg.get_segments(image_shg, fibre_binary, 500, 0.2)
-			cell_seg = seg.get_segments(image_pl, ~fibre_binary, 500, 0.01)
+			plt.imshow(fibre_binary)
+			plt.show()
 
-			"""
-			fibre_filter = np.where(fibre_binary, 5, 0.1)
-			fibre_filter = gaussian_filter(fibre_filter, 0.5)
-
-			cell_seg, fibre_seg = seg.cell_segmentation(image_shg * fibre_filter, 
-							image_pl, image_tran, scale=scale)
-			#"""
+			fibre_seg = seg.get_segments(image_shg, fibre_binary, 150, 0.1)
+			cell_seg = seg.get_segments(image_pl, ~fibre_binary, 250, 0.01)
 
 			ut.save_region(cell_seg, '{}_cell_segment'.format(filename))		
 			ut.save_region(fibre_seg, '{}_fibre_segment'.format(filename))

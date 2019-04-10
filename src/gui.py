@@ -768,7 +768,7 @@ class pyfibre_viewer:
 				segments = ut.load_region(data_dir + fig_name + "_fibre_segment")
 				self.display_regions(self.segment_tab.canvas, self.image_shg, segments)
 				self.update_log("Displaying fibre segments for {}".format(fig_name))
-			except (UnpicklingError, IOError, EOFError):
+			except (AttributeError, UnpicklingError, IOError, EOFError):
 				self.segment_tab.canvas.delete('all')
 				self.update_log("Unable to display fibre segments for {}".format(fig_name))
 
@@ -778,6 +778,7 @@ class pyfibre_viewer:
 			image_pil = Image.fromarray(self.image_pl.astype('uint8'))
 			image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
 			pl_image_tk = ImageTk.PhotoImage(image_pil)
+
 			self.display_image(self.pl_image_tab.canvas, pl_image_tk)
 			self.update_log("Displaying PL image {}".format(fig_name))
 
@@ -786,6 +787,7 @@ class pyfibre_viewer:
 			image_pil = Image.fromarray(self.image_tran.astype('uint8'))
 			image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
 			tran_image_tk = ImageTk.PhotoImage(image_pil)
+
 			self.display_image(self.tran_image_tab.canvas, tran_image_tk)
 			self.update_log("Displaying PL Transmission image {}".format(fig_name))
 		
@@ -793,7 +795,7 @@ class pyfibre_viewer:
 				cells = ut.load_region(data_dir + fig_name + "_cell_segment")
 				self.display_regions(self.cell_tab.canvas, self.image_pl, cells)
 				self.update_log("Displaying cell segments for {}".format(fig_name))
-			except (UnpicklingError, IOError, EOFError):
+			except (AttributeError, UnpicklingError, IOError, EOFError):
 				self.cell_tab.canvas.delete('all')
 				self.update_log("Unable to display cell segments for {}".format(fig_name))
 		else: 

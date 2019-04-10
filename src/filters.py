@@ -18,7 +18,7 @@ from scipy.ndimage import sobel
 from scipy.ndimage.filters import gaussian_filter
 
 from skimage.feature import structure_tensor, hessian_matrix, hessian_matrix_eigvals
-from skimage.filters import apply_hysteresis_threshold, sobel
+from skimage.filters import apply_hysteresis_threshold, sobel, sato
 from skimage.filters import threshold_otsu, threshold_li, threshold_isodata, threshold_mean
 
 
@@ -33,12 +33,16 @@ def spiral_tv(image):
 	pass
 
 
-def tubeness(image, sigma=None):
+def tubeness(image):
 
+	"""
 	H_elems = hessian_matrix(image, order="xy", sigma=sigma, mode='reflect')
 	H_eigen = hessian_matrix_eigvals(H_elems)
 	tube = np.where(H_eigen[1] < 0, abs(H_eigen[1]), 0)
-
+	"""
+	
+	tube = sato(image, sigmas=range(1, 5, 1), black_ridges=False)
+	
 	return tube
 
 
