@@ -458,11 +458,11 @@ def segment_analysis(image, segment, n_tensor, anis_map, angle_map):
 	segment_anis = segment_anis[0]
 	segment_pix_anis = np.mean(segment_anis_map)
 
-	segment_area = np.sum(segment.image)
-	segment_linear = 1 - segment.equivalent_diameter / segment.perimeter
+	segment_area = segment.area
+	segment_linear = 1 - np.pi * segment.equivalent_diameter / segment.perimeter
 	segment_eccent = segment.eccentricity
 	segment_density = np.sum(segment_image * segment.image) / segment_area
-	segment_coverage = np.mean(segment.image)
+	segment_coverage = segment.extent
 	segment_hu = segment.moments_hu
 
 	glcm = greycomatrix((segment_image * segment.image * 255.999).astype('uint8'),

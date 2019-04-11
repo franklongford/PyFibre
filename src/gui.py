@@ -983,22 +983,22 @@ class pyfibre_graphs:
 			pix_j_anis, pix_j_angle, pix_j_energy = tensor_analysis(j_tensor)
 
 			pix_j_angle = (pix_j_angle.flatten() + 90) * np.pi / 180 
-			print(pix_j_angle.min(), pix_j_angle.max(), pix_j_angle.shape)
 
 			self.angle_ax.clear()
 			self.angle_ax.set_title('Pixel Angle Histogram')
-			self.angle_ax.hist(pix_j_angle, bins=50, density=True)
+			self.angle_ax.hist(pix_j_angle, weights=pix_j_anis.flatten(), bins=50, density=True)
 			#self.angle_ax.set_xlim(0, 180)
 
 			try:
 				fibres = ut.load_region(data_dir + fig_name + "_fibre")
 				fibres = ut.flatten_list(fibres)
 				
-				_, _, angles = fibre_analysis(fibres)
+				lengths, _, angles = fibre_analysis(fibres)
 
 				self.fibre_ax.clear()
 				self.fibre_ax.set_title('Fibre Angle Histogram')
-				self.fibre_ax.hist(angles.flatten() * np.pi / 180, bins=50, density=True)
+				self.fibre_ax.hist(angles.flatten() * np.pi / 180, weights=lengths.flatten(),
+							bins=50, density=True)
 				#self.fibre_ax.set_xlim(0, 180)
 
 				print("Displaying fibres for {}".format(fig_name))
