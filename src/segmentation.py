@@ -490,23 +490,22 @@ def segment_analysis(image, segment, n_tensor, anis_map, angle_map):
 
 
 def network_extraction(image_shg, network_name='network', scale=1.0, sigma=0.75, alpha=0.5,
-			p_denoise=(5, 35), threads=8, FIRE=True):
+			p_denoise=(5, 35), threads=8):
 	"""
 	Extract fibre network using modified FIRE algorithm
 	"""
 
-	if FIRE:
-		print("Applying AHE to SHG image")
-		image_shg = equalize_adapthist(image_shg)
-		print("Performing NL Denoise using local windows {} {}".format(*p_denoise))
-		image_nl = nl_means(image_shg, p_denoise=p_denoise)
+	print("Applying AHE to SHG image")
+	image_shg = equalize_adapthist(image_shg)
+	print("Performing NL Denoise using local windows {} {}".format(*p_denoise))
+	image_nl = nl_means(image_shg, p_denoise=p_denoise)
 
-		"Call FIRE algorithm to extract full image network"
-		print("Calling FIRE algorithm using image scale {}  alpha  {}".format(scale, alpha))
-		Aij = FIRE(image_nl, scale=scale, sigma=sigma, alpha=alpha, max_threads=threads)
-		nx.write_gpickle(Aij, network_name + "_graph.pkl")
+	"Call FIRE algorithm to extract full image network"
+	print("Calling FIRE algorithm using image scale {}  alpha  {}".format(scale, alpha))
+	Aij = FIRE(image_nl, scale=scale, sigma=sigma, alpha=alpha, max_threads=threads)
+	nx.write_gpickle(Aij, network_name + "_graph.pkl")
 
-	else: Aij = nx.read_gpickle(network_name + "_graph.pkl")
+	#else: Aij = nx.read_gpickle(network_name + "_graph.pkl")
 
 	print("Extracting and simplifying fibre networks from graph")
 	n_nodes = []

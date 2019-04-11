@@ -37,7 +37,7 @@ def logo():
 	logo_text += "           |   |  | |   | |  | |   |__| " + '\n'
 	logo_text += "           |   \\__| |   | |__/ |   |__  " + '\n'
 	logo_text += "                __/                       " + '\n'
-	logo_text += "\n    Fibrous Tissue Image Toolkit  v1.4.3b\n"
+	logo_text += "\n    Fibrous Tissue Image Toolkit  v1.5\n"
 
 	return logo_text
 
