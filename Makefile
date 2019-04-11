@@ -49,6 +49,8 @@ uninstall:
 clean:
 	@rm -f -r bin
 	@rm -f -r tests/__pycache__
+	@rm -f -r tests/stubs/data/
+	@rm -f -r tests/stubs/fig/
 	@rm -f -r src/__pycache__
 	@rm -f src/*.pyc
 	@rm -f -r .cache/

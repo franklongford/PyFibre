@@ -109,7 +109,12 @@ class pyfibre_gui:
 				   command=self.create_graph_display)
 		self.toggle.graph_button.pack()
 
-		self.toggle.place(x=300, y=10, height=100, width=250)
+		self.toggle.test_button = Button(self.toggle, width=15,
+				   text="Test",
+				   command=self.test_image)
+		self.toggle.test_button.pack()
+
+		self.toggle.place(x=300, y=10, height=140, width=250)
 
 		self.file_display = Frame(self.master)
 		self.create_file_display(self.file_display)
@@ -414,6 +419,43 @@ class pyfibre_gui:
 		self.Log += text + '\n'
 
 
+	def test_image(self):
+
+		input_files = [(self.pyfibre_dir + '/tests/stubs/test-pyfibre-pl-shg-Stack.tif',)]
+		input_prefixes = [self.pyfibre_dir + '/tests/stubs/test-pyfibre']
+
+		self.add_files(input_files, input_prefixes)
+
+		self.file_display.run_button.config(state=DISABLED)	
+		self.file_display.stop_button.config(state=NORMAL)
+		self.file_display.progress['maximum'] = len(input_files)
+
+		proc_count = np.min((self.n_proc, len(input_files)))
+		index_split = np.array_split(np.arange(len(input_prefixes)), proc_count)
+
+		self.processes = []
+		for indices in index_split:
+
+			batch_files = [input_files[i] for i in indices]
+			batch_prefixes = [input_prefixes[i] for i in indices]
+
+			process = Process(target=image_analysis, 
+					args=(batch_files, batch_prefixes,
+					(self.p0.get(), self.p1.get()),
+					(self.n.get(), self.m.get()),
+					self.sigma.get(), self.alpha.get(),
+					self.ow_metric.get(), self.ow_segment.get(),
+					 self.ow_network.get(), self.ow_figure.get(), 
+					self.queue, self.n_thread))
+			process.daemon = True
+			self.processes.append(process)
+
+		for process in self.processes: process.start()
+
+		self.process_check()
+
+
+
 def image_analysis(input_files, input_prefixes, p_intensity, p_denoise, sigma, alpha, 
 			ow_metric, ow_segment, ow_network, ow_figure, 
 			queue, threads):
@@ -654,8 +696,7 @@ class pyfibre_viewer:
 		file_index = self.parent.input_prefixes.index(selected_file)
 		image_shg, image_pl, image_tran = load_shg_pl(self.parent.input_files[file_index])
 
-		shg_analysis = ~np.any(image_shg == None)
-		pl_analysis = ~np.any(image_pl == None)
+		shg_analysis, pl_analysis = ut.check_analysis(image_shg, image_pl, image_tran)
 		
 		if shg_analysis:
 			self.image_shg = clip_intensities(image_shg, 

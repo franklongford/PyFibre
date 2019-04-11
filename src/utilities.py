@@ -379,6 +379,14 @@ def matrix_split(matrix, nrows, ncols):
 	return grid
 
 
+def check_analysis(image_shg, image_pl, image_tran):
+
+	shg_analysis = ~np.any(image_shg == None)
+	pl_analysis = ~np.any(image_pl == None) * ~np.any(image_tran == None)
+
+	return shg_analysis, pl_analysis
+
+
 ####### OBSOLETE ########
 
 def gaussian_filter(histogram, std, r, n_xyz):

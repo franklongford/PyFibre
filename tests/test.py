@@ -136,16 +136,53 @@ def test_FIRE():
 	assert abs(answer_cos_the - cos_the).sum() <= THRESH
 
 
-def test_images():
+def test_image():
 
-	from skimage.morphology import local_maxima
+	from main import analyse_image
+	from utilities import get_image_lists, check_analysis
+	from preprocessing import load_shg_pl, clip_intensities, nl_means
+	from skimage.exposure import equalize_adapthist
 
-	from utilities import ring
-	from extraction import new_branches
+	input_files = [pyfibre_dir + '/tests/stubs/test-pyfibre-pl-shg-Stack.tif']
+	files, prefixes = get_image_lists(input_files)
 
-	images = create_images()
+	assert len(files[0]) == 1
+	assert prefixes[0] ==  pyfibre_dir + '/tests/stubs/test-pyfibre'
 
-	image = images['test_image_cross'] * 5
-	ring_filter = ring(np.zeros(image.shape), [10, 10], np.arange(2, 3), 1)
-	branch_coord, branch_vector, branch_r = new_branches(image, np.array([50, 50]), ring_filter)
+	for i, input_file_names in enumerate(files):
+		image_path = '/'.join(prefixes[i].split('/')[:-1])
+		prefix = prefixes[i]
 
+		image_name = prefix.split('/')[-1]
+		#filename = '{}'.format(data_dir + image_name)
+
+		assert image_name == 'test-pyfibre'
+			
+		"Load and preprocess image"
+		image_shg, image_pl, image_tran = load_shg_pl(input_file_names)
+
+		assert image_shg.shape == image_pl.shape == image_tran.shape == (200, 200)
+		assert abs(image_shg.mean() - 0.08748203125) <= THRESH
+		assert abs(image_pl.mean() - 0.1749819688) <= THRESH
+		assert abs(image_tran.mean() - 0.760068620443) <= THRESH
+
+		shg_analysis, pl_analysis = check_analysis(image_shg, image_pl, image_tran)
+
+		assert shg_analysis
+		assert pl_analysis
+	
+		image_shg = clip_intensities(image_shg, p_intensity=(1, 99))
+		image_pl = clip_intensities(image_pl, p_intensity=(1, 99))
+
+		assert abs(image_shg.mean() - 0.17330076923) <= THRESH
+		assert abs(image_pl.mean() - 0.290873620689) <= THRESH
+
+		image_shg = equalize_adapthist(image_shg)
+
+		assert abs(image_shg.mean() - 0.2386470675) <= THRESH
+
+		image_nl = nl_means(image_shg)
+
+		assert abs(image_nl.mean() - 0.222907340231) <= THRESH
+
+		#assert not True

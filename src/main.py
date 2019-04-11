@@ -121,8 +121,8 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 
 	"Load and preprocess image"
 	image_shg, image_pl, image_tran = load_shg_pl(input_file_names)
-	pl_analysis = ~np.any(image_pl == None) * ~np.any(image_tran == None)
-
+	shg_analysis, pl_analysis = ut.check_analysis(image_shg, image_pl, image_tran)
+	
 	print(f"Preprocessing images using clipped intensity percentages {p_intensity}")
 	"Pre-process image to remove noise"
 
