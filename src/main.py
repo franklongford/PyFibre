@@ -204,7 +204,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 							image_pl, image_tran, scale=scale)
 
 			fibre_binary = seg.hysteresis_binary(image_shg, fibre_col_seg, fibre_net_seg, 
-							min_size=150, min_intensity=0.14)
+							min_size=150, min_intensity=0.13)
 
 			fibre_seg = seg.get_segments(image_shg, fibre_binary, 150, 0.1)
 			cell_seg = seg.get_segments(image_pl, ~fibre_binary, 250, 0.01)
