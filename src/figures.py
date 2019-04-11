@@ -51,7 +51,7 @@ def set_HSB(image, hue, saturation=1, brightness=1):
 	return hsv2rgb(hsv)
 
 
-def create_tensor_image(image, min_N=50):
+def create_tensor_image(image, min_N=50, max_N=120):
 
 	"Form nematic and structure tensors for each pixel"
 	j_tensor = form_structure_tensor(image, sigma=1.0)
@@ -64,7 +64,10 @@ def create_tensor_image(image, min_N=50):
 	brightness = image / image.max()
 
 	"Make circular test image"
-	N = np.max(np.asarray([min_N, 0.04**2 * image.size], dtype=int)) 
+	N = np.max(np.asarray([min_N, 0.2 * np.sqrt(image.size)], dtype=int))
+	N = np.min(np.asarray([N, max_N], dtype=int))
+	if np.mod(N, 2) != 0: N += 1
+
 	image_grid = np.mgrid[:N, :N]
 	for i in range(2): 
 		image_grid[i] -= N * np.array(2 * image_grid[i] / N, dtype=int)
