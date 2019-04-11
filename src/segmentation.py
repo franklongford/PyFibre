@@ -339,7 +339,7 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.0, sigma=0.8, alp
 	return sorted_cells, sorted_fibres
 
 
-def hysteresis_binary(image, segments_low, segments_high, iterations=2, min_size=0, min_frac=0, thresh=0.6):
+def hysteresis_binary(image, segments_low, segments_high, iterations=2, min_size=0, min_intensity=0, thresh=0.6):
 
 	image = equalize_adapthist(image)
 
@@ -353,7 +353,7 @@ def hysteresis_binary(image, segments_low, segments_high, iterations=2, min_size
 	intensity_map_high = image * binary_high
 
 	intensity_map = 0.5 * (intensity_map_low + intensity_map_high)
-	intensity_binary = np.where(intensity_map >= min_frac, True, False)
+	intensity_binary = np.where(intensity_map >= min_intensity, True, False)
 
 	intensity_binary = remove_small_holes(intensity_binary)
 	intensity_binary = remove_small_objects(intensity_binary)

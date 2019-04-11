@@ -421,38 +421,39 @@ class pyfibre_gui:
 
 	def test_image(self):
 
-		input_files = [(self.pyfibre_dir + '/tests/stubs/test-pyfibre-pl-shg-Stack.tif',)]
-		input_prefixes = [self.pyfibre_dir + '/tests/stubs/test-pyfibre']
+		if self.file_display.run_button['state'] == NORMAL: 
+			input_files = [(self.pyfibre_dir + '/tests/stubs/test-pyfibre-pl-shg-Stack.tif',)]
+			input_prefixes = [self.pyfibre_dir + '/tests/stubs/test-pyfibre']
 
-		self.add_files(input_files, input_prefixes)
+			self.add_files(input_files, input_prefixes)
 
-		self.file_display.run_button.config(state=DISABLED)	
-		self.file_display.stop_button.config(state=NORMAL)
-		self.file_display.progress['maximum'] = len(input_files)
+			self.file_display.run_button.config(state=DISABLED)	
+			self.file_display.stop_button.config(state=NORMAL)
+			self.file_display.progress['maximum'] = len(input_files)
 
-		proc_count = np.min((self.n_proc, len(input_files)))
-		index_split = np.array_split(np.arange(len(input_prefixes)), proc_count)
+			proc_count = np.min((self.n_proc, len(input_files)))
+			index_split = np.array_split(np.arange(len(input_prefixes)), proc_count)
 
-		self.processes = []
-		for indices in index_split:
+			self.processes = []
+			for indices in index_split:
 
-			batch_files = [input_files[i] for i in indices]
-			batch_prefixes = [input_prefixes[i] for i in indices]
+				batch_files = [input_files[i] for i in indices]
+				batch_prefixes = [input_prefixes[i] for i in indices]
 
-			process = Process(target=image_analysis, 
-					args=(batch_files, batch_prefixes,
-					(self.p0.get(), self.p1.get()),
-					(self.n.get(), self.m.get()),
-					self.sigma.get(), self.alpha.get(),
-					self.ow_metric.get(), self.ow_segment.get(),
-					 self.ow_network.get(), self.ow_figure.get(), 
-					self.queue, self.n_thread))
-			process.daemon = True
-			self.processes.append(process)
+				process = Process(target=image_analysis, 
+						args=(batch_files, batch_prefixes,
+						(self.p0.get(), self.p1.get()),
+						(self.n.get(), self.m.get()),
+						self.sigma.get(), self.alpha.get(),
+						self.ow_metric.get(), self.ow_segment.get(),
+						 self.ow_network.get(), self.ow_figure.get(), 
+						self.queue, self.n_thread))
+				process.daemon = True
+				self.processes.append(process)
 
-		for process in self.processes: process.start()
+			for process in self.processes: process.start()
 
-		self.process_check()
+			self.process_check()
 
 
 
