@@ -339,36 +339,17 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.0, sigma=0.8, alp
 	return sorted_cells, sorted_fibres
 
 
-def hysteresis_binary(image, segments_low, segments_high, iterations=2, min_size=0, min_intensity=0, thresh=0.6):
+def mean_binary(image, binary_1, binary_2, iterations=1, min_size=0, min_intensity=0, thresh=0.6):
+	"Compares two segmentations of image and produces a filter based on the overlap"
 
 	image = equalize_adapthist(image)
 
-	binary_low = create_binary_image(segments_low, image.shape)
-	binary_high = create_binary_image(segments_high, image.shape)
-
-	binary_high = binary_dilation(binary_high, iterations=iterations)
-	binary_high = binary_closing(binary_high)
-
-	intensity_map_low = image * binary_low
-	intensity_map_high = image * binary_high
-
-	intensity_map = 0.5 * (intensity_map_low + intensity_map_high)
+	intensity_map = 0.5 * image * (binary_1 + binary_2)
 	intensity_binary = np.where(intensity_map >= min_intensity, True, False)
 
 	intensity_binary = remove_small_holes(intensity_binary)
 	intensity_binary = remove_small_objects(intensity_binary)
-	thresholded = binary_dilation(intensity_binary, iterations=1)
-
-	"""
-	labels_low, num_labels = ndi.label(binary_low)
-	# Check which connected components contain pixels from mask_high
-	sums = ndi.sum(binary_high, labels_low, np.arange(num_labels + 1))
-
-	connected_to_high = sums > 0
-	connected_to_high[0] = False
-
-	thresholded = connected_to_high[labels_low]
-	#"""
+	thresholded = binary_dilation(intensity_binary, iterations=iterations)
 	
 	smoothed = gaussian_filter(thresholded.astype(np.float), sigma=1.5)
 	smoothed = np.where(smoothed >= thresh, True, False)

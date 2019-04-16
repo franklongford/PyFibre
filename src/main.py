@@ -19,9 +19,11 @@ from pickle import UnpicklingError
 matplotlib.use("Agg")
 
 from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage.morphology import binary_dilation, binary_closing
 
 from skimage.measure import shannon_entropy, regionprops
 from skimage.exposure import equalize_adapthist
+
 
 from multiprocessing import Pool, Process, JoinableQueue, Queue, current_process
 
@@ -196,15 +198,19 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 
 		if pl_analysis:
 
-			fibre_binary = seg.create_binary_image(fibre_net_seg, image_shg.shape)
-			fibre_filter = np.where(fibre_binary, 2, 0.25)
+			fibre_net_binary = seg.create_binary_image(fibre_net_seg, image_shg.shape)
+			fibre_filter = np.where(fibre_net_binary, 2, 0.25)
 			fibre_filter = gaussian_filter(fibre_filter, 1.0)
 
 			cell_seg, fibre_col_seg = seg.cell_segmentation(image_shg * fibre_filter, 
 							image_pl, image_tran, scale=scale)
 
-			fibre_binary = seg.hysteresis_binary(image_shg, fibre_col_seg, fibre_net_seg, 
-							min_size=150, min_intensity=0.13)
+			fibre_col_binary = seg.create_binary_image(fibre_col_seg, image_shg.shape)
+			fibre_col_binary = binary_dilation(fibre_col_binary, iterations=2)
+			fibre_col_binary = binary_closing(fibre_col_binary)
+
+			fibre_binary = seg.mean_binary(image_shg, fibre_net_binary, fibre_col_binary, 
+									min_size=150, min_intensity=0.13)
 
 			fibre_seg = seg.get_segments(image_shg, fibre_binary, 150, 0.1)
 			cell_seg = seg.get_segments(image_pl, ~fibre_binary, 250, 0.01)
@@ -478,6 +484,7 @@ if __name__ == '__main__':
 	parser.add_argument('--dir', nargs='?', help='Directories to load tif files', default="")
 	parser.add_argument('--key', nargs='?', help='Keywords to filter file names', default="")
 	parser.add_argument('--sigma', type=float, nargs='?', help='Gaussian smoothing standard deviation', default=0.5)
+	parser.add_argument('--alpha', type=float, nargs='?', help='Alpha network coefficient', default=0.5)
 	parser.add_argument('--ow_metric', action='store_true', help='Toggles overwrite analytic metrics')
 	parser.add_argument('--ow_segment', action='store_true', help='Toggles overwrite image segmentation')
 	parser.add_argument('--ow_network', action='store_true', help='Toggles overwrite network extraction')
@@ -519,7 +526,7 @@ if __name__ == '__main__':
 			prefixes[i], image_path, sigma=args.sigma, 
 			ow_metric=args.ow_metric, ow_segment=args.ow_segment, 
 			ow_network=args.ow_network, ow_figure=args.ow_figure, 
-			threads=args.threads)
+			threads=args.threads, alpha=args.alpha)
 
 		global_database = pd.concat([global_database, data_global])
 		segment_database = pd.concat([segment_database, data_segment])
