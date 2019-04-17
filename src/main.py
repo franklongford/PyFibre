@@ -212,7 +212,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 			fibre_binary = seg.mean_binary(image_shg, fibre_net_binary, fibre_col_binary, 
 									min_size=150, min_intensity=0.13)
 
-			fibre_seg = seg.get_segments(image_shg, fibre_binary, 150, 0.1)
+			fibre_seg = seg.get_segments(image_shg, fibre_binary, 150, 0.05)
 			cell_seg = seg.get_segments(image_pl, ~fibre_binary, 250, 0.01)
 
 			ut.save_region(cell_seg, '{}_cell_segment'.format(filename))		

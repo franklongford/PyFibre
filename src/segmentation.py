@@ -449,6 +449,8 @@ def segment_analysis(image, segment, n_tensor, anis_map, angle_map):
 	glcm = greycomatrix((segment_image * segment.image * 255.999).astype('uint8'),
                          [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256,
                          symmetric=True, normed=True)
+	glcm[0, :, :, :] = 0
+	glcm[:, 0, :, :] = 0
 
 	segment_glcm_contrast = greycoprops_edit(glcm, 'contrast').mean()
 	segment_glcm_homo = greycoprops_edit(glcm, 'homogeneity').mean()

@@ -333,6 +333,7 @@ def get_image_lists(input_files, include_shg=True):
 		if not (filename.endswith('.tif')): removed_files.append(filename)
 		elif (filename.find('display') != -1): removed_files.append(filename)
 		elif (filename.find('virada') != -1): removed_files.append(filename)
+		#elif (filename.find('asterisco') != -1): removed_files.append(filename)
 
 	for filename in removed_files: input_files.remove(filename)
 
