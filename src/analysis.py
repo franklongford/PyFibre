@@ -166,8 +166,8 @@ def greycoprops_edit(P, prop='contrast'):
 
 	# create weights for specified property
 	I, J = np.ogrid[0:num_level, 0:num_level]
-	if prop == 'IDM': weights = 1. / (1. + abs(I - J))
-	elif prop in ['variance', 'cluster', 'entropy']: pass
+	if prop == 'similarity': weights = 1. / (1. + abs(I - J))
+	elif prop in ['covariance', 'cluster', 'entropy', 'autocorrelation']: pass
 	else: return greycoprops(P, prop)
 
 	# normalize each GLCM
@@ -176,11 +176,18 @@ def greycoprops_edit(P, prop='contrast'):
 	glcm_sums[glcm_sums == 0] = 1
 	P /= glcm_sums
 
-	if prop in ['IDM']:
+	if prop in ['similarity']:
 		weights = weights.reshape((num_level, num_level, 1, 1))
 		results = np.apply_over_axes(np.sum, (P * weights), axes=(0, 1))[0, 0]
 
-	elif prop == 'variance':
+	elif prop == 'autocorrelation':
+		I = np.array(range(num_level)).reshape((num_level, 1, 1, 1))
+		J = np.array(range(num_level)).reshape((1, num_level, 1, 1))
+
+		results = np.apply_over_axes(np.sum, (P * I * J),
+		                         axes=(0, 1))[0, 0]
+
+	elif prop == 'covariance':
 		I = np.array(range(num_level)).reshape((num_level, 1, 1, 1))
 		J = np.array(range(num_level)).reshape((1, num_level, 1, 1))
 		diff_i = I - np.apply_over_axes(np.sum, (I * P), axes=(0, 1))[0, 0]

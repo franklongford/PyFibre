@@ -84,8 +84,8 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 					'Fibre Coverage', 'SHG Intensity Mean', 'SHG Intensity STD', 
 					'SHG Intensity Entropy', 'Fibre GLCM Contrast', 'Fibre GLCM Homogeneity',
 					'Fibre GLCM Dissimilarity', 'Fibre GLCM Correlation',
-					'Fibre GLCM Energy', 'Fibre GLCM IDM', 'Fibre GLCM Variance', 
-					'Fibre GLCM Cluster', 'Fibre GLCM Entropy',
+					'Fibre GLCM Energy', 'Fibre GLCM Similarity', 'Fibre GLCM Variance', 
+					'Fibre GLCM Cluster', 'Fibre GLCM Entropy', 'Fibre GLCM Autocorrelation',
 					'Network Degree', 'Network Eigenvalue', 'Network Connectivity',
 					'Fibre Waviness', 'Fibre Lengths', 'Fibre Cross-Link Density',
 					'Fibre Hu Moment 1', 'Fibre Hu Moment 2', 'Fibre Hu Moment 3',
@@ -96,16 +96,16 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 					'Cell Area', 'PL Intensity Mean', 'PL Intensity STD', 'PL Intensity Entropy',
 					'Cell GLCM Contrast', 'Cell GLCM Homogeneity',
 					'Cell GLCM Dissimilarity', 'Cell GLCM Correlation',
-					'Cell GLCM Energy', 'Cell GLCM IDM', 'Cell GLCM Variance', 
-					'Cell GLCM Cluster', 'Cell GLCM Entropy', 
+					'Cell GLCM Energy', 'Cell GLCM Similarity', 'Cell GLCM Variance', 
+					'Cell GLCM Cluster', 'Cell GLCM Entropy', 'Cell GLCM Autocorrelation',
 					'Cell Linearity', 'Cell Eccentricity', 'Cell Density', 'Cell Coverage',
 					'Cell Hu Moment 1', 'Cell Hu Moment 2', 'Cell Hu Moment 3', 
 					'Cell Hu Moment 4', 'Cell Hu Moment 5', 'Cell Hu Moment 6','Cell Hu Moment 7']
 
 	muscle_columns = ['Muscle GLCM Contrast', 'Muscle GLCM Homogeneity',
 					'Muscle GLCM Dissimilarity', 'Muscle GLCM Correlation',
-					'Muscle GLCM Energy', 'Muscle GLCM IDM', 'Muscle GLCM Variance', 
-					'Muscle GLCM Cluster', 'Muscle GLCM Entropy']
+					'Muscle GLCM Energy', 'Muscle GLCM Similarity', 'Muscle GLCM Variance', 
+					'Muscle GLCM Cluster', 'Muscle GLCM Entropy', 'Muscle GLCM Autocorrelation',]
 
 	cmap = 'viridis'
 	if working_dir == None: working_dir = os.getcwd()
@@ -253,9 +253,9 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 		fibre_areas, fibre_linear, fibre_eccent, fibre_density, fibre_coverage,
 		fibre_mean, fibre_std, fibre_entropy, fibre_glcm_contrast, 
 		fibre_glcm_homo, fibre_glcm_dissim, fibre_glcm_corr, fibre_glcm_energy, 
-		fibre_glcm_IDM, fibre_glcm_variance, fibre_glcm_cluster, fibre_glcm_entropy,
-		fibre_hu, network_degree, network_eigen, network_connect, fibre_waviness, 
-		fibre_lengths, fibre_cross_link) = net_res
+		fibre_glcm_sim, fibre_glcm_variance, fibre_glcm_cluster, fibre_glcm_entropy,
+		fibre_glcm_autocorr, fibre_hu, network_degree, network_eigen, network_connect, 
+		fibre_waviness, fibre_lengths, fibre_cross_link) = net_res
 		
 		filenames = pd.Series(['{}_fibre_segment.pkl'.format(filename)] * len(fibre_seg), name='File')
 		fibre_id = pd.Series(np.arange(len(fibre_seg)), name='ID')
@@ -264,9 +264,9 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 			fibre_pix_anis, fibre_areas, fibre_linear, fibre_eccent, fibre_density,
 			fibre_coverage, fibre_mean, fibre_std, fibre_entropy, 
 			fibre_glcm_contrast, fibre_glcm_homo, fibre_glcm_dissim, fibre_glcm_corr,
-			fibre_glcm_energy, fibre_glcm_IDM, fibre_glcm_variance, fibre_glcm_cluster, 
-			fibre_glcm_entropy,network_degree, network_eigen, network_connect,
-			fibre_waviness, fibre_lengths, fibre_cross_link], axis=-1)
+			fibre_glcm_energy, fibre_glcm_sim, fibre_glcm_variance, fibre_glcm_cluster, 
+			fibre_glcm_entropy, fibre_glcm_autocorr, network_degree, network_eigen, 
+			network_connect, fibre_waviness, fibre_lengths, fibre_cross_link], axis=-1)
 		
 		if pl_analysis:
 
@@ -283,20 +283,21 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 			print("Performing cell segment analysis")
 
 			(_, _, _, _, _, _, _, muscle_glcm_contrast, muscle_glcm_homo, muscle_glcm_dissim, 
-			muscle_glcm_corr, muscle_glcm_energy, muscle_glcm_IDM, muscle_glcm_variance, 
-			muscle_glcm_cluster, muscle_glcm_entropy, _, _, _,
+			muscle_glcm_corr, muscle_glcm_energy, muscle_glcm_sim, muscle_glcm_variance, 
+			muscle_glcm_cluster, muscle_glcm_entropy, muscle_glcm_autocorr, _, _, _,
 			_, _) = seg.cell_segment_analysis(image_pl, fibre_seg, pl_j_tensor, 
 						pl_pix_j_anis, pl_pix_j_angle)
 
 			muscle_metrics = np.stack([muscle_glcm_contrast, muscle_glcm_homo, 
-			 	muscle_glcm_dissim, muscle_glcm_corr, muscle_glcm_energy, muscle_glcm_IDM, 
-			 	muscle_glcm_variance, muscle_glcm_cluster, muscle_glcm_entropy], axis=-1)
+			 	muscle_glcm_dissim, muscle_glcm_corr, muscle_glcm_energy, muscle_glcm_sim, 
+			 	muscle_glcm_variance, muscle_glcm_cluster, muscle_glcm_entropy,
+			 	muscle_glcm_autocorr], axis=-1)
 			
 			(cell_angle_sdi, cell_anis, cell_pix_anis, cell_areas, cell_mean, 
 			cell_std, cell_entropy, cell_glcm_contrast, 
 			cell_glcm_homo, cell_glcm_dissim, cell_glcm_corr, cell_glcm_energy, 
-			cell_glcm_IDM, cell_glcm_variance, cell_glcm_cluster, cell_glcm_entropy,
-			cell_linear, cell_eccent, cell_density, cell_coverage, 
+			cell_glcm_sim, cell_glcm_variance, cell_glcm_cluster, cell_glcm_entropy,
+			cell_glcm_autocorr, cell_linear, cell_eccent, cell_density, cell_coverage, 
 			cell_hu) = seg.cell_segment_analysis(image_pl, cell_seg, pl_j_tensor, 
 						pl_pix_j_anis, pl_pix_j_angle)
 
@@ -306,8 +307,8 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 			cell_metrics = np.stack([cell_angle_sdi, cell_anis, cell_pix_anis, cell_areas, 
 						cell_mean, cell_std, cell_entropy, 
 						cell_glcm_contrast, cell_glcm_homo, cell_glcm_dissim, cell_glcm_corr, 
-						cell_glcm_energy, cell_glcm_IDM, cell_glcm_variance, cell_glcm_cluster,
-						cell_glcm_entropy, cell_linear, cell_eccent, 
+						cell_glcm_energy, cell_glcm_sim, cell_glcm_variance, cell_glcm_cluster,
+						cell_glcm_entropy, cell_glcm_autocorr, cell_linear, cell_eccent, 
 						cell_density, cell_coverage], axis=-1)
 			cell_metrics = np.concatenate((cell_metrics, cell_hu), axis=-1)
 
@@ -346,8 +347,8 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 		global_area, global_linear, global_eccent, global_density, 
 		global_coverage, global_mean, global_std, global_entropy, global_glcm_contrast, 
 		global_glcm_homo, global_glcm_dissim, global_glcm_corr, global_glcm_energy,
-		global_glcm_IDM, global_glcm_variance, global_glcm_cluster, global_glcm_entropy,
-		global_hu) = seg.segment_analysis(image_shg, global_segment, shg_j_tensor, 
+		global_glcm_sim, global_glcm_variance, global_glcm_cluster, global_glcm_entropy,
+		global_glcm_autocorr, global_hu) = seg.segment_analysis(image_shg, global_segment, shg_j_tensor, 
 						shg_pix_j_anis, shg_pix_j_angle)
 
 		global_fibre_area = np.mean(fibre_areas)
@@ -373,8 +374,8 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 					global_fibre_density, global_fibre_coverage, global_mean, global_std, 
 					global_entropy, global_glcm_contrast, 
 					global_glcm_homo, global_glcm_dissim, global_glcm_corr, global_glcm_energy,
-					global_glcm_IDM, global_glcm_variance, global_glcm_cluster, 
-					global_glcm_entropy, global_network_degree,
+					global_glcm_sim, global_glcm_variance, global_glcm_cluster, 
+					global_glcm_entropy, global_glcm_autocorr, global_network_degree,
 					global_network_eigen, global_network_connect,
 					global_fibre_waviness, global_fibre_lengths, global_fibre_cross_link,
 					global_fibre_hu_1, global_fibre_hu_2], axis=0)
@@ -383,13 +384,14 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 
 			(__, _, _, _, _, _, _, _, _, _, _, _, global_glcm_contrast, 
 			global_glcm_homo, global_glcm_dissim, global_glcm_corr, global_glcm_energy,
-			global_glcm_IDM, global_glcm_variance, global_glcm_cluster, global_glcm_entropy,
-			_) = seg.segment_analysis(image_pl, global_segment, shg_j_tensor, 
+			global_glcm_sim, global_glcm_variance, global_glcm_cluster, global_glcm_entropy,
+			global_glcm_autocorr, _ ) = seg.segment_analysis(image_pl, global_segment, shg_j_tensor, 
 							shg_pix_j_anis, shg_pix_j_angle)
 
 			global_muscle_metrics = np.stack([global_glcm_contrast, global_glcm_homo, 
 				global_glcm_dissim, global_glcm_corr, global_glcm_energy,
-				global_glcm_IDM, global_glcm_variance, global_glcm_cluster, global_glcm_entropy], axis=0)
+				global_glcm_sim, global_glcm_variance, global_glcm_cluster, 
+				global_glcm_entropy, global_glcm_autocorr], axis=0)
 
 			cell_binary = seg.create_binary_image(cell_seg, image_pl.shape)
 			global_binary = np.where(cell_binary, 1, 0)
@@ -399,8 +401,8 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 			global_cell_linear, global_cell_eccent, global_cell_density, global_cell_coverage, 
 			global_cell_mean, global_cell_std, global_cell_entropy, global_cell_glcm_contrast,
 			global_cell_glcm_homo, global_cell_glcm_dissim, global_cell_glcm_corr, 
-			global_cell_glcm_energy, global_cell_glcm_IDM, global_cell_glcm_variance, 
-			global_cell_glcm_cluster, global_cell_glcm_entropy, 
+			global_cell_glcm_energy, global_cell_glcm_sim, global_cell_glcm_variance, 
+			global_cell_glcm_cluster, global_cell_glcm_entropy, global_cell_glcm_autocorr,
 			global_cell_hu) = seg.segment_analysis(image_pl, global_segment, pl_j_tensor, 
 						pl_pix_j_anis, pl_pix_j_angle)
 
@@ -411,8 +413,8 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 						global_cell_area, global_cell_mean, global_cell_std, 
 						global_cell_entropy, global_cell_glcm_contrast,
 						global_cell_glcm_homo, global_cell_glcm_dissim, global_cell_glcm_corr, 
-						global_cell_glcm_energy, global_cell_glcm_IDM, global_cell_glcm_variance, 
-						global_cell_glcm_cluster, global_cell_glcm_entropy,
+						global_cell_glcm_energy, global_cell_glcm_sim, global_cell_glcm_variance, 
+						global_cell_glcm_cluster, global_cell_glcm_entropy, global_cell_glcm_autocorr,
 						global_cell_linear, global_cell_eccent, global_cell_density,
 						global_cell_coverage, global_cell_hu[0], global_cell_hu[1]], axis=0)
 

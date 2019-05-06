@@ -387,10 +387,11 @@ def cell_segment_analysis(image, cells, n_tensor, anis_map, angle_map):
 	cell_glcm_corr = np.zeros(l_cells)
 	cell_glcm_homo = np.zeros(l_cells)
 	cell_glcm_energy = np.zeros(l_cells)
-	cell_glcm_IDM = np.zeros(l_cells)
+	cell_glcm_sim = np.zeros(l_cells)
 	cell_glcm_variance = np.zeros(l_cells)
 	cell_glcm_cluster = np.zeros(l_cells)
 	cell_glcm_entropy = np.zeros(l_cells)
+	cell_glcm_autocorr = np.zeros(l_cells)
 
 	cell_linear = np.zeros(l_cells)
 	cell_eccent = np.zeros(l_cells)
@@ -406,15 +407,15 @@ def cell_segment_analysis(image, cells, n_tensor, anis_map, angle_map):
 		cell_areas[i], cell_linear[i], cell_eccent[i], 
 		cell_density[i], cell_coverage[i], cell_mean[i], cell_std[i],
 		cell_entropy[i], cell_glcm_contrast[i], cell_glcm_homo[i], cell_glcm_dissim[i], 
-		cell_glcm_corr[i], cell_glcm_energy[i], cell_glcm_IDM[i], 
+		cell_glcm_corr[i], cell_glcm_energy[i], cell_glcm_sim[i], 
 		cell_glcm_variance[i], cell_glcm_cluster[i], cell_glcm_entropy[i],
-		cell_hu[i]) = metrics
+		cell_glcm_autocorr[i], cell_hu[i]) = metrics
 
 	return (cell_angle_sdi, cell_anis, cell_pix_anis, cell_areas, 
 		cell_mean, cell_std, cell_entropy, cell_glcm_contrast,
 		cell_glcm_homo, cell_glcm_dissim, cell_glcm_corr, cell_glcm_energy,
-		cell_glcm_IDM, cell_glcm_variance, cell_glcm_cluster, cell_glcm_entropy,
-		cell_linear, cell_eccent, cell_density, cell_coverage, cell_hu) 
+		cell_glcm_sim, cell_glcm_variance, cell_glcm_cluster, cell_glcm_entropy,
+		cell_glcm_autocorr, cell_linear, cell_eccent, cell_density, cell_coverage, cell_hu) 
 
 
 def segment_analysis(image, segment, n_tensor, anis_map, angle_map):
@@ -457,18 +458,19 @@ def segment_analysis(image, segment, n_tensor, anis_map, angle_map):
 	segment_glcm_dissim = greycoprops_edit(glcm, 'dissimilarity').mean()
 	segment_glcm_corr = greycoprops_edit(glcm, 'correlation').mean()
 	segment_glcm_energy = greycoprops_edit(glcm, 'energy').mean()
-	segment_glcm_IDM = greycoprops_edit(glcm, 'IDM').mean()
-	segment_glcm_variance = greycoprops_edit(glcm, 'variance').mean()
+	segment_glcm_sim = greycoprops_edit(glcm, 'similarity').mean()
+	segment_glcm_variance = greycoprops_edit(glcm, 'covariance').mean()
 	segment_glcm_cluster = greycoprops_edit(glcm, 'cluster').mean()
 	segment_glcm_entropy = greycoprops_edit(glcm, 'entropy').mean()
+	segment_glcm_autocorr = greycoprops_edit(glcm, 'autocorrelation').mean()
 
 
 	return (segment_fourier_sdi, segment_angle_sdi, segment_anis, segment_pix_anis, 
 		segment_area, segment_linear, segment_eccent, segment_density, 
 		segment_coverage, segment_mean, segment_std, segment_entropy,
 		segment_glcm_contrast, segment_glcm_homo, segment_glcm_dissim, 
-		segment_glcm_corr, segment_glcm_energy, segment_glcm_IDM, 
-		segment_glcm_variance, segment_glcm_cluster, segment_glcm_entropy,
+		segment_glcm_corr, segment_glcm_energy, segment_glcm_sim, 
+		segment_glcm_variance, segment_glcm_cluster, segment_glcm_entropy, segment_glcm_autocorr,
 		segment_hu)
 
 
@@ -603,8 +605,6 @@ def network_analysis(network, network_red):
 	return (network_degree, network_eigen, network_connect, network_cross_links)
 
 
-
-
 def fibre_segment_analysis(image_shg, networks, networks_red, 
 			fibres, segments, n_tensor, anis_map, angle_map):
 	"""
@@ -632,10 +632,11 @@ def fibre_segment_analysis(image_shg, networks, networks_red,
 	segment_glcm_corr = np.zeros(l_regions)
 	segment_glcm_homo = np.zeros(l_regions)
 	segment_glcm_energy = np.zeros(l_regions)
-	segment_glcm_IDM = np.zeros(l_regions)
+	segment_glcm_sim = np.zeros(l_regions)
 	segment_glcm_variance = np.zeros(l_regions)
 	segment_glcm_cluster = np.zeros(l_regions)
 	segment_glcm_entropy = np.zeros(l_regions)
+	segment_glcm_autocorr = np.zeros(l_regions)
 
 	segment_hu = np.zeros((l_regions, 7))
 	
@@ -661,9 +662,9 @@ def fibre_segment_analysis(image_shg, networks, networks_red,
 		segment_pix_anis[i], segment_area[i], segment_linear[i], segment_eccent[i], 
 		segment_density[i], segment_coverage[i], segment_mean[i], segment_std[i],
 		segment_entropy[i], segment_glcm_contrast[i], segment_glcm_homo[i], segment_glcm_dissim[i], 
-		segment_glcm_corr[i], segment_glcm_energy[i], segment_glcm_IDM[i], 
+		segment_glcm_corr[i], segment_glcm_energy[i], segment_glcm_sim[i], 
 		segment_glcm_variance[i], segment_glcm_cluster[i], segment_glcm_entropy[i],
-		segment_hu[i]) = metrics
+		segment_glcm_autocorr[i], segment_hu[i]) = metrics
 
 		metrics = network_analysis(network, network_red)
 
@@ -682,6 +683,6 @@ def fibre_segment_analysis(image_shg, networks, networks_red,
 		segment_area, segment_linear, segment_eccent, segment_density, segment_coverage,
 		segment_mean, segment_std, segment_entropy, segment_glcm_contrast, 
 		segment_glcm_homo, segment_glcm_dissim, segment_glcm_corr, segment_glcm_energy, 
-		segment_glcm_IDM, segment_glcm_variance, segment_glcm_cluster, segment_glcm_entropy,
-		segment_hu, network_degree, network_eigen, network_connect, fibre_waviness, 
-		fibre_lengths, fibre_cross_link_den)
+		segment_glcm_sim, segment_glcm_variance, segment_glcm_cluster, segment_glcm_entropy,
+		segment_glcm_autocorr, segment_hu, network_degree, network_eigen, network_connect, 
+		fibre_waviness, fibre_lengths, fibre_cross_link_den)
