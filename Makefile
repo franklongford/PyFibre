@@ -9,6 +9,7 @@ python_version_patch := $(word 3,${python_version_full})
 BIN=$(firstword $(subst :, " ", $(PATH)))
 NAME=PyFibre
 DESKTOP=$(HOME)/Desktop/
+CURRENT_DIR = $(shell pwd)
 
 
 init: check install #test
@@ -39,7 +40,7 @@ test:
 	@echo
 	@echo "Running unit tests"
 	@echo
-	@pytest tests/test* -v -l
+	@python -m unittest tests/test.py
 
 
 uninstall:

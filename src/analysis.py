@@ -11,11 +11,14 @@ Last Modified: 18/02/2019
 import sys, os, time
 import numpy as np
 import scipy as sp
+import pandas as pd
 
 from scipy.ndimage.filters import gaussian_filter
 
-from skimage.feature import greycoprops
+from skimage.feature import greycoprops, greycomatrix
 from skimage.color import grey2rgb, rgb2grey, rgb2hsv, hsv2rgb
+
+from skimage.measure import shannon_entropy
 
 import utilities as ut
 from extraction import branch_angles
@@ -35,10 +38,10 @@ def fourier_transform_analysis(image, n_split=1, sigma=None, nbins=200):
 	-------
 
 	angles:  array_like (float); shape=(n_bins)
-	Angles corresponding to fourier amplitudes
+		Angles corresponding to fourier amplitudes
 
 	fourier_spec:  array_like (float); shape=(n_bins)
-	Average Fouier amplitudes of FT of image_shg
+		Average Fouier amplitudes of FT of image_shg
 
 	"""
 
@@ -57,8 +60,6 @@ def fourier_transform_analysis(image, n_split=1, sigma=None, nbins=200):
 
 		magnitude = np.abs(image_fft)
 		phase = np.angle(image_fft, deg=True)
-
-
 
 		image_grid = np.mgrid[:region.shape[0], :region.shape[1]]
 		for i in range(2): 
@@ -116,8 +117,9 @@ def tensor_analysis(tensor):
 	tot_anis = np.zeros(tensor.shape[:-2])
 	tot_anis[indicies] += eig_diff[indicies] / eig_sum[indicies]
 
-	tot_angle = 0.5 * np.arctan2(2 * tensor[..., 1, 0], (tensor[..., 1, 1] - tensor[..., 0, 0])) / np.pi * 180
-	#tot_angle = np.arctan2(tensor[..., 1, 0], tensor[..., 1, 1]) / np.pi * 180
+	tot_angle = 0.5 * np.arctan2(
+		2 * tensor[..., 1, 0],
+		(tensor[..., 1, 1] - tensor[..., 0, 0])) / np.pi * 180
 	tot_energy = np.trace(np.abs(tensor), axis1=-2, axis2=-1)
 
 	return tot_anis, tot_angle, tot_energy
@@ -167,7 +169,7 @@ def greycoprops_edit(P, prop='contrast'):
 	# create weights for specified property
 	I, J = np.ogrid[0:num_level, 0:num_level]
 	if prop == 'similarity': weights = 1. / (1. + abs(I - J))
-	elif prop in ['covariance', 'cluster', 'entropy', 'autocorrelation']: pass
+	elif prop in ['mean', 'covariance', 'cluster', 'entropy', 'autocorrelation']: pass
 	else: return greycoprops(P, prop)
 
 	# normalize each GLCM
@@ -186,6 +188,14 @@ def greycoprops_edit(P, prop='contrast'):
 
 		results = np.apply_over_axes(np.sum, (P * I * J),
 		                         axes=(0, 1))[0, 0]
+
+	elif prop == 'mean':
+		I = np.array(range(num_level)).reshape((num_level, 1, 1, 1))
+		J = np.array(range(num_level)).reshape((1, num_level, 1, 1))
+		mean_i = np.apply_over_axes(np.sum, (I * P), axes=(0, 1))[0, 0]
+		mean_j = np.apply_over_axes(np.sum, (J * P), axes=(0, 1))[0, 0]
+
+		results = 0.5 * (mean_i + mean_j)
 
 	elif prop == 'covariance':
 		I = np.array(range(num_level)).reshape((num_level, 1, 1, 1))
@@ -218,3 +228,138 @@ def greycoprops_edit(P, prop='contrast'):
 
 	return results
 
+def segment_analysis(image, segment, n_tensor, anis_map, angle_map, tag):
+
+	database = pd.Series()
+
+	minr, minc, maxr, maxc = segment.bbox
+	indices = np.mgrid[minr:maxr, minc:maxc]
+
+	segment_image = image[(indices[0], indices[1])]
+	segment_anis_map = anis_map[(indices[0], indices[1])]
+	segment_angle_map = angle_map[(indices[0], indices[1])]
+	segment_n_tensor = n_tensor[(indices[0], indices[1])]
+
+	_, _, database[f"{tag} Fourier SDI"] = (0, 0, 0)#fourier_transform_analysis(segment_image)
+	database[f"{tag} Angle SDI"] = angle_analysis(segment_angle_map, segment_anis_map)
+
+	database[f"{tag} Mean"] = np.mean(segment_image)
+	database[f"{tag} STD"] = np.std(segment_image)
+	database[f"{tag} Entropy"] = shannon_entropy(segment_image)
+
+	segment_anis, _ , _ = tensor_analysis(np.mean(segment_n_tensor, axis=(0, 1)))
+	database[f"{tag} Anisotropy"] = segment_anis[0]
+	database[f"{tag} Pixel Anisotropy"] = np.mean(segment_anis_map)
+
+	database[f"{tag} Area"] = segment.area
+	database[f"{tag} Linearity"] = 1 - np.pi * segment.equivalent_diameter / segment.perimeter
+	database[f"{tag} Eccentricity"] = segment.eccentricity
+	database[f"{tag} Density"] = np.sum(segment_image * segment.image) / segment.area
+	database[f"{tag} Coverage"] = segment.extent
+	segment_hu = segment.moments_hu
+
+	database[f"{tag} Hu Moment 1"] = segment_hu[0]
+	database[f"{tag} Hu Moment 2"] = segment_hu[1]
+	database[f"{tag} Hu Moment 3"] = segment_hu[2]
+	database[f"{tag} Hu Moment 4"] = segment_hu[3]
+
+	glcm = greycomatrix((segment_image * segment.image * 255.999).astype('uint8'),
+                         [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256,
+                         symmetric=True, normed=True)
+	glcm[0, :, :, :] = 0
+	glcm[:, 0, :, :] = 0
+
+	database[f"{tag} GLCM Contrast"] = greycoprops_edit(glcm, 'contrast').mean()
+	database[f"{tag} GLCM Homogeneity"] = greycoprops_edit(glcm, 'homogeneity').mean()
+	database[f"{tag} GLCM Energy"] = greycoprops_edit(glcm, 'energy').mean()
+	database[f"{tag} GLCM Entropy"] = greycoprops_edit(glcm, 'entropy').mean()
+	database[f"{tag} GLCM Autocorrelation"] = greycoprops_edit(glcm, 'autocorrelation').mean()
+	database[f"{tag} GLCM Clustering"] = greycoprops_edit(glcm, 'cluster').mean()
+	database[f"{tag} GLCM Mean"] = greycoprops_edit(glcm, 'mean').mean()
+	database[f"{tag} GLCM Covariance"] = greycoprops_edit(glcm, 'covariance').mean()
+	database[f"{tag} GLCM Correlation"] = greycoprops_edit(glcm, 'correlation').mean()
+
+	return database
+
+def network_analysis(network, network_red, tag):
+
+	database = pd.Series()
+
+	cross_links = np.array([degree[1] for degree in network.degree], dtype=int)
+	database[f"{tag} Network Cross-Links"] = (cross_links > 2).sum()
+
+	try:
+		database[f"{tag} Network Degree"] = nx.degree_pearson_correlation_coefficient(network, weight='r')**2
+	except:
+		database[f"{tag} Network Degree"] = None
+
+	try:
+		database[f"{tag} Network Eigenvalue"] = np.real(nx.adjacency_spectrum(network_red).max())
+	except:
+		database[f"{tag} Network Eigenvalue"] = None
+
+	try:
+		database[f"{tag} Network Connectivity"] = nx.algebraic_connectivity(network_red, weight='r')
+	except:
+		database[f"{tag} Network Connectivity"] = None
+
+	"""
+	try: network_loc_eff = local_efficiency(network_red)
+	except: network_loc_eff = None
+
+	try: network_cluster = cluster.average_clustering(network_red, weight='r')
+	except: network_cluster = None
+	"""
+
+	return database
+
+
+def fibre_segment_analysis(image_shg, networks, networks_red,
+						   fibres, segments, n_tensor, anis_map, angle_map):
+	"""
+	Analyse extracted fibre network
+	"""
+	l_regions = len(segments)
+	segment_metrics = pd.DataFrame()
+
+	iterator = zip(np.arange(l_regions), networks, networks_red, fibres, segments)
+
+	for i, network, network_red, fibre, segment in iterator:
+		# if segment.filled_area >= 1E-2 * image_shg.size:
+
+		segment_series = pd.Series(name=i)
+
+		metrics = segment_analysis(image_shg, segment, n_tensor, anis_map,
+								   angle_map, 'SHG Fibre')
+		segment_series = pd.concat((segment_series, metrics))
+
+		metrics = network_analysis(network, network_red, 'SHG Fibre')
+		segment_series = pd.concat((segment_series, metrics))
+
+		fibre_len, fibre_wav, fibre_ang = fibre_analysis(fibre)
+		segment_series['SHG Fibre Waviness'] = np.nanmean(fibre_wav)
+		segment_series['SHG Fibre Length'] = np.nanmean(fibre_len)
+		segment_series['SHG Fibre Cross-Link Density'] = segment_series['SHG Fibre Network Cross-Links'] / len(fibre)
+
+		segment_metrics = segment_metrics.append(segment_series, ignore_index=True)
+
+	# fibre_angle_sdi[i] = angle_analysis(fibre_ang, np.ones(fibre_ang.shape))
+
+	return segment_metrics
+
+
+def cell_segment_analysis(image, cells, n_tensor, anis_map, angle_map, tag='Cell'):
+
+	segment_metrics = pd.DataFrame()
+
+	for i, cell in enumerate(cells):
+
+		segment_series = pd.Series(name=i)
+
+		metrics = segment_analysis(image, cell, n_tensor, anis_map,
+						angle_map, f'PL {tag}')
+		segment_series = pd.concat((segment_series, metrics))
+
+		segment_metrics = segment_metrics.append(segment_series, ignore_index=True)
+
+	return segment_metrics

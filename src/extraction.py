@@ -24,11 +24,14 @@ from skimage.feature import (structure_tensor, hessian_matrix, hessian_matrix_ei
 from skimage.morphology import disk, square, local_maxima, binary_erosion, remove_small_objects
 from skimage.transform import rescale
 from skimage.filters import rank
+from skimage.exposure import equalize_adapthist
+
 
 import networkx as nx
 
 from utilities import ring, numpy_remove, clear_border
 from filters import tubeness, hysteresis
+from preprocessing import nl_means
 
 
 def check_2D_arrays(array1, array2, thresh=1):
@@ -643,3 +646,46 @@ def fibre_assignment(network, angle_thresh=70, verbose=False, min_n=4):
 
 	return tot_fibres
 
+
+def network_extraction(image_shg, network_name='network', scale=1.0, sigma=0.75, alpha=0.5,
+			p_denoise=(5, 35), threads=8):
+	"""
+	Extract fibre network using modified FIRE algorithm
+	"""
+
+	print("Applying AHE to SHG image")
+	image_shg = equalize_adapthist(image_shg)
+	print("Performing NL Denoise using local windows {} {}".format(*p_denoise))
+	image_nl = nl_means(image_shg, p_denoise=p_denoise)
+
+	"Call FIRE algorithm to extract full image network"
+	print("Calling FIRE algorithm using image scale {}  alpha  {}".format(scale, alpha))
+	Aij = FIRE(image_nl, scale=scale, sigma=sigma, alpha=alpha, max_threads=threads)
+	nx.write_gpickle(Aij, network_name + "_graph.pkl")
+
+	#else: Aij = nx.read_gpickle(network_name + "_graph.pkl")
+
+	print("Extracting and simplifying fibre networks from graph")
+	n_nodes = []
+	networks = []
+	networks_red = []
+	fibres = []
+	for i, component in enumerate(nx.connected_components(Aij)):
+		subgraph = Aij.subgraph(component)
+
+		fibre = fibre_assignment(subgraph)
+
+		if len(fibre) > 0:
+			n_nodes.append(subgraph.number_of_nodes())
+			networks.append(subgraph)
+			networks_red.append(simplify_network(subgraph))
+			fibres.append(fibre)
+
+	"Sort segments ranked by network size"
+	indices = np.argsort(n_nodes)[::-1]
+
+	sorted_networks = [networks[i] for i in indices]
+	sorted_networks_red = [networks_red[i] for i in indices]
+	sorted_fibres = [fibres[i] for i in indices]
+
+	return sorted_networks, sorted_networks_red, sorted_fibres

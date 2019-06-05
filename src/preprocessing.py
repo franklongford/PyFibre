@@ -8,7 +8,10 @@ Created on: 18/02/2019
 Last Modified: 18/02/2019
 """
 
-import sys, os, time
+import sys
+import os
+import time
+import logging
 import numpy as np
 import scipy as sp
 
@@ -18,17 +21,19 @@ from skimage.exposure import rescale_intensity
 
 import utilities as ut
 
+logger = logging.getLogger(__name__)
+
 
 def import_image(image_name):
 	"Image importer able to automatically deal with stacks and mixed SHG/PL image types"
 
 	image_orig = ut.load_image(image_name)
-	print("Input image shape = {}".format(image_orig.shape))
+	logger.debug("Input image shape = {}".format(image_orig.shape))
 
 	if '-pl-shg' in image_name.lower():
 
 		if image_orig.ndim == 4:
-			print("Number of image types = {}".format(image_orig.shape[0]))
+			logger.info("Number of image types = {}".format(image_orig.shape[0]))
 			shape_check = (image_orig.shape[0] == 3)
 			if not shape_check: raise IOError
 
@@ -36,8 +41,8 @@ def import_image(image_name):
 			smallest_axis = np.argmin(image_shape)
 			xy_dim = tuple(x for i, x in enumerate(image_shape) if i != smallest_axis)
 
-			print("Size of image = {}".format(xy_dim))
-			print("Number of stacks = {}".format(image_shape[smallest_axis]))
+			logger.debug("Size of image = {}".format(xy_dim))
+			logger.debug("Number of stacks = {}".format(image_shape[smallest_axis]))
 	
 			image_shg = np.mean(image_orig[0], axis=smallest_axis)
 			image_pl = np.mean(image_orig[1], axis=smallest_axis)
@@ -48,7 +53,7 @@ def import_image(image_name):
 			smallest_axis = np.argmin(image_shape)
 			xy_dim = tuple(x for i, x in enumerate(image_shape) if i != smallest_axis)
 
-			print("Number of image types = {}".format(image_orig.shape[smallest_axis]))
+			logger.info("Number of image types = {}".format(image_orig.shape[smallest_axis]))
 			shape_check = (image_orig.shape[smallest_axis] == 3)
 			if not shape_check: raise IOError
 
@@ -56,7 +61,7 @@ def import_image(image_name):
 			image_pl = np.take(image_orig, 1, smallest_axis)
 			image_tran = np.take(image_orig, 2, smallest_axis)
 
-			print("Size of image = {}".format(xy_dim))
+			logger.debug("Size of image = {}".format(xy_dim))
 
 		image_shg = clip_intensities(image_shg, p_intensity=(0, 100))
 		image_pl = clip_intensities(image_pl, p_intensity=(0, 100))
@@ -67,7 +72,7 @@ def import_image(image_name):
 	elif '-pl' in image_name.lower():
 
 		if image_orig.ndim == 4:
-			print("Number of image types = {}".format(image_orig.shape[0]))
+			logger.debug("Number of image types = {}".format(image_orig.shape[0]))
 			shape_check = (image_orig.shape[0] == 2)
 			if not shape_check: raise IOError
 
@@ -75,8 +80,8 @@ def import_image(image_name):
 			smallest_axis = np.argmin(image_shape)
 			xy_dim = tuple(x for i, x in enumerate(image_shape) if i != smallest_axis)
 
-			print("Size of image = {}".format(xy_dim))
-			print("Number of stacks = {}".format(image_shape[smallest_axis]))
+			logger.debug("Size of image = {}".format(xy_dim))
+			logger.debug("Number of stacks = {}".format(image_shape[smallest_axis]))
 	
 			image_pl = np.mean(image_orig[0], axis=smallest_axis)
 			image_tran = np.mean(image_orig[1], axis=smallest_axis)
@@ -86,14 +91,14 @@ def import_image(image_name):
 			smallest_axis = np.argmin(image_shape)
 			xy_dim = tuple(x for i, x in enumerate(image_shape) if i != smallest_axis)
 
-			print("Number of image types = {}".format(image_orig.shape[smallest_axis]))
+			logger.debug("Number of image types = {}".format(image_orig.shape[smallest_axis]))
 			shape_check = (image_orig.shape[smallest_axis] == 3)
 			if not shape_check: raise IOError
 
 			image_pl = np.take(image_orig, 0, smallest_axis)
 			image_tran = np.take(image_orig, 1, smallest_axis)
 
-			print("Size of image = {}".format(image_shape))
+			logger.debug("Size of image = {}".format(image_shape))
 
 		image_pl = clip_intensities(image_pl, p_intensity=(0, 100))
 		image_tran = clip_intensities(image_tran, p_intensity=(0, 100))
@@ -103,7 +108,7 @@ def import_image(image_name):
 	elif '-shg' in image_name.lower():
 
 		if image_orig.ndim == 4:
-			print("Number of image types = {}".format(image_orig.shape[0]))
+			logger.info("Number of image types = {}".format(image_orig.shape[0]))
 			shape_check = (image_orig.shape[0] == 2)
 			if not shape_check: raise IOError
 
@@ -111,8 +116,8 @@ def import_image(image_name):
 			smallest_axis = np.argmin(image_shape)
 			xy_dim = tuple(x for i, x in enumerate(image_shape) if i != smallest_axis)
 
-			print("Size of image = {}".format(xy_dim))
-			print("Number of stacks = {}".format(image_shape[smallest_axis]))
+			logger.debug("Size of image = {}".format(xy_dim))
+			logger.debug("Number of stacks = {}".format(image_shape[smallest_axis]))
 	
 			image_shg = np.mean(image_orig[1], axis=smallest_axis)
 
@@ -121,13 +126,13 @@ def import_image(image_name):
 			smallest_axis = np.argmin(image_shape)
 			xy_dim = tuple(x for i, x in enumerate(image_shape) if i != smallest_axis)
 
-			print("Size of image = {}".format(xy_dim))
-			print("Number of stacks = {}".format(image_shape[smallest_axis]))
+			logger.debug("Size of image = {}".format(xy_dim))
+			logger.debug("Number of stacks = {}".format(image_shape[smallest_axis]))
 
 			image_shg = np.mean(image_orig, axis=smallest_axis)
 
 		else: 
-			print("Size of image = {}".format(image_orig.shape))
+			logger.info("Size of image = {}".format(image_orig.shape))
 			image_shg = image_orig
 
 		image_shg = clip_intensities(image_shg, p_intensity=(0, 100))
