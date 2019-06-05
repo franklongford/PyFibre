@@ -8,7 +8,10 @@ Created on: 09/03/2018
 Last Modified: 18/02/2019
 """
 
-import sys, os, time
+import sys
+import os
+import time
+import logging
 import numpy as np
 import scipy as sp
 import pandas as pd
@@ -22,6 +25,8 @@ from skimage.measure import shannon_entropy
 
 import utilities as ut
 from extraction import branch_angles
+
+logger = logging.getLogger(__name__)
 
 
 def fourier_transform_analysis(image, n_split=1, sigma=None, nbins=200):
@@ -71,8 +76,6 @@ def fourier_transform_analysis(image, n_split=1, sigma=None, nbins=200):
 		angles = (np.arccos(angles) * 360 / np.pi)
 		angles[0][0] = 0
 		angles = np.fft.fftshift(angles)
-
-		print(angles.max(), angles.min())
 
 
 		sdi = np.mean(fourier_spec) / np.max(fourier_spec)
@@ -145,8 +148,8 @@ def fibre_analysis(tot_fibres, verbose=False):
 		start = fibre.node_list[0]
 		end = fibre.node_list[-1]
 
-		if verbose: print("N nodes", len(fibre.node_list), "Length", fibre.fibre_l, 
-					"Displacement", fibre.euclid_l, "Direction", fibre.direction, "\n")
+		logger.debug(f"N nodes: {len(fibre.node_list)} Length: {fibre.fibre_l}\n"
+					 f"Displacement: {fibre.euclid_l}  Direction: {fibre.direction}\n ")
 
 		fibre_lengths = np.concatenate((fibre_lengths, [fibre.fibre_l]))
 		fibre_waviness = np.concatenate((fibre_waviness, [fibre.euclid_l / fibre.fibre_l]))

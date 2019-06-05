@@ -8,6 +8,7 @@ Created on: 01/11/2015
 Last Modified: 12/04/2018
 """
 
+import logging
 import numpy as np
 
 import sys, os, pickle
@@ -41,6 +42,20 @@ def logo():
 
 	return logo_text
 
+
+def setup_logger(level):
+
+	logger = logging.getLogger(__name__)
+	logger.setLevel(level)
+
+	cmd_line_handler = logging.StreamHandler()
+	logger.addHandler(cmd_line_handler)
+
+	if level == 'DEBUG':
+		log_file_handler = logging.FileHandler('pyfibre.log')
+		logger.addHandler(log_file_handler)
+
+	return logger
 
 def check_string(string, pos, sep, word):
 	"""Checks index 'pos' of 'string' seperated by 'sep' for substring 'word'

@@ -33,15 +33,6 @@ from extraction import network_extraction
 from filters import form_nematic_tensor, form_structure_tensor
 from figures import create_figure, create_tensor_image, create_region_image, create_network_image
 
-logger = logging.getLogger(__name__)
-logger.setLevel('INFO')
-
-cmd_line_handler = logging.StreamHandler()
-log_file_handler = logging.FileHandler('pyfibre.log')
-
-logger.addHandler(cmd_line_handler)
-logger.addHandler(log_file_handler)
-
 
 def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25, 
 				p_intensity=(1, 99), p_denoise=(5, 35), sigma=0.5, alpha=0.5,
@@ -94,7 +85,6 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 	logger.info(f"Loading images for {prefix}")
 
 	"Load and preprocess image"
-	logger.info(f"Preprocessing images using clipped intensity percentages {p_intensity}")
 	multi_image = MultiLayerImage(input_file_names, p_intensity)
 
 	try:
@@ -147,7 +137,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 
 		end_net = time.time()
 
-		print(f"TOTAL NETWORK EXTRACTION TIME = {round(end_net - start_net, 3)} s")
+		logger.debug(f"TOTAL NETWORK EXTRACTION TIME = {round(end_net - start_net, 3)} s")
 
 	if ow_segment:
 
@@ -197,7 +187,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 
 		end_seg = time.time()
 
-		print(f"TOTAL SEGMENTATION TIME = {round(end_seg - start_seg, 3)} s")
+		logger.debug(f"TOTAL SEGMENTATION TIME = {round(end_seg - start_seg, 3)} s")
 
 	if ow_metric:
 		
@@ -216,7 +206,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 		"Perform anisotropy analysis on each pixel"
 		shg_pix_j_anis, shg_pix_j_angle, shg_pix_j_energy = an.tensor_analysis(shg_j_tensor)
 	
-		print("Performing fibre segment analysis")
+		logger.debug("Performing fibre segment analysis")
 
 		"Analyse fibre network"
 		fibre_metrics = an.fibre_segment_analysis(
@@ -235,7 +225,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 			"Perform anisotropy analysis on each pixel"
 			pl_pix_j_anis, pl_pix_j_angle, pl_pix_j_energy = an.tensor_analysis(pl_j_tensor)
 
-			print("Performing cell segment analysis")
+			logger.debug("Performing cell segment analysis")
 
 			muscle_metrics = an.cell_segment_analysis(
 				multi_image.image_pl, fibre_seg, pl_j_tensor, pl_pix_j_anis, pl_pix_j_angle, 'Muscle')
@@ -260,7 +250,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 		muscle_dataframe = pd.concat((fibre_filenames, muscle_metrics), axis=1)
 		muscle_dataframe.to_pickle('{}_muscle_metric.pkl'.format(filename))
 
-		print("Performing Global Image analysis")
+		logger.debug("Performing Global Image analysis")
 
 		fibre_binary = seg.create_binary_image(fibre_seg, multi_image.shape)
 		global_binary = np.where(fibre_binary, 1, 0)
@@ -284,7 +274,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 		global_fibre_metrics['SHG Fibre Length'] = np.nanmean(fibre_metrics['SHG Fibre Length'])
 		global_fibre_metrics['SHG Fibre Cross-Link Density'] = np.nanmean(fibre_metrics['SHG Fibre Cross-Link Density'])
 
-		print(fibre_metrics['SHG Fibre Network Degree'].values)
+		logger.debug(fibre_metrics['SHG Fibre Network Degree'].values)
 
 		global_fibre_metrics['SHG Fibre Network Degree'] = np.nanmean(fibre_metrics['SHG Fibre Network Degree'].values)
 		global_fibre_metrics['SHG Fibre Network Eigenvalue'] = np.nanmean(fibre_metrics['SHG Fibre Network Eigenvalue'])
@@ -324,7 +314,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 
 		end_met = time.time()
 
-		print(f"TOTAL METRIC TIME = {round(end_met - start_met, 3)} s")
+		logger.debug(f"TOTAL METRIC TIME = {round(end_met - start_met, 3)} s")
 
 	if ow_figure:
 
@@ -355,11 +345,11 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 
 		end_fig = time.time()
 
-		print(f"TOTAL FIGURE TIME = {round(end_fig - start_fig, 3)} s")
+		logger.debug(f"TOTAL FIGURE TIME = {round(end_fig - start_fig, 3)} s")
 		
 	end = time.time()
 
-	print(f"TOTAL ANALYSIS TIME = {round(end - start, 3)} s")
+	logger.info(f"TOTAL ANALYSIS TIME = {round(end - start, 3)} s")
 
 	return global_dataframe, fibre_dataframe, cell_dataframe
 
@@ -383,7 +373,13 @@ if __name__ == '__main__':
 	parser.add_argument('--ow_figure', action='store_true', help='Toggles overwrite figures')
 	parser.add_argument('--save_db', nargs='?', help='Output database filename', default=None)
 	parser.add_argument('--threads', type=int, nargs='?', help='Number of threads per processor', default=8)
+	parser.add_argument('--debug', action='store_true', help='Toggles debug mode')
 	args = parser.parse_args()
+
+	if args.debug:
+		logger = ut.setup_logger('DEBUG')
+	else:
+		logger = ut.setup_logger('INFO')
 
 	input_files = []
 
@@ -424,9 +420,9 @@ if __name__ == '__main__':
 		segment_database = pd.concat([segment_database, data_segment])
 		cell_database = pd.concat([cell_database, data_cell])
 
-		print(image_path)
-		print("Global Image Analysis Metrics:")
-		print(data_global.iloc[0])
+		logger.debug(image_path)
+		logger.debug("Global Image Analysis Metrics:")
+		logger.debug(data_global.iloc[0])
 
 
 	if args.save_db != None: 

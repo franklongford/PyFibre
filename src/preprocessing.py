@@ -132,7 +132,7 @@ def import_image(image_name):
 			image_shg = np.mean(image_orig, axis=smallest_axis)
 
 		else: 
-			logger.info("Size of image = {}".format(image_orig.shape))
+			logger.debug("Size of image = {}".format(image_orig.shape))
 			image_shg = image_orig
 
 		image_shg = clip_intensities(image_shg, p_intensity=(0, 100))
@@ -180,6 +180,7 @@ def clip_intensities(image, p_intensity=(1, 98)):
 
 	"""
 
+	logger.debug(f"Preprocessing images using clipped intensity percentages {p_intensity}")
 	low, high = np.percentile(image, p_intensity)
 	image = rescale_intensity(image, in_range=(low, high), out_range=(0.0, 1.0))
 

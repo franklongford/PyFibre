@@ -8,7 +8,10 @@ Created on: 18/02/2019
 Last Modified: 18/02/2019
 """
 
-import sys, os, time
+import sys
+import os
+import time
+import logging
 import numpy as np
 import scipy as sp
 import pandas as pd
@@ -40,6 +43,8 @@ from extraction import FIRE, fibre_assignment, simplify_network
 from analysis import (fourier_transform_analysis, tensor_analysis, angle_analysis, 
 					fibre_analysis, greycoprops_edit)
 from preprocessing import nl_means, clip_intensities
+
+logger = logging.getLogger(__name__)
 
 
 def create_binary_image(segments, shape):
@@ -148,7 +153,7 @@ def BD_filter(image, n_runs=2, n_clusters=10, p_intensity=(2, 98), sm_size=5, pa
 
 	image_scaled = prepare_composite_image(image, p_intensity, sm_size)
 
-	print("Making greyscale")
+	logger.debug("Making greyscale")
 	greyscale = rgb2grey(image_scaled.astype(np.float64))
 	greyscale /= greyscale.max()
 
@@ -282,12 +287,12 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.0, sigma=0.8, alp
 	image_stack[indices] /= np.repeat(magnitudes[indices], 3).reshape(indices[0].shape + (3,))
 
 	"Up-scale image to impove accuracy of clustering"
-	print(f"Rescaling by {scale}")
+	logger.debug(f"Rescaling by {scale}")
 	image_stack = rescale(image_stack, scale, multichannel=True, mode='constant', anti_aliasing=None)
 
 	"Form mask using Kmeans Background filter"
 	mask_image = BD_filter(image_stack)
-	print("Resizing")
+	logger.debug(f"Resizing to {image_shg[0]} x {image_shg[1]} pix")
 	mask_image = resize(mask_image, image_shg.shape, mode='reflect', anti_aliasing=True)
 
 	cells = []
@@ -330,7 +335,7 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.0, sigma=0.8, alp
 			cell_check = segment_check(cell, 0, 0.01)
 			if cell_check: cell_binary[np.where(fibre_labels == fibre.label)] = True
 
-	print("Removing small holes")
+	logger.debug("Removing small holes")
 	fibre_binary = remove_small_holes(fibre_binary)
 	cell_binary = remove_small_holes(cell_binary)
 

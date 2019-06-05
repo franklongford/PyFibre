@@ -12,6 +12,7 @@ import numpy as np
 import sys
 import copy
 import time
+import logging
 import itertools
 import threading
 
@@ -26,12 +27,13 @@ from skimage.transform import rescale
 from skimage.filters import rank
 from skimage.exposure import equalize_adapthist
 
-
 import networkx as nx
 
 from utilities import ring, numpy_remove, clear_border
 from filters import tubeness, hysteresis
 from preprocessing import nl_means
+
+logger = logging.getLogger(__name__)
 
 
 def check_2D_arrays(array1, array2, thresh=1):
@@ -345,9 +347,9 @@ def FIRE(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_thr
 	r_thresh = int(r_thresh * scale)
 	nuc_rad = int(nuc_rad * scale)
 
-	print("Maximum distance = {}".format(cleared.max()))
-	print("Mean distance = {}".format(cleared[np.nonzero(cleared)].mean()))
-	print("Using thresholds:\n nuc = {} pix\n lmp = {} pix\n angle = {} deg\n edge = {} pix".format(
+	logger.debug("Maximum distance = {}".format(cleared.max()))
+	logger.debug("Mean distance = {}".format(cleared[np.nonzero(cleared)].mean()))
+	logger.debug("Using thresholds:\n nuc = {} pix\n lmp = {} pix\n angle = {} deg\n edge = {} pix".format(
 		    nuc_thresh, lmp_thresh, angle_thresh, r_thresh))
 
 	"Get global maxima for smoothed distance matrix"
@@ -358,7 +360,7 @@ def FIRE(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_thr
 	"Set up network arrays"
 	n_nuc = nuc_node_coord.shape[0]
 
-	print("No. nucleation nodes = {}".format(n_nuc))
+	logger.debug("No. nucleation nodes = {}".format(n_nuc))
 
 	Aij = nx.Graph()
 	Aij.add_nodes_from(np.arange(n_nuc))
@@ -397,8 +399,8 @@ def FIRE(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_thr
 	fibre_grow = [fibre for fibre in fibre_ends if Aij.nodes[fibre]['growing']]
 	n_fibres = len(fibre_ends)
 
-	print("No. nodes created = {}".format(n_node))
-	print("No. fibres to grow = {}".format(n_fibres))
+	logger.debug("No. nodes created = {}".format(n_node))
+	logger.debug("No. fibres to grow = {}".format(n_fibres))
 
 	it = 0
 	total_time = 0
@@ -438,7 +440,7 @@ def FIRE(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_thr
 		end = time.time()
 		total_time += end - start
 
-		print("Iteration {} time = {} s, {} nodes  {}/{} fibres left to grow".format(
+		logger.debug("Iteration {} time = {} s, {} nodes  {}/{} fibres left to grow".format(
 			it, round(end - start, 3), n_node, len(fibre_grow), n_fibres))
 
 	for node in Aij.nodes(): Aij.nodes[node]['xy'] = np.array(Aij.nodes[node]['xy'] // scale, dtype=int)
@@ -449,7 +451,7 @@ def FIRE(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_thr
 	mapping = dict(zip(Aij.nodes, np.arange(Aij.number_of_nodes())))
 	Aij = nx.relabel_nodes(Aij, mapping)
 
-	print("Checking for redundant nodes")
+	logger.debug("Checking for redundant nodes")
 	checking = True
 	r2_min = 4
 
@@ -540,7 +542,7 @@ def simplify_network(Aij):
 	return new_Aij
 
 
-def fibre_assignment(network, angle_thresh=70, verbose=False, min_n=4):
+def fibre_assignment(network, angle_thresh=70, min_n=4):
 
 	mapping = dict(zip(network.nodes, np.arange(network.number_of_nodes())))
 	network = nx.relabel_nodes(network, mapping)
@@ -578,41 +580,40 @@ def fibre_assignment(network, angle_thresh=70, verbose=False, min_n=4):
 				r=network[new_node][node]['r'])
 			fibre.node_list = list(fibre.nodes)
 
-			if verbose:
-				print("Start node = ", node, "  coord: ", node_coord[node])
-				print("Connected nodes = ", new_nodes)
-				print("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
-				print("Fibre length = ", coord_r)
-				print("Fibre direction = ", fibre.direction)
+			logger.debug("Start node = ", node, "  coord: ", node_coord[node])
+			logger.debug("Connected nodes = ", new_nodes)
+			logger.debug("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
+			logger.debug("Fibre length = ", coord_r)
+			logger.debug("Fibre direction = ", fibre.direction)
 
 			while fibre.growing:
 
 				end_node = fibre.node_list[-1]
 				new_connect = np.array(list(network.adj[end_node]))
 
-				if verbose: print("Nodes connected to fibre end = {}".format(new_connect))
+				logger.debug("Nodes connected to fibre end = {}".format(new_connect))
 
 				new_connect = numpy_remove(new_connect, fibre.node_list)
 				#new_connect = numpy_remove(new_connect, np.argwhere(tracing == 0))
 				n_edges = new_connect.shape[0]
 
-				if verbose: 
-					print("{} possible candidates for next fibre node: {}".format(n_edges, new_connect))
-					print("Coords = ", *node_coord[new_connect])
+				logger.debug("{} possible candidates for next fibre node: {}".format(n_edges, new_connect))
+				logger.debug("Coords = ", *node_coord[new_connect])
 
 				if n_edges > 0:
 					new_coord_vec = d_coord[end_node][new_connect]
 					new_coord_r = np.array([network[end_node][n]['r'] for n in new_connect])
 
-					assert np.all(new_coord_r > 0), print(end_node, new_connect, new_coord_vec, new_coord_r, fibre.node_list)
+					assert np.all(new_coord_r > 0), logger.exception(
+						f"{end_node}, {new_connect}, {new_coord_vec}, {new_coord_r}, {fibre.node_list}")
 
 					cos_the = branch_angles(fibre.direction, new_coord_vec, new_coord_r)
 
-					if verbose: print("Cos theta = ", cos_the)
+					logger.debug("Cos theta = ", cos_the)
 
 					try:   
 						indices = np.argwhere(cos_the + 1 <= theta_thresh).flatten()
-						if verbose: print("Nodes lying in fibre growth direction: ", new_connect[indices])
+						logger.debug("Nodes lying in fibre growth direction: ", new_connect[indices])
 						straight = (cos_the[indices] + 1).argmin()
 						index = indices[straight]
 
@@ -627,18 +628,17 @@ def fibre_assignment(network, angle_thresh=70, verbose=False, min_n=4):
 						fibre.add_edge(end_node, new_node, 
 							r=network[new_node][end_node]['r'])
 						fibre.node_list = list(fibre.nodes)
-						
-						if verbose:
-							print("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
-							print("New fibre length = ", fibre.fibre_l, "(+{})".format(coord_r))
-							print("New fibre displacement = ", fibre.euclid_l)
-							print("New fibre direction = ", fibre.direction)
+
+						logger.debug("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
+						logger.debug("New fibre length = ", fibre.fibre_l, "(+{})".format(coord_r))
+						logger.debug("New fibre displacement = ", fibre.euclid_l)
+						logger.debug("New fibre direction = ", fibre.direction)
 
 					except (ValueError, IndexError):fibre.growing = False
 				else: fibre.growing = False
 				
 
-			if verbose: print("End of fibre ", node, fibre.node_list)
+			logger.debug("End of fibre ", node, fibre.node_list)
 			if fibre.number_of_nodes() >= min_n: 
 				tot_fibres.append(fibre)
 				for node in fibre:
@@ -653,19 +653,19 @@ def network_extraction(image_shg, network_name='network', scale=1.0, sigma=0.75,
 	Extract fibre network using modified FIRE algorithm
 	"""
 
-	print("Applying AHE to SHG image")
+	logger.debug("Applying AHE to SHG image")
 	image_shg = equalize_adapthist(image_shg)
-	print("Performing NL Denoise using local windows {} {}".format(*p_denoise))
+	logger.debug("Performing NL Denoise using local windows {} {}".format(*p_denoise))
 	image_nl = nl_means(image_shg, p_denoise=p_denoise)
 
 	"Call FIRE algorithm to extract full image network"
-	print("Calling FIRE algorithm using image scale {}  alpha  {}".format(scale, alpha))
+	logger.debug("Calling FIRE algorithm using image scale {}  alpha  {}".format(scale, alpha))
 	Aij = FIRE(image_nl, scale=scale, sigma=sigma, alpha=alpha, max_threads=threads)
 	nx.write_gpickle(Aij, network_name + "_graph.pkl")
 
 	#else: Aij = nx.read_gpickle(network_name + "_graph.pkl")
 
-	print("Extracting and simplifying fibre networks from graph")
+	logger.debug("Extracting and simplifying fibre networks from graph")
 	n_nodes = []
 	networks = []
 	networks_red = []
