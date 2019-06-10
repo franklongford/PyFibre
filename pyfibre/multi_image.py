@@ -1,6 +1,6 @@
 import numpy as np
 
-from preprocessing import load_shg_pl, clip_intensities
+from pyfibre.preprocessing import load_shg_pl, clip_intensities
 
 
 class MultiLayerImage():

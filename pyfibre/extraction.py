@@ -29,9 +29,9 @@ from skimage.exposure import equalize_adapthist
 
 import networkx as nx
 
-from utilities import ring, numpy_remove, clear_border
-from filters import tubeness, hysteresis
-from preprocessing import nl_means
+from pyfibre.utilities import ring, numpy_remove, clear_border
+from pyfibre.filters import tubeness, hysteresis
+from pyfibre.preprocessing import nl_means
 
 logger = logging.getLogger(__name__)
 

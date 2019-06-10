@@ -23,8 +23,7 @@ from skimage.color import grey2rgb, rgb2grey, rgb2hsv, hsv2rgb
 
 from skimage.measure import shannon_entropy
 
-import utilities as ut
-from extraction import branch_angles
+from pyfibre.extraction import branch_angles
 
 logger = logging.getLogger(__name__)
 

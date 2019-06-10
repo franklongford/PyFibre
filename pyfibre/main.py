@@ -25,13 +25,13 @@ from scipy.ndimage.morphology import binary_dilation, binary_closing
 
 from skimage.measure import regionprops
 
-import utilities as ut
-from multi_image import MultiLayerImage
-import analysis as an
-import segmentation as seg
-from extraction import network_extraction
-from filters import form_nematic_tensor, form_structure_tensor
-from figures import create_figure, create_tensor_image, create_region_image, create_network_image
+import pyfibre.utilities as ut
+from pyfibre.multi_image import MultiLayerImage
+import pyfibre.analysis as an
+import pyfibre.segmentation as seg
+from pyfibre.extraction import network_extraction
+from pyfibre.filters import form_nematic_tensor, form_structure_tensor
+from pyfibre.figures import create_figure, create_tensor_image, create_region_image, create_network_image
 
 
 def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25, 
@@ -354,7 +354,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 	return global_dataframe, fibre_dataframe, cell_dataframe
 
 
-if __name__ == '__main__':
+def pyfibre_cli():
 
 	current_dir = os.getcwd()
 	dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -435,4 +435,6 @@ if __name__ == '__main__':
 		cell_database.to_pickle('{}_cell.pkl'.format(args.save_db))
 		cell_database.to_excel('{}_cell.xls'.format(args.save_db))
 
-		
+
+if __name__ == '__main__':
+	pyfibre_cli()

@@ -5,11 +5,17 @@ import sys, os
 import numpy as np
 
 from skimage import data
+from skimage.exposure import equalize_adapthist
+
 from scipy.ndimage.filters import gaussian_filter
+
+from pyfibre.utilities import get_image_lists, check_analysis
+from pyfibre.preprocessing import load_shg_pl, clip_intensities, nl_means
+
 
 source_dir = os.path.dirname(os.path.realpath(__file__))
 pyfibre_dir = source_dir[:source_dir.rfind(os.path.sep)]
-sys.path.append(pyfibre_dir + '/src/')
+sys.path.append(pyfibre_dir + '/pyfibre/')
 logger = logging.getLogger(__name__)
 
 THRESH = 1E-7
@@ -56,13 +62,8 @@ class TestImages(TestCase):
 		"Make checkered test image"
 		self.test_images['test_image_checker'] = data.checkerboard()
 
-		return self.test_images
 
 	def test_image(self):
-
-		from utilities import get_image_lists, check_analysis
-		from preprocessing import load_shg_pl, clip_intensities, nl_means
-		from skimage.exposure import equalize_adapthist
 
 		input_files = [pyfibre_dir + '/tests/stubs/test-pyfibre-pl-shg-Stack.tif']
 		files, prefixes = get_image_lists(input_files)

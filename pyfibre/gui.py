@@ -27,13 +27,13 @@ from skimage.filters import threshold_otsu
 from skimage.color import gray2rgb, label2rgb
 from skimage.restoration import (estimate_sigma, denoise_tv_chambolle, denoise_bilateral)
 
-from main import analyse_image
-import utilities as ut
-from preprocessing import load_shg_pl, clip_intensities
-from segmentation import draw_network
-from figures import create_tensor_image, create_region_image, create_network_image
-from filters import form_structure_tensor
-from analysis import tensor_analysis, fibre_analysis
+from pyfibre.main import analyse_image
+import pyfibre.utilities as ut
+from pyfibre.preprocessing import load_shg_pl, clip_intensities
+from pyfibre.segmentation import draw_network
+from pyfibre.figures import create_tensor_image, create_region_image, create_network_image
+from pyfibre.filters import form_structure_tensor
+from pyfibre.analysis import tensor_analysis, fibre_analysis
 
 
 class pyfibre_gui:

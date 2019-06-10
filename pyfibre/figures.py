@@ -19,9 +19,9 @@ from skimage.color import label2rgb, grey2rgb, rgb2grey, rgb2hsv, hsv2rgb
 
 from scipy.ndimage.filters import gaussian_filter
 
-import utilities as ut
-from filters import form_structure_tensor
-from analysis import tensor_analysis
+import pyfibre.utilities as ut
+from pyfibre.filters import form_structure_tensor
+from pyfibre.analysis import tensor_analysis
 
 
 def create_figure(image, filename, figsize=(10, 10), ext='png', cmap='viridis'):

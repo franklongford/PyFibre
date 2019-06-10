@@ -21,12 +21,12 @@ SQRTPI = np.sqrt(np.pi)
 
 
 class NoiseError(Exception):
-    
-    def __init__(self, noise, thresh):
 
-    	self.noise = noise
-    	self.thresh = thresh
-    	self.message = "Image too noisy ({} > {})".format(noise, thresh)
+	def __init__(self, noise, thresh):
+
+		self.noise = noise
+		self.thresh = thresh
+		self.message = "Image too noisy ({} > {})".format(noise, thresh)
 
 
 def logo():

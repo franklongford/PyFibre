@@ -37,12 +37,7 @@ from skimage.exposure import rescale_intensity, equalize_hist, equalize_adapthis
 
 from sklearn.cluster import MiniBatchKMeans
 
-import utilities as ut
-from filters import tubeness, hysteresis
-from extraction import FIRE, fibre_assignment, simplify_network
-from analysis import (fourier_transform_analysis, tensor_analysis, angle_analysis, 
-					fibre_analysis, greycoprops_edit)
-from preprocessing import nl_means, clip_intensities
+from pyfibre.preprocessing import nl_means, clip_intensities
 
 logger = logging.getLogger(__name__)
 

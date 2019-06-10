@@ -107,3 +107,6 @@ venv.bak/
 
 # git
 .idea/
+
+# installation
+version.py

@@ -19,7 +19,7 @@ from skimage import img_as_float, io
 from skimage.restoration import denoise_nl_means, estimate_sigma
 from skimage.exposure import rescale_intensity
 
-import utilities as ut
+import pyfibre.utilities as ut
 
 logger = logging.getLogger(__name__)
 
