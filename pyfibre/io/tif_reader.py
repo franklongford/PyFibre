@@ -3,6 +3,8 @@ import numpy as np
 
 from skimage import io
 
+from pyfibre.tools.preprocessing import clip_intensities
+
 logger = logging.getLogger(__name__)
 
 
@@ -40,25 +42,33 @@ class TIFReader():
             dim_list += [2]
 
         if ndim not in dim_list:
-            raise ImportError(
-                f"Image dimensions ({ndim}) not suitable for type {image_type}"
-            )
+            return False
 
         return True
 
     def _check_shape(self, shape, image_type):
 
-        if len(shape) == 4:
-            major_axis = 0
-            image_shape = image[major_axis].shape
-        elif len(shape) == 3:
-            major_axis = int(np.argmin(image.shape))
-            image_shape = image.shape
+        if image_type == 'PL-SHG':
+            n_image = shape[0]
+            if n_image != 3:
+                return False
 
-        if image.shape[axis] != n:
-            raise ImportError(
-                f"Image shape ({image.shape}) not suitable for type {image_type}"
-            )
+        elif image_type == 'PL':
+            n_image = shape[0]
+            if n_image != 2:
+                return False
+
+        elif image_type == 'SHG':
+            if len(shape) == 4:
+                n_image = shape[0]
+                if n_image != 2:
+                    return False
+            elif len(shape) == 3:
+                image_shape = shape
+                n_image = int(np.min(image_shape))
+                if n_image <= 2:
+                    return False
+        return True
 
     def import_image(self, image_path):
         """
@@ -70,20 +80,23 @@ class TIFReader():
         image_type = self._get_image_type(image_path)
         image = self._load_image(image_path)
 
-        if image_type == 'PL-SHG':
+        image_check = self._check_dimension(image.ndim, image_type)
+        image_check *= self._check_shape(image.shape, image_type)
+        if not image_check:
+            raise ImportError(
+                f"Image shape ({image.shape}) not suitable for type {image_type}"
+            )
 
-            self._check_dimension(image.ndim, image_type)
+        if 'PL' in image_type:
+
+            major_axis = 0
 
             if image.ndim == 4:
-                major_axis = 0
                 image_shape = image[major_axis].shape
-            elif image.ndim == 3:
-                major_axis = int(np.argmin(image.shape))
+            else:
                 image_shape = image.shape
 
             logger.info("Number of image types = {}".format(image.shape[major_axis]))
-
-            self._check_shape(image_shape, image_type)
 
             minor_axis = int(np.argmin(image_shape))
             xy_dim = tuple(x for i, x in enumerate(image_shape) if i != minor_axis)
@@ -92,74 +105,47 @@ class TIFReader():
             logger.debug("Size of image = {}".format(xy_dim))
             logger.debug("Number of stacks = {}".format(n_stacks))
 
-            if image.ndim == 4:
-                image_shg = np.mean(image[0], axis=minor_axis)
-                image_pl = np.mean(image[1], axis=minor_axis)
-                image_tran = np.mean(image[2], axis=minor_axis)
+            if image_type == 'PL':
+                if image.ndim == 4:
+                    image_pl = np.mean(image[0], axis=minor_axis)
+                    image_tran = np.mean(image[1], axis=minor_axis)
+                else:
+                    image_pl = np.take(image, 0, minor_axis)
+                    image_tran = np.take(image, 1, minor_axis)
 
-            elif image.ndim == 3:
-                image_shg = np.take(image, 0, minor_axis)
-                image_pl = np.take(image, 1, minor_axis)
-                image_tran = np.take(image, 2, minor_axis)
+                image_pl = clip_intensities(image_pl, p_intensity=(0, 100))
+                image_tran = clip_intensities(image_tran, p_intensity=(0, 100))
 
-            image_shg = clip_intensities(image_shg, p_intensity=(0, 100))
-            image_pl = clip_intensities(image_pl, p_intensity=(0, 100))
-            image_tran = clip_intensities(image_tran, p_intensity=(0, 100))
+                return image_pl, image_tran
 
-            return image_shg, image_pl, image_tran
+            elif image_type == 'PL-SHG':
+                if image.ndim == 4:
+                    image_shg = np.mean(image[0], axis=minor_axis)
+                    image_pl = np.mean(image[1], axis=minor_axis)
+                    image_tran = np.mean(image[2], axis=minor_axis)
+                else:
+                    image_shg = np.take(image, 0, minor_axis)
+                    image_pl = np.take(image, 1, minor_axis)
+                    image_tran = np.take(image, 2, minor_axis)
 
-        elif image_type == 'PL':
+                image_shg = clip_intensities(image_shg, p_intensity=(0, 100))
+                image_pl = clip_intensities(image_pl, p_intensity=(0, 100))
+                image_tran = clip_intensities(image_tran, p_intensity=(0, 100))
 
-            self._check_dimension(image.ndim, image_type)
-
-            if image.ndim == 4:
-                major_axis = 0
-                image_shape = image[major_axis].shape
-            elif image.ndim == 3:
-                image_shape = image.shape
-                major_axis = int(np.argmin(image_shape))
-
-            logger.info("Number of image types = {}".format(image.shape[major_axis]))
-
-            self._check_shape(image, major_axis, 2, image_type)
-
-            minor_axis = int(np.argmin(image_shape))
-            xy_dim = tuple(x for i, x in enumerate(image_shape) if i != minor_axis)
-            n_stacks = image_shape[minor_axis]
-
-            logger.debug("Size of image = {}".format(xy_dim))
-            logger.debug("Number of stacks = {}".format(n_stacks))
-
-            if image.ndim == 4:
-                image_pl = np.mean(image[0], axis=minor_axis)
-                image_tran = np.mean(image[1], axis=minor_axis)
-
-            elif image.ndim == 3:
-                image_pl = np.take(image, 0, minor_axis)
-                image_tran = np.take(image, 1, minor_axis)
-
-            image_pl = clip_intensities(image_pl, p_intensity=(0, 100))
-            image_tran = clip_intensities(image_tran, p_intensity=(0, 100))
-
-            return image_pl, image_tran
+                return image_shg, image_pl, image_tran
 
         elif image_type == 'SHG':
 
-            self._check_dimension(image.ndim, image_type)
-
             if image.ndim == 4:
                 major_axis = 0
                 image_shape = image[major_axis].shape
 
-                logger.info("Number of image types = {}".format(image.shape[minor_axis]))
-
-                self._check_shape(image, major_axis, 2, image_type)
+                logger.info("Number of image types = {}".format(image.shape[major_axis]))
 
                 minor_axis = np.argmin(image_shape)
                 xy_dim = tuple(x for i, x in enumerate(image_shape) if i != minor_axis)
                 n_stacks = image_shape[minor_axis]
 
-                logger.debug("Size of image = {}".format(xy_dim))
                 logger.debug("Number of stacks = {}".format(n_stacks))
 
                 image_shg = np.mean(image[1], axis=minor_axis)
@@ -171,15 +157,15 @@ class TIFReader():
                 xy_dim = tuple(x for i, x in enumerate(image_shape) if i != minor_axis)
                 n_stacks = image_shape[minor_axis]
 
-                logger.debug("Size of image = {}".format(xy_dim))
                 logger.debug("Number of stacks = {}".format(n_stacks))
 
                 image_shg = np.mean(image, axis=minor_axis)
 
-            elif image.ndim == 2:
-                logger.debug("Size of image = {}".format(image_orig.shape))
+            else:
+                xy_dim = image.shape
                 image_shg = image
 
+            logger.debug("Size of image = {}".format(xy_dim))
             image_shg = clip_intensities(image_shg, p_intensity=(0, 100))
 
             return image_shg
