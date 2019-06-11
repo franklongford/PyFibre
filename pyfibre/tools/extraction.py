@@ -9,29 +9,22 @@ Last Modified: 19/04/2018
 """
 
 import numpy as np
-import sys
-import copy
 import time
 import logging
-import itertools
-import threading
 
 from scipy.spatial.distance import cdist
 from scipy.ndimage import distance_transform_edt
 from scipy.ndimage.filters import gaussian_filter
-from scipy.sparse import coo_matrix, csr_matrix, csgraph
 
-from skimage.feature import (structure_tensor, hessian_matrix, hessian_matrix_eigvals)
-from skimage.morphology import disk, square, local_maxima, binary_erosion, remove_small_objects
+from skimage.morphology import local_maxima, remove_small_objects
 from skimage.transform import rescale
-from skimage.filters import rank
 from skimage.exposure import equalize_adapthist
 
 import networkx as nx
 
 from pyfibre.utilities import ring, numpy_remove, clear_border
-from pyfibre.filters import tubeness, hysteresis
-from pyfibre.preprocessing import nl_means
+from pyfibre.model.filters import tubeness, hysteresis
+from pyfibre.model.preprocessing import nl_means
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,5 @@
 import logging
-from unittest import TestCase, mock
+from unittest import TestCase
 
 import sys, os
 import numpy as np
@@ -10,7 +10,7 @@ from skimage.exposure import equalize_adapthist
 from scipy.ndimage.filters import gaussian_filter
 
 from pyfibre.utilities import get_image_lists, check_analysis
-from pyfibre.preprocessing import load_shg_pl, clip_intensities, nl_means
+from pyfibre.model.preprocessing import load_shg_pl, clip_intensities, nl_means
 
 
 source_dir = os.path.dirname(os.path.realpath(__file__))
@@ -184,8 +184,7 @@ class TestFIRE(TestCase):
 
 	def test_FIRE(self):
 
-		from extraction import (check_2D_arrays, distance_matrix, branch_angles,
-							cos_sin_theta_2D)
+		from extraction import (check_2D_arrays, distance_matrix, branch_angles)
 
 		pos_2D = np.array([[1, 3],
 						   [4, 2],

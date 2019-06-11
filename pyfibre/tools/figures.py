@@ -8,20 +8,14 @@ Created on: 09/03/2018
 Last Modified: 19/04/2018
 """
 
-import sys, os
 import numpy as np
-import scipy as sp
-import networkx as nx
 
 from skimage import draw
 from skimage.transform import rotate
-from skimage.color import label2rgb, grey2rgb, rgb2grey, rgb2hsv, hsv2rgb
+from skimage.color import label2rgb, grey2rgb, rgb2hsv, hsv2rgb
 
-from scipy.ndimage.filters import gaussian_filter
-
-import pyfibre.utilities as ut
-from pyfibre.filters import form_structure_tensor
-from pyfibre.analysis import tensor_analysis
+from pyfibre.model.filters import form_structure_tensor
+from pyfibre.model.analysis import tensor_analysis
 
 
 def create_figure(image, filename, figsize=(10, 10), ext='png', cmap='viridis'):

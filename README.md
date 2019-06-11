@@ -2,7 +2,7 @@
 
 PyFibre is an open source image analysis toolkit for fibrous tissue that can be run either in a terminal or GUI. It is designed to make the quantification of fibrous tissue automated, standardised and efficient whilst remaining as transparent as possible for non-technical users.
  
-![PyFibre logo](img/icon.ico)
+![PyFibre logo](pyfibre/img/icon.ico)
 
 
 ## Installation
@@ -22,7 +22,7 @@ Once a suitable distribution of python is installed, download the Pyfibre reposi
 
 Once installed, calling the executable `PyFibre_GUI` from the command line will initiate a graphical user interface.
 
-![GUI](img/label.png)
+![GUI](pyfibre/img/label.png)
 
 ### File Viewer
 

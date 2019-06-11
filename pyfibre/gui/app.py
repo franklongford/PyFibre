@@ -1,9 +1,9 @@
-import os, sys, time
+import os
 from tkinter import *
 from tkinter import ttk, filedialog
 
-import queue, threading
-from multiprocessing import Pool, Process, JoinableQueue, Queue, current_process
+import queue
+from multiprocessing import Process, Queue
 
 import matplotlib
 matplotlib.use("Agg")
@@ -12,28 +12,17 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.figure import Figure
 
 from PIL import ImageTk, Image
-import networkx as nx
 import numpy as np
 import pandas as pd
 from pickle import UnpicklingError
 
-from scipy.ndimage import imread
-from scipy.ndimage.filters import gaussian_filter
-from scipy.ndimage.morphology import binary_fill_holes, binary_dilation
-
-from skimage import img_as_float, measure
-from skimage.exposure import equalize_adapthist, rescale_intensity
-from skimage.filters import threshold_otsu
-from skimage.color import gray2rgb, label2rgb
-from skimage.restoration import (estimate_sigma, denoise_tv_chambolle, denoise_bilateral)
-
-from pyfibre.main import analyse_image
+from pyfibre.cli.main import analyse_image
 import pyfibre.utilities as ut
-from pyfibre.preprocessing import load_shg_pl, clip_intensities
-from pyfibre.segmentation import draw_network
-from pyfibre.figures import create_tensor_image, create_region_image, create_network_image
-from pyfibre.filters import form_structure_tensor
-from pyfibre.analysis import tensor_analysis, fibre_analysis
+from pyfibre.io.tif_reader import load_shg_pl
+from pyfibre.model.preprocessing import clip_intensities
+from pyfibre.model.figures import create_tensor_image, create_region_image, create_network_image
+from pyfibre.model.filters import form_structure_tensor
+from pyfibre.model.analysis import tensor_analysis, fibre_analysis
 
 
 class pyfibre_gui:
@@ -1013,12 +1002,14 @@ class pyfibre_graphs:
 
 		self.fig_canvas.draw()
 
-N_PROC = 1#os.cpu_count() - 1
-N_THREAD = 8
+def run():
 
-print(ut.logo())
+	N_PROC = 1#os.cpu_count() - 1
+	N_THREAD = 8
 
-root = Tk()
-GUI = pyfibre_gui(root, N_PROC, N_THREAD)
+	print(ut.logo())
 
-root.mainloop()
+	root = Tk()
+	GUI = pyfibre_gui(root, N_PROC, N_THREAD)
+
+	root.mainloop()

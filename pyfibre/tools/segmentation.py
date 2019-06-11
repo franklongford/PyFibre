@@ -8,36 +8,22 @@ Created on: 18/02/2019
 Last Modified: 18/02/2019
 """
 
-import sys
-import os
-import time
 import logging
 import numpy as np
-import scipy as sp
-import pandas as pd
 
-import networkx as nx
-from networkx.algorithms import cluster
-from networkx.algorithms import approximation as approx
-from networkx.algorithms.efficiency import local_efficiency, global_efficiency
-
-import scipy.ndimage as ndi
-from scipy.ndimage import distance_transform_edt
 from scipy.ndimage.filters import gaussian_filter, median_filter
-from scipy.ndimage.morphology import binary_fill_holes, binary_dilation, binary_closing, binary_opening
+from scipy.ndimage.morphology import binary_fill_holes, binary_dilation, binary_opening
 
 from skimage import measure, draw
 from skimage.util import pad
 from skimage.transform import rescale, resize
-from skimage.feature import greycomatrix
-from skimage.morphology import remove_small_objects, remove_small_holes, dilation, disk
-from skimage.color import grey2rgb, rgb2grey
-from skimage.filters import threshold_otsu, threshold_isodata, threshold_mean, rank, apply_hysteresis_threshold
-from skimage.exposure import rescale_intensity, equalize_hist, equalize_adapthist
+from skimage.morphology import remove_small_objects, remove_small_holes
+from skimage.color import rgb2grey
+from skimage.exposure import equalize_hist, equalize_adapthist
 
 from sklearn.cluster import MiniBatchKMeans
 
-from pyfibre.preprocessing import nl_means, clip_intensities
+from pyfibre.model.preprocessing import clip_intensities
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +125,6 @@ def cluster_colours(image, n_clusters=8, n_init=10):
 def BD_filter(image, n_runs=2, n_clusters=10, p_intensity=(2, 98), sm_size=5, param=[0.65, 1.1, 1.40, 0.92]):
 	"Adapted from CurveAlign BDcreationHE routine"
 
-	from sklearn.cluster import KMeans
 	assert image.ndim == 3
 
 	image_size = image.shape[0] * image.shape[1]

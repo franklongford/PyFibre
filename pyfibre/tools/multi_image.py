@@ -1,15 +1,18 @@
 import numpy as np
 
-from pyfibre.preprocessing import load_shg_pl, clip_intensities
+from pyfibre.io.tif_reader import TIFReader
+from pyfibre.model.preprocessing import clip_intensities
 
 
 class MultiLayerImage():
 
     def __init__(self, file_path, p_intensity=(1, 99)):
 
+        self.reader = TIFReader()
+
         (self.image_shg,
          self.image_pl,
-         self.image_tran) = load_shg_pl(file_path)
+         self.image_tran) = TIFReader.load_multi_image(file_path)
 
         self.shape = self.image_shg.shape
         self.size = self.image_shg.size

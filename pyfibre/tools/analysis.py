@@ -8,22 +8,15 @@ Created on: 09/03/2018
 Last Modified: 18/02/2019
 """
 
-import sys
-import os
-import time
 import logging
 import numpy as np
-import scipy as sp
 import pandas as pd
 
-from scipy.ndimage.filters import gaussian_filter
-
 from skimage.feature import greycoprops, greycomatrix
-from skimage.color import grey2rgb, rgb2grey, rgb2hsv, hsv2rgb
 
 from skimage.measure import shannon_entropy
 
-from pyfibre.extraction import branch_angles
+from pyfibre.model.extraction import branch_angles
 
 logger = logging.getLogger(__name__)
 
