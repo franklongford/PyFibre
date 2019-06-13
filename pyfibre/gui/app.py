@@ -16,13 +16,14 @@ import numpy as np
 import pandas as pd
 from pickle import UnpicklingError
 
-from pyfibre.cli.main import analyse_image
+from pyfibre.cli.app import analyse_image
 import pyfibre.utilities as ut
-from pyfibre.io.tif_reader import load_shg_pl
-from pyfibre.model.preprocessing import clip_intensities
-from pyfibre.model.figures import create_tensor_image, create_region_image, create_network_image
-from pyfibre.model.filters import form_structure_tensor
-from pyfibre.model.analysis import tensor_analysis, fibre_analysis
+from pyfibre.io.database_writer import DatabaseWriter
+from pyfibre.io.segment_io import SegmentReader
+from pyfibre.tools.figures import create_tensor_image, create_region_image, create_network_image
+from pyfibre.tools.filters import form_structure_tensor
+from pyfibre.tools.analysis import tensor_analysis, fibre_analysis
+from pyfibre.tools.multi_image import MultiLayerImage
 
 
 class pyfibre_gui:
@@ -311,19 +312,12 @@ class pyfibre_gui:
 
 	def save_database(self):
 
+		writer = DatabaseWriter()
 		db_filename = filedialog.asksaveasfilename()
-		db_filename = ut.check_file_name(db_filename, extension='pkl')
-		db_filename = ut.check_file_name(db_filename, extension='xls')
 
-		self.global_database.to_pickle(db_filename + '.pkl')
-		self.global_database.to_excel(db_filename + '.xls')
-
-		self.fibre_database.to_pickle(db_filename + '_fibre.pkl')
-		self.fibre_database.to_excel(db_filename + '_fibre.xls')
-
-		self.cell_database.to_pickle(db_filename + '_cell.pkl')
-		self.cell_database.to_excel(db_filename + '_cell.xls')
-		
+		writer.write_database(self.global_database, db_filename)
+		writer.write_database(self.fibre_database, db_filename, '_fibre')
+		writer.write_database(self.cell_database, db_filename, '_cell')
 
 		self.update_log("Saving Database files {}".format(db_filename))
 
@@ -684,61 +678,59 @@ class pyfibre_viewer:
 		data_dir = image_path + '/data/'
 
 		file_index = self.parent.input_prefixes.index(selected_file)
-		image_shg, image_pl, image_tran = load_shg_pl(self.parent.input_files[file_index])
-
-		shg_analysis, pl_analysis = ut.check_analysis(image_shg, image_pl, image_tran)
+		reader = SegmentReader()
+		self.multi_image = MultiLayerImage(
+			self.parent.input_files[file_index],
+			p_intensity=(self.parent.p0.get(), self.parent.p1.get()))
 		
-		if shg_analysis:
-			self.image_shg = clip_intensities(image_shg, 
-					p_intensity=(self.parent.p0.get(), self.parent.p1.get())) * 255.999
-			image_pil = Image.fromarray(self.image_shg.astype('uint8'))
+		if self.multi_image.shg_analysis:
+			image_shg = self.multi_image.image_shg * 255.999
+			image_pil = Image.fromarray(image_shg.astype('uint8'))
 			image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
 			shg_image_tk = ImageTk.PhotoImage(image_pil)
 			
 			self.display_image(self.shg_image_tab.canvas, shg_image_tk)
 			self.update_log("Displaying SHG image {}".format(fig_name))
 
-			self.display_tensor(self.tensor_tab.canvas, self.image_shg)
+			self.display_tensor(self.tensor_tab.canvas, image_shg)
 			self.update_log("Displaying SHG tensor image {}".format(fig_name))
 
 			try:
-				networks = ut.load_region(data_dir + fig_name + "_network")
-				self.display_network(self.network_tab.canvas, self.image_shg, networks)
+				networks = reader.load_region(data_dir + fig_name + "_network")
+				self.display_network(self.network_tab.canvas, image_shg, networks)
 				self.update_log("Displaying network for {}".format(fig_name))
 			except (UnpicklingError, IOError, EOFError):
 				self.network_tab.canvas.delete('all')
 				self.update_log("Unable to display network for {}".format(fig_name))
 
 			try:
-				fibres = ut.load_region(data_dir + fig_name + "_fibre")
+				fibres = reader.load_region(data_dir + fig_name + "_fibre")
 				fibres = ut.flatten_list(fibres)
-				self.display_network(self.fibre_tab.canvas, self.image_shg, fibres, 1)
+				self.display_network(self.fibre_tab.canvas, image_shg, fibres, 1)
 				self.update_log("Displaying fibres for {}".format(fig_name))
 			except (UnpicklingError, IOError, EOFError):
 				self.fibre_tab.canvas.delete('all')
 				self.update_log("Unable to display fibres for {}".format(fig_name))
 
 			try:
-				segments = ut.load_region(data_dir + fig_name + "_fibre_segment")
-				self.display_regions(self.segment_tab.canvas, self.image_shg, segments)
+				segments = reader.load_region(data_dir + fig_name + "_fibre_segment")
+				self.display_regions(self.segment_tab.canvas, image_shg, segments)
 				self.update_log("Displaying fibre segments for {}".format(fig_name))
 			except (AttributeError, UnpicklingError, IOError, EOFError):
 				self.segment_tab.canvas.delete('all')
 				self.update_log("Unable to display fibre segments for {}".format(fig_name))
 
-		if pl_analysis:
-			self.image_pl = clip_intensities(image_pl, 
-					p_intensity=(self.parent.p0.get(), self.parent.p1.get())) * 255.999
-			image_pil = Image.fromarray(self.image_pl.astype('uint8'))
+		if self.multi_image.pl_analysis:
+			image_pl = self.multi_image.image_pl * 255.999
+			image_pil = Image.fromarray(image_pl.astype('uint8'))
 			image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
 			pl_image_tk = ImageTk.PhotoImage(image_pil)
 
 			self.display_image(self.pl_image_tab.canvas, pl_image_tk)
 			self.update_log("Displaying PL image {}".format(fig_name))
 
-			self.image_tran = clip_intensities(image_tran, 
-					p_intensity=(self.parent.p0.get(), self.parent.p1.get())) * 255.999
-			image_pil = Image.fromarray(self.image_tran.astype('uint8'))
+			image_tran = self.multi_image.image_tran * 255.999
+			image_pil = Image.fromarray(image_tran.astype('uint8'))
 			image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
 			tran_image_tk = ImageTk.PhotoImage(image_pil)
 
@@ -746,8 +738,8 @@ class pyfibre_viewer:
 			self.update_log("Displaying PL Transmission image {}".format(fig_name))
 		
 			try:	
-				cells = ut.load_region(data_dir + fig_name + "_cell_segment")
-				self.display_regions(self.cell_tab.canvas, self.image_pl, cells)
+				cells = reader.load_region(data_dir + fig_name + "_cell_segment")
+				self.display_regions(self.cell_tab.canvas, image_pl, cells)
 				self.update_log("Displaying cell segments for {}".format(fig_name))
 			except (AttributeError, UnpicklingError, IOError, EOFError):
 				self.cell_tab.canvas.delete('all')
@@ -962,16 +954,17 @@ class pyfibre_graphs:
 		fig_name = ut.check_file_name(image_name, extension='tif')
 		data_dir = image_path + '/data/'
 
+		reader = SegmentReader()
+
 		file_index = self.parent.input_prefixes.index(selected_file)
-		image_shg, image_pl, image_tran = load_shg_pl(self.parent.input_files[file_index])
+		multi_image = MultiLayerImage(
+			self.parent.input_files[file_index],
+			p_intensity=(self.parent.p0.get(), self.parent.p1.get()))
 
-		shg_analysis = ~np.any(image_shg == None)
-		pl_analysis = ~np.any(image_pl == None)
-
-		if shg_analysis:
+		if multi_image.shg_analysis:
 
 			"Form nematic and structure tensors for each pixel"
-			j_tensor = form_structure_tensor(image_shg, sigma=1.0)
+			j_tensor = form_structure_tensor(multi_image.image_shg, sigma=1.0)
 
 			"Perform anisotropy analysis on each pixel"
 			pix_j_anis, pix_j_angle, pix_j_energy = tensor_analysis(j_tensor)
@@ -984,7 +977,7 @@ class pyfibre_graphs:
 			#self.angle_ax.set_xlim(0, 180)
 
 			try:
-				fibres = ut.load_region(data_dir + fig_name + "_fibre")
+				fibres = reader.load_region(data_dir + fig_name + "_fibre")
 				fibres = ut.flatten_list(fibres)
 				
 				lengths, _, angles = fibre_analysis(fibres)

@@ -19,6 +19,7 @@ import pyfibre.tools.segmentation as seg
 from pyfibre.tools.extraction import network_extraction
 from pyfibre.tools.filters import form_structure_tensor
 from pyfibre.tools.figures import create_figure, create_tensor_image, create_region_image, create_network_image
+from pyfibre.io.segment_io import SegmentReader, SegmentWriter
 
 logger = logging.getLogger(__name__)
 
@@ -75,18 +76,21 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 
     "Load and preprocess image"
     multi_image = MultiLayerImage(input_file_names, p_intensity)
+    seg_reader = SegmentReader()
+    seg_writer = SegmentWriter()
 
     try:
-        networks = ut.load_region(data_dir + image_name + "_network")
-        networks_red = ut.load_region(data_dir + image_name + "_network_reduced")
-        fibres = ut.load_region(data_dir + image_name + "_fibre")
+        networks = seg_reader.load_region(data_dir + image_name + "_network")
+        networks_red = seg_reader.load_region(data_dir + image_name + "_network_reduced")
+        fibres = seg_reader.load_region(data_dir + image_name + "_fibre")
     except (UnpicklingError, IOError, EOFError):
         logger.info("Cannot load networks for {}".format(image_name))
         ow_network = True
 
     try:
-        fibre_seg = ut.load_region(data_dir + image_name + "_fibre_segment")
-        if multi_image.pl_analysis: cell_seg = ut.load_region(data_dir + image_name + "_cell_segment")
+        fibre_seg = seg_reader.load_region(data_dir + image_name + "_fibre_segment")
+        if multi_image.pl_analysis:
+            cell_seg = seg_reader.load_region(data_dir + image_name + "_cell_segment")
     except (UnpicklingError, IOError, EOFError):
         logger.info("Cannot load segments for {}".format(image_name))
         ow_segment = True
@@ -99,7 +103,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
         cell_dataframe = pd.read_pickle('{}_cell_metric.pkl'.format(data_dir + image_name))
 
     except (UnpicklingError, IOError, EOFError):
-        logging("Cannot load metrics for {}".format(image_name))
+        logger.info("Cannot load metrics for {}".format(image_name))
         ow_metric = True
 
     logger.debug(f"Overwrite options:\n ow_network = {ow_network}\n ow_segment = {ow_segment}\
@@ -119,9 +123,9 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
             scale=scale, sigma=sigma, alpha=alpha, p_denoise=p_denoise,
             threads=threads)
 
-        ut.save_region(networks, data_dir + image_name + "_network")
-        ut.save_region(networks_red, data_dir + image_name + "_network_reduced")
-        ut.save_region(fibres, data_dir + image_name + "_fibre")
+        seg_writer.save_region(networks, data_dir + image_name + "_network")
+        seg_writer.save_region(networks_red, data_dir + image_name + "_network_reduced")
+        seg_writer.save_region(fibres, data_dir + image_name + "_fibre")
 
         end_net = time.time()
 
@@ -137,8 +141,8 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
         ow_metric = True
         ow_figure = True
 
-        networks = ut.load_region(data_dir + image_name + "_network")
-        networks_red = ut.load_region(data_dir + image_name + "_network_reduced")
+        networks = seg_reader.load_region(data_dir + image_name + "_network")
+        networks_red = seg_reader.load_region(data_dir + image_name + "_network_reduced")
 
         fibre_net_seg = seg.fibre_segmentation(
             multi_image.image_shg, networks, networks_red)
@@ -167,11 +171,11 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
             cell_seg = seg.get_segments(
                 multi_image.image_pl, ~fibre_binary, 250, 0.01)
 
-            ut.save_region(cell_seg, '{}_cell_segment'.format(filename))
-            ut.save_region(fibre_seg, '{}_fibre_segment'.format(filename))
+            seg_writer.save_region(cell_seg, '{}_cell_segment'.format(filename))
+            seg_writer.save_region(fibre_seg, '{}_fibre_segment'.format(filename))
 
         else:
-            ut.save_region(fibre_net_seg, '{}_fibre_segment'.format(filename))
+            seg_writer.save_region(fibre_net_seg, '{}_fibre_segment'.format(filename))
 
         end_seg = time.time()
 
@@ -182,10 +186,10 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
         start_met = time.time()
 
         "Load networks and segments"
-        fibre_seg = ut.load_region(data_dir + image_name + "_fibre_segment")
-        networks = ut.load_region(data_dir + image_name + "_network")
-        networks_red = ut.load_region(data_dir + image_name + "_network_reduced")
-        fibres = ut.load_region(data_dir + image_name + "_fibre")
+        fibre_seg = seg_reader.load_region(data_dir + image_name + "_fibre_segment")
+        networks = seg_reader.load_region(data_dir + image_name + "_network")
+        networks_red = seg_reader.load_region(data_dir + image_name + "_network_reduced")
+        fibres = seg_reader.load_region(data_dir + image_name + "_fibre")
 
         "Form nematic and structure tensors for each pixel"
         shg_j_tensor = form_structure_tensor(
@@ -205,7 +209,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 
         if multi_image.pl_analysis:
 
-            cell_seg = ut.load_region(data_dir + image_name + "_cell_segment")
+            cell_seg = seg_reader.load_region(data_dir + image_name + "_cell_segment")
 
             "Form nematic and structure tensors for each pixel"
             pl_j_tensor = form_structure_tensor(multi_image.image_pl, sigma=sigma)
@@ -298,7 +302,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 
         global_dataframe = pd.concat((filenames, global_metrics), axis=1)
         global_dataframe.to_pickle('{}_global_metric.pkl'.format(filename))
-        ut.save_region(global_segment, '{}_global_segment'.format(filename))
+        seg_writer.save_region(global_segment, '{}_global_segment'.format(filename))
 
         end_met = time.time()
 
@@ -308,9 +312,9 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
 
         start_fig = time.time()
 
-        networks = ut.load_region(data_dir + image_name + "_network")
-        fibre_seg = ut.load_region(data_dir + image_name + "_fibre_segment")
-        fibres = ut.load_region(data_dir + image_name + "_fibre")
+        networks = seg_reader.load_region(data_dir + image_name + "_network")
+        fibre_seg = seg_reader.load_region(data_dir + image_name + "_fibre_segment")
+        fibres = seg_reader.load_region(data_dir + image_name + "_fibre")
         fibres = ut.flatten_list(fibres)
 
         tensor_image = create_tensor_image(multi_image.image_shg)
@@ -325,7 +329,7 @@ def analyse_image(input_file_names, prefix, working_dir=None, scale=1.25,
         create_figure(fibre_region_image, fig_dir + image_name + '_fibre_seg')
 
         if multi_image.pl_analysis:
-            cell_seg = ut.load_region(data_dir + image_name + "_cell_segment")
+            cell_seg = seg_reader.load_region(data_dir + image_name + "_cell_segment")
             cell_region_image = create_region_image(multi_image.image_pl, cell_seg)
             create_figure(multi_image.image_pl, fig_dir + image_name + '_PL', cmap='binary_r')
             create_figure(multi_image.image_tran, fig_dir + image_name + '_trans', cmap='binary_r')

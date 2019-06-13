@@ -23,7 +23,7 @@ from skimage.exposure import equalize_hist, equalize_adapthist
 
 from sklearn.cluster import MiniBatchKMeans
 
-from pyfibre.model.preprocessing import clip_intensities
+from pyfibre.tools.preprocessing import clip_intensities
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 import numpy as np
 
 from pyfibre.io.tif_reader import TIFReader
-from pyfibre.model.preprocessing import clip_intensities
+from pyfibre.tools.preprocessing import clip_intensities
 
 
 class MultiLayerImage():
@@ -12,7 +12,7 @@ class MultiLayerImage():
 
         (self.image_shg,
          self.image_pl,
-         self.image_tran) = TIFReader.load_multi_image(file_path)
+         self.image_tran) = self.reader.load_multi_image(file_path)
 
         self.shape = self.image_shg.shape
         self.size = self.image_shg.size

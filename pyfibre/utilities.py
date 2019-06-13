@@ -11,8 +11,6 @@ Last Modified: 12/04/2018
 import logging
 import numpy as np
 
-import pickle
-
 
 SQRT3 = np.sqrt(3)
 SQRT2 = np.sqrt(2)
@@ -40,48 +38,6 @@ def logo():
 	logo_text += "\n    Fibrous Tissue Image Toolkit  v1.5.1a\n"
 
 	return logo_text
-
-
-def setup_logger(level):
-
-	logger = logging.getLogger(__name__)
-	logger.setLevel(level)
-
-	cmd_line_handler = logging.StreamHandler()
-	logger.addHandler(cmd_line_handler)
-
-	if level == 'DEBUG':
-		log_file_handler = logging.FileHandler('pyfibre.log')
-		logger.addHandler(log_file_handler)
-
-	return logger
-
-def check_string(string, pos, sep, word):
-	"""Checks index 'pos' of 'string' seperated by 'sep' for substring 'word'
-	If present, removes 'word' and returns amended string
-	"""
-
-	if sep in string: 
-		temp_string = string.split(sep)
-		if temp_string[pos] == word: temp_string.pop(pos)
-		string = sep.join(temp_string)
-
-	return string
-
-
-def check_file_name(file_name, file_type="", extension=""):
-	"""
-	check_file_name(file_name, file_type="", extension="")
-	
-	Checks file_name for file_type or extension. If present, returns
-	amended file_name without extension or file_type
-
-	"""
-
-	file_name = check_string(file_name, -1, '.', extension)
-	file_name = check_string(file_name, -1, '_', file_type)
-	
-	return file_name
 
 
 def save_npy(file_path, array):
@@ -126,22 +82,6 @@ def load_npy(file_path, frames=[]):
 	else: array = np.load(file_path + '.npy')[frames]
 
 	return array
-
-
-def save_region(regions, file_name):
-	"Saves scikit image regions as pickled file"
-
-	with open('{}.pkl'.format(file_name), 'wb') as outfile:
-		pickle.dump(regions, outfile, pickle.HIGHEST_PROTOCOL)
-
-
-def load_region(file_name):
-	"Loads pickled scikit image regions"
-
-	with open('{}.pkl'.format(file_name), 'rb') as infile:
-		regions = pickle.load(infile)
-
-	return regions
 
 
 def numpy_remove(list1, list2):
@@ -384,14 +324,6 @@ def matrix_split(matrix, nrows, ncols):
 	for item in rows: grid += np.array_split(item, nrows, axis=-1)
 
 	return grid
-
-
-def check_analysis(image_shg, image_pl, image_tran):
-
-	shg_analysis = ~np.any(image_shg == None)
-	pl_analysis = ~np.any(image_pl == None) * ~np.any(image_tran == None)
-
-	return shg_analysis, pl_analysis
 
 
 ####### OBSOLETE ########

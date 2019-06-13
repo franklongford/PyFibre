@@ -23,8 +23,8 @@ from skimage.exposure import equalize_adapthist
 import networkx as nx
 
 from pyfibre.utilities import ring, numpy_remove, clear_border
-from pyfibre.model.filters import tubeness, hysteresis
-from pyfibre.model.preprocessing import nl_means
+from pyfibre.tools.filters import tubeness, hysteresis
+from pyfibre.tools.preprocessing import nl_means
 
 logger = logging.getLogger(__name__)
 
@@ -312,26 +312,6 @@ def FIRE(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2, nuc_rad=11, lmp_thr
 	distance = distance_transform_edt(cleaned)
 	smoothed = gaussian_filter(distance, sigma=sigma)
 	cleared = clear_border(smoothed)
-
-	"""
-	import matplotlib.pyplot as plt
-
-	plt.figure(0)
-	plt.imshow(image_scale)
-	plt.figure(1)
-	plt.imshow(image_TB)
-	plt.figure(2)
-	plt.imshow(threshold)
-	plt.figure(3)
-	plt.imshow(cleaned)
-	plt.figure(4)
-	plt.imshow(distance)
-	plt.figure(5)
-	plt.imshow(smoothed)
-	plt.figure(6)
-	plt.imshow(cleared)
-	plt.show()
-	#"""
 
 	"Set distance and angle thresholds for fibre iterator"
 	nuc_thresh = np.min([nuc_thresh * scale**2, 1E-1 * scale**2 * cleared.max()])

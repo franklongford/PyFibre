@@ -16,7 +16,7 @@ from skimage.feature import greycoprops, greycomatrix
 
 from skimage.measure import shannon_entropy
 
-from pyfibre.model.extraction import branch_angles
+from pyfibre.tools.extraction import branch_angles
 
 logger = logging.getLogger(__name__)
 
