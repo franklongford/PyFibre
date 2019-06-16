@@ -6,6 +6,8 @@ from pyfibre.tools.preprocessing import clip_intensities
 class MultiLayerImage():
 
     def __init__(self, image_shg, image_pl, image_tran,
+                 ow_network=False, ow_segment=False,
+                 ow_metric=False, ow_figure=False,
                  p_intensity=(1, 99)):
 
         self.image_shg = image_shg
@@ -19,10 +21,10 @@ class MultiLayerImage():
         self.pl_analysis = False
         self.check_analysis()
 
-        self.ow_network = False
-        self.ow_segment = False
-        self.ow_metric = False
-        self.ow_figure = False
+        self.ow_network = ow_network
+        self.ow_segment = ow_segment
+        self.ow_metric = ow_metric
+        self.ow_figure = ow_figure
 
         self.p_intensity = p_intensity
         self.image_shg = clip_intensities(self.image_shg,

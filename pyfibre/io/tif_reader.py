@@ -2,6 +2,7 @@ import logging
 import os
 import numpy as np
 
+from pickle import UnpicklingError
 from skimage import io
 
 from pyfibre.tools.preprocessing import clip_intensities
@@ -286,8 +287,9 @@ class TIFReader():
                      image_stack[2]) = self.import_image(data['PL'], 'PL')
                 except KeyError:
                     pass
-            self.files[prefix]['image'] = MultiLayerImage(*image_stack)
-            self.files[prefix]['image'].ow_network = self.ow_network
-            self.files[prefix]['image'].ow_segment = self.ow_segment
-            self.files[prefix]['image'].ow_metric = self.ow_metric
-            self.files[prefix]['image'].ow_figure = self.ow_figure
+
+            multi_image = MultiLayerImage(
+                *image_stack, self.ow_network, self.ow_segment,
+                self.ow_metric, self.ow_figure
+            )
+            self.files[prefix]['image'] = multi_image

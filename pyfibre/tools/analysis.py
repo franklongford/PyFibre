@@ -227,7 +227,8 @@ def greycoprops_edit(P, prop='contrast'):
 
     return results
 
-def segment_analysis(image, segment, n_tensor, anis_map, angle_map, tag):
+
+def segment_analysis(image, segment, n_tensor, tag):
 
     database = pd.Series()
 
@@ -235,9 +236,11 @@ def segment_analysis(image, segment, n_tensor, anis_map, angle_map, tag):
     indices = np.mgrid[minr:maxr, minc:maxc]
 
     segment_image = image[(indices[0], indices[1])]
-    segment_anis_map = anis_map[(indices[0], indices[1])]
-    segment_angle_map = angle_map[(indices[0], indices[1])]
     segment_n_tensor = n_tensor[(indices[0], indices[1])]
+
+    (segment_anis_map,
+     segment_angle_map,
+     segment_angle_map) = tensor_analysis(segment_n_tensor)
 
     _, _, database[f"{tag} Fourier SDI"] = (0, 0, 0)#fourier_transform_analysis(segment_image)
     database[f"{tag} Angle SDI"] = angle_analysis(segment_angle_map, segment_anis_map)
@@ -280,6 +283,7 @@ def segment_analysis(image, segment, n_tensor, anis_map, angle_map, tag):
 
     return database
 
+
 def network_analysis(network, network_red, tag):
 
     database = pd.Series()
@@ -306,8 +310,7 @@ def network_analysis(network, network_red, tag):
 
 
 def fibre_segment_analysis(image_shg, networks, networks_red,
-                           fibres, segments, n_tensor, anis_map,
-                           angle_map):
+                           fibres, segments, n_tensor):
     """
     Analyse extracted fibre network
     """
@@ -321,8 +324,7 @@ def fibre_segment_analysis(image_shg, networks, networks_red,
 
         segment_series = pd.Series(name=i)
 
-        metrics = segment_analysis(image_shg, segment, n_tensor, anis_map,
-                                   angle_map, 'SHG Fibre')
+        metrics = segment_analysis(image_shg, segment, n_tensor, 'SHG Fibre')
         segment_series = pd.concat((segment_series, metrics))
 
         metrics = network_analysis(network, network_red, 'SHG Fibre')
@@ -340,7 +342,7 @@ def fibre_segment_analysis(image_shg, networks, networks_red,
     return segment_metrics
 
 
-def cell_segment_analysis(image, cells, n_tensor, anis_map, angle_map, tag='Cell'):
+def cell_segment_analysis(image, cells, n_tensor, tag='Cell'):
 
     segment_metrics = pd.DataFrame()
 
@@ -348,8 +350,7 @@ def cell_segment_analysis(image, cells, n_tensor, anis_map, angle_map, tag='Cell
 
         segment_series = pd.Series(name=i)
 
-        metrics = segment_analysis(image, cell, n_tensor, anis_map,
-                        angle_map, f'PL {tag}')
+        metrics = segment_analysis(image, cell, n_tensor, f'PL {tag}')
         segment_series = pd.concat((segment_series, metrics))
 
         segment_metrics = segment_metrics.append(segment_series, ignore_index=True)
