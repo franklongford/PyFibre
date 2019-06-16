@@ -1,27 +1,22 @@
 import pickle
 
 
-class SegmentWriter():
+def save_segment(regions, file_name):
+    "Saves scikit image regions as pickled file"
 
-    def __init__(self):
-        pass
-
-    def save_region(self, regions, file_name):
-        "Saves scikit image regions as pickled file"
-
+    try:
         with open('{}.pkl'.format(file_name), 'wb') as outfile:
             pickle.dump(regions, outfile, pickle.HIGHEST_PROTOCOL)
+    except IOError as e:
+        raise IOError(f"Cannot save to file {file_name}") from e
 
 
-class SegmentReader():
+def load_segment(file_name):
+    "Loads pickled scikit image regions"
 
-    def __init__(self):
-        pass
-
-    def load_region(self, file_name):
-        "Loads pickled scikit image regions"
-
+    try:
         with open('{}.pkl'.format(file_name), 'rb') as infile:
             regions = pickle.load(infile)
-
         return regions
+    except IOError as e:
+        raise IOError(f"Cannot read file {file_name}") from e

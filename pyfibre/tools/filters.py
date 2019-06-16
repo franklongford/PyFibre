@@ -258,8 +258,6 @@ def get_curvature(j_tensor, H_tensor):
 		Mean curvature at each image pixel
 	"""
 
-	ad_H_tensor = ut.adjoint_mat(H_tensor)
-
 	denominator = (1 + j_tensor[...,0,0] + j_tensor[...,1,1])
 	gauss_curvature = np.linalg.det(H_tensor) / denominator**2
 

@@ -1,45 +1,89 @@
 import logging
+import os
 import numpy as np
 
 from skimage import io
 
 from pyfibre.tools.preprocessing import clip_intensities
+from pyfibre.io.multi_image import MultiLayerImage
 
 logger = logging.getLogger(__name__)
 
 
+def load_image(image_path):
+    """Load in image as a numpy float array"""
+    image = io.imread(image_path).astype(np.float64)
+
+    return image
+
+
+def get_image_type(image_path):
+    """Get type of image (PL, SHG or PL-SHG) from file name"""
+
+    image_name = os.path.basename(image_path)
+
+    if '-pl-shg' in image_name.lower():
+        image_type = 'PL-SHG'
+    elif '-pl' in image_name.lower():
+        image_type = 'PL'
+    elif '-shg' in image_name.lower():
+        image_type = 'SHG'
+    else:
+        image_type = 'Unknown'
+
+    return image_type
+
+
+def get_files_prefixes(file_list, label):
+    """Get the file path and file prefix of all files
+    containing label"""
+    files = [filename for filename in file_list
+             if label in os.path.basename(filename).lower()]
+    prefixes = [extract_prefix(filename, label) for filename in files]
+
+    return files, prefixes
+
+
+def extract_prefix(image_name, label):
+    """Extract the prefix of image_name, before label"""
+    directory = os.path.dirname(image_name)
+    filename = os.path.basename(image_name)
+    filename_copy = filename.lower()
+
+    index = filename_copy.index(label.lower())
+    prefix = directory + '/' + filename[: index]
+
+    return prefix
+
+
 class TIFReader():
 
-    def __init__(self):
-        pass
+    def __init__(self, input_files=[], ow_network=False, ow_segment=False,
+                 ow_metric=False, ow_figure=False, include_shg=True):
 
-    def _get_image_type(self, image_path):
+        self._dim_list_shg = [2, 3, 4]
+        self._dim_list_pl = [3, 4]
 
-        image_name = image_path.split('/')[-1]
+        self._n_mode_shg = 2
+        self._n_mode_pl = 2
+        self._n_mode_pl_shg = 3
 
-        if '-pl-shg' in image_name.lower():
-            image_type = 'PL-SHG'
-        elif '-pl' in image_name.lower():
-            image_type = 'PL'
-        elif '-shg' in image_name.lower():
-            image_type = 'SHG'
-        else:
-            raise RuntimeError('Image file not appropriately labelled')
+        self.ow_network = ow_network
+        self.ow_segment = ow_segment
+        self.ow_metric = ow_metric
+        self.ow_figure = ow_figure
 
-        return image_type
+        self.files = {}
+        self.include_shg = include_shg
 
-    def _load_image(self, image_path):
-        logger.debug(f"Loading {image_path}")
-        image = io.imread(image_path).astype(np.float64)
-        logger.debug(f"Input image shape = {image.shape}")
-
-        return image
+        self.get_image_lists(input_files)
 
     def _check_dimension(self, ndim, image_type):
 
-        dim_list = [3, 4]
         if image_type == 'SHG':
-            dim_list += [2]
+            dim_list = self._dim_list_shg
+        else:
+            dim_list = self._dim_list_pl
 
         if ndim not in dim_list:
             return False
@@ -49,39 +93,42 @@ class TIFReader():
     def _check_shape(self, shape, image_type):
 
         if image_type == 'PL-SHG':
-            n_image = shape[0]
-            if n_image != 3:
+            n_mode = shape[0]
+            if n_mode != self._n_mode_pl_shg:
                 return False
 
         elif image_type == 'PL':
-            n_image = shape[0]
-            if n_image != 2:
+            n_mode = shape[0]
+            if n_mode != self._n_mode_pl:
                 return False
 
         elif image_type == 'SHG':
             if len(shape) == 4:
-                n_image = shape[0]
-                if n_image != 2:
+                n_mode = shape[0]
+                if n_mode != self._n_mode_shg:
                     return False
             elif len(shape) == 3:
                 image_shape = shape
-                n_image = int(np.min(image_shape))
-                if n_image <= 2:
+                n_mode = int(np.min(image_shape))
+                if n_mode <= self._n_mode_shg:
                     return False
+
         return True
 
-    def import_image(self, image_path):
+    def import_image(self, image_path, image_type):
         """
         Image importer able to automatically deal with stacks and mixed SHG/PL image types
         :param image_path:
         :return:
         """
 
-        image_type = self._get_image_type(image_path)
-        image = self._load_image(image_path)
+        logger.debug(f"Loading {image_path}")
+        image = load_image(image_path)
+        logger.debug(f"Input image shape = {image.shape}")
 
         image_check = self._check_dimension(image.ndim, image_type)
         image_check *= self._check_shape(image.shape, image_type)
+
         if not image_check:
             raise ImportError(
                 f"Image shape ({image.shape}) not suitable for type {image_type}"
@@ -170,21 +217,77 @@ class TIFReader():
 
             return image_shg
 
-        raise IOError
+        raise RuntimeError('Image file not appropriately labelled')
 
-    def load_multi_image(self, input_file_names):
-        "Load in SHG and PL files from file name tuple"
+    def _clean_files(self):
+        self.files = {}
 
-        image_stack = [None, None, None]
+    def get_image_lists(self, input_files):
+        """"Automatically find all combined PL-SHG files or match
+        up individual images if seperate"""
 
-        for filename in input_file_names:
-            if '-pl-shg' in filename.lower():
-                image_stack[0], image_stack[1], image_stack[2] = self.import_image(filename)
-            elif '-shg' in filename.lower():
-                image_stack[0] = self.import_image(filename)
-            elif '-pl' in filename.lower():
-                image_stack[1], image_stack[2] = self.import_image(filename)
-            else:
-                raise RuntimeError('Image file not appropriately labelled')
+        removed_files = []
 
-        return image_stack
+        for filename in input_files:
+            if not filename.endswith('.tif'):
+                removed_files.append(filename)
+            elif filename.find('display') != -1:
+                removed_files.append(filename)
+            elif filename.find('virada') != -1:
+                removed_files.append(filename)
+            # elif (filename.find('asterisco') != -1):
+            #   removed_files.append(filename)
+
+        for filename in removed_files:
+            input_files.remove(filename)
+
+        files, prefixes = get_files_prefixes(input_files, '-pl-shg')
+
+        for filename, prefix in zip(files, prefixes):
+            self.files[prefix] = {}
+            self.files[prefix]['PL-SHG'] = filename
+            input_files.remove(filename)
+
+        shg_files, shg_prefixes = get_files_prefixes(input_files, '-shg')
+        pl_files, pl_prefixes = get_files_prefixes(input_files, '-pl')
+
+        for i, prefix in enumerate(shg_prefixes):
+
+            if prefix not in self.files.keys():
+
+                indices = [j for j, pl_prefix in enumerate(pl_prefixes)
+                           if prefix in pl_prefix]
+
+                if len(indices) > 0:
+                    self.files[prefix] = {}
+                    self.files[prefix]['SHG'] = shg_files[i]
+                    self.files[prefix]['PL'] = pl_files[indices[0]]
+
+                elif self.include_shg:
+                    self.files[prefix] = {}
+                    self.files[prefix]['SHG'] = shg_files[i]
+
+    def load_multi_images(self):
+        """Load in SHG and PL files from file name tuple"""
+
+        for prefix, data in self.files.items():
+            image_stack = [None, None, None]
+            try:
+                (image_stack[0],
+                 image_stack[1],
+                 image_stack[2]) = self.import_image(data['PL-SHG'], 'PL-SHG')
+            except KeyError:
+                try:
+                    image_stack[0] = self.import_image(data['SHG'], 'SHG')
+                except KeyError:
+                    raise RuntimeError('Image file not appropriately labelled')
+                try:
+                    (image_stack[1],
+                     image_stack[2]) = self.import_image(data['PL'], 'PL')
+                except KeyError:
+                    pass
+            self.files[prefix]['image'] = MultiLayerImage(*image_stack)
+            self.files[prefix]['image'].ow_network = self.ow_network
+            self.files[prefix]['image'].ow_segment = self.ow_segment
+            self.files[prefix]['image'].ow_metric = self.ow_metric
+            self.files[prefix]['image'].ow_figure = self.ow_figure

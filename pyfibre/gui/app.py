@@ -23,7 +23,7 @@ from pyfibre.io.segment_io import SegmentReader
 from pyfibre.tools.figures import create_tensor_image, create_region_image, create_network_image
 from pyfibre.tools.filters import form_structure_tensor
 from pyfibre.tools.analysis import tensor_analysis, fibre_analysis
-from pyfibre.tools.multi_image import MultiLayerImage
+from pyfibre.io.multi_image import MultiLayerImage
 
 
 class pyfibre_gui:
