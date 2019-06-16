@@ -106,9 +106,11 @@ def analyse_image(multi_image, prefix, scale=1.25, p_intensity=(1, 99),
     filename = data_dir + image_name
     get_ow_options(multi_image, filename)
 
-    logger.debug(f"Overwrite options:\n ow_network = {ow_network}\n "
-                 f"ow_segment = {ow_segment}\n ow_metric = {ow_metric}\n "
-                 f"ow_figure = {ow_figure}")
+    logger.debug(f"Overwrite options:\n "
+                 f"ow_network = {multi_image.ow_network}\n "
+                 f"ow_segment = {multi_image.ow_segment}\n "
+                 f"ow_metric = {multi_image.ow_metric}\n "
+                 f"ow_figure = {multi_image.ow_figure}")
 
     start = time.time()
 
@@ -336,5 +338,9 @@ def analyse_image(multi_image, prefix, scale=1.25, p_intensity=(1, 99),
     end = time.time()
 
     logger.info(f"TOTAL ANALYSIS TIME = {round(end - start, 3)} s")
+
+    global_dataframe = pd.read_pickle(filename + '_global_metric.pkl')
+    fibre_dataframe = pd.read_pickle(filename + '_fibre_metric.pkl')
+    cell_dataframe = pd.read_pickle(filename + '_cell_metric.pkl')
 
     return global_dataframe, fibre_dataframe, cell_dataframe

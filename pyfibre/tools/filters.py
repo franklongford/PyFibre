@@ -1,36 +1,16 @@
-"""
-ColECM: Collagen ExtraCellular Matrix Simulation
-ANALYSIS ROUTINE 
-
-Created by: Frank Longford
-Created on: 09/03/2018
-
-Last Modified: 19/04/2018
-"""
-
-import sys, os
 import numpy as np
-import scipy as sp
-import networkx as nx
 
-from scipy import interpolate
-from scipy.ndimage import sobel
 from scipy.ndimage.filters import gaussian_filter
 
-from skimage.feature import structure_tensor, hessian_matrix, hessian_matrix_eigvals
-from skimage.filters import apply_hysteresis_threshold, sobel, sato
-from skimage.filters import threshold_otsu, threshold_li, threshold_isodata, threshold_mean
+from skimage.feature import structure_tensor, hessian_matrix
+from skimage.filters import apply_hysteresis_threshold, sato
+from skimage.filters import threshold_li, threshold_isodata, threshold_mean
 
 
 def gaussian(image, sigma=None):
 
 	if sigma != None: return gaussian_filter(image, sigma=sigma)
 	else: return image
-
-
-def spiral_tv(image):
-
-	pass
 
 
 def tubeness(image, sigma_max=3):
@@ -44,19 +24,6 @@ def tubeness(image, sigma_max=3):
 	tube = sato(image, sigmas=range(1, sigma_max+1), black_ridges=False)
 	
 	return tube
-
-
-def curvelet(image):
-
-	pass
-
-
-def vesselness(eig1, eig2, beta1=0.1, beta2=0.1):
-
-	A = np.exp(-(eig1/eig2)**2 / (2 * beta1))
-	B = (1 - np.exp(- (eig1**2 + eig2**2) / (2 * beta2)))
-
-	return A * B
 
 
 def hysteresis(image, alpha=1.0):
@@ -114,22 +81,18 @@ def form_nematic_tensor(image, sigma=None, size=None):
 
 	Parameters
 	----------
-
-	dx_grid:  array_like (float); shape=(nframe, n_y, n_x)
-		Matrix of derivative of image intensity with respect to x axis for each pixel
-
-	dy_grid:  array_like (float); shape=(nframe, n_y, n_x)
-		Matrix of derivative of image intensity with respect to y axis for each pixel
+	image:  array_like (float); shape(n_y, n_x)
+		Image to analyse
 
 	Returns
 	-------
-
 	n_vector:  array_like (float); shape(nframe, n_y, n_x, 2, 2)
 		Flattened 2x2 nematic vector for each pixel in dx_shg, dy_shg (n_xx, n_xy, n_yx, n_yy)	
 
 	"""
 
-	if image.ndim == 2: image = image.reshape((1,) + image.shape)
+	if image.ndim == 2:
+		image = image.reshape((1,) + image.shape)
 	nframe = image.shape[0]
 
 	dx_shg, dy_shg = derivatives(image)
@@ -164,22 +127,17 @@ def form_structure_tensor(image, sigma=0.0001, size=None):
 
 	Parameters
 	----------
-
-	dx_grid:  array_like (float); shape=(nframe, n_y, n_x)
-		Matrix of derivative of image intensity with respect to x axis for each pixel
-
-	dy_grid:  array_like (float); shape=(nframe, n_y, n_x)
-		Matrix of derivative of image intensity with respect to y axis for each pixel
-
+	image:  array_like (float); shape(n_y, n_x)
+		Image to analyse
 	Returns
 	-------
-
 	j_tensor:  array_like (float); shape(nframe, n_y, n_x, 2, 2)
 		2x2 structure tensor for each pixel in image stack	
 
 	"""
 
-	if image.ndim == 2: image = image.reshape((1,) + image.shape)
+	if image.ndim == 2:
+		image = image.reshape((1,) + image.shape)
 	nframe = image.shape[0]
 
 	jxx = np.zeros(image.shape)
@@ -190,7 +148,8 @@ def form_structure_tensor(image, sigma=0.0001, size=None):
 		jxx[frame], jxy[frame], jyy[frame] = structure_tensor(image[frame], sigma=sigma)
 
 	j_tensor = np.stack((jxx, jxy, jxy, jyy), -1).reshape(jxx.shape + (2,2))
-	if nframe == 1: j_tensor = j_tensor.reshape(j_tensor.shape[1:])
+	if nframe == 1:
+		j_tensor = j_tensor.reshape(j_tensor.shape[1:])
 
 	return j_tensor
 
@@ -225,12 +184,12 @@ def form_hessian_tensor(image, sigma=None, size=None):
 	dxdy = np.zeros(image.shape)
 	dydy = np.zeros(image.shape)
 
-	#dxdx, dxdy, dydx, dyy = derivatives(image, rank=2)
 	for frame in range(nframe):
 		dxdx[frame], dxdy[frame], dydy[frame] = hessian_matrix(image[frame], order="xy", sigma=sigma)
 
 	H_tensor = np.stack((dxdx, dxdy, dxdy, dydy), -1).reshape(dxdx.shape + (2,2))
-	if nframe == 1: H_tensor = H_tensor.reshape(H_tensor.shape[1:])
+	if nframe == 1:
+		H_tensor = H_tensor.reshape(H_tensor.shape[1:])
 
 	return H_tensor
 

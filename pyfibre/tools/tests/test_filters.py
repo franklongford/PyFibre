@@ -1,6 +1,9 @@
 from unittest import TestCase
 import numpy as np
-from pyfibre.tools.filters import gaussian, tubeness, hysteresis
+from pyfibre.tools.filters import (
+    gaussian, tubeness, hysteresis, derivatives,
+    form_structure_tensor
+)
 
 
 class TestFilters(TestCase):
@@ -32,3 +35,28 @@ class TestFilters(TestCase):
         self.assertTrue(hysteresis_image[1, 1])
         self.assertTrue(hysteresis_image[2, 2])
         self.assertTrue(hysteresis_image[3, 3])
+
+    def test_derivatives(self):
+        first_derivatives = derivatives(self.image)
+
+        dx = np.array([[0., 4., 0., 0., 0.],
+                       [0., 0., 4.5, 0., 0.],
+                       [0., -2., 0., 3.5, 0.],
+                       [0., 0., -4.5, 0., 0.],
+                       [0., 0., 0., -7., 0.]])
+        dy = np.array([[0., 0., 0., 0., 0.],
+                       [4., 0., -2, 0., 0.],
+                       [0., 4.5, 0., -4.5, 0.],
+                       [0., 0., 3.5, 0., -7.],
+                       [0., 0., 0., 0., 0.]])
+
+        self.assertAlmostEqual(
+            abs(dx - first_derivatives[0]).sum(), 0, 7)
+        self.assertAlmostEqual(
+            abs(dy - first_derivatives[1]).sum(), 0, 7)
+
+    def test_form_structure_tensor(self):
+        j_tensor = form_structure_tensor(
+            self.image, sigma=self.sigma)
+
+        self.assertEqual(j_tensor.shape, (5, 5, 2, 2))

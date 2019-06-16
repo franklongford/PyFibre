@@ -9,6 +9,7 @@ Last Modified: 18/02/2019
 """
 
 import os
+import sys
 import logging
 import click
 
@@ -74,6 +75,10 @@ def parse_files(name, directory, key):
     help='Toggles overwrite figures'
 )
 @click.option(
+    '--test', is_flag=True, default=False,
+    help='Perform run on test image'
+)
+@click.option(
     '--directory', help='Directories to load tif files',
     type=click.Path(exists=True), default=None
 )
@@ -102,7 +107,7 @@ def parse_files(name, directory, key):
     required=False, default=None
 )
 def run(name, directory, key, sigma, alpha, save_db, threads, debug,
-        ow_metric, ow_segment, ow_network, ow_figure):
+        ow_metric, ow_segment, ow_network, ow_figure, test):
 
     if debug is False:
         logging.basicConfig(filename="pyfibre.log", filemode="w",
@@ -117,6 +122,10 @@ def run(name, directory, key, sigma, alpha, save_db, threads, debug,
         name = ""
     if directory is None:
         directory = ""
+    if test:
+        name = ""
+        directory = os.path.dirname(
+            os.path.dirname(__file__)) + '/tests/stubs'
 
     logger.info(ut.logo())
     logger.debug(f"{name} {directory}")
@@ -130,7 +139,7 @@ def run(name, directory, key, sigma, alpha, save_db, threads, debug,
     fibre_database = pd.DataFrame()
     global_database = pd.DataFrame()
 
-    for prefix, data in enumerate(reader.files):
+    for prefix, data in reader.files.items():
 
         (data_global,
          data_segment,

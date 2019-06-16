@@ -1,13 +1,4 @@
-"""
-ColECM: Collagen ExtraCellular Matrix Simulation
-ANALYSIS ROUTINE 
-
-Created by: Frank Longford
-Created on: 09/03/2018
-
-Last Modified: 19/04/2018
-"""
-
+import networkx as nx
 import numpy as np
 import time
 import logging
@@ -19,8 +10,6 @@ from scipy.ndimage.filters import gaussian_filter
 from skimage.morphology import local_maxima, remove_small_objects
 from skimage.transform import rescale
 from skimage.exposure import equalize_adapthist
-
-import networkx as nx
 
 from pyfibre.utilities import ring, numpy_remove, clear_border
 from pyfibre.tools.filters import tubeness, hysteresis
