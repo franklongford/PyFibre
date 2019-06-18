@@ -137,7 +137,9 @@ def analyse_image(multi_image, prefix, scale=1.25, p_denoise=(5, 35),
         start_met = time.time()
 
         "Load networks and segments"
+        global_seg = load_segment(filename + "_global_segment")
         fibre_seg = load_segment(filename + "_fibre_segment")
+        cell_seg = load_segment(filename + "_cell_segment")
         networks = load_segment(filename + "_network")
         networks_red = load_segment(filename + "_network_reduced")
         fibres = load_segment(filename + "_fibre")
@@ -147,7 +149,7 @@ def analyse_image(multi_image, prefix, scale=1.25, p_denoise=(5, 35),
          cell_dataframe,
          muscle_dataframe) = metric_analysis(
             multi_image, filename, global_seg, fibre_seg,
-            networks, networks_red, fibres, sigma
+            cell_seg, networks, networks_red, fibres, sigma
         )
 
         end_met = time.time()
@@ -197,5 +199,6 @@ def analyse_image(multi_image, prefix, scale=1.25, p_denoise=(5, 35),
     global_dataframe = pd.read_pickle(filename + '_global_metric.pkl')
     fibre_dataframe = pd.read_pickle(filename + '_fibre_metric.pkl')
     cell_dataframe = pd.read_pickle(filename + '_cell_metric.pkl')
+    muscle_dataframe = pd.read_pickle(filename + '_muscle_metric.pkl')
 
     return global_dataframe, fibre_dataframe, cell_dataframe

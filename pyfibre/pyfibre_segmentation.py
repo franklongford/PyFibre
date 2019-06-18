@@ -49,10 +49,10 @@ def segment_image(multi_image, networks, networks_red,
 
     fibre_binary = create_binary_image(fibre_seg, multi_image.shape)
     global_binary = np.where(fibre_binary, 0, 1)
-    global_seg = regionprops(global_binary, coordinates='xy')[0]
+    global_seg = regionprops(global_binary, coordinates='xy')
 
     cell_binary = create_binary_image(cell_seg, multi_image.shape)
     global_binary = np.where(cell_binary, 0, 1)
-    global_seg += regionprops(global_binary, coordinates='xy')[0]
+    global_seg += regionprops(global_binary, coordinates='xy')
 
     return global_seg, fibre_seg, cell_seg

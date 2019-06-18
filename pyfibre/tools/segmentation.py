@@ -60,6 +60,7 @@ def segment_check(segment, min_size=0, min_frac=0, edges=False, max_x=0, max_y=0
 
 	return segment_check
 
+
 def get_segments(image, binary, min_size=0, min_frac=0):
 
 	labels = measure.label(binary.astype(np.int))

@@ -42,7 +42,7 @@ def global_averaging(multi_image, global_fibre_metrics, fibre_metrics,
 
 
 def metric_analysis(multi_image, filename, global_seg, fibre_seg, cell_seg,
-                    networks, networks_red, fibres, sigma)
+                    networks, networks_red, fibres, sigma):
 
     "Form nematic and structure tensors for each pixel"
     shg_j_tensor = form_structure_tensor(
@@ -62,7 +62,6 @@ def metric_analysis(multi_image, filename, global_seg, fibre_seg, cell_seg,
         multi_image.image_shg, global_seg[0], shg_j_tensor, 'SHG Fibre')
     global_averaging(multi_image, global_fibre_metrics, fibre_metrics, fibre_seg, fibres)
 
-
     if multi_image.pl_analysis:
 
         "Form nematic and structure tensors for each pixel"
@@ -79,13 +78,13 @@ def metric_analysis(multi_image, filename, global_seg, fibre_seg, cell_seg,
         cell_filenames = pd.Series(['{}_cell_segment.pkl'.format(filename)] * len(cell_seg), name='File')
 
         global_muscle_metrics = segment_analysis(
-            multi_image.image_pl, global_segment, shg_j_tensor,
+            multi_image.image_pl, global_seg[0], pl_j_tensor,
             'PL Muscle')
 
         global_muscle_metrics = global_muscle_metrics.drop(['PL Muscle Hu Moment 3', 'PL Muscle Hu Moment 4'])
 
         global_cell_metrics = segment_analysis(
-            multi_image.image_pl, global_segment, pl_j_tensor,
+            multi_image.image_pl, global_seg[1], pl_j_tensor,
             'PL Cell')
 
         global_cell_metrics = global_cell_metrics.drop(['PL Cell Hu Moment 3', 'PL Cell Hu Moment 4'])
@@ -96,8 +95,8 @@ def metric_analysis(multi_image, filename, global_seg, fibre_seg, cell_seg,
         cell_metrics = np.full_like(np.ones((1, 10)), None)
         muscle_metrics = np.full_like(np.ones((fibre_metrics.shape[1], 10)), None)
 
-        global_cell_metrics = np.full_like(np.ones((len(['No. Cells'] + cell_columns[:-5]))), None)
-        global_muscle_metrics = np.full_like(np.ones((len(muscle_columns))), None)
+        global_cell_metrics = np.full_like(np.ones(10), None)
+        global_muscle_metrics = np.full_like(np.ones(10), None)
 
     cell_dataframe = pd.concat((cell_filenames, cell_metrics), axis=1)
     muscle_dataframe = pd.concat((cell_filenames, muscle_metrics), axis=1)

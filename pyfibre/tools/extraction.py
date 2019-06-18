@@ -19,96 +19,96 @@ logger = logging.getLogger(__name__)
 
 
 def check_2D_arrays(array1, array2, thresh=1):
-	"return indices where values of array1 are within thresh distance of array2"
+    "return indices where values of array1 are within thresh distance of array2"
 
-	array1_mat = np.tile(array1, (1, array2.shape[0]))\
-	                .reshape(array1.shape[0], array2.shape[0], 2)    
-	array2_mat = np.tile(array2, (array1.shape[0], 1))\
-	                .reshape(array1.shape[0], array2.shape[0], 2)
+    array1_mat = np.tile(array1, (1, array2.shape[0]))\
+                    .reshape(array1.shape[0], array2.shape[0], 2)
+    array2_mat = np.tile(array2, (array1.shape[0], 1))\
+                    .reshape(array1.shape[0], array2.shape[0], 2)
 
-	diff = np.sum((array1_mat - array2_mat)**2, axis=2)
-	array1_indices = np.argwhere(diff <= thresh**2)[:,0]
-	array2_indices = np.argwhere(diff <= thresh**2)[:,1]
+    diff = np.sum((array1_mat - array2_mat)**2, axis=2)
+    array1_indices = np.argwhere(diff <= thresh**2)[:,0]
+    array2_indices = np.argwhere(diff <= thresh**2)[:,1]
 
-	return array1_indices, array2_indices
+    return array1_indices, array2_indices
 
 
 def distance_matrix(node_coord):
-	"calculate distances between each index value of node_coord"
+    "calculate distances between each index value of node_coord"
 
-	node_coord_matrix = np.tile(node_coord, (node_coord.shape[0], 1))\
-	                    .reshape(node_coord.shape[0], node_coord.shape[0], node_coord.shape[1])
-	d_node = node_coord_matrix - np.transpose(node_coord_matrix, (1, 0, 2))
-	r2_node = np.sum(d_node**2, axis=2)
+    node_coord_matrix = np.tile(node_coord, (node_coord.shape[0], 1))\
+                        .reshape(node_coord.shape[0], node_coord.shape[0], node_coord.shape[1])
+    d_node = node_coord_matrix - np.transpose(node_coord_matrix, (1, 0, 2))
+    r2_node = np.sum(d_node**2, axis=2)
 
-	return d_node, r2_node
+    return d_node, r2_node
 
 
 def reduce_coord(coord, values, thresh=1):
-	"""
-	Find elements in coord that lie within thresh distance of eachother. Remove
-	element with lowest corresponding value. 
-	"""
+    """
+    Find elements in coord that lie within thresh distance of eachother. Remove
+    element with lowest corresponding value.
+    """
 
-	if coord.shape[0] <= 1: return coord
+    if coord.shape[0] <= 1: return coord
 
-	thresh = np.sqrt(2 * thresh**2)
-	r_coord = cdist(coord, coord)
+    thresh = np.sqrt(2 * thresh**2)
+    r_coord = cdist(coord, coord)
 
-	del_coord = np.argwhere((r_coord <= thresh) - np.identity(coord.shape[0]))
-	del_coord = del_coord[np.arange(0, del_coord.shape[0], 2)]
-	indices = np.stack((values[del_coord[:,0]], 
-			    values[del_coord[:,1]])).argmax(axis=0)
-	del_coord = [a[i] for a, i in zip(del_coord, indices)]
+    del_coord = np.argwhere((r_coord <= thresh) - np.identity(coord.shape[0]))
+    del_coord = del_coord[np.arange(0, del_coord.shape[0], 2)]
+    indices = np.stack((values[del_coord[:,0]],
+                values[del_coord[:,1]])).argmax(axis=0)
+    del_coord = [a[i] for a, i in zip(del_coord, indices)]
 
-	coord = np.delete(coord, del_coord, 0)
+    coord = np.delete(coord, del_coord, 0)
 
-	return coord
+    return coord
 
 
 def cos_sin_theta_2D(vector, r_vector):
-	"""
-	cos_sin_theta_2D(vector, r_vector)
+    """
+    cos_sin_theta_2D(vector, r_vector)
 
-	Returns cosine and sine of angles of intersecting vectors betwen even and odd indicies
+    Returns cosine and sine of angles of intersecting vectors betwen even and odd indicies
 
-	Parameters
-	----------
+    Parameters
+    ----------
 
-	vector:  array_like, (float); shape=(n_vector, n_dim)
-	    Array of displacement vectors between connecting beads
+    vector:  array_like, (float); shape=(n_vector, n_dim)
+        Array of displacement vectors between connecting beads
 
-	r_vector: array_like, (float); shape=(n_vector)
-	    Array of radial distances between connecting beads
+    r_vector: array_like, (float); shape=(n_vector)
+        Array of radial distances between connecting beads
 
-	Returns
-	-------
+    Returns
+    -------
 
-	cos_the:  array_like (float); shape=(n_vector/2)
-	    Cosine of the angle between each pair of displacement vectors
+    cos_the:  array_like (float); shape=(n_vector/2)
+        Cosine of the angle between each pair of displacement vectors
 
-	sin_the: array_like (float); shape=(n_vector/2)
-	    Sine of the angle between each pair of displacement vectors
+    sin_the: array_like (float); shape=(n_vector/2)
+        Sine of the angle between each pair of displacement vectors
 
-	r_prod: array_like (float); shape=(n_vector/2)
-	    Product of radial distance between each pair of displacement vectors
-	"""
+    r_prod: array_like (float); shape=(n_vector/2)
+        Product of radial distance between each pair of displacement vectors
+    """
 
-	n_vector = vector.shape[0]
-	n_dim = vector.shape[1]
+    n_vector = vector.shape[0]
+    n_dim = vector.shape[1]
 
-	temp_vector = np.reshape(vector, (n_vector // 2, 2, n_dim))
+    temp_vector = np.reshape(vector, (n_vector // 2, 2, n_dim))
 
-	"Calculate |rij||rjk| product for each pair of vectors"
-	r_prod = np.prod(np.reshape(r_vector, (n_vector // 2, 2)), axis = 1)
+    "Calculate |rij||rjk| product for each pair of vectors"
+    r_prod = np.prod(np.reshape(r_vector, (n_vector // 2, 2)), axis = 1)
 
-	"Form dot product of each vector pair rij*rjk in vector array corresponding to an angle"
-	dot_prod = np.sum(np.prod(temp_vector, axis=1), axis=1)
+    "Form dot product of each vector pair rij*rjk in vector array corresponding to an angle"
+    dot_prod = np.sum(np.prod(temp_vector, axis=1), axis=1)
 
-	"Calculate cos(theta) for each angle"
-	cos_the = dot_prod / r_prod
+    "Calculate cos(theta) for each angle"
+    cos_the = dot_prod / r_prod
 
-	return cos_the
+    return cos_the
 
 
 def new_branches(image, coord, ring_filter, max_thresh=0.2):
