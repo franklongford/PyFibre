@@ -262,7 +262,7 @@ def grow(fibre, image, network, tot_node_coord, lmp_thresh,
 
 def FIRE(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2,
          nuc_rad=11, lmp_thresh=0.15, angle_thresh=70, r_thresh=8,
-         max_threads=8):
+         ):
     """
     FIRE algorithm to extract fibre network
 
@@ -283,8 +283,6 @@ def FIRE(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2,
         Maximum angular deviation of new lmp from fibre trajectory
     r_thresh: float
         Maximum length of edges between nodes
-    max_threads: ont
-        Maximum number of threads for multithreading routine
 
     Returns
     -------
@@ -377,27 +375,8 @@ def FIRE(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2,
         tot_node_coord = [network.nodes[node]['xy'] for node in network]
         tot_node_coord = np.stack(tot_node_coord)
 
-        #"""Serial Version
         for fibre in fibre_grow:
             grow(fibre, cleared, network, tot_node_coord, lmp_thresh, theta_thresh, r_thresh)
-        #"""
-
-        """Multi Threading Version
-        n_batches = len(fibre_grow) // max_threads + 1
-        thread_batches = np.array_split(fibre_grow, n_batches)
-    
-        for batch in thread_batches:
-            thread_pool = []
-    
-            for fibre in batch:
-    
-                thread = threading.Thread(target=grow, args=(fibre, cleared, network, tot_node_coord, lmp_thresh, theta_thresh, r_thresh))
-                thread.daemon = True
-                thread_pool.append(thread)			
-        
-            for thread in thread_pool: thread.start()
-            for thread in thread_pool: thread.join()
-        #"""
 
         n_node = network.number_of_nodes()
         fibre_ends = [i for i in range(n_nuc, n_node) if network.degree[i] == 1]
@@ -614,7 +593,7 @@ def fibre_assignment(network, angle_thresh=70, min_n=4):
 
 
 def network_extraction(image_shg, network_name='network', scale=1.0, sigma=0.75, alpha=0.5,
-            p_denoise=(5, 35), threads=8):
+            p_denoise=(5, 35)):
     """
     Extract fibre network using modified FIRE algorithm
     """
@@ -626,7 +605,7 @@ def network_extraction(image_shg, network_name='network', scale=1.0, sigma=0.75,
 
     "Call FIRE algorithm to extract full image network"
     logger.debug("Calling FIRE algorithm using image scale {}  alpha  {}".format(scale, alpha))
-    network = FIRE(image_nl, scale=scale, sigma=sigma, alpha=alpha, max_threads=threads)
+    network = FIRE(image_nl, scale=scale, sigma=sigma, alpha=alpha)
     nx.write_gpickle(network, network_name + "_graph.pkl")
 
     #else: network = nx.read_gpickle(network_name + "_graph.pkl")

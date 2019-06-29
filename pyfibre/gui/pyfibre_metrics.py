@@ -1,5 +1,11 @@
+from tkinter import Toplevel, Frame, IntVar, DoubleVar, Label
+from tkinter.ttk import Labelframe
+
+import pandas as pd
 from pickle import UnpicklingError
 
+
+from pyfibre.io.database_io import check_file_name
 
 class PyFibreMetrics:
 
@@ -128,13 +134,13 @@ class PyFibreMetrics:
         self.info = []
         self.metrics = []
 
-        self.texture = ttk.Labelframe(self.frame, text="Texture",
+        self.texture = Labelframe(self.frame, text="Texture",
                                       width=self.width - 50, height=self.height - 50)
-        self.content = ttk.Labelframe(self.frame, text="Content",
+        self.content = Labelframe(self.frame, text="Content",
                                       width=self.width - 50, height=self.height - 50)
-        self.shape = ttk.Labelframe(self.frame, text="Shape",
+        self.shape = Labelframe(self.frame, text="Shape",
                                     width=self.width - 50, height=self.height - 50)
-        self.network = ttk.Labelframe(self.frame, text="Network",
+        self.network = Labelframe(self.frame, text="Network",
                                       width=self.width - 50, height=self.height - 50)
 
         self.frame_dict = {"texture": {'tab': self.texture, "count": 0},
@@ -171,7 +177,7 @@ class PyFibreMetrics:
 
         image_name = selected_file.split('/')[-1]
         image_path = '/'.join(selected_file.split('/')[:-1])
-        fig_name = ut.check_file_name(image_name, extension='tif')
+        fig_name = check_file_name(image_name, extension='tif')
         data_dir = image_path + '/data/'
 
         try:

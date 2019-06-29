@@ -1,8 +1,8 @@
 import logging
 import os
 import numpy as np
+import copy
 
-from pickle import UnpicklingError
 from skimage import io
 
 from pyfibre.tools.preprocessing import clip_intensities
@@ -59,8 +59,9 @@ def extract_prefix(image_name, label):
 
 class TIFReader():
 
-    def __init__(self, input_files=[], shg=True, pl=True, ow_network=False,
-                 ow_segment=False, ow_metric=False, ow_figure=False):
+    def __init__(self, input_files=None, shg=True, pl=True, p_intensity=(1, 99),
+                 ow_network=False, ow_segment=False, ow_metric=False,
+                 ow_figure=False):
 
         self._dim_list_shg = [2, 3, 4]
         self._dim_list_pl = [3, 4]
@@ -77,8 +78,10 @@ class TIFReader():
         self.files = {}
         self.shg = shg
         self.pl = pl
+        self.p_intensity = p_intensity
 
-        self.get_image_lists(input_files)
+        if input_files is not None:
+            self.get_image_lists(copy.copy(input_files))
 
     def _check_dimension(self, ndim, image_type):
 
@@ -296,8 +299,9 @@ class TIFReader():
                     pl_analysis = False
 
             multi_image = MultiLayerImage(
-                *image_stack, self.ow_network, self.ow_segment,
-                self.ow_metric, self.ow_figure, shg_analysis,
-                pl_analysis
+                *image_stack, ow_network=self.ow_network,
+                ow_segment=self.ow_segment, ow_metric=self.ow_metric,
+                ow_figure=self.ow_figure, shg_analysis=shg_analysis,
+                pl_analysis=pl_analysis, p_intensity=self.p_intensity
             )
             self.files[prefix]['image'] = multi_image

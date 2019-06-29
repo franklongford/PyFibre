@@ -1,10 +1,19 @@
+from PIL import ImageTk, Image
+from tkinter import (
+    Toplevel, Canvas, Scrollbar, Text, END, DISABLED, VERTICAL, RIGHT,
+    LEFT, Y, NW, NORMAL
+)
+from tkinter.ttk import Notebook, Frame
+
 from pickle import UnpicklingError
 
-from pyfibre.io.segment_io import SegmentReader
+from pyfibre.io.segment_io import load_segment
+from pyfibre.io.database_io import check_file_name
 from pyfibre.tools.figures import (
     create_tensor_image, create_region_image, create_network_image
 )
 from pyfibre.io.multi_image import MultiLayerImage
+from pyfibre.utilities import flatten_list
 
 
 class PyFibreViewer:
@@ -20,20 +29,20 @@ class PyFibreViewer:
         self.window.title('PyFibre - Viewer')
         self.window.geometry(f"{width}x{height}-100+40")
 
-        self.notebook = ttk.Notebook(self.window)
+        self.notebook = Notebook(self.window)
         self.create_tabs()
 
     def create_tabs(self):
 
-        self.shg_image_tab = ttk.Frame(self.notebook)
-        self.pl_image_tab = ttk.Frame(self.notebook)
-        self.tran_image_tab = ttk.Frame(self.notebook)
-        self.tensor_tab = ttk.Frame(self.notebook)
-        self.network_tab = ttk.Frame(self.notebook)
-        self.segment_tab = ttk.Frame(self.notebook)
-        self.fibre_tab = ttk.Frame(self.notebook)
-        self.cell_tab = ttk.Frame(self.notebook)
-        self.metric_tab = ttk.Frame(self.notebook)
+        self.shg_image_tab = Frame(self.notebook)
+        self.pl_image_tab = Frame(self.notebook)
+        self.tran_image_tab = Frame(self.notebook)
+        self.tensor_tab = Frame(self.notebook)
+        self.network_tab = Frame(self.notebook)
+        self.segment_tab = Frame(self.notebook)
+        self.fibre_tab = Frame(self.notebook)
+        self.cell_tab = Frame(self.notebook)
+        self.metric_tab = Frame(self.notebook)
 
         self.tab_dict = {'SHG Image': self.shg_image_tab,
                          'PL Image': self.pl_image_tab,
@@ -55,7 +64,7 @@ class PyFibreViewer:
             tab.canvas['yscrollcommand'] = tab.scrollbar.set
             tab.canvas.pack(side=LEFT, fill="both", expand="yes")
 
-        self.log_tab = ttk.Frame(self.notebook)
+        self.log_tab = Frame(self.notebook)
         self.notebook.add(self.log_tab, text='Log')
         self.log_tab.text = Text(self.log_tab, width=self.width - 25, height=self.height - 25)
         self.log_tab.text.insert(END, self.parent.Log)
@@ -123,11 +132,10 @@ class PyFibreViewer:
 
         image_name = selected_file.split('/')[-1]
         image_path = '/'.join(selected_file.split('/')[:-1])
-        fig_name = ut.check_file_name(image_name, extension='tif')
+        fig_name = check_file_name(image_name, extension='tif')
         data_dir = image_path + '/data/'
 
         file_index = self.parent.input_prefixes.index(selected_file)
-        reader = SegmentReader()
         self.multi_image = MultiLayerImage(
             self.parent.input_files[file_index],
             p_intensity=(self.parent.p0.get(), self.parent.p1.get()))
@@ -145,7 +153,7 @@ class PyFibreViewer:
             self.update_log("Displaying SHG tensor image {}".format(fig_name))
 
             try:
-                networks = reader.load_region(data_dir + fig_name + "_network")
+                networks = load_segment(data_dir + fig_name, "network")
                 self.display_network(self.network_tab.canvas, image_shg, networks)
                 self.update_log("Displaying network for {}".format(fig_name))
             except (UnpicklingError, IOError, EOFError):
@@ -153,8 +161,8 @@ class PyFibreViewer:
                 self.update_log("Unable to display network for {}".format(fig_name))
 
             try:
-                fibres = reader.load_region(data_dir + fig_name + "_fibre")
-                fibres = ut.flatten_list(fibres)
+                fibres = load_segment(data_dir + fig_name, "fibre")
+                fibres = flatten_list(fibres)
                 self.display_network(self.fibre_tab.canvas, image_shg, fibres, 1)
                 self.update_log("Displaying fibres for {}".format(fig_name))
             except (UnpicklingError, IOError, EOFError):
@@ -162,7 +170,7 @@ class PyFibreViewer:
                 self.update_log("Unable to display fibres for {}".format(fig_name))
 
             try:
-                segments = reader.load_region(data_dir + fig_name + "_fibre_segment")
+                segments = load_segment(data_dir + fig_name, "fibre_segment")
                 self.display_regions(self.segment_tab.canvas, image_shg, segments)
                 self.update_log("Displaying fibre segments for {}".format(fig_name))
             except (AttributeError, UnpicklingError, IOError, EOFError):
@@ -187,7 +195,7 @@ class PyFibreViewer:
             self.update_log("Displaying PL Transmission image {}".format(fig_name))
 
             try:
-                cells = reader.load_region(data_dir + fig_name + "_cell_segment")
+                cells = load_segment(data_dir + fig_name, "cell_segment")
                 self.display_regions(self.cell_tab.canvas, image_pl, cells)
                 self.update_log("Displaying cell segments for {}".format(fig_name))
             except (AttributeError, UnpicklingError, IOError, EOFError):

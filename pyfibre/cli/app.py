@@ -9,7 +9,6 @@ Last Modified: 18/02/2019
 """
 
 import os
-import sys
 import logging
 import click
 
@@ -17,7 +16,7 @@ import pandas as pd
 
 import pyfibre.utilities as ut
 from pyfibre.version import __version__
-from pyfibre.pyfibre_analyse_image import analyse_image
+from pyfibre.image_analysis import image_analysis
 from pyfibre.io.database_io import save_database
 from pyfibre.io.tif_reader import TIFReader
 
@@ -51,6 +50,7 @@ def parse_files(name, directory, key):
         input_files.remove(file_name)
 
     return input_files
+
 
 @click.command()
 @click.version_option(version=__version__)
@@ -106,15 +106,11 @@ def parse_files(name, directory, key):
     '--save_db', help='Output database filename',
     default=None
 )
-@click.option(
-    '--threads', help='Number of threads per processor',
-    default=8
-)
 @click.argument(
     'name', type=click.Path(exists=True),
     required=False, default=None
 )
-def run(name, directory, key, sigma, alpha, save_db, threads, debug,
+def run(name, directory, key, sigma, alpha, save_db, debug,
         shg, pl, ow_metric, ow_segment, ow_network, ow_figure, test):
 
     if debug is False:
@@ -139,8 +135,9 @@ def run(name, directory, key, sigma, alpha, save_db, threads, debug,
     logger.debug(f"{name} {directory}")
 
     input_files = parse_files(name, directory, key)
-    reader = TIFReader(input_files, shg, pl, ow_network,
-                       ow_segment, ow_metric, ow_figure)
+    reader = TIFReader(input_files, shg=shg, pl=pl,
+                       ow_network=ow_network, ow_segment=ow_segment,
+                       ow_metric=ow_metric, ow_figure=ow_figure)
     reader.load_multi_images()
 
     global_database = pd.DataFrame()
@@ -150,10 +147,9 @@ def run(name, directory, key, sigma, alpha, save_db, threads, debug,
 
     for prefix, data in reader.files.items():
 
-        databases = analyse_image(
+        databases = image_analysis(
             data['image'],
-            prefix, sigma=sigma,
-            threads=threads, alpha=alpha)
+            prefix, sigma=sigma, alpha=alpha)
 
         global_database = pd.concat([global_database, databases[0]])
         if shg:
@@ -169,7 +165,7 @@ def run(name, directory, key, sigma, alpha, save_db, threads, debug,
     if save_db != None:
         save_database(global_database, save_db)
         if shg:
-            save_database(fibre_database, save_db, '_fibre')
+            save_database(fibre_database, save_db, 'fibre')
         if pl:
-            save_database(cell_database, save_db, '_cell')
-            save_database(muscle_database, save_db, '_muscle')
+            save_database(cell_database, save_db, 'cell')
+            save_database(muscle_database, save_db, 'muscle')

@@ -1,3 +1,7 @@
+from tkinter import (
+    Frame, Toplevel, Label, HORIZONTAL, Scale, N, W, E, S,
+    Checkbutton
+)
 
 
 class PyFibreOptions:

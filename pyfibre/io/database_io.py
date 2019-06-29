@@ -34,12 +34,12 @@ def save_database(database, db_filename, file_type=''):
     db_filename = check_file_name(db_filename, extension='h5')
     db_filename = check_file_name(db_filename, extension='xls')
 
-    database.to_hdf(db_filename + f"{file_type}.h5", key='df')
-    database.to_excel(db_filename + f"{file_type}.xls")
+    database.to_hdf(f"{db_filename}_{file_type}.h5", key='df')
+    database.to_excel(f"{db_filename}_{file_type}.xls")
 
 
 def load_database(db_filename, file_type=''):
 
-    database = pd.read_hdf(db_filename + f"{file_type}.h5", key='df')
+    database = pd.read_hdf(f"{db_filename}_{file_type}.h5", key='df')
 
     return database

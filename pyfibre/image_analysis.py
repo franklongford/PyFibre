@@ -10,7 +10,7 @@ from pyfibre.tools.figures import create_figure, create_tensor_image, create_reg
 from pyfibre.io.segment_io import load_segment, save_segment
 from pyfibre.io.database_io import save_database, load_database
 
-from pyfibre.pyfibre_metrics import metric_analysis
+from pyfibre.metric_analysis import metric_analysis
 from pyfibre.pyfibre_segmentation import segment_image
 
 logger = logging.getLogger(__name__)
@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 def get_ow_options(multi_image, filename):
 
     try:
-        load_segment(filename + "_network")
-        load_segment(filename + "_network_reduced")
-        load_segment(filename+ "_fibre")
+        load_segment(filename, "network")
+        load_segment(filename, "network_reduced")
+        load_segment(filename, "fibre")
     except (UnpicklingError, IOError, EOFError):
         logger.info("Cannot load networks for {}".format(filename))
         multi_image.ow_network = True
@@ -30,9 +30,9 @@ def get_ow_options(multi_image, filename):
         multi_image.ow_figure = True
 
     try:
-        load_segment(filename + "_fibre_segment")
+        load_segment(filename, "fibre_segment")
         if multi_image.pl_analysis:
-            load_segment(filename + "_cell_segment")
+            load_segment(filename, "cell_segment")
     except (UnpicklingError, IOError, EOFError):
         logger.info("Cannot load segments for {}".format(filename))
         multi_image.ow_segment = True
@@ -40,16 +40,16 @@ def get_ow_options(multi_image, filename):
         multi_image.ow_figure = True
 
     try:
-        load_database(filename, '_global_metric')
-        load_database(filename, '_fibre_metric')
-        load_database(filename, '_cell_metric')
+        load_database(filename, 'global_metric')
+        load_database(filename, 'fibre_metric')
+        load_database(filename, 'cell_metric')
     except (UnpicklingError, IOError, EOFError):
         logger.info("Cannot load metrics for {}".format(filename))
         multi_image.ow_metric = True
 
 
-def analyse_image(multi_image, prefix, scale=1.25,
-                  p_denoise=(5, 35), sigma=0.5, alpha=0.5, threads=8):
+def image_analysis(multi_image, prefix, scale=1.25,
+                   p_denoise=(5, 35), sigma=0.5, alpha=0.5):
     """
     Analyse imput image by calculating metrics and sgenmenting via FIRE algorithm
 
@@ -65,8 +65,6 @@ def analyse_image(multi_image, prefix, scale=1.25,
         Parameters for non-linear means denoise algorithm (used to remove noise)
     sigma: float (optional)
         Standard deviation of Gaussian smoothing
-    threads: int (optional)
-        Maximum number of threads to use for FIRE algorithm
 
     Returns
     -------
@@ -101,12 +99,12 @@ def analyse_image(multi_image, prefix, scale=1.25,
 
         networks, networks_red, fibres = network_extraction(
             multi_image.image_shg, filename,
-            scale=scale, sigma=sigma, alpha=alpha, p_denoise=p_denoise,
-            threads=threads)
+            scale=scale, sigma=sigma, alpha=alpha, p_denoise=p_denoise
+        )
 
-        save_segment(networks, filename + "_network")
-        save_segment(networks_red, filename + "_network_reduced")
-        save_segment(fibres, filename + "_fibre")
+        save_segment(networks, filename, "network")
+        save_segment(networks_red, filename, "network_reduced")
+        save_segment(fibres, filename, "fibre")
 
         end_net = time.time()
 
@@ -116,17 +114,17 @@ def analyse_image(multi_image, prefix, scale=1.25,
 
         start_seg = time.time()
 
-        networks = load_segment(filename + "_network")
-        networks_red = load_segment(filename + "_network_reduced")
+        networks = load_segment(filename, "network")
+        networks_red = load_segment(filename, "network_reduced")
 
         global_seg, fibre_seg, cell_seg = segment_image(
             multi_image, networks, networks_red, scale=scale)
 
         end_seg = time.time()
 
-        save_segment(global_seg, '{}_global_segment'.format(filename))
-        save_segment(fibre_seg, '{}_fibre_segment'.format(filename))
-        save_segment(cell_seg, '{}_cell_segment'.format(filename))
+        save_segment(global_seg, filename, 'global_segment')
+        save_segment(fibre_seg, filename, 'fibre_segment')
+        save_segment(cell_seg, filename, 'cell_segment')
 
         logger.debug(f"TOTAL SEGMENTATION TIME = {round(end_seg - start_seg, 3)} s")
 
@@ -135,12 +133,12 @@ def analyse_image(multi_image, prefix, scale=1.25,
         start_met = time.time()
 
         "Load networks and segments"
-        global_seg = load_segment(filename + "_global_segment")
-        fibre_seg = load_segment(filename + "_fibre_segment")
-        cell_seg = load_segment(filename + "_cell_segment")
-        networks = load_segment(filename + "_network")
-        networks_red = load_segment(filename + "_network_reduced")
-        fibres = load_segment(filename + "_fibre")
+        global_seg = load_segment(filename, "global_segment")
+        fibre_seg = load_segment(filename, "fibre_segment")
+        cell_seg = load_segment(filename, "cell_segment")
+        networks = load_segment(filename, "network")
+        networks_red = load_segment(filename, "network_reduced")
+        fibres = load_segment(filename, "fibre")
 
         (global_dataframe,
          fibre_dataframe,
@@ -163,9 +161,9 @@ def analyse_image(multi_image, prefix, scale=1.25,
 
         start_fig = time.time()
 
-        networks = load_segment(data_dir + image_name + "_network")
-        fibre_seg = load_segment(data_dir + image_name + "_fibre_segment")
-        fibres = load_segment(data_dir + image_name + "_fibre")
+        networks = load_segment(data_dir + image_name, "network")
+        fibre_seg = load_segment(data_dir + image_name, "fibre_segment")
+        fibres = load_segment(data_dir + image_name, "fibre")
         fibres = flatten_list(fibres)
 
         tensor_image = create_tensor_image(multi_image.image_shg)
@@ -180,7 +178,7 @@ def analyse_image(multi_image, prefix, scale=1.25,
         create_figure(fibre_region_image, fig_dir + image_name + '_fibre_seg')
 
         if multi_image.pl_analysis:
-            cell_seg = load_segment(data_dir + image_name + "_cell_segment")
+            cell_seg = load_segment(data_dir + image_name, "cell_segment")
             cell_region_image = create_region_image(multi_image.image_pl, cell_seg)
             create_figure(multi_image.image_pl, fig_dir + image_name + '_PL', cmap='binary_r')
             create_figure(multi_image.image_tran, fig_dir + image_name + '_trans', cmap='binary_r')
@@ -197,13 +195,13 @@ def analyse_image(multi_image, prefix, scale=1.25,
     databases = ()
 
     if multi_image.shg_analysis:
-        global_dataframe = load_database(filename, '_global_metric')
-        fibre_dataframe = load_database(filename, '_fibre_metric')
+        global_dataframe = load_database(filename, 'global_metric')
+        fibre_dataframe = load_database(filename, 'fibre_metric')
         databases += (global_dataframe, fibre_dataframe)
 
     if multi_image.pl_analysis:
-        cell_dataframe = load_database(filename, '_cell_metric')
-        muscle_dataframe = load_database(filename, '_muscle_metric')
+        cell_dataframe = load_database(filename, 'cell_metric')
+        muscle_dataframe = load_database(filename, 'muscle_metric')
         databases += (cell_dataframe, muscle_dataframe)
 
     return databases
