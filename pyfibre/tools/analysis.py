@@ -157,7 +157,8 @@ def fibre_analysis(tot_fibres, verbose=False):
 
 
 def greycoprops_edit(P, prop='contrast'):
-
+    """Edited version of the scikit-image greycoprops function,
+    including additional properties"""
     (num_level, num_level2, num_dist, num_angle) = P.shape
 
     assert num_level == num_level2

@@ -13,7 +13,7 @@ def save_segment(regions, file_name):
 
 def load_segment(file_name):
     "Loads pickled scikit image regions"
-
+    print(file_name)
     try:
         with open('{}.pkl'.format(file_name), 'rb') as infile:
             regions = pickle.load(infile)

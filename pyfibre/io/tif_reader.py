@@ -59,8 +59,8 @@ def extract_prefix(image_name, label):
 
 class TIFReader():
 
-    def __init__(self, input_files=[], ow_network=False, ow_segment=False,
-                 ow_metric=False, ow_figure=False, include_shg=True):
+    def __init__(self, input_files=[], shg=True, pl=True, ow_network=False,
+                 ow_segment=False, ow_metric=False, ow_figure=False):
 
         self._dim_list_shg = [2, 3, 4]
         self._dim_list_pl = [3, 4]
@@ -75,7 +75,8 @@ class TIFReader():
         self.ow_figure = ow_figure
 
         self.files = {}
-        self.include_shg = include_shg
+        self.shg = shg
+        self.pl = pl
 
         self.get_image_lists(input_files)
 
@@ -261,18 +262,24 @@ class TIFReader():
 
                 if len(indices) > 0:
                     self.files[prefix] = {}
-                    self.files[prefix]['SHG'] = shg_files[i]
-                    self.files[prefix]['PL'] = pl_files[indices[0]]
+                    if self.shg:
+                        self.files[prefix]['SHG'] = shg_files[i]
+                    if self.pl:
+                        self.files[prefix]['PL'] = pl_files[indices[0]]
 
-                elif self.include_shg:
+                elif self.shg:
                     self.files[prefix] = {}
                     self.files[prefix]['SHG'] = shg_files[i]
+                    if self.pl:
+                        raise IOError('Could not find PL image data')
 
     def load_multi_images(self):
         """Load in SHG and PL files from file name tuple"""
 
         for prefix, data in self.files.items():
             image_stack = [None, None, None]
+            shg_analysis = self.shg
+            pl_analysis = self.pl
             try:
                 (image_stack[0],
                  image_stack[1],
@@ -286,10 +293,11 @@ class TIFReader():
                     (image_stack[1],
                      image_stack[2]) = self.import_image(data['PL'], 'PL')
                 except KeyError:
-                    pass
+                    pl_analysis = False
 
             multi_image = MultiLayerImage(
                 *image_stack, self.ow_network, self.ow_segment,
-                self.ow_metric, self.ow_figure
+                self.ow_metric, self.ow_figure, shg_analysis,
+                pl_analysis
             )
             self.files[prefix]['image'] = multi_image

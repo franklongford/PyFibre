@@ -18,7 +18,7 @@ import pandas as pd
 import pyfibre.utilities as ut
 from pyfibre.version import __version__
 from pyfibre.pyfibre_analyse_image import analyse_image
-from pyfibre.io.database_writer import write_database
+from pyfibre.io.database_io import save_database
 from pyfibre.io.tif_reader import TIFReader
 
 import matplotlib
@@ -57,6 +57,14 @@ def parse_files(name, directory, key):
 @click.option(
     '--debug', is_flag=True, default=False,
     help="Prints extra debug information in pyfibre.log"
+)
+@click.option(
+    '--shg', is_flag=True, default=False,
+    help='Toggles analysis of SHG images'
+)
+@click.option(
+    '--pl', is_flag=True, default=False,
+    help='Toggles analysis of PL images'
 )
 @click.option(
     '--ow_metric', is_flag=True, default=False,
@@ -107,7 +115,7 @@ def parse_files(name, directory, key):
     required=False, default=None
 )
 def run(name, directory, key, sigma, alpha, save_db, threads, debug,
-        ow_metric, ow_segment, ow_network, ow_figure, test):
+        shg, pl, ow_metric, ow_segment, ow_network, ow_figure, test):
 
     if debug is False:
         logging.basicConfig(filename="pyfibre.log", filemode="w",
@@ -131,33 +139,37 @@ def run(name, directory, key, sigma, alpha, save_db, threads, debug,
     logger.debug(f"{name} {directory}")
 
     input_files = parse_files(name, directory, key)
-    reader = TIFReader(input_files, ow_network, ow_segment,
-                       ow_metric, ow_figure)
+    reader = TIFReader(input_files, shg, pl, ow_network,
+                       ow_segment, ow_metric, ow_figure)
     reader.load_multi_images()
 
-    cell_database = pd.DataFrame()
-    fibre_database = pd.DataFrame()
     global_database = pd.DataFrame()
+    fibre_database = pd.DataFrame()
+    cell_database = pd.DataFrame()
+    muscle_database = pd.DataFrame()
 
     for prefix, data in reader.files.items():
 
-        (data_global,
-         data_segment,
-         data_cell) = analyse_image(
+        databases = analyse_image(
             data['image'],
             prefix, sigma=sigma,
             threads=threads, alpha=alpha)
 
-        global_database = pd.concat([global_database, data_global])
-        fibre_database = pd.concat([fibre_database, data_segment])
-        cell_database = pd.concat([cell_database, data_cell])
+        global_database = pd.concat([global_database, databases[0]])
+        if shg:
+            fibre_database = pd.concat([fibre_database, databases[1]])
+        if pl:
+            cell_database = pd.concat([cell_database, databases[2]])
+            muscle_database = pd.concat([muscle_database, databases[3]])
 
         logger.debug(prefix)
         logger.debug("Global Image Analysis Metrics:")
-        logger.debug(data_global.iloc[0])
+        logger.debug(databases[0].iloc[0])
 
     if save_db != None:
-
-        write_database(global_database, save_db)
-        write_database(fibre_database, save_db, '_fibre')
-        write_database(cell_database, save_db, '_cell')
+        save_database(global_database, save_db)
+        if shg:
+            save_database(fibre_database, save_db, '_fibre')
+        if pl:
+            save_database(cell_database, save_db, '_cell')
+            save_database(muscle_database, save_db, '_muscle')

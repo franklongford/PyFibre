@@ -2,15 +2,13 @@ import os
 import time
 import logging
 
-import pandas as pd
-
 from pickle import UnpicklingError
 
 from pyfibre.utilities import flatten_list
 from pyfibre.tools.extraction import network_extraction
 from pyfibre.tools.figures import create_figure, create_tensor_image, create_region_image, create_network_image
 from pyfibre.io.segment_io import load_segment, save_segment
-from pyfibre.io.database_writer import write_database
+from pyfibre.io.database_io import save_database, load_database
 
 from pyfibre.pyfibre_metrics import metric_analysis
 from pyfibre.pyfibre_segmentation import segment_image
@@ -42,16 +40,16 @@ def get_ow_options(multi_image, filename):
         multi_image.ow_figure = True
 
     try:
-        pd.read_pickle(filename + '_global_metric.pkl')
-        pd.read_pickle(filename + '_fibre_metric.pkl')
-        pd.read_pickle(filename + '_cell_metric.pkl')
+        load_database(filename, '_global_metric')
+        load_database(filename, '_fibre_metric')
+        load_database(filename, '_cell_metric')
     except (UnpicklingError, IOError, EOFError):
         logger.info("Cannot load metrics for {}".format(filename))
         multi_image.ow_metric = True
 
 
-def analyse_image(multi_image, prefix, scale=1.25, p_denoise=(5, 35),
-                  sigma=0.5, alpha=0.5, threads=8):
+def analyse_image(multi_image, prefix, scale=1.25,
+                  p_denoise=(5, 35), sigma=0.5, alpha=0.5, threads=8):
     """
     Analyse imput image by calculating metrics and sgenmenting via FIRE algorithm
 
@@ -154,10 +152,10 @@ def analyse_image(multi_image, prefix, scale=1.25, p_denoise=(5, 35),
 
         end_met = time.time()
 
-        write_database(global_dataframe, '{}_global_metric.pkl'.format(filename))
-        write_database(fibre_dataframe, '{}_fibre_metric.pkl'.format(filename))
-        write_database(cell_dataframe, '{}_cell_metric.pkl'.format(filename))
-        write_database(muscle_dataframe, '{}_muscle_metric.pkl'.format(filename))
+        save_database(global_dataframe, '{}_global_metric'.format(filename))
+        save_database(fibre_dataframe, '{}_fibre_metric'.format(filename))
+        save_database(cell_dataframe, '{}_cell_metric'.format(filename))
+        save_database(muscle_dataframe, '{}_muscle_metric'.format(filename))
 
         logger.debug(f"TOTAL METRIC TIME = {round(end_met - start_met, 3)} s")
 
@@ -196,9 +194,16 @@ def analyse_image(multi_image, prefix, scale=1.25, p_denoise=(5, 35),
 
     logger.info(f"TOTAL ANALYSIS TIME = {round(end - start, 3)} s")
 
-    global_dataframe = pd.read_pickle(filename + '_global_metric.pkl')
-    fibre_dataframe = pd.read_pickle(filename + '_fibre_metric.pkl')
-    cell_dataframe = pd.read_pickle(filename + '_cell_metric.pkl')
-    muscle_dataframe = pd.read_pickle(filename + '_muscle_metric.pkl')
+    databases = ()
 
-    return global_dataframe, fibre_dataframe, cell_dataframe
+    if multi_image.shg_analysis:
+        global_dataframe = load_database(filename, '_global_metric')
+        fibre_dataframe = load_database(filename, '_fibre_metric')
+        databases += (global_dataframe, fibre_dataframe)
+
+    if multi_image.pl_analysis:
+        cell_dataframe = load_database(filename, '_cell_metric')
+        muscle_dataframe = load_database(filename, '_muscle_metric')
+        databases += (cell_dataframe, muscle_dataframe)
+
+    return databases

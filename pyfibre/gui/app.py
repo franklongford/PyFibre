@@ -8,25 +8,20 @@ from multiprocessing import Process, Queue
 import matplotlib
 matplotlib.use("Agg")
 
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from matplotlib.figure import Figure
-
 from PIL import ImageTk, Image
 import numpy as np
 import pandas as pd
-from pickle import UnpicklingError
 
 from pyfibre.cli.app import analyse_image
 import pyfibre.utilities as ut
-from pyfibre.io.database_writer import DatabaseWriter
-from pyfibre.io.segment_io import SegmentReader
-from pyfibre.tools.figures import create_tensor_image, create_region_image, create_network_image
-from pyfibre.tools.filters import form_structure_tensor
-from pyfibre.tools.analysis import tensor_analysis, fibre_analysis
-from pyfibre.io.multi_image import MultiLayerImage
+from .pyfibre_options import PyFibreOptions
+from .pyfibre_metrics import PyFibreMetrics
+from .pyfibre_graphs import PyFibreGraphs
+from .pyfibre_viewer import PyFibreViewer
+from pyfibre.io.database_io import load_database, save_database
 
 
-class pyfibre_gui:
+class PyFibreGUI:
 
 	def __init__(self, master, n_proc, n_thread):
 
@@ -94,9 +89,10 @@ class pyfibre_gui:
 		self.toggle.metric_button.pack()
 
 		self.graphs = None
-		self.toggle.graph_button = Button(self.toggle, width=15,
-				   text="Graphs",
-				   command=self.create_graph_display)
+		self.toggle.graph_button = Button(
+			self.toggle, width=15,
+			text="Graphs",
+			command=self.create_graph_display)
 		self.toggle.graph_button.pack()
 
 		self.toggle.test_button = Button(self.toggle, width=15,
@@ -131,7 +127,7 @@ class pyfibre_gui:
 
 		try: self.options.window.lift()
 		except (TclError, AttributeError): 
-			self.options = pyfibre_options(self)
+			self.options = PyFibreOptions(self)
 
 
 	def create_file_display(self, frame,  button_w= 18):
@@ -248,19 +244,19 @@ class pyfibre_gui:
 
 		try: self.viewer.window.lift()
 		except (TclError, AttributeError):
-			self.viewer = pyfibre_viewer(self)
+			self.viewer = PyFibreViewer(self)
 
 	def create_metric_display(self):
 
 		try: self.metrics.window.lift()
 		except (TclError, AttributeError):
-			self.metrics = pyfibre_metrics(self)
+			self.metrics = PyFibreMetrics(self)
 
 	def create_graph_display(self):
 
 		try: self.graphs.window.lift()
 		except (TclError, AttributeError):
-			self.graphs = pyfibre_graphs(self)
+			self.graphs = PyFibreGraphs(self)
 		
 
 	def update_windows(self):
@@ -312,12 +308,11 @@ class pyfibre_gui:
 
 	def save_database(self):
 
-		writer = DatabaseWriter()
 		db_filename = filedialog.asksaveasfilename()
 
-		writer.write_database(self.global_database, db_filename)
-		writer.write_database(self.fibre_database, db_filename, '_fibre')
-		writer.write_database(self.cell_database, db_filename, '_cell')
+		save_database(self.global_database, db_filename)
+		save_database(self.fibre_database, db_filename, '_fibre')
+		save_database(self.cell_database, db_filename, '_cell')
 
 		self.update_log("Saving Database files {}".format(db_filename))
 
@@ -439,7 +434,6 @@ class pyfibre_gui:
 			self.process_check()
 
 
-
 def image_analysis(input_files, input_prefixes, p_intensity, p_denoise, sigma, alpha, 
 			ow_metric, ow_segment, ow_network, ow_figure, 
 			queue, threads):
@@ -461,540 +455,6 @@ def image_analysis(input_files, input_prefixes, p_intensity, p_denoise, sigma, a
 		except Exception as err: queue.put("{} {}".format(err.message, prefix))
 
 
-class pyfibre_options:
-
-	def __init__(self, parent, width=320, height=620):
-
-		self.parent = parent
-		self.width = width
-		self.height = height
-
-		"Initialise option parameters"
-		self.window = Toplevel(self.parent.master)
-		self.window.tk.call('wm', 'iconphoto', self.window._w, self.parent.title.image)
-		self.window.title('PyFibre - Options')
-		self.window.geometry(f"{width}x{height}-100+40")
-		self.window.configure(background='#d8baa9')
-
-		self.frame = Frame(self.window)
-		self.create_options()
-
-	def create_options(self):
-
-		self.title_sigma = Label(self.frame, text="Gaussian Std Dev (pix)")
-		self.title_sigma.configure(background='#d8baa9')
-		self.sigma = Scale(self.frame, from_=0, to=10, tickinterval=1, resolution=0.1, 
-				length=300, orient=HORIZONTAL, variable=self.parent.sigma)
-
-		self.title_sigma.grid(column=0, row=2, rowspan=1)
-		self.sigma.grid(column=0, row=3, sticky=(N,W,E,S))
-
-		self.title_p0 = Label(self.frame, text="Low Clip Intensity (%)")
-		self.title_p0.configure(background='#d8baa9')
-		self.p0 = Scale(self.frame, from_=0, to=100, tickinterval=10, 
-				length=300, orient=HORIZONTAL, variable=self.parent.p0)
-
-		self.title_p1 = Label(self.frame, text="High Clip Intensity (%)")
-		self.title_p1.configure(background='#d8baa9')
-		self.p1 = Scale(self.frame, from_=0, to=100,tickinterval=10, 
-				length=300, orient=HORIZONTAL, variable=self.parent.p1)
-
-		self.title_p0.grid(column=0, row=4, rowspan=1)
-		self.p0.grid(column=0, row=5)
-		self.title_p1.grid(column=0, row=6, rowspan=1)
-		self.p1.grid(column=0, row=7)
-
-		self.title_n = Label(self.frame, text="NL-Mean Neighbourhood 1 (pix)")
-		self.title_n.configure(background='#d8baa9')
-		self.n = Scale(self.frame, from_=0, to=100, tickinterval=10, 
-				length=300, orient=HORIZONTAL, variable=self.parent.n)
-
-		self.title_m = Label(self.frame, text="NL-Mean Neighbourhood 2 (pix)")
-		self.title_m.configure(background='#d8baa9')
-		self.m = Scale(self.frame, from_=0, to=100,tickinterval=10,
-				length=300, orient=HORIZONTAL, variable=self.parent.m)
-
-		self.title_n.grid(column=0, row=8, rowspan=1)
-		self.n.grid(column=0, row=9)
-		self.title_m.grid(column=0, row=10, rowspan=1)
-		self.m.grid(column=0, row=11)
-
-		self.title_alpha = Label(self.frame, text="Alpha network coefficient")
-		self.title_alpha.configure(background='#d8baa9')
-		self.alpha = Scale(self.frame, from_=0, to=1, tickinterval=0.1, resolution=0.01,
-						length=300, orient=HORIZONTAL, variable=self.parent.alpha)
-
-		self.title_alpha.grid(column=0, row=12, rowspan=1)
-		self.alpha.grid(column=0, row=13)
-
-		self.chk_metric = Checkbutton(self.frame, text="o/w metrics", variable=self.parent.ow_metric)
-		self.chk_metric.configure(background='#d8baa9')
-		self.chk_metric.grid(column=0, row=14, sticky=(N,W,E,S))
-
-		self.chk_segment = Checkbutton(self.frame, text="o/w segment", variable=self.parent.ow_segment)
-		self.chk_segment.configure(background='#d8baa9')
-		self.chk_segment.grid(column=0, row=15, sticky=(N,W,E,S))
-
-		self.chk_network = Checkbutton(self.frame, text="o/w network", variable=self.parent.ow_network)
-		self.chk_network.configure(background='#d8baa9')
-		self.chk_network.grid(column=0, row=16, sticky=(N,W,E,S))
-
-		self.chk_figure = Checkbutton(self.frame, text="o/w figure", variable=self.parent.ow_figure)
-		self.chk_figure.configure(background='#d8baa9')
-		self.chk_figure.grid(column=0, row=17, sticky=(N,W,E,S))
-
-		self.chk_db = Checkbutton(self.frame, text="Save Database", variable=self.parent.save_db)
-		self.chk_db.configure(background='#d8baa9')
-		self.chk_db.grid(column=0, row=18, sticky=(N,W,E,S))
-
-		self.frame.configure(background='#d8baa9')
-		self.frame.pack()
-
-
-class pyfibre_viewer:
-
-	def __init__(self, parent, width=750, height=750):
-
-		self.parent = parent
-		self.width = width
-		self.height = height
-
-		self.window = Toplevel(self.parent.master)
-		self.window.tk.call('wm', 'iconphoto', self.window._w, self.parent.title.image)
-		self.window.title('PyFibre - Viewer')
-		self.window.geometry(f"{width}x{height}-100+40")
-
-		self.notebook = ttk.Notebook(self.window)
-		self.create_tabs()
-
-
-	def create_tabs(self):
-
-		self.shg_image_tab = ttk.Frame(self.notebook)
-		self.pl_image_tab = ttk.Frame(self.notebook)
-		self.tran_image_tab = ttk.Frame(self.notebook)
-		self.tensor_tab = ttk.Frame(self.notebook)
-		self.network_tab = ttk.Frame(self.notebook)
-		self.segment_tab = ttk.Frame(self.notebook)
-		self.fibre_tab = ttk.Frame(self.notebook)
-		self.cell_tab = ttk.Frame(self.notebook)
-		self.metric_tab = ttk.Frame(self.notebook)
-
-		self.tab_dict = {'SHG Image' : self.shg_image_tab,
-						 'PL Image'  : self.pl_image_tab,
-						 'Transmission Image'  : self.tran_image_tab,
-						 'Tensor Image': self.tensor_tab,
-						 'Network' : self.network_tab,
-						 'Fibre' :  self.fibre_tab,
-						 'Fibre Segment' : self.segment_tab,
-						 'Cell Segment' : self.cell_tab}
-		
-		for key, tab in self.tab_dict.items():
-			self.notebook.add(tab, text=key)
-
-			tab.canvas = Canvas(tab, width=self.width, height=self.height,
-									scrollregion=(0,0,self.height + 50 ,self.width + 50))  
-			tab.scrollbar = Scrollbar(tab, orient=VERTICAL, 
-								command=tab.canvas.yview)
-			tab.scrollbar.pack(side=RIGHT,fill=Y)
-			tab.canvas['yscrollcommand'] = tab.scrollbar.set
-			tab.canvas.pack(side = LEFT, fill = "both", expand = "yes")
-
-		
-		self.log_tab = ttk.Frame(self.notebook)
-		self.notebook.add(self.log_tab, text='Log')
-		self.log_tab.text = Text(self.log_tab, width=self.width-25, height=self.height-25)
-		self.log_tab.text.insert(END, self.parent.Log)
-		self.log_tab.text.config(state=DISABLED)
-
-		self.log_tab.scrollbar = Scrollbar(self.log_tab, orient=VERTICAL, 
-							command=self.log_tab.text.yview)
-		self.log_tab.scrollbar.pack(side=RIGHT,fill=Y)
-		self.log_tab.text['yscrollcommand'] = self.log_tab.scrollbar.set
-
-		self.log_tab.text.pack()
-
-		self.notebook.pack()
-		#frame.notebook.BFrame.configure(background='#d8baa9')
-
-
-	def display_image(self, canvas, image, x=0, y=0):
-
-		canvas.delete('all')
-
-		canvas.create_image(x, y, image=image, anchor=NW)
-		canvas.image = image
-		canvas.pack(side = LEFT, fill = "both", expand = True)
-
-		self.parent.master.update_idletasks()
-
-
-	def display_tensor(self, canvas, image):
-
-		tensor_image = create_tensor_image(image) * 255.999
-
-		image_pil = Image.fromarray(tensor_image.astype('uint8'))
-		image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
-		image_tk = ImageTk.PhotoImage(image_pil)
-		self.display_image(canvas, image_tk)
-
-
-	def display_network(self, canvas, image, networks, c_mode=0):
-
-		image_network_overlay = create_network_image(image, networks, c_mode)
-
-		image_pil = Image.fromarray(image_network_overlay.astype('uint8'))
-		image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
-		image_tk = ImageTk.PhotoImage(image_pil)
-		self.display_image(canvas, image_tk)
-
-
-	def display_regions(self, canvas, image, regions):
-
-		image_label_overlay = create_region_image(image, regions) * 255.999
-
-		image_pil = Image.fromarray(image_label_overlay.astype('uint8'))
-		image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
-		image_tk = ImageTk.PhotoImage(image_pil)
-
-		self.display_image(canvas, image_tk)
-
-
-	def update_log(self, text):
-
-		self.log_tab.text.config(state=NORMAL)
-		self.parent.Log += text + '\n'
-		self.log_tab.text.insert(END, text + '\n')
-		self.log_tab.text.config(state=DISABLED)
-
-
-	def display_notebook(self):
-
-		selected_file = self.parent.file_display.tree.selection()[0]
-
-		image_name = selected_file.split('/')[-1]
-		image_path = '/'.join(selected_file.split('/')[:-1])
-		fig_name = ut.check_file_name(image_name, extension='tif')
-		data_dir = image_path + '/data/'
-
-		file_index = self.parent.input_prefixes.index(selected_file)
-		reader = SegmentReader()
-		self.multi_image = MultiLayerImage(
-			self.parent.input_files[file_index],
-			p_intensity=(self.parent.p0.get(), self.parent.p1.get()))
-		
-		if self.multi_image.shg_analysis:
-			image_shg = self.multi_image.image_shg * 255.999
-			image_pil = Image.fromarray(image_shg.astype('uint8'))
-			image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
-			shg_image_tk = ImageTk.PhotoImage(image_pil)
-			
-			self.display_image(self.shg_image_tab.canvas, shg_image_tk)
-			self.update_log("Displaying SHG image {}".format(fig_name))
-
-			self.display_tensor(self.tensor_tab.canvas, image_shg)
-			self.update_log("Displaying SHG tensor image {}".format(fig_name))
-
-			try:
-				networks = reader.load_region(data_dir + fig_name + "_network")
-				self.display_network(self.network_tab.canvas, image_shg, networks)
-				self.update_log("Displaying network for {}".format(fig_name))
-			except (UnpicklingError, IOError, EOFError):
-				self.network_tab.canvas.delete('all')
-				self.update_log("Unable to display network for {}".format(fig_name))
-
-			try:
-				fibres = reader.load_region(data_dir + fig_name + "_fibre")
-				fibres = ut.flatten_list(fibres)
-				self.display_network(self.fibre_tab.canvas, image_shg, fibres, 1)
-				self.update_log("Displaying fibres for {}".format(fig_name))
-			except (UnpicklingError, IOError, EOFError):
-				self.fibre_tab.canvas.delete('all')
-				self.update_log("Unable to display fibres for {}".format(fig_name))
-
-			try:
-				segments = reader.load_region(data_dir + fig_name + "_fibre_segment")
-				self.display_regions(self.segment_tab.canvas, image_shg, segments)
-				self.update_log("Displaying fibre segments for {}".format(fig_name))
-			except (AttributeError, UnpicklingError, IOError, EOFError):
-				self.segment_tab.canvas.delete('all')
-				self.update_log("Unable to display fibre segments for {}".format(fig_name))
-
-		if self.multi_image.pl_analysis:
-			image_pl = self.multi_image.image_pl * 255.999
-			image_pil = Image.fromarray(image_pl.astype('uint8'))
-			image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
-			pl_image_tk = ImageTk.PhotoImage(image_pil)
-
-			self.display_image(self.pl_image_tab.canvas, pl_image_tk)
-			self.update_log("Displaying PL image {}".format(fig_name))
-
-			image_tran = self.multi_image.image_tran * 255.999
-			image_pil = Image.fromarray(image_tran.astype('uint8'))
-			image_pil = image_pil.resize((self.width, self.height), Image.ANTIALIAS)
-			tran_image_tk = ImageTk.PhotoImage(image_pil)
-
-			self.display_image(self.tran_image_tab.canvas, tran_image_tk)
-			self.update_log("Displaying PL Transmission image {}".format(fig_name))
-		
-			try:	
-				cells = reader.load_region(data_dir + fig_name + "_cell_segment")
-				self.display_regions(self.cell_tab.canvas, image_pl, cells)
-				self.update_log("Displaying cell segments for {}".format(fig_name))
-			except (AttributeError, UnpicklingError, IOError, EOFError):
-				self.cell_tab.canvas.delete('all')
-				self.update_log("Unable to display cell segments for {}".format(fig_name))
-		else: 
-			self.pl_image_tab.canvas.delete('all')
-			self.tran_image_tab.canvas.delete('all')
-			self.cell_tab.canvas.delete('all')
-
-		self.parent.master.update_idletasks()
-
-
-class pyfibre_metrics:
-
-	def __init__(self, parent, width=750, height=750):
-
-		self.parent = parent
-		self.width = width
-		self.height = height
-
-		self.window = Toplevel(self.parent.master)
-		self.window.tk.call('wm', 'iconphoto', self.window._w, self.parent.title.image)
-		self.window.title('PyFibre - Metrics')
-		self.window.geometry(f"{width}x{height}-100+40")
-
-		self.frame = Frame(self.window)
-		self.create_metrics()
-
-
-	def create_metrics(self):
-
-		self.metric_dict = {
-			'No. Fibres' : {"info" : "Number of extracted fibres", "metric" : IntVar(), "tag" : "network"},
-			'SHG Angle SDI' : {"info" : "Angle spectrum SDI of total image", "metric" : DoubleVar(), "tag" : "content"},
-			'SHG Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar(), "tag" : "content"},
-			'SHG Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar(), "tag" : "content"},
-			'SHG Intensity Mean' : {"info" : "Average pixel intensity of total image", "metric" : DoubleVar(), "tag" : "content"},
-			'SHG Intensity STD' : {"info" : "Pixel intensity standard deviation of total image", "metric" : DoubleVar(), "tag" : "content"},
-			'SHG Intensity Entropy' : {"info" : "Average Shannon entropy of total image", "metric" : DoubleVar(), "tag" : "content"},						
-			'Fibre GLCM Contrast' : {"info" : "SHG GLCM angle-averaged contrast", "metric" : DoubleVar(), "tag" : "content"},
-			'Fibre GLCM Homogeneity' : {"info" : "SHG GLCM angle-averaged homogeneity", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre GLCM Dissimilarity' : {"info" : "SHG GLCM angle-averaged dissimilarity", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre GLCM Correlation' : {"info" : "SHG GLCM angle-averaged correlation", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre GLCM Energy' : {"info" : "SHG GLCM angle-averaged energy", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre GLCM Similarity' : {"info" : "SHG GLCM angle-averaged similarity", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre GLCM Variance' : {"info" : "SHG GLCM angle-averaged variance", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre GLCM Cluster' : {"info" : "SHG GLCM angle-averaged clustering tendency", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre GLCM Entropy' : {"info" : "SHG GLCM angle-averaged entropy", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre GLCM Autocorrelation' : {"info" : "SHG GLCM angle-averaged autocorrelation", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre Area' : {"info" : "Average number of pixels covered by fibres", "metric" : DoubleVar(), "tag" : "content"},			
-			'Fibre Coverage' : {"info" : "Ratio of image covered by fibres", "metric" : DoubleVar(), "tag" : "content"},
-			'Fibre Linearity' : {"info" : "Average fibre segment linearity", "metric" : DoubleVar(), "tag" : "shape"},
-			'Fibre Eccentricity' : {"info" : "Average fibre segment eccentricity", "metric" : DoubleVar(), "tag" : "shape"},
-			'Fibre Density' : {"info" : "Average image fibre density", "metric" : DoubleVar(), "tag" : "texture"},
-			'Fibre Hu Moment 1'  : {"info" : "Average fibre segment Hu moment 1", "metric" : DoubleVar(), "tag" : "shape"},
-			'Fibre Hu Moment 2'  : {"info" : "Average fibre segment Hu moment 2", "metric" : DoubleVar(), "tag" : "shape"},
-			'Fibre Waviness' : {"info" : "Average fibre waviness", "metric" : DoubleVar(), "tag" : "content"},
-			'Fibre Lengths' : {"info" : "Average fibre pixel length", "metric" : DoubleVar(), "tag" : "content"},
-			'Fibre Cross-Link Density' : {"info" : "Average cross-links per fibre", "metric" : DoubleVar(), "tag" : "content"},
-			'Network Degree' : {"info" : "Average fibre network number of edges per node", "metric" : DoubleVar(), "tag" : "network"},
-			'Network Eigenvalue' : {"info" : "Max Eigenvalue of network", "metric" : DoubleVar(), "tag" : "network"},
-			'Network Connectivity' : {"info" : "Average fibre network connectivity", "metric" : DoubleVar(), "tag" : "network"},
-
-			'No. Cells' : {"info" : "Number of cell segments", "metric" : IntVar(), "tag" : "content"},
-			'PL Angle SDI' : {"info" : "Angle spectrum SDI of total image", "metric" : DoubleVar(), "tag" : "content"},
-			'PL Pixel Anisotropy' : {"info" : "Average anisotropy of all pixels in total image", "metric" : DoubleVar(), "tag" : "content"},
-			'PL Anisotropy' : {"info" : "Anisotropy of total image", "metric" : DoubleVar(), "tag" : "content"},
-			'PL Intensity Mean' : {"info" : "Average pixel intensity of total image", "metric" : DoubleVar(), "tag" : "content"},
-			'PL Intensity STD' : {"info" : "Pixel intensity standard deviation of total image", "metric" : DoubleVar(), "tag" : "content"},
-			'PL Intensity Entropy' : {"info" : "Average Shannon entropy of total image", "metric" : DoubleVar(), "tag" : "content"},						
-			'Cell GLCM Contrast' : {"info" : "PL GLCM angle-averaged contrast", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell GLCM Homogeneity' : {"info" : "PL GLCM angle-averaged homogeneity", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell GLCM Dissimilarity' : {"info" : "PL GLCM angle-averaged dissimilarity", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell GLCM Correlation' : {"info" : "PL GLCM angle-averaged correlation", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell GLCM Energy' : {"info" : "PL GLCM angle-averaged energy", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell GLCM Similarity' : {"info" : "PL GLCM angle-averaged similarity", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell GLCM Variance' : {"info" : "PL GLCM angle-averaged variance", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell GLCM Cluster' : {"info" : "PL GLCM angle-averaged clustering tendency", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell GLCM Entropy' : {"info" : "PL GLCM angle-averaged entropy", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell GLCM Autocorrelation' : {"info" : "SHG GLCM angle-averaged autocorrelation", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Contrast' : {"info" : "PL GLCM angle-averaged contrast", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Homogeneity' : {"info" : "PL GLCM angle-averaged homogeneity", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Dissimilarity' : {"info" : "PL GLCM angle-averaged dissimilarity", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Correlation' : {"info" : "PL GLCM angle-averaged correlation", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Energy' : {"info" : "PL GLCM angle-averaged energy", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Similarity' : {"info" : "PL GLCM angle-averaged similarity", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Variance' : {"info" : "PL GLCM angle-averaged variance", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Cluster' : {"info" : "PL GLCM angle-averaged clustering tendency", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Entropy' : {"info" : "PL GLCM angle-averaged entropy", "metric" : DoubleVar(), "tag" : "texture"},
-			'Muscle GLCM Autocorrelation' : {"info" : "PL GLCM angle-averaged autocorrelation", "metric" : DoubleVar(), "tag" : "texture"},
-			'Cell Area' : {"info" : "Average number of pixels covered by cells", "metric" : DoubleVar(), "tag" : "content"},
-			'Cell Linearity' : {"info" : "Average cell segment linearity", "metric" : DoubleVar(), "tag" : "shape"}, 
-			'Cell Coverage' : {"info" : "Ratio of image covered by cell", "metric" : DoubleVar(), "tag" : "content"},		
-			'Cell Eccentricity' : {"info" : "Average cell segment eccentricity", "metric" : DoubleVar(), "tag" : "shape"},				
-			'Cell Density' : {"info" : "Average image cell density", "metric" : DoubleVar(), "tag" : "texture"},						
-			'Cell Hu Moment 1'  : {"info" : "Average cell segment Hu moment 1", "metric" : DoubleVar(), "tag" : "shape"},
-			'Cell Hu Moment 2'  : {"info" : "Average cell segment Hu moment 2", "metric" : DoubleVar(), "tag" : "shape"}
-										}
-
-		self.metric_titles = list(self.metric_dict.keys())
-
-		self.metrics = [DoubleVar() for i in range(len(self.metric_titles))]
-		self.headings = []
-		self.info = []
-		self.metrics = []
-
-		self.texture = ttk.Labelframe(self.frame, text="Texture",
-						width=self.width-50, height=self.height-50)
-		self.content = ttk.Labelframe(self.frame, text="Content",
-						width=self.width-50, height=self.height-50)
-		self.shape = ttk.Labelframe(self.frame, text="Shape",
-						width=self.width-50, height=self.height-50)
-		self.network = ttk.Labelframe(self.frame, text="Network",
-						width=self.width-50, height=self.height-50)
-		
-		self.frame_dict = {"texture" : {'tab' : self.texture, "count" : 0},
-									  "content" : {'tab' : self.content, "count" : 0},
-									  "shape"  : {'tab' : self.shape, "count" : 0},
-									  "network" : {'tab' : self.network, "count" : 0}}
-
-		for i, metric in enumerate(self.metric_titles):
-
-			tag = self.metric_dict[metric]["tag"]
-
-			self.headings += [Label(self.frame_dict[tag]['tab'], 
-				text="{}:".format(metric), font=("Ariel", 8))]
-			self.info += [Label(self.frame_dict[tag]['tab'], 
-				text=self.metric_dict[metric]["info"], font=("Ariel", 8))]
-			self.metrics += [Label(self.frame_dict[tag]['tab'], 
-				textvariable=self.metric_dict[metric]["metric"], font=("Ariel", 8))]
-
-			self.headings[i].grid(column=0, row=self.frame_dict[tag]['count'])
-			self.info[i].grid(column=1, row=self.frame_dict[tag]['count'])
-			self.metrics[i].grid(column=2, row=self.frame_dict[tag]['count'])
-			self.frame_dict[tag]['count'] += 1
-
-		self.texture.grid(column=0, row=0, rowspan=3)
-		self.content.grid(column=1, row=0)
-		self.shape.grid(column=1, row=1)
-		self.network.grid(column=1, row=2)
-
-		self.frame.configure(background='#d8baa9')
-		self.frame.pack()
-
-
-	def get_metrics(self):
-
-		selected_file = self.parent.file_display.tree.selection()[0]
-
-		image_name = selected_file.split('/')[-1]
-		image_path = '/'.join(selected_file.split('/')[:-1])
-		fig_name = ut.check_file_name(image_name, extension='tif')
-		data_dir = image_path + '/data/'
-
-		try:
-			loaded_metrics = pd.read_pickle('{}_global_metric.pkl'.format(data_dir + fig_name)).iloc[0]
-			for i, metric in enumerate(self.metric_dict.keys()):
-				value = round(loaded_metrics[metric], 2)
-				self.metric_dict[metric]["metric"].set(value)
-			print("Displaying metrics for {}".format(fig_name))
-
-		except (UnpicklingError, IOError, EOFError):
-			print("Unable to display metrics for {}".format(fig_name))
-			for i, metric in enumerate(self.metric_titles):
-				self.metric_dict[metric]["metric"].set(0)
-
-		self.parent.master.update_idletasks()
-
-
-class pyfibre_graphs:
-
-	def __init__(self, parent, width=750, height=750):
-
-		self.parent = parent
-		self.width = width
-		self.height = height
-
-		self.window = Toplevel(self.parent.master)
-		self.window.tk.call('wm', 'iconphoto', self.window._w, self.parent.title.image)
-		self.window.title('PyFibre - Graphs')
-		self.window.geometry(f"{width}x{height}-100+40")
-
-		self.frame = Frame(self.window)
-		self.create_graphs()
-
-
-	def create_graphs(self):
-
-		self.figure = Figure(figsize=(8, 4))
-		self.angle_ax = self.figure.add_subplot(121, polar=True)
-		self.angle_ax.set_title('Pixel Angle Histogram')
-
-		self.fibre_ax = self.figure.add_subplot(122, polar=True)
-		self.fibre_ax.set_title('Fibre Angle Histogram')
-
-		self.fig_canvas = FigureCanvasTkAgg(self.figure, self.frame)  
-		self.fig_canvas.get_tk_widget().pack(side = TOP, fill = "both", expand = "yes")
-		self.fig_canvas.draw()
-
-		self.toolbar = NavigationToolbar2Tk(self.fig_canvas, self.frame)
-		self.toolbar.update()
-		self.toolbar.pack(side = TOP, fill = "both", expand = "yes")
-
-		self.frame.pack()
-
-	def display_figures(self):
-
-		selected_file = self.parent.file_display.tree.selection()[0]
-
-		image_name = selected_file.split('/')[-1]
-		image_path = '/'.join(selected_file.split('/')[:-1])
-		fig_name = ut.check_file_name(image_name, extension='tif')
-		data_dir = image_path + '/data/'
-
-		reader = SegmentReader()
-
-		file_index = self.parent.input_prefixes.index(selected_file)
-		multi_image = MultiLayerImage(
-			self.parent.input_files[file_index],
-			p_intensity=(self.parent.p0.get(), self.parent.p1.get()))
-
-		if multi_image.shg_analysis:
-
-			"Form nematic and structure tensors for each pixel"
-			j_tensor = form_structure_tensor(multi_image.image_shg, sigma=1.0)
-
-			"Perform anisotropy analysis on each pixel"
-			pix_j_anis, pix_j_angle, pix_j_energy = tensor_analysis(j_tensor)
-
-			pix_j_angle = (pix_j_angle.flatten() + 90) * np.pi / 180 
-
-			self.angle_ax.clear()
-			self.angle_ax.set_title('Pixel Angle Histogram')
-			self.angle_ax.hist(pix_j_angle, weights=pix_j_anis.flatten(), bins=50, density=True)
-			#self.angle_ax.set_xlim(0, 180)
-
-			try:
-				fibres = reader.load_region(data_dir + fig_name + "_fibre")
-				fibres = ut.flatten_list(fibres)
-				
-				lengths, _, angles = fibre_analysis(fibres)
-
-				self.fibre_ax.clear()
-				self.fibre_ax.set_title('Fibre Angle Histogram')
-				self.fibre_ax.hist(angles.flatten() * np.pi / 180, weights=lengths.flatten(),
-							bins=50, density=True)
-				#self.fibre_ax.set_xlim(0, 180)
-
-				print("Displaying fibres for {}".format(fig_name))
-			except (UnpicklingError, IOError, EOFError):
-				self.fibre_tab.canvas.delete('all')
-				print("Unable to display fibres for {}".format(fig_name))
-
-		self.fig_canvas.draw()
-
 def run():
 
 	N_PROC = 1#os.cpu_count() - 1
@@ -1003,6 +463,6 @@ def run():
 	print(ut.logo())
 
 	root = Tk()
-	GUI = pyfibre_gui(root, N_PROC, N_THREAD)
+	GUI = PyFibreGUI(root, N_PROC, N_THREAD)
 
 	root.mainloop()

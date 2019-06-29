@@ -1,7 +1,7 @@
 from unittest import mock, TestCase
 
-from pyfibre.io.database_writer import (
-    write_database, check_string, check_file_name
+from pyfibre.io.database_io import (
+    save_database, check_string, check_file_name
 )
 
 

@@ -14,12 +14,8 @@ def gaussian(image, sigma=None):
 
 
 def tubeness(image, sigma_max=3):
-
-	"""
-	H_elems = hessian_matrix(image, order="xy", sigma=sigma, mode='reflect')
-	H_eigen = hessian_matrix_eigvals(H_elems)
-	tube = np.where(H_eigen[1] < 0, abs(H_eigen[1]), 0)
-	"""
+	"""Wrapper around the scikit-image sato tubeness
+	filter"""
 	
 	tube = sato(image, sigmas=range(1, sigma_max+1), black_ridges=False)
 	
@@ -27,7 +23,8 @@ def tubeness(image, sigma_max=3):
 
 
 def hysteresis(image, alpha=1.0):
-	""
+	"""Hystersis thresholding with low and high clipped values
+	determined by the mean, li and isodata threshold"""
 
 	low = np.min([alpha * threshold_mean(image), threshold_li(image)])
 	high = threshold_isodata(image)

@@ -1,3 +1,6 @@
+import pandas as pd
+
+
 def check_string(string, pos, sep, word):
     """Checks index 'pos' of 'string' seperated by 'sep' for substring 'word'
     If present, removes 'word' and returns amended string
@@ -26,10 +29,17 @@ def check_file_name(file_name, file_type="", extension=""):
     return file_name
 
 
-def write_database(database, db_filename, file_type=''):
+def save_database(database, db_filename, file_type=''):
 
-    db_filename = check_file_name(db_filename, extension='pkl')
+    db_filename = check_file_name(db_filename, extension='h5')
     db_filename = check_file_name(db_filename, extension='xls')
 
-    database.to_pickle(db_filename + f"{file_type}.pkl")
+    database.to_hdf(db_filename + f"{file_type}.h5", key='df')
     database.to_excel(db_filename + f"{file_type}.xls")
+
+
+def load_database(db_filename, file_type=''):
+
+    database = pd.read_hdf(db_filename + f"{file_type}.h5", key='df')
+
+    return database
