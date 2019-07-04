@@ -22,7 +22,7 @@ class TestImageReader(TestCase):
 class TestTIFReader(TestCase):
 
     def setUp(self):
-        self.reader = TIFReader()
+        self.reader = TIFReader(shg=True, pl=True)
         self.input_files = ['some/path/to/a/file-pl-shg.tif',
                             'some/path/to/another/file-pl.tif',
                             'some/path/to/another/file-shg.tif']
@@ -48,6 +48,7 @@ class TestTIFReader(TestCase):
         self.assertTrue(self.reader._check_shape((3, 100, 100, 7), 'PL-SHG'))
 
         self.assertTrue(self.reader._check_shape((3, 100, 100), 'PL-SHG'))
+        self.assertTrue(self.reader._check_shape((100, 100, 3), 'PL-SHG'))
         self.assertTrue(self.reader._check_shape((3, 100, 100), 'SHG'))
 
         self.assertTrue(self.reader._check_shape((2, 100, 100), 'PL'))
@@ -62,7 +63,6 @@ class TestTIFReader(TestCase):
         self.assertFalse(self.reader._check_shape((7, 3, 100, 100), 'PL-SHG'))
         self.assertFalse(self.reader._check_shape((3, 100, 100, 2), 'PL'))
         self.assertFalse(self.reader._check_shape((3, 100, 100, 7), 'SHG'))
-        self.assertFalse(self.reader._check_shape((100, 100, 3), 'PL-SHG'))
         self.assertFalse(self.reader._check_shape((2, 100, 100), 'PL-SHG'))
 
     def test_import_image(self):

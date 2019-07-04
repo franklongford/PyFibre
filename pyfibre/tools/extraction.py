@@ -483,11 +483,11 @@ def simplify_network(network):
     for edge in new_network.edges:
         new_network[edge[0]][edge[1]]['r'] = r_coord[edge[0]][edge[1]]
 
-
     return new_network
 
 
 def fibre_assignment(network, angle_thresh=70, min_n=4):
+    """Assign individual fibres to FIRE network"""
 
     mapping = dict(zip(network.nodes, np.arange(network.number_of_nodes())))
     network = nx.relabel_nodes(network, mapping)
@@ -525,25 +525,14 @@ def fibre_assignment(network, angle_thresh=70, min_n=4):
                 r=network[new_node][node]['r'])
             fibre.node_list = list(fibre.nodes)
 
-            logger.debug("Start node = ", node, "  coord: ", node_coord[node])
-            logger.debug("Connected nodes = ", new_nodes)
-            logger.debug("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
-            logger.debug("Fibre length = ", coord_r)
-            logger.debug("Fibre direction = ", fibre.direction)
-
             while fibre.growing:
 
                 end_node = fibre.node_list[-1]
                 new_connect = np.array(list(network.adj[end_node]))
 
-                logger.debug("Nodes connected to fibre end = {}".format(new_connect))
-
                 new_connect = numpy_remove(new_connect, fibre.node_list)
                 #new_connect = numpy_remove(new_connect, np.argwhere(tracing == 0))
                 n_edges = new_connect.shape[0]
-
-                logger.debug("{} possible candidates for next fibre node: {}".format(n_edges, new_connect))
-                logger.debug("Coords = ", *node_coord[new_connect])
 
                 if n_edges > 0:
                     new_coord_vec = d_coord[end_node][new_connect]
@@ -554,11 +543,8 @@ def fibre_assignment(network, angle_thresh=70, min_n=4):
 
                     cos_the = branch_angles(fibre.direction, new_coord_vec, new_coord_r)
 
-                    logger.debug("Cos theta = ", cos_the)
-
                     try:
                         indices = np.argwhere(cos_the + 1 <= theta_thresh).flatten()
-                        logger.debug("Nodes lying in fibre growth direction: ", new_connect[indices])
                         straight = (cos_the[indices] + 1).argmin()
                         index = indices[straight]
 
@@ -570,20 +556,16 @@ def fibre_assignment(network, angle_thresh=70, min_n=4):
                         fibre.fibre_l += coord_r
                         fibre.euclid_l = np.sqrt(r2_coord[node][end_node])
                         fibre.add_node(new_node, xy= network.nodes[new_node]['xy'].copy())
-                        fibre.add_edge(end_node, new_node,
+                        fibre.add_edge(
+                            end_node, new_node,
                             r=network[new_node][end_node]['r'])
                         fibre.node_list = list(fibre.nodes)
 
-                        logger.debug("Next fibre node = ", new_node, "  coord: ", node_coord[new_node])
-                        logger.debug("New fibre length = ", fibre.fibre_l, "(+{})".format(coord_r))
-                        logger.debug("New fibre displacement = ", fibre.euclid_l)
-                        logger.debug("New fibre direction = ", fibre.direction)
+                    except (ValueError, IndexError):
+                        fibre.growing = False
+                else:
+                    fibre.growing = False
 
-                    except (ValueError, IndexError):fibre.growing = False
-                else: fibre.growing = False
-
-
-            logger.debug("End of fibre ", node, fibre.node_list)
             if fibre.number_of_nodes() >= min_n:
                 tot_fibres.append(fibre)
                 for node in fibre:

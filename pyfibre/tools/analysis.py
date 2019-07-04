@@ -104,7 +104,8 @@ def tensor_analysis(tensor):
 
     """
 
-    if tensor.ndim == 2: tensor = tensor.reshape((1,) + tensor.shape)
+    if tensor.ndim == 2:
+        tensor = tensor.reshape((1,) + tensor.shape)
 
     eig_val, eig_vec = np.linalg.eigh(tensor)
 

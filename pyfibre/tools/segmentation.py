@@ -273,7 +273,7 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.0, sigma=0.8, alp
 
 	"Form mask using Kmeans Background filter"
 	mask_image = BD_filter(image_stack)
-	logger.debug(f"Resizing to {image_shg[0]} x {image_shg[1]} pix")
+	logger.debug(f"Resizing to {image_shg.shape[0]} x {image_shg.shape[1]} pix")
 	mask_image = resize(mask_image, image_shg.shape, mode='reflect', anti_aliasing=True)
 
 	cells = []

@@ -13,6 +13,8 @@ __pycache__/
 # Distribution / packaging
 .DS_Store/
 .Python
+pyfibre/tests/stubs/fig
+pyfibre/tests/stubs/data
 build/
 develop-eggs/
 dist/

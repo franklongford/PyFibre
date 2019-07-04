@@ -86,6 +86,8 @@ def image_analysis(multi_image, prefix, scale=1.25,
     get_ow_options(multi_image, filename)
 
     logger.debug(f"Overwrite options:\n "
+                 f"shg_analysis = {multi_image.shg_analysis}\n "
+                 f"pl_analysis = {multi_image.pl_analysis}\n "
                  f"ow_network = {multi_image.ow_network}\n "
                  f"ow_segment = {multi_image.ow_segment}\n "
                  f"ow_metric = {multi_image.ow_metric}\n "
@@ -150,10 +152,12 @@ def image_analysis(multi_image, prefix, scale=1.25,
 
         end_met = time.time()
 
-        save_database(global_dataframe, '{}_global_metric'.format(filename))
-        save_database(fibre_dataframe, '{}_fibre_metric'.format(filename))
-        save_database(cell_dataframe, '{}_cell_metric'.format(filename))
-        save_database(muscle_dataframe, '{}_muscle_metric'.format(filename))
+        if multi_image.shg_analysis:
+            save_database(global_dataframe, '{}_global_metric'.format(filename))
+            save_database(fibre_dataframe, '{}_fibre_metric'.format(filename))
+        if multi_image.pl_analysis:
+            save_database(cell_dataframe, '{}_cell_metric'.format(filename))
+            save_database(muscle_dataframe, '{}_muscle_metric'.format(filename))
 
         logger.debug(f"TOTAL METRIC TIME = {round(end_met - start_met, 3)} s")
 

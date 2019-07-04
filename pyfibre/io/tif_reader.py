@@ -59,7 +59,7 @@ def extract_prefix(image_name, label):
 
 class TIFReader():
 
-    def __init__(self, input_files=None, shg=True, pl=True, p_intensity=(1, 99),
+    def __init__(self, input_files=None, shg=False, pl=False, p_intensity=(1, 99),
                  ow_network=False, ow_segment=False, ow_metric=False,
                  ow_figure=False):
 
@@ -98,12 +98,18 @@ class TIFReader():
     def _check_shape(self, shape, image_type):
 
         if image_type == 'PL-SHG':
-            n_mode = shape[0]
+            if len(shape) == 4:
+                n_mode = shape[0]
+            else:
+                n_mode = min(shape)
             if n_mode != self._n_mode_pl_shg:
                 return False
 
         elif image_type == 'PL':
-            n_mode = shape[0]
+            if len(shape) == 4:
+                n_mode = shape[0]
+            else:
+                n_mode = min(shape)
             if n_mode != self._n_mode_pl:
                 return False
 
@@ -304,4 +310,5 @@ class TIFReader():
                 ow_figure=self.ow_figure, shg_analysis=shg_analysis,
                 pl_analysis=pl_analysis, p_intensity=self.p_intensity
             )
+
             self.files[prefix]['image'] = multi_image

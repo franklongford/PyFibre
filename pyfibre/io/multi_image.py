@@ -36,5 +36,5 @@ class MultiLayerImage():
 
     def check_analysis(self):
 
-        self.shg_analysis = ~np.any(self.image_shg == None)
-        self.pl_analysis = ~np.any(self.image_pl == None) * ~np.any(self.image_tran == None)
+        self.shg_analysis *= ~np.any(self.image_shg == None)
+        self.pl_analysis *= ~np.any(self.image_pl == None) * ~np.any(self.image_tran == None)
