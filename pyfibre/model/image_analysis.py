@@ -5,8 +5,8 @@ import logging
 from pickle import UnpicklingError
 
 from pyfibre.utilities import flatten_list
-from pyfibre.tools.extraction import network_extraction
-from pyfibre.tools.figures import create_figure, create_tensor_image, create_region_image, create_network_image
+from pyfibre.model.tools.extraction import network_extraction
+from pyfibre.model.tools.figures import create_figure, create_tensor_image, create_region_image, create_network_image
 from pyfibre.io.segment_io import load_segment, save_segment
 from pyfibre.io.database_io import save_database, load_database
 

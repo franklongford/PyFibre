@@ -1,6 +1,6 @@
 import numpy as np
 
-from pyfibre.tools.preprocessing import clip_intensities
+from pyfibre.model.tools.preprocessing import clip_intensities
 
 
 class MultiLayerImage():

@@ -2,13 +2,13 @@ import logging
 import numpy as np
 import pandas as pd
 
-from pyfibre.tools.analysis import (
+from pyfibre.model.tools.analysis import (
     segment_analysis, fibre_segment_analysis,
     cell_segment_analysis
 )
-from pyfibre.tools.segmentation import create_binary_image
+from pyfibre.model.tools import create_binary_image
 from pyfibre.utilities import flatten_list
-from pyfibre.tools.filters import form_structure_tensor
+from pyfibre.model.tools import form_structure_tensor
 
 logger = logging.getLogger(__name__)
 

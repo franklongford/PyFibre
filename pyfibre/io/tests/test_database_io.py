@@ -14,6 +14,9 @@ class TestDatabasewriter(TestCase):
     def test_string_functions(self):
         string = "/dir/folder/test_file_SHG.pkl"
 
-        self.assertEqual(check_string(string, -2, '/', 'folder'), "/dir/test_file_SHG.pkl")
-        self.assertEqual(check_file_name(string, 'SHG', 'pkl'), "/dir/folder/test_file")
-
+        self.assertEqual(
+            "/dir/test_file_SHG.pkl",
+            check_string(string, -2, '/', 'folder'))
+        self.assertEqual(
+            "/dir/folder/test_file",
+            check_file_name(string, 'SHG', 'pkl'))

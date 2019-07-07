@@ -3,9 +3,9 @@ import os
 import numpy as np
 import copy
 
-from skimage import io
+from skimage.io import imread
 
-from pyfibre.tools.preprocessing import clip_intensities
+from pyfibre.model.tools.preprocessing import clip_intensities
 from pyfibre.io.multi_image import MultiLayerImage
 
 logger = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 def load_image(image_path):
     """Load in image as a numpy float array"""
-    image = io.imread(image_path).astype(np.float64)
+    image = imread(image_path).astype(np.float64)
 
     return image
 
