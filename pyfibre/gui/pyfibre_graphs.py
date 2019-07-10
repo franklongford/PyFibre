@@ -6,8 +6,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.figure import Figure
 
 from pyfibre.utilities import flatten_list
-from pyfibre.tools.filters import form_structure_tensor
-from pyfibre.tools.analysis import tensor_analysis, fibre_analysis
+from pyfibre.model.tools import form_structure_tensor
+from pyfibre.model.tools.analysis import tensor_analysis, fibre_analysis
 from pyfibre.io.multi_image import MultiLayerImage
 from pyfibre.io.database_io import check_file_name
 from pyfibre.io.segment_io import load_segment

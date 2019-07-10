@@ -31,13 +31,13 @@ class TestSegmentIO(TestCase):
             save_segment(self.segments, 'test')
             self.assertTrue(os.path.exists('test_.npy'))
 
-            X = np.load('test_.npy', mmap_mode='r')
+            test_masks = np.load('test_.npy', mmap_mode='r')
 
-            self.assertEqual(X.dtype, int)
-            self.assertEqual(X.shape, (1, self.N, self.N))
+            self.assertEqual(test_masks.dtype, int)
+            self.assertEqual(test_masks.shape, (1, self.N, self.N))
             self.assertAlmostEqual(
                 0,
-                np.abs(X[0] - self.label_image).sum(),
+                np.abs(test_masks[0] - self.label_image).sum(),
                 6)
 
         finally:

@@ -9,11 +9,9 @@ from scipy.ndimage.filters import gaussian_filter
 
 from skimage.morphology import local_maxima, remove_small_objects
 from skimage.transform import rescale
-from skimage.exposure import equalize_adapthist
 
 from pyfibre.utilities import ring, numpy_remove, clear_border
-from pyfibre.tools.filters import tubeness, hysteresis
-from pyfibre.tools.preprocessing import nl_means
+from pyfibre.model.tools.filters import tubeness, hysteresis
 
 logger = logging.getLogger(__name__)
 
@@ -574,23 +572,10 @@ def fibre_assignment(network, angle_thresh=70, min_n=4):
     return tot_fibres
 
 
-def network_extraction(image_shg, network_name='network', scale=1.0, sigma=0.75, alpha=0.5,
-            p_denoise=(5, 35)):
+def network_extraction(network):
     """
-    Extract fibre network using modified FIRE algorithm
+    Extract fibre network generated from modified FIRE algorithm
     """
-
-    logger.debug("Applying AHE to SHG image")
-    image_shg = equalize_adapthist(image_shg)
-    logger.debug("Performing NL Denoise using local windows {} {}".format(*p_denoise))
-    image_nl = nl_means(image_shg, p_denoise=p_denoise)
-
-    "Call FIRE algorithm to extract full image network"
-    logger.debug("Calling FIRE algorithm using image scale {}  alpha  {}".format(scale, alpha))
-    network = FIRE(image_nl, scale=scale, sigma=sigma, alpha=alpha)
-    nx.write_gpickle(network, network_name + "_graph.pkl")
-
-    #else: network = nx.read_gpickle(network_name + "_graph.pkl")
 
     logger.debug("Extracting and simplifying fibre networks from graph")
     n_nodes = []

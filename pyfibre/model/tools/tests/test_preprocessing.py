@@ -1,7 +1,7 @@
 from unittest import TestCase
 import numpy as np
 
-from pyfibre.tools.preprocessing import clip_intensities, nl_means
+from pyfibre.model.tools.preprocessing import clip_intensities, nl_means
 
 
 class TestPreprocessing(TestCase):

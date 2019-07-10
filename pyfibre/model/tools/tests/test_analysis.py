@@ -1,6 +1,6 @@
 from unittest import TestCase
 import numpy as np
-from pyfibre.tools.analysis import (
+from pyfibre.model.tools.analysis import (
     tensor_analysis, angle_analysis
 )
 

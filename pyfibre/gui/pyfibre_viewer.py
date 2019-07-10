@@ -9,7 +9,7 @@ from pickle import UnpicklingError
 
 from pyfibre.io.segment_io import load_segment
 from pyfibre.io.database_io import check_file_name
-from pyfibre.tools.figures import (
+from pyfibre.model.tools.figures import (
     create_tensor_image, create_region_image, create_network_image
 )
 from pyfibre.io.multi_image import MultiLayerImage

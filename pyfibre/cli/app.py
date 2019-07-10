@@ -16,7 +16,7 @@ import pandas as pd
 
 import pyfibre.utilities as ut
 from pyfibre.version import __version__
-from pyfibre.image_analysis import image_analysis
+from pyfibre.model.image_analysis import image_analysis
 from pyfibre.io.database_io import save_database
 from pyfibre.io.tif_reader import TIFReader
 
@@ -143,7 +143,6 @@ def run(name, directory, key, sigma, alpha, save_db, debug,
     global_database = pd.DataFrame()
     fibre_database = pd.DataFrame()
     cell_database = pd.DataFrame()
-    muscle_database = pd.DataFrame()
 
     for prefix, data in reader.files.items():
 
@@ -156,16 +155,14 @@ def run(name, directory, key, sigma, alpha, save_db, debug,
             fibre_database = pd.concat([fibre_database, databases[1]])
         if pl:
             cell_database = pd.concat([cell_database, databases[2]])
-            muscle_database = pd.concat([muscle_database, databases[3]])
 
         logger.debug(prefix)
         logger.debug("Global Image Analysis Metrics:")
         logger.debug(databases[0].iloc[0])
 
-    if save_db != None:
+    if save_db is not None:
         save_database(global_database, save_db)
         if shg:
             save_database(fibre_database, save_db, 'fibre')
         if pl:
             save_database(cell_database, save_db, 'cell')
-            save_database(muscle_database, save_db, 'muscle')

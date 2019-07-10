@@ -1,7 +1,7 @@
 from unittest import TestCase
 import numpy as np
 
-from pyfibre.tools.extraction import (
+from pyfibre.model.tools.extraction import (
     check_2D_arrays, distance_matrix, branch_angles
 )
 

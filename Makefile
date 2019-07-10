@@ -49,11 +49,11 @@ uninstall:
 
 clean:
 	@rm -f -r bin
-	@rm -f -r tests/__pycache__
-	@rm -f -r tests/stubs/data/
-	@rm -f -r tests/stubs/fig/
-	@rm -f -r src/__pycache__
-	@rm -f src/*.pyc
+	@rm -f -r pyfibre/tests/stubs/data/
+	@rm -f -r pyfibre/tests/stubs/fig/
 	@rm -f -r .cache/
 	@rm -f  .DS_Store
 	@rm -f -r .pytest_cache/
+	@rm -f -r *.h5
+	@rm -f -r *.xls
+	@rm -f -r *.log

@@ -1,7 +1,7 @@
 from unittest import TestCase
 import numpy as np
 
-from pyfibre.tools.segmentation import (
+from pyfibre.model.tools.segmentation import (
     create_binary_image, get_segments
 )
 

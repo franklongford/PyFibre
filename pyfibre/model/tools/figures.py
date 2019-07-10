@@ -14,8 +14,8 @@ from skimage import draw
 from skimage.transform import rotate
 from skimage.color import label2rgb, grey2rgb, rgb2hsv, hsv2rgb
 
-from pyfibre.tools.filters import form_structure_tensor
-from pyfibre.tools.analysis import tensor_analysis
+from pyfibre.model.tools.filters import form_structure_tensor
+from pyfibre.model.tools.analysis import tensor_analysis
 
 
 def create_figure(image, filename, figsize=(10, 10), ext='png', cmap='viridis'):

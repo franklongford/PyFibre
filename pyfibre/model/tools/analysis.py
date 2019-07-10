@@ -17,7 +17,7 @@ from skimage.feature import greycoprops, greycomatrix
 from skimage.measure import shannon_entropy
 from scipy.ndimage.filters import gaussian_filter
 
-from pyfibre.tools.extraction import branch_angles
+from pyfibre.model.tools.extraction import branch_angles
 from pyfibre.utilities import matrix_split
 
 logger = logging.getLogger(__name__)

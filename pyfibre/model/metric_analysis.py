@@ -6,9 +6,9 @@ from pyfibre.model.tools.analysis import (
     segment_analysis, fibre_segment_analysis,
     cell_segment_analysis
 )
-from pyfibre.model.tools import create_binary_image
+from pyfibre.model.tools.segmentation import create_binary_image
+from pyfibre.model.tools.filters import form_structure_tensor
 from pyfibre.utilities import flatten_list
-from pyfibre.model.tools import form_structure_tensor
 
 logger = logging.getLogger(__name__)
 
@@ -113,10 +113,10 @@ class PLAnalyser:
             'PL Cell')
 
         global_cell_metrics = global_cell_metrics.drop(['PL Cell Hu Moment 3', 'PL Cell Hu Moment 4'])
-        global_cell_metrics['No. Cells'] = len(cell_seg)
+        global_cell_metrics['No. Cells'] = len(self.cell_seg)
 
         global_filenames = pd.Series('{}_global_segment.pkl'.format(self.filename), name='File')
-        self.global_dataframe = pd.concat((global_filenames, global_metrics), axis=1)
+        self.global_dataframe = pd.concat((global_filenames, global_cell_metrics), axis=1)
 
 
 def metric_analysis(multi_image, filename, global_seg, fibre_seg, cell_seg,
@@ -142,10 +142,11 @@ def metric_analysis(multi_image, filename, global_seg, fibre_seg, cell_seg,
 
         logger.debug("Performing cell segment analysis")
 
-        pl_analyser = SHGAnalyser(
+        pl_analyser = PLAnalyser(
             multi_image.image_pl, filename, global_seg, fibre_seg,
             cell_seg, sigma
         )
+
         pl_analyser.analyse()
 
         dataframes[1] = pl_analyser.cell_dataframe

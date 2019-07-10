@@ -1,6 +1,6 @@
 from unittest import TestCase
 import numpy as np
-from pyfibre.tools.filters import (
+from pyfibre.model.tools.filters import (
     gaussian, tubeness, hysteresis, derivatives,
     form_structure_tensor
 )

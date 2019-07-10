@@ -5,7 +5,7 @@ from skimage.measure import regionprops
 from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.morphology import binary_dilation, binary_closing
 
-from pyfibre.model.tools import (
+from pyfibre.model.tools.segmentation import (
     fibre_segmentation, cell_segmentation, create_binary_image,
     mean_binary, get_segments
 )
