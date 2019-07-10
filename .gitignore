@@ -6,6 +6,7 @@ __pycache__/
 *.png
 *.h5
 *.xls
+*.DS_Store
 
 # C extensions
 *.so

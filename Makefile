@@ -51,8 +51,8 @@ clean:
 	@rm -f -r bin
 	@rm -f -r pyfibre/tests/stubs/data/
 	@rm -f -r pyfibre/tests/stubs/fig/
+	@rm -f  pyfibre/tests/stubs/.DS_Store
 	@rm -f -r .cache/
-	@rm -f  .DS_Store
 	@rm -f -r .pytest_cache/
 	@rm -f -r *.h5
 	@rm -f -r *.xls
