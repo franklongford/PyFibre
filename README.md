@@ -12,23 +12,6 @@ Either [Enthought](https://www.enthought.com/product/enthought-python-distributi
 
 The use of a package manager, such as [edm](https://www.enthought.com/product/enthought-deployment-manager/) or [conda](https://conda.io/docs/), is optional, but also recommended.
 
-#### Native Python Installation
-
-If you already have suitable native Python and pip distributions, then simply run `make` in a cloned or forked PyFibre directory. 
-This will install all required libraries and create the local `PyFibre` and `PyFibre_GUI` binaries.
-
-Note: you may need to edit the `PYTHON` and `PIP` variables in the `Makefile`. Also, without `root` access the binary files may not be installed globally.
-
-
-#### Conda Installation
-
-If using anaconda or miniconda python distribution, this can be easily initiated set up using the commands:
-
-    conda create -n PyFibre python=3.6
-    source activate PyFibre
-
-Then run `make` in a cloned or forked PyFibre directory to install the local binaries.
-
 #### EDM Installation (recommended)
 
 A light-weight installation can be performed using the Enthought Deployment Manager (EDM). After downloading [edm](https://www.enthought.com/product/enthought-deployment-manager/), simply create a default environment using:
@@ -40,12 +23,25 @@ Then build the `PyFibre` environment using the following command:
 
     python -m ci build-env
 
-Before performing the full installation of PyFibre using 
+Afterwards, activate the PyFibre environment and install a package egg with all binaries using:
 
+    edm shell -e PyFibre
     python -m ci install
 
 This will install all required libraries and create the local `PyFibre` and `PyFibre_GUI` binaries.
+To make sure the installation has been sucessful, please run the unittests
 
+    python -m ci test
+
+#### Conda Installation
+
+If using anaconda or miniconda python distribution, this can be easily initiated set up using the commands:
+
+    conda create -n PyFibre python=3.6
+    source activate PyFibre
+
+Then run `make` in a cloned or forked PyFibre directory to install the local binaries.
+Note: you may need to edit the `PYTHON` and `PIP` variables in the `Makefile`.
 
 ## Running the PyFibre GUI
 

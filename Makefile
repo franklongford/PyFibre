@@ -12,7 +12,7 @@ DESKTOP=$(HOME)/Desktop/
 CURRENT_DIR = $(shell pwd)
 
 
-init: check install #test
+init: check install test
 
 
 check:	
@@ -32,6 +32,7 @@ install:
 	@echo
 	@echo "Installing ${NAME}"
 	@echo
+	@conda install pytables==3.5.1
 	@$(PIP) install -r requirements.txt
 	@$(PYTHON) make.py install $(NAME) $(BIN) $(DESKTOP) || (echo "Installation failed"; exit 1)
 
@@ -40,7 +41,7 @@ test:
 	@echo
 	@echo "Running unit tests"
 	@echo
-	@python -m unittest tests/test.py
+	@python -m unittest discover -v
 
 
 uninstall:
