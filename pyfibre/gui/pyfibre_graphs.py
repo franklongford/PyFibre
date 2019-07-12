@@ -6,7 +6,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.figure import Figure
 
 from pyfibre.utilities import flatten_list
-from pyfibre.model.tools import form_structure_tensor
+from pyfibre.model.tools.filters import form_structure_tensor
 from pyfibre.model.tools.analysis import tensor_analysis, fibre_analysis
 from pyfibre.io.multi_image import MultiLayerImage
 from pyfibre.io.database_io import check_file_name
@@ -27,9 +27,9 @@ class PyFibreGraphs:
         self.window.geometry(f"{width}x{height}-100+40")
 
         self.frame = Frame(self.window)
-        self.create_graphs()
+        self._create_graphs()
 
-    def create_graphs(self):
+    def _create_graphs(self):
 
         self.figure = Figure(figsize=(8, 4))
         self.angle_ax = self.figure.add_subplot(121, polar=True)

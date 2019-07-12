@@ -62,7 +62,7 @@ def image_analysis(multi_image, prefix, scale=1.25,
 
     Parameters
     ----------
-    multi_image: <class: MultiImage>
+    multi_image: MultiImage
         MultiImage containing PL and SHG data
     prefix: str
        Prefix path of image
@@ -72,6 +72,8 @@ def image_analysis(multi_image, prefix, scale=1.25,
         Parameters for non-linear means denoise algorithm (used to remove noise)
     sigma: float (optional)
         Standard deviation of Gaussian smoothing
+    alpha: float (optional)
+        Metric for hysterisis segmentation
 
     Returns
     -------
