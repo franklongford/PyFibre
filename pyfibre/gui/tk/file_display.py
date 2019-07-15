@@ -1,6 +1,6 @@
 import os
 import logging
-from tkinter import Frame, Button, Entry
+from tkinter import Frame, Button, Entry, N, W, E, S
 from tkinter.ttk import Treeview
 from tkinter import filedialog
 
@@ -11,9 +11,10 @@ logger = logging.getLogger(__name__)
 
 class FileDisplay(Frame):
 
-    def _init__(self, master, button_w=18):
-        super(FileDisplay, self).__init__(master=master)
+    def _init__(self, master):
+        super(FileDisplay, self).__init__(master)
 
+        button_w = 18
         self.input_files = []
         self.input_prefixes = []
 
@@ -31,7 +32,7 @@ class FileDisplay(Frame):
 
         self.key = Entry(self, width=button_w)
         self.key.configure(background='#d8baa9')
-        self.key.grid(column=3, row=0, sticky=(N,W,E,S))
+        self.key.grid(column=3, row=0, sticky=(N, W, E, S))
 
         self.select_dir_button = Button(
             self, width=button_w,
@@ -47,7 +48,7 @@ class FileDisplay(Frame):
 
         self.delete_im_button = Button(
             self, width=button_w, text="Delete",
-            command=lambda : self.del_images(
+            command=lambda: self.del_images(
                 self.tree.selection()
             )
         )

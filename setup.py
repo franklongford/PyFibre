@@ -33,7 +33,7 @@ setup(
     long_description = README_TEXT,
     packages = find_packages(),
     entry_points = {
-        'gui_scripts': ['PyFibre = pyfibre.cli.app:run',
-                        'PyFibre_GUI = pyfibre.gui.app:run']},
+        'gui_scripts': ['PyFibre = pyfibre.cli.app:pyfibre',
+                        'PyFibre_GUI = pyfibre.gui.app:pyfibre']},
     install_requires = REQUIREMENTS
 )

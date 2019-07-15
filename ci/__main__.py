@@ -5,8 +5,20 @@ from subprocess import check_call
 DEFAULT_PYTHON_VERSION = "3.6"
 PYTHON_VERSIONS = ["3.6"]
 PYFIBRE_REPO = os.path.abspath('.')
+
 CORE_DEPS = ['Click==7.0-1',
-             'pytables==3.5.1-1']
+             "envisage==4.7.2-1",
+             'pytables==3.5.1-1',
+             'traits==5.1.1-1',
+             'traitsui==6.1.1-1',
+             "pyface==6.1.0-2",
+             "pygments==2.2.0-1",
+             "pyqt==4.11.4-7",
+             "qt==4.8.7-10",
+             "sip==4.17-4",
+             "chaco==4.7.2-3",
+             "pyzmq==16.0.0-7"
+             ]
 DEV_DEPS = ["flake8==3.7.7-1",
             "mock==2.0.0-3"]
 DOCS_DEPS = []
