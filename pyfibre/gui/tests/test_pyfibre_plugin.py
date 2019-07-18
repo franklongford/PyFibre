@@ -25,9 +25,3 @@ class TestWfManagerPlugin(TestCase):
             "PyFibre GUI (Main)",
             self.pyfibre_plugin.tasks[0].name,
         )
-
-        with mock.patch(MAIN_TASK) as mock_main_task:
-            mock_main_task.side_effect = mock_return_none
-
-            self.pyfibre_plugin._create_main_task()
-            self.assertTrue(mock_main_task.called)

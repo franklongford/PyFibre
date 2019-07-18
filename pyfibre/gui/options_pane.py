@@ -1,7 +1,9 @@
 from pyface.tasks.api import TraitsDockPane
 from pyface.api import ImageResource
 
-from traits.api import Bool, Float, List
+from traits.api import (
+    Bool, Float, List, Instance
+)
 from traitsui.api import (
     View, VGroup, Item, InstanceEditor, UItem,
     ImageEditor
@@ -12,8 +14,7 @@ class OptionsPane(TraitsDockPane):
 
     id = 'pyfibre.options_pane'
 
-    #: The PyFibre logo. Stored at images/icon.ico
-    image = ImageResource('icon.ico')
+    #ui.visible = Bool(False)
 
     # Overwrite options
     ow_metric = Bool(False)
@@ -42,8 +43,6 @@ class OptionsPane(TraitsDockPane):
 
     traits_view = View(
         VGroup(
-            UItem('image',
-                  editor=image_editor),
             Item('ow_metric'),
             Item('ow_segment'),
             Item('ow_network'),

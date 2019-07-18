@@ -55,13 +55,7 @@ class ViewerPane(TraitsTaskPane):
 
     metric_tab = Instance(MetricTab)
 
-    list_editor = ListEditor(
-        page_name='.label',
-        use_notebook=True,
-        dock_style='tab',
-        selected='selected_kpi',
-        style='custom'
-    )
+    list_editor = ListEditor()
 
     traits_view = View(
         Group(
@@ -74,3 +68,4 @@ class ViewerPane(TraitsTaskPane):
 
         return [self.shg_image_tab,
                 self.pl_image_tab]
+

@@ -7,8 +7,11 @@ from traits.api import Bool
 
 from pyfibre.gui.tests.utils import DummyPyFibreGUI
 from pyfibre.gui.pyfibre_main_task import PyFibreMainTask
+
 from pyfibre.gui.title_pane import TitlePane
 from pyfibre.gui.options_pane import OptionsPane
+from pyfibre.gui.file_display_pane import FileDisplayPane
+from pyfibre.gui.viewer_pane import ViewerPane
 
 
 def get_probe_pyfibre_tasks():
@@ -40,8 +43,14 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
 
     def test___init__(self):
         self.assertIsInstance(
-            self.main_task.create_central_pane(), TitlePane
+            self.main_task.create_central_pane(), ViewerPane
         )
         self.assertIsInstance(
-            self.main_task.create_dock_panes()[0], OptionsPane
+            self.main_task.create_dock_panes()[0], TitlePane
+        )
+        self.assertIsInstance(
+            self.main_task.create_dock_panes()[1], FileDisplayPane
+        )
+        self.assertIsInstance(
+            self.main_task.create_dock_panes()[2], OptionsPane
         )

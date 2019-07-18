@@ -19,37 +19,11 @@ from pyfibre.version import __version__
 from pyfibre.model.image_analysis import image_analysis
 from pyfibre.io.database_io import save_database
 from pyfibre.io.tif_reader import TIFReader
+from pyfibre.io.utils import parse_files, parse_file_path
 
 import matplotlib
 matplotlib.use("Agg")
 
-
-def parse_files(name, directory, key):
-
-    input_files = []
-
-    for file_name in name.split(','):
-        if file_name.find('/') == -1:
-            file_name = os.getcwd() + '/' + file_name
-        input_files.append(file_name)
-
-    if len(directory) != 0:
-        for folder in directory.split(','):
-            for file_name in os.listdir(folder):
-                input_files += [folder + '/' + file_name]
-
-    removed_files = []
-
-    for key in key.split(','):
-        for file_name in input_files:
-            if ((file_name.find(key) == -1) and
-                    (file_name not in removed_files)):
-                removed_files.append(file_name)
-
-    for file_name in removed_files:
-        input_files.remove(file_name)
-
-    return input_files
 
 
 @click.command()
@@ -87,12 +61,8 @@ def parse_files(name, directory, key):
     help='Perform run on test image'
 )
 @click.option(
-    '--directory', help='Directories to load tif files',
-    type=click.Path(exists=True), default=None
-)
-@click.option(
     '--key', help='Keywords to filter file names',
-    default=""
+    default=None
 )
 @click.option(
     '--sigma', help='Gaussian smoothing standard deviation',
@@ -107,10 +77,10 @@ def parse_files(name, directory, key):
     default=None
 )
 @click.argument(
-    'name', type=click.Path(exists=True),
-    required=False, default=None
+    'file_path', type=click.Path(exists=True),
+    required=False, default=''
 )
-def run(name, directory, key, sigma, alpha, save_db, debug,
+def run(file_path, key, sigma, alpha, save_db, debug,
         shg, pl, ow_metric, ow_segment, ow_network, ow_figure, test):
 
     if debug is False:
@@ -122,19 +92,17 @@ def run(name, directory, key, sigma, alpha, save_db, debug,
 
     logger = logging.getLogger(__name__)
 
-    if name is None:
-        name = ""
-    if directory is None:
-        directory = ""
+    file_name, directory = parse_file_path(file_path)
+
     if test:
-        name = ""
+        name = None
         directory = os.path.dirname(
             os.path.dirname(__file__)) + '/tests/stubs'
 
     logger.info(ut.logo())
-    logger.debug(f"{name} {directory}")
+    logger.debug(f"{file_name} {directory}")
 
-    input_files = parse_files(name, directory, key)
+    input_files = parse_files(file_name, directory, key)
     reader = TIFReader(input_files, shg=shg, pl=pl,
                        ow_network=ow_network, ow_segment=ow_segment,
                        ow_metric=ow_metric, ow_figure=ow_figure)
