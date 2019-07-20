@@ -14,7 +14,7 @@ from traitsui.api import (
 
 class ImageTab(HasTraits):
 
-    name = Instance(Unicode)
+    label = Unicode()
 
     image = Instance(Image)
 
@@ -35,7 +35,7 @@ class ViewerPane(TraitsTaskPane):
 
     name = 'Viewer Pane'
 
-    image_tab_list = List(ImageTab)
+    image_tab_list = List(Instance(ImageTab))
 
     shg_image_tab = Instance(ImageTab)
 
@@ -55,12 +55,19 @@ class ViewerPane(TraitsTaskPane):
 
     metric_tab = Instance(MetricTab)
 
-    list_editor = ListEditor()
+    list_editor = ListEditor(
+        page_name='.label',
+        use_notebook=True,
+        dock_style='tab',
+        style='custom'
+    )
 
     traits_view = View(
         Group(
             Item('image_tab_list',
-                 editor=list_editor),
+                 editor=list_editor,
+                 style='custom'),
+            show_labels=False
         )
     )
 
@@ -69,3 +76,8 @@ class ViewerPane(TraitsTaskPane):
         return [self.shg_image_tab,
                 self.pl_image_tab]
 
+    def _shg_image_tab_default(self):
+        return ImageTab(label='SHG')
+
+    def _pl_image_tab_default(self):
+        return ImageTab(label='PL')

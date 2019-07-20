@@ -2,17 +2,19 @@ from pyface.tasks.api import TraitsDockPane
 from pyface.api import ImageResource
 
 from traits.api import (
-    Bool, Float, List, Instance
+    Bool, Float, List, Instance, Int, Button
 )
 from traitsui.api import (
     View, VGroup, Item, InstanceEditor, UItem,
-    ImageEditor
+    ImageEditor, RangeEditor, Group
 )
 
 
 class OptionsPane(TraitsDockPane):
 
     id = 'pyfibre.options_pane'
+
+    name = 'Options Pane'
 
     #ui.visible = Bool(False)
 
@@ -25,15 +27,16 @@ class OptionsPane(TraitsDockPane):
 
     ow_figure = Bool(False)
 
-    # Database options
-    save_database = Bool(False)
-
     # Image analysis parameters
     sigma = Float(0.5)
 
-    p_intensity = List([1, 99])
+    low_intensity = Int(1)
 
-    p_denoise = List([5, 35])
+    high_intensity = Int(99)
+
+    n_denoise = Int(5)
+
+    m_denoise = Int(35)
 
     alpha = Float(0.5)
 
@@ -41,22 +44,41 @@ class OptionsPane(TraitsDockPane):
                                allow_upscaling=False,
                                preserve_aspect_ratio=True)
 
+    int_range_editor = RangeEditor(low=1, high=100, mode='slider')
+
+    pix_range_editor = RangeEditor(low=2, high=50, mode='slider')
+
     traits_view = View(
         VGroup(
-            Item('ow_metric'),
-            Item('ow_segment'),
-            Item('ow_network'),
-            Item('ow_figure'),
-            Item('save_database'),
-            Item('sigma'),
-            Item('alpha'),
-            Item('p_intensity',
-                  editor=InstanceEditor(),
-                  style='custom'
-                 ),
-            Item('p_denoise',
-                 editor=InstanceEditor(),
-                 style='custom'
-                 ),
+            Item('ow_network', label="Overwrite Network?"),
+            Item('ow_segment', label="Overwrite Segments?"),
+            Item('ow_metric', label="Overwrite Metrics?"),
+            Item('ow_figure', label="Overwrite Figures?"),
+            Item('sigma', label="Gaussian Std Dev (pix)"),
+            Item('alpha', label="Alpha network coefficient"),
+            Group(
+                Item('low_intensity',
+                     editor=int_range_editor,
+                     style='custom',
+                     label="Low Clip Intensity (%)"
+                     ),
+                Item('high_intensity',
+                     editor=int_range_editor,
+                     style='custom',
+                     label="High Clip Intensity (%)"
+                     )
+            ),
+            Group(
+                Item('n_denoise',
+                     editor=pix_range_editor,
+                     style='custom',
+                     label="NL-Mean Neighbourhood 1 (pix)"
+                     ),
+                Item('m_denoise',
+                     editor=pix_range_editor,
+                     style='custom',
+                     label="NL-Mean Neighbourhood 2 (pix)"
+                     )
+            )
         )
     )

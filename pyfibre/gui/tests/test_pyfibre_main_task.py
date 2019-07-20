@@ -46,11 +46,8 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
             self.main_task.create_central_pane(), ViewerPane
         )
         self.assertIsInstance(
-            self.main_task.create_dock_panes()[0], TitlePane
+            self.main_task.create_dock_panes()[0], FileDisplayPane
         )
         self.assertIsInstance(
-            self.main_task.create_dock_panes()[1], FileDisplayPane
-        )
-        self.assertIsInstance(
-            self.main_task.create_dock_panes()[2], OptionsPane
+            self.main_task.create_dock_panes()[1], OptionsPane
         )

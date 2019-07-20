@@ -5,7 +5,7 @@ from pyface.tasks.action.api import (
     SMenu, SMenuBar, SToolBar, TaskAction, TaskToggleGroup
 )
 from pyface.tasks.api import (
-    PaneItem, Task, TaskLayout
+    PaneItem, Task, TaskLayout, VSplitter
 )
 
 from traits.api import (
@@ -26,8 +26,6 @@ class PyFibreMainTask(Task):
 
     name = 'PyFibre GUI (Main)'
 
-    title_pane = Instance(TitlePane)
-
     options_pane = Instance(OptionsPane)
 
     file_display_pane = Instance(FileDisplayPane)
@@ -41,9 +39,9 @@ class PyFibreMainTask(Task):
     def _default_layout_default(self):
         """ Defines the default layout of the task window """
         return TaskLayout(
-            top=PaneItem('pyfibre.title_pane'),
-            left=PaneItem('pyfibre.options_pane'),
-            right=PaneItem('pyfibre.file_display_pane')
+            left=VSplitter(
+                PaneItem('pyfibre.file_display_pane'),
+                PaneItem('pyfibre.options_pane'))
         )
 
     def _menu_bar_default(self):
@@ -64,12 +62,8 @@ class PyFibreMainTask(Task):
     def create_dock_panes(self):
         """ Creates the dock panes
         """
-        return [self.title_pane,
-                self.file_display_pane,
+        return [self.file_display_pane,
                 self.options_pane]
-
-    def _title_pane_default(self):
-        return TitlePane()
 
     def _options_pane_default(self):
         return OptionsPane()
