@@ -1,28 +1,46 @@
-from PIL import ImageTk, Image
-
 from pyface.tasks.api import TraitsTaskPane
 from pyface.api import ImageResource
+from pyface.ui_traits import convert_image
+from chaco.api import ArrayPlotData, Plot
+from enable.api import ComponentEditor
 
 from traits.api import (
-    HasTraits, Instance, Unicode, List
+    HasTraits, Instance, Unicode, List, on_trait_change,
+    ArrayOrNone, Property, Array
 )
 from traitsui.api import (
     View, VGroup, Group, UItem, ImageEditor, HGroup,
     Spring, Image, Item, ListEditor
 )
 
+from pyfibre.io.multi_image import MultiLayerImage
+
 
 class ImageTab(HasTraits):
 
+    image = ArrayOrNone
+
     label = Unicode()
 
-    image = Instance(Image)
+    plot = Property(Instance(Plot),
+                    depends_on='image')
 
     traits_view = View(
-        Item('image',
-             editor=ImageEditor()
-             )
+        Item('plot',
+             editor=ComponentEditor(),
+             show_label=False),
+        resizable=True
     )
+
+    def _get_plot(self):
+        if self.image is not None:
+            plot_data = ArrayPlotData(
+                image_data=self.image)
+
+            plot = Plot(plot_data)
+            plot.img_plot("image_data")
+
+            return plot
 
 
 class MetricTab(HasTraits):
@@ -55,6 +73,9 @@ class ViewerPane(TraitsTaskPane):
 
     metric_tab = Instance(MetricTab)
 
+    # Properties
+    selected_image = Instance(MultiLayerImage)
+
     list_editor = ListEditor(
         page_name='.label',
         use_notebook=True,
@@ -77,7 +98,23 @@ class ViewerPane(TraitsTaskPane):
                 self.pl_image_tab]
 
     def _shg_image_tab_default(self):
-        return ImageTab(label='SHG')
+        if self.selected_image is not None:
+            return ImageTab(
+                label='SHG',
+                image=self.selected_image.image_shg)
+        else:
+            return ImageTab(label='SHG')
 
     def _pl_image_tab_default(self):
-        return ImageTab(label='PL')
+        if self.selected_image is not None:
+            return ImageTab(
+                label='PL',
+                image=self.selected_image.image_pl)
+        else:
+            return ImageTab(label='PL')
+
+    @on_trait_change('selected_image')
+    def update_viewer(self):
+        print('update_viewer called')
+        self.shg_image_tab.image = self.selected_image.image_shg
+        self.pl_image_tab.image = self.selected_image.image_pl

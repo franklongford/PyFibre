@@ -1,40 +1,63 @@
 import numpy as np
 
+from traits.api import (
+    HasTraits, ArrayOrNone, Property, Tuple, Bool,
+    on_trait_change
+)
+
 from pyfibre.model.tools.preprocessing import clip_intensities
 
 
-class MultiLayerImage():
+class MultiLayerImage(HasTraits):
 
-    def __init__(self, image_shg, image_pl, image_tran,
-                 ow_network=False, ow_segment=False,
-                 ow_metric=False, ow_figure=False,
-                 shg_analysis=False, pl_analysis=False,
-                 p_intensity=(1, 99)):
+    image_shg = ArrayOrNone()
 
-        self.image_shg = image_shg
-        self.image_pl = image_pl
-        self.image_tran = image_tran
+    image_pl = ArrayOrNone()
 
-        self.shape = self.image_shg.shape
-        self.size = self.image_shg.size
+    image_tran = ArrayOrNone()
 
-        self.shg_analysis = shg_analysis
-        self.pl_analysis = pl_analysis
-        self.check_analysis()
+    ow_network = Bool(False)
 
-        self.ow_network = ow_network
-        self.ow_segment = ow_segment
-        self.ow_metric = ow_metric
-        self.ow_figure = ow_figure
+    ow_segment = Bool(False)
 
-        self.p_intensity = p_intensity
-        self.image_shg = clip_intensities(self.image_shg,
-                                          p_intensity=self.p_intensity)
-        if self.pl_analysis:
-            self.image_pl = clip_intensities(
-                self.image_pl, p_intensity=self.p_intensity)
+    ow_metric = Bool(False)
 
-    def check_analysis(self):
+    ow_figure = Bool(False)
 
-        self.shg_analysis *= ~np.any(self.image_shg == None)
-        self.pl_analysis *= ~np.any(self.image_pl == None) * ~np.any(self.image_tran == None)
+    shg_analysis = Bool(False)
+
+    pl_analysis = Bool(False)
+
+    p_intensity = Tuple((1, 99))
+
+    shape = Property(Tuple, depends_on='image_shg')
+
+    size = Property(Tuple, depends_on='image_shg')
+
+    def _get_shape(self):
+        if self.image_shg is not None:
+            return self.image_shg.shape
+
+    def _get_size(self):
+        if self.image_shg is not None:
+            return self.image_shg.size
+
+    def preprocess_image_shg(self):
+
+        self.shg_analysis = (
+                self.shg_analysis
+                and self.image_shg is not None
+        )
+
+        if self.image_shg is not None:
+            self.image_shg = clip_intensities(
+                self.image_shg, p_intensity=self.p_intensity
+            )
+
+    def preprocess_image_pl(self):
+
+        self.pl_analysis = (
+                self.pl_analysis
+                and self.image_pl is not None
+                and self.image_tran is not None
+        )

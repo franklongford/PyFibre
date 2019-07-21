@@ -287,28 +287,41 @@ class TIFReader():
 
         for prefix, data in self.files.items():
             image_stack = [None, None, None]
-            shg_analysis = self.shg
-            pl_analysis = self.pl
+
+            multi_image = MultiLayerImage(
+                ow_network=self.ow_network,
+                ow_segment=self.ow_segment,
+                ow_metric=self.ow_metric,
+                ow_figure=self.ow_figure,
+                shg_analysis=self.shg,
+                pl_analysis=self.pl,
+                p_intensity=self.p_intensity
+            )
+
             try:
                 (image_stack[0],
                  image_stack[1],
                  image_stack[2]) = self.import_image(data['PL-SHG'], 'PL-SHG')
+
+                multi_image.image_shg = image_stack[0]
+                multi_image.image_pl = image_stack[1]
+                multi_image.image_tran = image_stack[2]
+
             except KeyError:
                 try:
                     image_stack[0] = self.import_image(data['SHG'], 'SHG')
+                    multi_image.image_shg = image_stack[0]
                 except KeyError:
                     raise RuntimeError('Image file not appropriately labelled')
                 try:
                     (image_stack[1],
                      image_stack[2]) = self.import_image(data['PL'], 'PL')
+                    multi_image.image_pl = image_stack[1]
+                    multi_image.image_tran = image_stack[2]
                 except KeyError:
-                    pl_analysis = False
+                    pass
 
-            multi_image = MultiLayerImage(
-                *image_stack, ow_network=self.ow_network,
-                ow_segment=self.ow_segment, ow_metric=self.ow_metric,
-                ow_figure=self.ow_figure, shg_analysis=shg_analysis,
-                pl_analysis=pl_analysis, p_intensity=self.p_intensity
-            )
+            multi_image.preprocess_image_shg()
+            multi_image.preprocess_image_pl()
 
             self.files[prefix]['image'] = multi_image

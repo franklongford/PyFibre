@@ -51,3 +51,7 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
         self.assertIsInstance(
             self.main_task.create_dock_panes()[1], OptionsPane
         )
+
+    def test_open_file(self):
+
+        print(self.main_task.window.__dict__.keys())

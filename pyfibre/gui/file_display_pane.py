@@ -73,7 +73,8 @@ class FileDisplayPane(TraitsDockPane):
                              resize_mode="stretch")
             ],
             auto_size=False,
-            selected='selected_file',
+            selected='selected_files',
+            on_select=self.open_file,
             selection_mode='rows',
             editable=False
         )
@@ -122,7 +123,6 @@ class FileDisplayPane(TraitsDockPane):
 
     def _remove_file_button_fired(self):
 
-        print(self.selected_files)
         self.remove_file(self.selected_files)
 
     def add_files(self, file_path):
@@ -153,6 +153,21 @@ class FileDisplayPane(TraitsDockPane):
                     pl=pl
                 )
             )
+
+    def open_file(self, selected_rows):
+        print('open_file called')
+        prefix = selected_rows[0].name
+        index = self.input_prefixes.index(prefix)
+        input_files = [self.input_files[index]]
+
+        tif_reader = TIFReader(input_files, shg=True, pl=True)
+        tif_reader.load_multi_images()
+
+        multi_image = tif_reader.files[prefix]['image']
+
+        print(self.task.window.central_pane.__dict__.keys())
+
+        self.task.window.central_pane.selected_image = multi_image
 
     def remove_file(self, files):
 

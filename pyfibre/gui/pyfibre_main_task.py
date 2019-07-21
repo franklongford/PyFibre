@@ -36,6 +36,14 @@ class PyFibreMainTask(Task):
     #: The menu bar for this task.
     menu_bar = Instance(SMenuBar)
 
+    tool_bars = List(SToolBar)
+
+    def __init__(self, *args, **kwargs):
+        super(PyFibreMainTask, self).__init__(*args, **kwargs)
+        self.global_database = None
+        self.fibre_database = None
+        self.cell_database = None
+
     def _default_layout_default(self):
         """ Defines the default layout of the task window """
         return TaskLayout(
@@ -47,12 +55,26 @@ class PyFibreMainTask(Task):
     def _menu_bar_default(self):
         """A menu bar with functions relevant to the Setup task.
         """
-        menu_bar = SMenuBar(SMenu(id='File', name='&File'),
+        menu_bar = SMenuBar(SMenu(TaskToggleGroup(),
+                                  id='File', name='&File'),
                             SMenu(id='Edit', name='&Edit'),
                             SMenu(TaskToggleGroup(),
                                   id='View', name='&View'))
 
         return menu_bar
+
+    def _tool_bars_default(self):
+        tool_bars = [
+                SToolBar(
+                    TaskAction(
+                        name="Save Database",
+                        tooltip="Save database containing "
+                                "image metrics",
+                        method="save_database"
+                    )
+                )
+            ]
+        return tool_bars
 
     def create_central_pane(self):
         """ Creates the central pane
@@ -71,3 +93,8 @@ class PyFibreMainTask(Task):
     def _file_display_pane_default(self):
         return FileDisplayPane()
 
+    def _run_pyfibre(self):
+        pass
+
+    def save_database(self):
+        print('Saving database')

@@ -25,7 +25,6 @@ import matplotlib
 matplotlib.use("Agg")
 
 
-
 @click.command()
 @click.version_option(version=__version__)
 @click.option(
@@ -78,12 +77,13 @@ matplotlib.use("Agg")
 )
 @click.argument(
     'file_path', type=click.Path(exists=True),
-    required=False, default=''
+    required=False, default='.'
 )
-def run(file_path, key, sigma, alpha, save_db, debug,
-        shg, pl, ow_metric, ow_segment, ow_network, ow_figure, test):
+def pyfibre(file_path, key, sigma, alpha, save_db, debug,
+        shg, pl, ow_metric, ow_segment, ow_network, ow_figure,
+        test):
 
-    if debug is False:
+    if not debug:
         logging.basicConfig(filename="pyfibre.log", filemode="w",
                             level=logging.INFO)
     else:
@@ -92,12 +92,11 @@ def run(file_path, key, sigma, alpha, save_db, debug,
 
     logger = logging.getLogger(__name__)
 
-    file_name, directory = parse_file_path(file_path)
-
     if test:
-        name = None
-        directory = os.path.dirname(
+        file_path = os.path.dirname(
             os.path.dirname(__file__)) + '/tests/stubs'
+
+    file_name, directory = parse_file_path(file_path)
 
     logger.info(ut.logo())
     logger.debug(f"{file_name} {directory}")
