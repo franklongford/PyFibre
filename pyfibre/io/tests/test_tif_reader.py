@@ -106,7 +106,14 @@ class TestTIFReader(TestCase):
             mock_load.return_value = np.ones((3, 100, 100))
             self.reader.load_multi_images()
             mock_load.assert_called()
+
+            multi_image = self.reader.files['some/path/to/a/file']['image']
+
+            self.assertIsNotNone(multi_image.image_shg)
+            self.assertIsNotNone(multi_image.image_pl)
+            self.assertIsNotNone(multi_image.image_tran)
             self.assertEqual(
-                self.reader.files['some/path/to/a/file']['image'].image_shg.shape,
-                (100, 100)
+                (100, 100),
+                multi_image.shape,
+
             )

@@ -30,11 +30,17 @@ class TestImageTab(TestCase):
 
         self.assertIsNotNone(self.multi_image.image_shg)
 
-        print(self.multi_image.image_shg)
-
         image_tab = ImageTab(
             label='SHG',
             image=self.multi_image.image_shg
         )
 
         self.assertIsNotNone(image_tab.image)
+
+
+class TestViewerPane(TestCase):
+
+    def setUp(self):
+
+        self.viewer_pane = ViewerPane()
+

@@ -303,6 +303,7 @@ class TIFReader():
                  image_stack[1],
                  image_stack[2]) = self.import_image(data['PL-SHG'], 'PL-SHG')
 
+                multi_image.file_path = data['PL-SHG']
                 multi_image.image_shg = image_stack[0]
                 multi_image.image_pl = image_stack[1]
                 multi_image.image_tran = image_stack[2]
@@ -310,6 +311,7 @@ class TIFReader():
             except KeyError:
                 try:
                     image_stack[0] = self.import_image(data['SHG'], 'SHG')
+                    multi_image.file_path = data['SHG']
                     multi_image.image_shg = image_stack[0]
                 except KeyError:
                     raise RuntimeError('Image file not appropriately labelled')

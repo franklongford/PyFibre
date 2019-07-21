@@ -165,7 +165,7 @@ class FileDisplayPane(TraitsDockPane):
 
         multi_image = tif_reader.files[prefix]['image']
 
-        print(self.task.window.central_pane.__dict__.keys())
+        print(multi_image.__dict__.keys())
 
         self.task.window.central_pane.selected_image = multi_image
 

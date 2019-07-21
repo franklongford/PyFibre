@@ -2,13 +2,15 @@ import numpy as np
 
 from traits.api import (
     HasTraits, ArrayOrNone, Property, Tuple, Bool,
-    on_trait_change
+    on_trait_change, Instance, Unicode
 )
 
 from pyfibre.model.tools.preprocessing import clip_intensities
 
 
 class MultiLayerImage(HasTraits):
+
+    file_path = Unicode()
 
     image_shg = ArrayOrNone()
 
