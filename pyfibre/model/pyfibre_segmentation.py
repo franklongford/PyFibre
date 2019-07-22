@@ -30,7 +30,8 @@ def segment_image(multi_image, networks, networks_red,
             multi_image.image_shg * fibre_filter,
             multi_image.image_pl, multi_image.image_tran, scale=scale)
 
-        fibre_col_binary = create_binary_image(fibre_col_seg, multi_image.shape)
+        fibre_col_binary = create_binary_image(fibre_col_seg,
+                                               multi_image.shape)
         fibre_col_binary = binary_dilation(fibre_col_binary, iterations=2)
         fibre_col_binary = binary_closing(fibre_col_binary)
 
@@ -45,7 +46,10 @@ def segment_image(multi_image, networks, networks_red,
 
     else:
         fibre_seg = fibre_net_seg
-        cell_seg = fibre_net_seg
+        fibre_binary = create_binary_image(
+            fibre_seg, multi_image.shape)
+        cell_seg = get_segments(
+            multi_image.image_pl, ~fibre_binary, 250, 0.01)
 
     fibre_binary = create_binary_image(fibre_seg, multi_image.shape)
     global_binary = np.where(fibre_binary, 0, 1)

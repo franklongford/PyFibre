@@ -28,10 +28,10 @@ class TestSegmentIO(TestCase):
     def test_save_image(self):
 
         try:
-            save_segment(self.segments, 'test')
-            self.assertTrue(os.path.exists('test_.npy'))
+            save_segment(self.segments, 'test', 'segment')
+            self.assertTrue(os.path.exists('test_segment.npy'))
 
-            test_masks = np.load('test_.npy', mmap_mode='r')
+            test_masks = np.load('test_segment.npy', mmap_mode='r')
 
             self.assertEqual(test_masks.dtype, int)
             self.assertEqual(test_masks.shape, (1, self.N, self.N))
@@ -41,16 +41,16 @@ class TestSegmentIO(TestCase):
                 6)
 
         finally:
-            if os.path.exists('test_.npy'):
-                os.remove('test_.npy')
+            if os.path.exists('test_segment.npy'):
+                os.remove('test_segment.npy')
 
     def test_load_label_image(self):
 
         try:
-            save_segment(self.segments, 'test')
-            self.assertTrue(os.path.exists('test_.npy'))
+            save_segment(self.segments, 'test', 'segment')
+            self.assertTrue(os.path.exists('test_segment.npy'))
 
-            test_segment = load_segment('test')
+            test_segment = load_segment('test', 'segment')
 
             self.assertEqual(len(self.segments), len(test_segment))
 
@@ -64,7 +64,7 @@ class TestSegmentIO(TestCase):
                 np.all(self.segments[0].image == test_segment[0].image)
             )
 
-            test_segment = load_segment('test', image=self.image)
+            test_segment = load_segment('test', 'segment', image=self.image)
 
             self.assertAlmostEqual(
                 0,
@@ -76,5 +76,5 @@ class TestSegmentIO(TestCase):
             raise e
 
         finally:
-            if os.path.exists('test_.npy'):
-                os.remove('test_.npy')
+            if os.path.exists('test_segment.npy'):
+                os.remove('test_segment.npy')

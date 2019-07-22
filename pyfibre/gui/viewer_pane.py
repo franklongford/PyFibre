@@ -17,10 +17,13 @@ from traitsui.api import (
 
 from pyfibre.io.multi_image import MultiLayerImage
 from pyfibre.io.segment_io import load_segment
+from pyfibre.io.network_io import load_network
 from pyfibre.io.database_io import check_file_name
 from pyfibre.model.tools.figures import (
     create_tensor_image, create_region_image, create_network_image
 )
+from pyfibre.model.tools.extraction import network_extraction
+from pyfibre.utilities import flatten_list
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +151,19 @@ class ViewerPane(TraitsTaskPane):
 
     def _network_tab_default(self):
         image_tab = ImageTab(label='Network')
+        if self.selected_image is not None:
+            image_name = os.path.basename(self.selected_image.file_path)
+            image_path = os.path.dirname(self.selected_image.file_path)
+            data_dir = image_path + '/data/'
+            try:
+                networks = load_network(
+                    data_dir + image_name, "network")
+                image_network_overlay = create_network_image(
+                    self.selected_image.image_shg, networks, 0)
+                self.network_tab.image = image_network_overlay.astype('uint8')
+            except (IOError, EOFError):
+                logger.info(
+                    "Unable to display network for {}".format(image_name))
         return image_tab
 
     def _fibre_tab_default(self):
@@ -166,9 +182,7 @@ class ViewerPane(TraitsTaskPane):
     def update_viewer(self):
 
         image_name = os.path.basename(self.selected_image.file_path)
-        print(image_name)
         image_path = os.path.dirname(self.selected_image.file_path)
-        fig_name = check_file_name(image_name, extension='tif')
         data_dir = image_path + '/data/'
 
         if self.selected_image.shg_analysis:
@@ -179,13 +193,46 @@ class ViewerPane(TraitsTaskPane):
             self.tensor_tab.image = tensor_image.astype('uint8')
 
             try:
-                networks = load_segment(data_dir + fig_name, "network")
-                image_network_overlay = create_network_image(
-                    self.selected_image.image_shg, networks, 0)
-                self.network_tab.image = image_network_overlay.astype('uint8')
+                network = load_network(data_dir + image_name, "network")
             except (IOError, EOFError):
-                logger.info("Unable to display network for {}".format(fig_name))
+                logger.info("Unable to display network for {}".format(image_name))
+            else:
+                networks, networks_red, fibres = network_extraction(network)
+                network_image = create_network_image(
+                    self.selected_image.image_shg,
+                    networks,
+                    0) * 255.999
+                self.network_tab.image = network_image.astype('uint8')
+
+                fibres = flatten_list(fibres)
+
+                fibre_image = create_network_image(
+                    self.selected_image.image_shg,
+                    fibres,
+                    1) * 255.999
+                self.fibre_tab.image = fibre_image.astype('uint8')
+
+            try:
+                segments = load_segment(data_dir + image_name, "fibre_segment")
+            except (AttributeError, IOError, EOFError):
+                self.update_log("Unable to display fibre segments for {}".format(image_name))
+            else:
+                segment_image = create_region_image(
+                    self.selected_image.image_shg,
+                    segments) * 255.999
+                self.fibre_segment_tab.image = segment_image.astype('uint8')
 
         if self.selected_image.pl_analysis:
+
             self.pl_image_tab.image = self.selected_image.image_pl
             self.tran_image_tab.image = self.selected_image.image_tran
+
+            try:
+                segments = load_segment(data_dir + image_name, "cell_segment")
+            except (AttributeError, IOError, EOFError):
+                self.update_log("Unable to display cell segments for {}".format(image_name))
+            else:
+                segment_image = create_region_image(
+                    self.selected_image.image_pl,
+                    segments) * 255.999
+                self.cell_segment_tab.image = segment_image.astype('uint8')

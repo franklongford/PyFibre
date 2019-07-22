@@ -155,7 +155,6 @@ class FileDisplayPane(TraitsDockPane):
             )
 
     def open_file(self, selected_rows):
-        print('open_file called')
         prefix = selected_rows[0].name
         index = self.input_prefixes.index(prefix)
         input_files = [self.input_files[index]]
@@ -164,8 +163,6 @@ class FileDisplayPane(TraitsDockPane):
         tif_reader.load_multi_images()
 
         multi_image = tif_reader.files[prefix]['image']
-
-        print(multi_image.__dict__.keys())
 
         self.task.window.central_pane.selected_image = multi_image
 

@@ -83,12 +83,12 @@ def pyfibre(file_path, key, sigma, alpha, save_db, debug,
         shg, pl, ow_metric, ow_segment, ow_network, ow_figure,
         test):
 
-    if not debug:
-        logging.basicConfig(filename="pyfibre.log", filemode="w",
-                            level=logging.INFO)
-    else:
+    if debug:
         logging.basicConfig(filename="pyfibre.log", filemode="w",
                             level=logging.DEBUG)
+    else:
+        logging.basicConfig(filename="pyfibre.log", filemode="w",
+                            level=logging.INFO)
 
     logger = logging.getLogger(__name__)
 

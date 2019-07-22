@@ -3,7 +3,7 @@ import numpy as np
 from skimage.measure import regionprops
 
 
-def save_segment(segments, file_name, file_type=''):
+def save_segment(segments, file_name, file_type=None):
     """Saves scikit image regions as pickled file"""
 
     n = len(segments)
@@ -12,22 +12,28 @@ def save_segment(segments, file_name, file_type=''):
     for i, segment in enumerate(segments):
         segment_masks[i] += segments[i]._label_image
 
+    if file_type is not None:
+        file_name = '_'.join([file_name, file_type])
+
     try:
-        np.save(f"{file_name}_{file_type}.npy", segment_masks)
+        np.save(f"{file_name}.npy", segment_masks)
     except IOError as e:
         raise IOError(
             f"Cannot save to file {file_name}"
         ) from e
 
 
-def load_segment(file_name, file_type='', image=None):
+def load_segment(file_name, file_type=None, image=None):
     """Loads pickled scikit image regions"""
 
+    if file_type is not None:
+        file_name = '_'.join([file_name, file_type])
+
     try:
-        segment_masks = np.load(f"{file_name}_{file_type}.npy")
+        segment_masks = np.load(f"{file_name}.npy")
     except IOError as e:
         raise IOError(
-            f"Cannot read file {file_name}_{file_type}.npy"
+            f"Cannot read file {file_name}.npy"
         ) from e
 
     n = segment_masks.shape[0]

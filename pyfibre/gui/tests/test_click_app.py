@@ -17,12 +17,12 @@ def mock_run_constructor(*args, **kwargs):
 
 class TestClickRun(TestCase):
 
-    def test_click_cli_version(self):
+    def test_click_gui_version(self):
         clirunner = CliRunner()
         clirunner.invoke(pyfibre.gui.app.pyfibre,
                          args="--version")
 
-    def test_click_cli_main(self):
+    def test_click_gui_main(self):
 
         with mock.patch('pyfibre.gui.app') as mock_run:
             mock_run.side_effect = mock_run_constructor
