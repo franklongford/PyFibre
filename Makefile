@@ -58,3 +58,5 @@ clean:
 	@rm -f -r *.h5
 	@rm -f -r *.xls
 	@rm -f -r *.log
+	@rm -f -r *.prof
+	@rm -f -r *.pstats
