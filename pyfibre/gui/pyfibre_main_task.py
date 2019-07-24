@@ -34,7 +34,7 @@ class PyFibreMainTask(Task):
     file_display_pane = Instance(FileDisplayPane)
 
     # Multiprocessor list
-    processes = Instance(List)
+    processes = List()
 
     #: The menu bar for this task.
     menu_bar = Instance(SMenuBar)

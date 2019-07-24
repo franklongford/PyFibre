@@ -45,6 +45,7 @@ class SHGAnalyser(ImageAnalyser):
         self.fibres = fibres
 
         self.fibre_dataframe = None
+        self.global_metrics = None
 
     def analyse(self):
 
@@ -59,13 +60,10 @@ class SHGAnalyser(ImageAnalyser):
         self.fibre_dataframe = pd.concat((fibre_filenames, fibre_metrics), axis=1)
 
         "Perform non-linear analysis on global region"
-        global_metrics = segment_analysis(
+        self.global_metrics = segment_analysis(
             self.image, self.global_seg, self.shg_j_tensor, 'SHG Fibre')
         "Average linear properties over all regions"
-        self.global_averaging(global_metrics, fibre_metrics)
-
-        global_filenames = pd.Series('{}_global_segment.pkl'.format(self.filename), name='File')
-        self.global_dataframe = pd.concat((global_filenames, global_metrics), axis=1)
+        self.global_averaging(self.global_metrics, fibre_metrics)
 
     def global_averaging(self, global_fibre_metrics, fibre_metrics):
 
@@ -109,6 +107,7 @@ class PLAnalyser(ImageAnalyser):
         self.cell_seg = cell_seg
 
         self.cell_dataframe = None
+        self.global_metrics = None
 
     def analyse(self):
 
@@ -119,15 +118,13 @@ class PLAnalyser(ImageAnalyser):
             ['{}_cell_segment.pkl'.format(self.filename)] * len(self.cell_seg), name='File')
         self.cell_dataframe = pd.concat((cell_filenames, cell_metrics), axis=1)
 
-        global_cell_metrics = segment_analysis(
+        self.global_metrics = segment_analysis(
             self.image, self.global_seg, self.pl_j_tensor,
             'PL Cell')
 
-        global_cell_metrics = global_cell_metrics.drop(['PL Cell Hu Moment 3', 'PL Cell Hu Moment 4'])
-        global_cell_metrics['No. Cells'] = len(self.cell_seg)
-
-        global_filenames = pd.Series('{}_global_segment.pkl'.format(self.filename), name='File')
-        self.global_dataframe = pd.concat((global_filenames, global_cell_metrics), axis=1)
+        self.global_metrics = self.global_metrics.drop(
+            ['PL Cell Hu Moment 3', 'PL Cell Hu Moment 4'])
+        self.global_metrics['No. Cells'] = len(self.cell_seg)
 
 
 def metric_analysis(multi_image, filename, global_seg, fibre_seg, cell_seg,
@@ -149,7 +146,7 @@ def metric_analysis(multi_image, filename, global_seg, fibre_seg, cell_seg,
 
         dataframes[0] = shg_analyser.fibre_dataframe
         global_dataframe = pd.concat(
-            (global_dataframe, shg_analyser.global_dataframe))
+            (global_dataframe, shg_analyser.global_metrics), axis=0)
 
         end = time.time()
         logger.debug(f" Fibre segment analysis: {end-start} s")
@@ -166,9 +163,14 @@ def metric_analysis(multi_image, filename, global_seg, fibre_seg, cell_seg,
 
         dataframes[1] = pl_analyser.cell_dataframe
         global_dataframe = pd.concat(
-            (global_dataframe, pl_analyser.global_dataframe))
+            (global_dataframe, pl_analyser.global_metrics), axis=0)
         end = time.time()
 
         logger.debug(f" Cell segment analysis: {end - start} s")
+
+    global_filenames = pd.Series(
+        '{}_global_segment.pkl'.format(filename), name='File')
+    global_dataframe = pd.concat(
+        (global_filenames, global_dataframe), axis=0)
 
     return global_dataframe, dataframes
