@@ -145,8 +145,8 @@ def fibre_analysis(tot_fibres, verbose=False):
         start = fibre.node_list[0]
         end = fibre.node_list[-1]
 
-        logger.debug(f"N nodes: {len(fibre.node_list)} Length: {fibre.fibre_l}\n"
-                     f"Displacement: {fibre.euclid_l}  Direction: {fibre.direction}\n ")
+        #logger.debug(f"N nodes: {len(fibre.node_list)} Length: {fibre.fibre_l}\n"
+        #             f"Displacement: {fibre.euclid_l}  Direction: {fibre.direction}\n ")
 
         fibre_lengths = np.concatenate((fibre_lengths, [fibre.fibre_l]))
         fibre_waviness = np.concatenate((fibre_waviness, [fibre.euclid_l / fibre.fibre_l]))
@@ -344,15 +344,14 @@ def fibre_segment_analysis(image_shg, networks, networks_red,
     return segment_metrics
 
 
-def cell_segment_analysis(image, cells, n_tensor, tag='Cell'):
+def cell_segment_analysis(image, cells, n_tensor):
 
     segment_metrics = pd.DataFrame()
 
     for i, cell in enumerate(cells):
-
         segment_series = pd.Series(name=i)
 
-        metrics = segment_analysis(image, cell, n_tensor, f'PL {tag}')
+        metrics = segment_analysis(image, cell, n_tensor, 'PL Cell')
         segment_series = pd.concat((segment_series, metrics))
 
         segment_metrics = segment_metrics.append(segment_series, ignore_index=True)

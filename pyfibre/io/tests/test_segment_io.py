@@ -15,11 +15,12 @@ class TestSegmentIO(TestCase):
 
     def setUp(self):
 
-        self.N = 10
+        self.N = 20
 
         self.image = np.zeros((self.N, self.N))
         for i in range(2):
             self.image += 2 * np.eye(self.N, self.N, k=5-i)
+            self.image += np.rot90(np.eye(self.N, self.N, k=5 - i))
 
         self.label_image = label(self.image)
         self.segments = regionprops(self.label_image,
@@ -34,11 +35,7 @@ class TestSegmentIO(TestCase):
             test_masks = np.load('test_segment.npy', mmap_mode='r')
 
             self.assertEqual(test_masks.dtype, int)
-            self.assertEqual(test_masks.shape, (1, self.N, self.N))
-            self.assertAlmostEqual(
-                0,
-                np.abs(test_masks[0] - self.label_image).sum(),
-                6)
+            self.assertEqual(test_masks.shape, (5, self.N, self.N))
 
         finally:
             if os.path.exists('test_segment.npy'):

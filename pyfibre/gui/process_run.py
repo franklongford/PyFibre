@@ -2,8 +2,8 @@ from pyfibre.io.tif_reader import TIFReader
 from pyfibre.model.image_analysis import image_analysis
 
 
-def run_analysis(input_files, p_intensity, p_denoise,
-                 sigma, alpha, ow_metric, ow_segment, ow_network,
+def process_run(input_files, p_intensity, p_denoise,
+                 sigma, alpha, ow_network, ow_segment, ow_metric,
                  ow_figure, queue):
 
     reader = TIFReader(input_files,

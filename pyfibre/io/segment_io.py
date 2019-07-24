@@ -7,10 +7,15 @@ def save_segment(segments, file_name, file_type=None):
     """Saves scikit image regions as pickled file"""
 
     n = len(segments)
-    segment_masks = np.zeros(((n,) + segments[0]._label_image.shape),
-                             dtype=int)
+    segment_masks = np.zeros(
+        ((n,) + segments[0]._label_image.shape),
+        dtype=int
+    )
+
     for i, segment in enumerate(segments):
-        segment_masks[i] += segments[i]._label_image
+        segment_masks[i] += np.where(
+            segments[i]._label_image == segments[i].label, 1, 0
+        )
 
     if file_type is not None:
         file_name = '_'.join([file_name, file_type])
@@ -40,10 +45,7 @@ def load_segment(file_name, file_type=None, image=None):
     segments = []
 
     for i in range(n):
-        if image is not None:
-            segments += regionprops(segment_masks[i],
-                                    intensity_image=image)
-        else:
-            segments += regionprops(segment_masks[i])
+        segments += regionprops(segment_masks[i],
+                                intensity_image=image)
 
     return segments

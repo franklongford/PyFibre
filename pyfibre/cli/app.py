@@ -102,9 +102,12 @@ def pyfibre(file_path, key, sigma, alpha, save_db, debug,
     logger.debug(f"{file_name} {directory}")
 
     input_files = parse_files(file_name, directory, key)
-    reader = TIFReader(input_files, shg=shg, pl=pl,
-                       ow_network=ow_network, ow_segment=ow_segment,
-                       ow_metric=ow_metric, ow_figure=ow_figure)
+    reader = TIFReader(input_files,
+                       shg=shg, pl=pl,
+                       ow_network=ow_network,
+                       ow_segment=ow_segment,
+                       ow_metric=ow_metric,
+                       ow_figure=ow_figure)
     reader.load_multi_images()
 
     global_database = pd.DataFrame()

@@ -123,7 +123,7 @@ def image_analysis(multi_image, prefix, scale=1.25,
 
         end_net = time.time()
 
-        logger.debug(f"TOTAL NETWORK EXTRACTION TIME = {round(end_net - start_net, 3)} s")
+        logger.info(f"TOTAL NETWORK EXTRACTION TIME = {round(end_net - start_net, 3)} s")
 
     if multi_image.ow_segment:
 
@@ -141,7 +141,7 @@ def image_analysis(multi_image, prefix, scale=1.25,
         save_segment(fibre_seg, filename, 'fibre_segment')
         save_segment(cell_seg, filename, 'cell_segment')
 
-        logger.debug(f"TOTAL SEGMENTATION TIME = {round(end_seg - start_seg, 3)} s")
+        logger.info(f"TOTAL SEGMENTATION TIME = {round(end_seg - start_seg, 3)} s")
 
     if multi_image.ow_metric:
 
@@ -151,11 +151,11 @@ def image_analysis(multi_image, prefix, scale=1.25,
         global_seg = load_segment(filename, "global_segment")
         fibre_seg = load_segment(filename, "fibre_segment")
         cell_seg = load_segment(filename, "cell_segment")
+
         network = load_network(filename, "network")
         networks, networks_red, fibres = network_extraction(network)
 
-        (global_dataframe,
-         dataframes) = metric_analysis(
+        (global_dataframe, dataframes) = metric_analysis(
             multi_image, filename, global_seg, fibre_seg,
             cell_seg, networks, networks_red, fibres, sigma
         )
@@ -168,13 +168,13 @@ def image_analysis(multi_image, prefix, scale=1.25,
         if multi_image.pl_analysis:
             save_database(dataframes[1], filename, 'cell_metric')
 
-        logger.debug(f"TOTAL METRIC TIME = {round(end_met - start_met, 3)} s")
+        logger.info(f"TOTAL METRIC TIME = {round(end_met - start_met, 3)} s")
 
     if multi_image.ow_figure:
 
         start_fig = time.time()
 
-        fibre_seg = load_segment(data_dir + image_name, "fibre_segment")
+        fibre_seg = load_segment(filename, "fibre_segment")
         network = load_network(filename, "network")
         networks, networks_red, fibres = network_extraction(network)
 
@@ -192,7 +192,7 @@ def image_analysis(multi_image, prefix, scale=1.25,
         create_figure(fibre_region_image, fig_dir + image_name + '_fibre_seg')
 
         if multi_image.pl_analysis:
-            cell_seg = load_segment(data_dir + image_name, "cell_segment")
+            cell_seg = load_segment(filename, "cell_segment")
             cell_region_image = create_region_image(multi_image.image_pl, cell_seg)
             create_figure(multi_image.image_pl, fig_dir + image_name + '_PL', cmap='binary_r')
             create_figure(multi_image.image_tran, fig_dir + image_name + '_trans', cmap='binary_r')
@@ -200,7 +200,7 @@ def image_analysis(multi_image, prefix, scale=1.25,
 
         end_fig = time.time()
 
-        logger.debug(f"TOTAL FIGURE TIME = {round(end_fig - start_fig, 3)} s")
+        logger.info(f"TOTAL FIGURE TIME = {round(end_fig - start_fig, 3)} s")
 
     end = time.time()
 

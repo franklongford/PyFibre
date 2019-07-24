@@ -55,9 +55,13 @@ class ImageTab(HasTraits):
 
             if self.image.ndim == 2:
                 plot.img_plot("image_data",
-                              colormap=self.cmap)
+                              origin='top left',
+                              colormap=self.cmap,
+                              axis='off')
             elif self.image.ndim == 3:
-                plot.img_plot("image_data")
+                plot.img_plot("image_data",
+                              origin='top left',
+                              axis='off')
 
             return plot
 
