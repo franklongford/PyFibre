@@ -7,6 +7,7 @@ Created on: 01/11/2015
 
 Last Modified: 12/04/2018
 """
+import pickle
 
 import numpy as np
 
@@ -128,7 +129,7 @@ def flatten_list(list_of_lists):
 
 
 def matrix_split(matrix, nrows, ncols):
-    "Split a matrix into sub-matrices"
+    """Split a matrix into sub-matrices"""
 
     assert matrix.ndim == 2
 
@@ -138,3 +139,19 @@ def matrix_split(matrix, nrows, ncols):
         grid += np.array_split(item, nrows, axis=-1)
 
     return grid
+
+
+def save_pickle(object_, file_name):
+    """Saves object as pickled file"""
+
+    with open(file_name, 'wb') as outfile:
+        pickle.dump(object_, outfile, pickle.HIGHEST_PROTOCOL)
+
+
+def load_pickle(file_name):
+    """Loads pickled object"""
+
+    with open(file_name, 'rb') as infile:
+        object_ = pickle.load(infile)
+
+    return object_

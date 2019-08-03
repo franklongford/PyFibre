@@ -120,7 +120,7 @@ def pyfibre(file_path, key, sigma, alpha, save_db, debug,
             data['image'],
             prefix, sigma=sigma, alpha=alpha)
 
-        global_database = pd.concat([global_database, databases[0]])
+        global_database = global_database.append(databases[0], ignore_index=True)
         if shg:
             fibre_database = pd.concat([fibre_database, databases[1]])
         if pl:

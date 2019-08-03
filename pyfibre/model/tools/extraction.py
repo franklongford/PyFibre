@@ -111,7 +111,7 @@ def cos_sin_theta_2D(vector, r_vector):
 
 
 def new_branches(image, coord, ring_filter, max_thresh=0.2):
-    "Find local maxima in image within max_thresh of coord, exlcuding pixels in ring filter"
+    "Find local maxima in image within max_thresh of coord, excluding pixels in ring filter"
 
     filtered = image * ring_filter
     branch_coord = np.argwhere(local_maxima(filtered) * image >= max_thresh)
@@ -149,6 +149,7 @@ def transfer_edges(network, source, target):
 
 
 class Fibre(nx.Graph):
+    """Networkx Graph object representing a single, unbranched fibre"""
 
     def __init__(self, nodes, edges=[], direction=[0,0], growing=True,
             fibre_l=0, euclid_l=0):
@@ -292,7 +293,8 @@ def FIRE(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2,
 
     "Prepare input image to gain distance matrix of foreground from background"
 
-    image_scale = rescale(image, scale, multichannel=False, mode='constant', anti_aliasing=None)
+    image_scale = rescale(image, scale, multichannel=False,
+                          mode='constant', anti_aliasing=None)
     sigma *= scale
 
     "Apply tubeness transform to enhance image fibres"

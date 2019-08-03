@@ -16,7 +16,9 @@ from pyfibre.model.tools.figures import (
 )
 from pyfibre.model.tools.preprocessing import nl_means
 from pyfibre.io.segment_io import load_segment, save_segment
-from pyfibre.io.network_io import load_network, save_network
+from pyfibre.io.network_io import (
+    load_network, save_network, load_network_list, save_network_list
+)
 from pyfibre.io.database_io import save_database, load_database
 
 from pyfibre.model.metric_analysis import metric_analysis
@@ -29,7 +31,7 @@ def get_ow_options(multi_image, filename):
 
     try:
         load_network(filename, "network")
-    except (UnpicklingError, IOError, EOFError):
+    except (UnpicklingError, Exception):
         logger.info("Cannot load networks for {}".format(filename))
         multi_image.ow_network = True
         multi_image.ow_segment = True
@@ -40,7 +42,7 @@ def get_ow_options(multi_image, filename):
         load_segment(filename, "fibre_segment")
         if multi_image.pl_analysis:
             load_segment(filename, "cell_segment")
-    except (UnpicklingError, IOError, EOFError):
+    except (UnpicklingError, Exception):
         logger.info("Cannot load segments for {}".format(filename))
         multi_image.ow_segment = True
         multi_image.ow_metric = True
@@ -50,7 +52,7 @@ def get_ow_options(multi_image, filename):
         load_database(filename, 'global_metric')
         load_database(filename, 'fibre_metric')
         load_database(filename, 'cell_metric')
-    except (UnpicklingError, IOError, EOFError):
+    except (UnpicklingError, Exception):
         logger.info("Cannot load metrics for {}".format(filename))
         multi_image.ow_metric = True
 
@@ -121,6 +123,12 @@ def image_analysis(multi_image, prefix, scale=1.25,
 
         save_network(network, filename, "network")
 
+        networks, networks_red, fibres = network_extraction(network)
+
+        save_network_list(networks, filename, "networks")
+        save_network_list(networks_red, filename, "networks_red")
+        save_network_list(fibres, filename, "fibres")
+
         end_net = time.time()
 
         logger.info(f"TOTAL NETWORK EXTRACTION TIME = {round(end_net - start_net, 3)} s")
@@ -130,7 +138,15 @@ def image_analysis(multi_image, prefix, scale=1.25,
         start_seg = time.time()
 
         network = load_network(filename, "network")
-        networks, networks_red, fibres = network_extraction(network)
+        try:
+            networks = load_network_list(filename, "networks")
+            networks_red = load_network_list(filename, "networks_red")
+        except IOError:
+            networks, networks_red, fibres = network_extraction(network)
+
+            save_network_list(networks, filename, "networks")
+            save_network_list(networks_red, filename, "networks_red")
+            save_network_list(fibres, filename, "fibres")
 
         global_seg, fibre_seg, cell_seg = segment_image(
             multi_image, networks, networks_red, scale=scale)
@@ -153,9 +169,18 @@ def image_analysis(multi_image, prefix, scale=1.25,
         cell_seg = load_segment(filename, "cell_segment")
 
         network = load_network(filename, "network")
-        networks, networks_red, fibres = network_extraction(network)
+        try:
+            networks = load_network_list(filename, "networks")
+            networks_red = load_network_list(filename, "networks_red")
+            fibres = load_network_list(filename, "fibres")
+        except IOError:
+            networks, networks_red, fibres = network_extraction(network)
 
-        (global_dataframe, dataframes) = metric_analysis(
+            save_network_list(networks, filename, "networks")
+            save_network_list(networks_red, filename, "networks_red")
+            save_network_list(fibres, filename, "fibres")
+
+        global_dataframe, dataframes = metric_analysis(
             multi_image, filename, global_seg, fibre_seg,
             cell_seg, networks, networks_red, fibres, sigma
         )

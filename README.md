@@ -35,10 +35,19 @@ To make sure the installation has been sucessful, please run the unittests
 
 #### Conda Installation
 
-If using anaconda or miniconda python distribution, this can be easily initiated set up using the commands:
+If using anaconda or miniconda python distribution, this can be easily initiated by creating a default environment:
 
-    conda create -n PyFibre python=3.6
+    conda create -n setup python=3.6 -y click setuptools
+    source activate setup
+
+Then build the `PyFibre` environment using same command as before but with the `--conda` flag:
+
+    python -m ci build-env --conda
+
+Afterwards, activate the PyFibre environment and install a package egg with all binaries using:
+
     source activate PyFibre
+    python -m ci install --conda
 
 Then run `make` in a cloned or forked PyFibre directory to install the local binaries.
 Note: you may need to edit the `PYTHON` and `PIP` variables in the `Makefile`.

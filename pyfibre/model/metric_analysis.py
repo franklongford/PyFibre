@@ -130,7 +130,9 @@ class PLAnalyser(ImageAnalyser):
 def metric_analysis(multi_image, filename, global_seg, fibre_seg, cell_seg,
                     networks, networks_red, fibres, sigma):
 
-    global_dataframe = pd.DataFrame()
+    global_dataframe = pd.Series()
+    global_dataframe['File'] = '{}_global_segment.pkl'.format(filename)
+
     dataframes = [None, None]
 
     logger.debug(" Performing Image analysis")
@@ -167,10 +169,5 @@ def metric_analysis(multi_image, filename, global_seg, fibre_seg, cell_seg,
         end = time.time()
 
         logger.debug(f" Cell segment analysis: {end - start} s")
-
-    global_filenames = pd.Series(
-        '{}_global_segment.pkl'.format(filename), name='File')
-    global_dataframe = pd.concat(
-        (global_filenames, global_dataframe), axis=0)
 
     return global_dataframe, dataframes

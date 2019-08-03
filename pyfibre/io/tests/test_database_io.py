@@ -9,12 +9,12 @@ from pyfibre.io.database_io import (
 )
 
 
-class TestDatabasewriter(TestCase):
+class TestDatabaseWriter(TestCase):
 
     def setUp(self):
 
-        self.data = {'one': [1., 2., 3., 4.],
-                     'two': [4., 3., 2., 1.]}
+        self.data = {'one': np.array([1., 2., 3., 4.]),
+                     'two': np.array([4., 3., 2., 1.])}
 
         self.database = pd.DataFrame(self.data)
 
