@@ -67,7 +67,10 @@ def nl_means(image, p_denoise=(5, 35)):
 	"""
 
 	sigma = estimate_sigma(image)
-	image = denoise_nl_means(image, patch_size=p_denoise[0], patch_distance=p_denoise[1],
-				fast_mode=True, h = 1.2 * sigma, sigma=sigma, multichannel=False)
+	image = denoise_nl_means(
+		image, patch_size=p_denoise[0],
+		patch_distance=p_denoise[1],
+		fast_mode=True, h = 1.2 * sigma,
+		sigma=sigma, multichannel=False)
 
 	return image

@@ -2,7 +2,7 @@ from pyface.tasks.api import TraitsDockPane
 from pyface.api import ImageResource
 
 from traits.api import (
-    Bool, Float, List, Instance, Int, Button
+    Bool, Float, List, Instance, Int, Button, File
 )
 from traitsui.api import (
     View, VGroup, Item, InstanceEditor, UItem,
@@ -26,6 +26,10 @@ class OptionsPane(TraitsDockPane):
     ow_network = Bool(False)
 
     ow_figure = Bool(False)
+
+    save_database = Bool(False)
+
+    database_filename = File()
 
     # Image analysis parameters
     sigma = Float(0.5)
@@ -54,6 +58,10 @@ class OptionsPane(TraitsDockPane):
             Item('ow_segment', label="Overwrite Segments?"),
             Item('ow_metric', label="Overwrite Metrics?"),
             Item('ow_figure', label="Overwrite Figures?"),
+            Item('save_database', label='Save Database?'),
+            Item('database_filename',
+                 label='Database file',
+                 visible_when='save_database'),
             Item('sigma', label="Gaussian Std Dev (pix)"),
             Item('alpha', label="Alpha network coefficient"),
             Group(
@@ -82,3 +90,4 @@ class OptionsPane(TraitsDockPane):
             )
         )
     )
+

@@ -237,6 +237,7 @@ class TIFReader():
         """"Automatically find all combined PL-SHG files or match
         up individual images if seperate"""
 
+        input_files = copy.copy(input_files)
         removed_files = []
 
         for filename in input_files:
@@ -246,8 +247,8 @@ class TIFReader():
                 removed_files.append(filename)
             elif filename.find('virada') != -1:
                 removed_files.append(filename)
-            # elif (filename.find('asterisco') != -1):
-            #   removed_files.append(filename)
+            elif filename.find('asterisco') != -1:
+                removed_files.append(filename)
 
         for filename in removed_files:
             input_files.remove(filename)

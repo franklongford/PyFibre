@@ -1,14 +1,17 @@
 import os
+from functools import partial
+
 from pyface.tasks.api import TraitsDockPane
 from pyface.api import ImageResource
 
 from traits.api import (
     HasTraits, List, Unicode, Button, File, Dict,
-    Instance, Bool, on_trait_change
+    Instance, Bool, on_trait_change, Int
 )
 from traitsui.api import (
     View, Item, ListEditor, Group, TableEditor, ObjectColumn,
-    FileEditor, VGroup, HGroup, Spring, UItem, ImageEditor
+    FileEditor, VGroup, HGroup, Spring, UItem, ImageEditor,
+    TextEditor, ProgressEditor
 )
 
 from pyfibre.io.tif_reader import TIFReader
@@ -44,11 +47,15 @@ class FileDisplayPane(TraitsDockPane):
 
     file_search = File()
 
+    tif_reader = TIFReader(pl=True, shg=True)
+
     add_file_button = Button(name='Add Files')
 
     remove_file_button = Button(name='Remove Files')
 
-    key = Unicode('pl-shg')
+    key = Unicode()
+
+    progress = Int(0)
 
     #: The PyFibre logo. Stored at images/icon.ico
     image = ImageResource('icon.ico')
@@ -88,12 +95,19 @@ class FileDisplayPane(TraitsDockPane):
                                    allow_upscaling=False,
                                    preserve_aspect_ratio=True)
 
+        progress_editor = ProgressEditor(min=0, max=100)
+
         traits_view = View(
             VGroup(
                 Group(
                     UItem('image',
                           editor=image_editor
                           )
+                ),
+                Group(
+                    Item('key',
+                         editor=TextEditor(),
+                         style='simple'),
                 ),
                 Group(
                     Item('file_search',
@@ -109,6 +123,12 @@ class FileDisplayPane(TraitsDockPane):
                     Item('remove_file_button',
                          label='Remove File'),
                     show_labels=False
+                ),
+                Group(
+                    Item('progress',
+                         editor=progress_editor
+                         ),
+                    show_labels=False,
                 )
             ),
             style='custom',
@@ -129,19 +149,23 @@ class FileDisplayPane(TraitsDockPane):
 
         file_name, directory = parse_file_path(file_path)
         input_files = parse_files(file_name, directory, self.key)
+
         input_files = [file for file in input_files
                        if file not in self.input_files]
 
-        tif_reader = TIFReader(input_files, shg=True, pl=True)
+        self.tif_reader.get_image_lists(input_files)
+
         input_prefixes = [
-            prefix for prefix, _ in tif_reader.files.items()
+            prefix for prefix, _ in self.tif_reader.files.items()
         ]
 
         self.input_files += input_files
         self.input_prefixes += input_prefixes
 
+        print(self.input_files)
+
         self.file_table = []
-        for key, data in tif_reader.files.items():
+        for key, data in self.tif_reader.files.items():
             keys = data.keys()
             shg = 'PL-SHG' in keys or 'SHG' in keys
             pl = 'PL-SHG' in keys or 'PL' in keys
@@ -154,19 +178,19 @@ class FileDisplayPane(TraitsDockPane):
                 )
             )
 
+        self.tif_reader.load_multi_images()
+
     def open_file(self, selected_rows):
+        """Opens corresponding to the first item in
+        selected_rows"""
+
         prefix = selected_rows[0].name
-        index = self.input_prefixes.index(prefix)
-        input_files = [self.input_files[index]]
-
-        tif_reader = TIFReader(input_files, shg=True, pl=True)
-        tif_reader.load_multi_images()
-
-        multi_image = tif_reader.files[prefix]['image']
-
+        multi_image = self.tif_reader.files[prefix]['image']
         self.task.window.central_pane.selected_image = multi_image
 
-    def remove_file(self, files):
+    def remove_file(self, selected_rows):
 
-        for file in files:
-            self.file_table.remove(file)
+        for selected_row in selected_rows:
+            self.file_table.remove(selected_row)
+            prefix = selected_row.name
+            self.tif_reader.files.pop(prefix, None)

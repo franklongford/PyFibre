@@ -23,11 +23,14 @@ def create_figure(image, filename, figsize=(10, 10), ext='png', cmap='viridis'):
     import matplotlib.pyplot as plt
 
     plt.figure(figsize=figsize)
-    if image.ndim == 2: plt.imshow(image, cmap=cmap)
-    else: plt.imshow(image)
+    if image.ndim == 2:
+        plt.imshow(image, cmap=cmap)
+    else:
+        plt.imshow(image)
     plt.axis('off')
     plt.tight_layout()
     plt.savefig(filename + '.' + ext)
+    plt.close()
 
 
 def set_HSB(image, hue, saturation=1, brightness=1):

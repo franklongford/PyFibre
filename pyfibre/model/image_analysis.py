@@ -200,8 +200,8 @@ def image_analysis(multi_image, prefix, scale=1.25,
         start_fig = time.time()
 
         fibre_seg = load_segment(filename, "fibre_segment")
-        network = load_network(filename, "network")
-        networks, networks_red, fibres = network_extraction(network)
+        networks = load_network_list(filename, "networks")
+        fibres = load_network_list(filename, "fibres")
 
         fibres = flatten_list(fibres)
 

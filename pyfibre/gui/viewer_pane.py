@@ -197,11 +197,12 @@ class ViewerPane(TraitsTaskPane):
             self.tensor_tab.image = tensor_image.astype('uint8')
 
             try:
-                network = load_network(data_dir + image_name, "network")
+                networks = load_network(data_dir + image_name, "networks")
+                fibres = load_network(data_dir + image_name, "fibres")
+
             except (IOError, EOFError):
                 logger.info("Unable to display network for {}".format(image_name))
             else:
-                networks, networks_red, fibres = network_extraction(network)
                 network_image = create_network_image(
                     self.selected_image.image_shg,
                     networks,

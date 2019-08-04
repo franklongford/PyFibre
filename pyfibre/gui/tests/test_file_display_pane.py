@@ -20,8 +20,6 @@ class TestFileDisplayPane(TestCase):
         self.assertEqual(0, len(self.file_display.input_files))
         self.assertEqual(0, len(self.file_display.input_prefixes))
 
-        #self.file_display.configure_traits()
-
     def test_add_file(self):
 
         self.file_display.add_files(self.file_path)
@@ -67,3 +65,4 @@ class TestFileDisplayPane(TestCase):
         self.file_display.remove_file([self.file_display.file_table[0]])
 
         self.assertEqual(0, len(self.file_display.file_table))
+        self.assertEqual(0, len(self.file_display.tif_reader.files))

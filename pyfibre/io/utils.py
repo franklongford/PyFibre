@@ -5,6 +5,9 @@ def parse_files(name=None, directory=None, key=None):
 
     input_files = []
 
+    if key == '':
+        key = None
+
     if name is not None:
         for file_name in name.split(','):
             if file_name.find('/') == -1:

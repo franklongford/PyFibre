@@ -1,29 +1,39 @@
 import logging
+import os
+from queue import Empty
 from multiprocessing import (
     Pool, Process, JoinableQueue, Queue, current_process
 )
 
 import numpy as np
+import pandas as pd
 
+from pyface.api import ImageResource
 from pyface.tasks.action.api import (
     SMenu, SMenuBar, SToolBar, TaskAction, TaskToggleGroup
 )
 from pyface.tasks.api import (
     PaneItem, Task, TaskLayout, VSplitter
 )
+from pyface.timer.api import do_after
 from traits.api import (
-    Bool, Int, List, Float, Instance
+    Bool, Int, List, Float, Instance, Event, on_trait_change
 )
 
 from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.gui.process_run import process_run
+from pyfibre.io.database_io import save_database, load_database
 
 logger = logging.getLogger(__name__)
 
 
 class PyFibreMainTask(Task):
+
+    # ------------------
+    # Regular Attributes
+    # ------------------
 
     id = 'pyfibre.pyfibre_main_task'
 
@@ -34,12 +44,20 @@ class PyFibreMainTask(Task):
     file_display_pane = Instance(FileDisplayPane)
 
     # Multiprocessor list
+    n_proc = Int(1)
+
     processes = List()
+
+    progress_int = Int()
 
     #: The menu bar for this task.
     menu_bar = Instance(SMenuBar)
 
     tool_bars = List(SToolBar)
+
+    run_enabled = Bool(True)
+
+    change_options = Event()
 
     def __init__(self, *args, **kwargs):
         super(PyFibreMainTask, self).__init__(*args, **kwargs)
@@ -49,7 +67,10 @@ class PyFibreMainTask(Task):
         self.cell_database = None
 
         self.queue = Queue()
-        self.processes = []
+
+    # ------------------
+    #     Defaults
+    # ------------------
 
     def _default_layout_default(self):
         """ Defines the default layout of the task window """
@@ -58,6 +79,12 @@ class PyFibreMainTask(Task):
                 PaneItem('pyfibre.file_display_pane'),
                 PaneItem('pyfibre.options_pane'))
         )
+
+    def _options_pane_default(self):
+        return OptionsPane()
+
+    def _file_display_pane_default(self):
+        return FileDisplayPane()
 
     def _menu_bar_default(self):
         """A menu bar with functions relevant to the Setup task.
@@ -74,6 +101,15 @@ class PyFibreMainTask(Task):
         tool_bars = [
                 SToolBar(
                     TaskAction(
+                        name="Run",
+                        tooltip="Run PyFibre",
+                        image=ImageResource(
+                            "baseline_play_arrow_black_48dp"),
+                        method="_run_pyfibre",
+                        image_size=(64, 64),
+                        enabled=self.run_enabled
+                    ),
+                    TaskAction(
                         name="Save Database",
                         tooltip="Save database containing "
                                 "image metrics",
@@ -83,26 +119,25 @@ class PyFibreMainTask(Task):
             ]
         return tool_bars
 
-    def create_central_pane(self):
-        """ Creates the central pane
-        """
-        return ViewerPane()
+    # ------------------
+    #     Listeners
+    # ------------------
 
-    def create_dock_panes(self):
-        """ Creates the dock panes
-        """
-        return [self.file_display_pane,
-                self.options_pane]
+    @on_trait_change('change_options')
+    def reselect_image(self):
+        pass
 
-    def _options_pane_default(self):
-        return OptionsPane()
-
-    def _file_display_pane_default(self):
-        return FileDisplayPane()
+    # ------------------
+    #   Private Methods
+    # ------------------
 
     def _run_pyfibre(self):
 
-        n_files = len(self.file_display_pane.input_files)
+        self.run_enabled = False
+
+        file_list = self.file_display_pane.input_files
+        n_files = len(file_list)
+        self.progress_int = int(100 / n_files)
         proc_count = np.min(
             (self.n_proc, n_files)
         )
@@ -111,7 +146,7 @@ class PyFibreMainTask(Task):
         self.processes = []
 
         for indices in index_split:
-            batch_files = [self.file_display.input_files[i] for i in indices]
+            batch_files = [file_list[i] for i in indices]
 
             process = Process(
                 target=process_run,
@@ -140,25 +175,85 @@ class PyFibreMainTask(Task):
         """
         Check if there is something in the queue
         """
-        self.queue_check()
+
+        self._queue_check()
 
         if np.any([process.is_alive() for process in self.processes]):
-            self.master.after(500, self._process_check)
+            do_after(1000, self._process_check)
         else:
             self.stop_run()
-            self.generate_db()
-            if self.save_db.get():
+            self.create_databases()
+            if self.options_pane.save_database:
                 self.save_database()
 
-    def queue_check(self):
+    def _queue_check(self):
 
         while not self.queue.empty():
+            msg = self.queue.get(0)
+            self.file_display_pane.progress += self.progress_int
+            logger.info(msg)
+
+    # ------------------
+    #   Public Methods
+    # ------------------
+
+    def create_central_pane(self):
+        """ Creates the central pane
+        """
+        return ViewerPane()
+
+    def create_dock_panes(self):
+        """ Creates the dock panes
+        """
+        return [self.file_display_pane,
+                self.options_pane]
+
+    def create_databases(self):
+
+        print('create_databases')
+
+        global_database = pd.DataFrame()
+        fibre_database = pd.DataFrame()
+        cell_database = pd.DataFrame()
+
+        for i, input_file_name in enumerate(
+                self.file_display_pane.input_prefixes):
+
+            image_name = os.path.basename(input_file_name)
+            image_path = os.path.dirname(input_file_name)
+            data_dir = image_path + '/data/'
+            metric_name = data_dir + image_name
+
+            logger.info("Loading metrics for {}".format(metric_name))
+
             try:
-                msg = self.queue.get(0)
-                self.update_log(msg)
-                self.progress.configure(value=self.progress['value'] + 1)
-                self.progress.update()
-            except queue.Empty: pass
+                data_global = load_database(metric_name, 'global_metric')
+                data_fibre = load_database(metric_name, 'fibre_metric')
+                data_cell = load_database(metric_name, 'cell_metric')
+
+                global_database = global_database.append(data_global, ignore_index=True)
+                fibre_database = pd.concat([fibre_database, data_fibre], sort=True)
+                cell_database = pd.concat([cell_database, data_cell], sort=True)
+
+            except (ValueError, IOError):
+                logger.info(f"{input_file_name} databases not imported - skipping")
+
+        self.global_database = global_database
+        self.fibre_database = fibre_database
+        self.cell_database = cell_database
 
     def save_database(self):
-        print('Saving database')
+
+        filename = self.options_pane.database_filename
+
+        save_database(self.global_database, filename)
+        save_database(self.fibre_database, filename, 'fibre')
+        save_database(self.cell_database, filename, 'cell')
+
+    def stop_run(self):
+
+        for process in self.processes:
+            process.terminate()
+
+        self.file_display_pane.progress = 0
+        self.run_enabled = True
