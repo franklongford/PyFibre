@@ -65,11 +65,8 @@ def unit_vector(vector, axis=-1):
 
 def nanmean(array_like, weights=None):
 
-    try:
-        assert weights == None
+    if weights is None:
         weights = np.ones(array_like.shape)
-
-    except (AssertionError, ValueError): pass
 
     indices = ~np.isnan(array_like)
 
@@ -155,3 +152,9 @@ def load_pickle(file_name):
         object_ = pickle.load(infile)
 
     return object_
+
+
+def dict_extract(dictionary, keys):
+
+    return {key : dictionary[key] for key in keys}
+

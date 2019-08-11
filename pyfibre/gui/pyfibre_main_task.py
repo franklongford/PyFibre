@@ -25,6 +25,7 @@ from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.gui.process_run import process_run
 from pyfibre.io.database_io import save_database, load_database
+from pyfibre.utilities import dict_extract
 
 logger = logging.getLogger(__name__)
 
@@ -81,9 +82,7 @@ class PyFibreMainTask(Task):
         )
 
     def _options_pane_default(self):
-        return OptionsPane(
-            pl_required = self.options_pane.pl_required
-        )
+        return OptionsPane()
 
     def _file_display_pane_default(self):
         return FileDisplayPane()
@@ -125,10 +124,6 @@ class PyFibreMainTask(Task):
     #     Listeners
     # ------------------
 
-    @on_trait_change('change_options')
-    def reselect_image(self):
-        pass
-
     @on_trait_change('options_pane.pl_required')
     def update_shg_pl_requirements(self):
         self.file_display_pane.pl_required = (
@@ -143,8 +138,10 @@ class PyFibreMainTask(Task):
 
         self.run_enabled = False
 
-        file_list = self.file_display_pane.input_files
-        n_files = len(file_list)
+        files = self.file_display_pane.tif_reader.files
+        prefix_list = list(files.keys())
+        n_files = len(prefix_list)
+
         self.progress_int = int(100 / n_files)
         proc_count = np.min(
             (self.n_proc, n_files)
@@ -154,22 +151,17 @@ class PyFibreMainTask(Task):
         self.processes = []
 
         for indices in index_split:
-            batch_files = [file_list[i] for i in indices]
+            key_list = [prefix_list[index] for index in indices]
+            batch_dict = dict_extract(files, key_list)
 
             process = Process(
                 target=process_run,
                 args=(
-                    batch_files,
-                    (self.options_pane.low_intensity,
-                     self.options_pane.high_intensity),
+                    batch_dict,
                     (self.options_pane.n_denoise,
                      self.options_pane.m_denoise),
                     self.options_pane.sigma,
                     self.options_pane.alpha,
-                    self.options_pane.ow_network,
-                    self.options_pane.ow_metric,
-                    self.options_pane.ow_segment,
-                    self.options_pane.ow_figure,
                     self.queue))
             process.daemon = True
             self.processes.append(process)

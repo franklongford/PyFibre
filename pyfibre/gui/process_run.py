@@ -2,19 +2,10 @@ from pyfibre.io.tif_reader import TIFReader
 from pyfibre.model.image_analysis import image_analysis
 
 
-def process_run(input_files, p_intensity, p_denoise,
-                 sigma, alpha, ow_network, ow_segment, ow_metric,
-                 ow_figure, queue):
+def process_run(files, p_denoise, sigma, alpha, queue):
     print('process_run')
-    reader = TIFReader(input_files,
-                       shg=True, pl=True,
-                       p_intensity=p_intensity,
-                       ow_network=ow_network, ow_segment=ow_segment,
-                       ow_metric=ow_metric, ow_figure=ow_figure)
-    reader.load_multi_images()
-
     print('entering for loop')
-    for prefix, data in reader.files.items():
+    for prefix, data in files.items():
         try:
             image_analysis(
                 data['image'], prefix, scale=1.25,
