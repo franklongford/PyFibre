@@ -28,7 +28,7 @@ CONDA_CORE_DEPS = [
     'pytables',
     'traits==5.1.1',
     'traitsui==6.1.1',
-    "pyface",
+    "pyface==6.1.0",
     "pygments",
     "pyqt",
     "qt",
@@ -109,9 +109,6 @@ def build_env(python_version, conda):
             "edm", "install", "-e", env_name,
             "--yes"] + EDM_CORE_DEPS + EDM_DEV_DEPS + DOCS_DEPS
         )
-        if len(PIP_DEPS):
-            edm_run(["pip", "install"] + PIP_DEPS
-            )
 
 
 @cli.command(name="install",

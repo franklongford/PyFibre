@@ -107,7 +107,7 @@ class FileDisplayPane(TraitsDockPane):
                                    allow_upscaling=False,
                                    preserve_aspect_ratio=True)
 
-        progress_editor = ProgressEditor(min=0, max=100)
+        #progress_editor = ProgressEditor(min=0, max=100)
 
         traits_view = View(
             VGroup(
@@ -137,12 +137,6 @@ class FileDisplayPane(TraitsDockPane):
                     Item('remove_file_button',
                          label='Remove File'),
                     show_labels=False
-                ),
-                Group(
-                    Item('progress',
-                         editor=progress_editor
-                         ),
-                    show_labels=False,
                 )
             ),
             style='custom',
@@ -177,16 +171,19 @@ class FileDisplayPane(TraitsDockPane):
         input_files = parse_files(file_name, directory, self.key)
 
         self.tif_reader.get_image_lists(input_files)
+        self.tif_reader.load_multi_images()
 
         input_prefixes = [
-            prefix for prefix, _ in self.tif_reader.files.items()
+            prefix for prefix in self.tif_reader.files.keys()
+            if prefix not in self.input_prefixes
         ]
 
         self.input_prefixes += input_prefixes
 
-        self.file_table = []
-        for key, data in self.tif_reader.files.items():
+        for key in input_prefixes:
+            data = self.tif_reader.files[key]
             keys = data.keys()
+
             shg = 'PL-SHG' in keys or 'SHG' in keys
             pl = 'PL-SHG' in keys or 'PL' in keys
 
@@ -197,8 +194,6 @@ class FileDisplayPane(TraitsDockPane):
                     pl=pl
                 )
             )
-
-        self.tif_reader.load_multi_images()
 
     def open_file(self, selected_rows):
         """Opens corresponding to the first item in

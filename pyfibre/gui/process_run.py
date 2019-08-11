@@ -1,4 +1,3 @@
-from pyfibre.io.tif_reader import TIFReader
 from pyfibre.model.image_analysis import image_analysis
 
 
@@ -15,6 +14,6 @@ def process_run(files, p_denoise, sigma, alpha, queue):
             queue.put("Analysis of {} complete".format(prefix))
 
         except Exception as err:
-            print('something went wrond')
+            print('something went wrong')
             queue.put("Error occurred in analysis of {}".format(prefix))
             raise err

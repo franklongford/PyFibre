@@ -234,7 +234,7 @@ class ViewerPane(TraitsTaskPane):
             try:
                 segments = load_segment(data_dir + image_name, "fibre_segment")
             except (AttributeError, IOError, EOFError):
-                self.update_log("Unable to display fibre segments for {}".format(image_name))
+                logger.debug("Unable to display fibre segments for {}".format(image_name))
             else:
                 segment_image = create_region_image(
                     self.selected_image.image_shg,
@@ -249,7 +249,7 @@ class ViewerPane(TraitsTaskPane):
             try:
                 segments = load_segment(data_dir + image_name, "cell_segment")
             except (AttributeError, IOError, EOFError):
-                self.update_log("Unable to display cell segments for {}".format(image_name))
+                logger.debug("Unable to display cell segments for {}".format(image_name))
             else:
                 segment_image = create_region_image(
                     self.selected_image.image_pl,

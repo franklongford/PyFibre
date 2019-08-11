@@ -281,12 +281,18 @@ class TIFReader():
                     self.files[prefix] = {}
                     self.files[prefix]['SHG'] = shg_files[i]
                     if self.pl:
-                        raise IOError('Could not find PL image data')
+                        self.files.pop(prefix, None)
+                        logger.debug(f'Could not find PL image data for {prefix}')
 
     def load_multi_images(self):
         """Load in SHG and PL files from file name tuple"""
 
+        remove_image = []
+        remove_shg = []
+        remove_pl = []
+
         for prefix, data in self.files.items():
+
             image_stack = [None, None, None]
 
             multi_image = MultiLayerImage(
@@ -299,7 +305,8 @@ class TIFReader():
                 p_intensity=self.p_intensity
             )
 
-            try:
+            if 'PL-SHG' in data:
+
                 (image_stack[0],
                  image_stack[1],
                  image_stack[2]) = self.import_image(data['PL-SHG'], 'PL-SHG')
@@ -309,22 +316,46 @@ class TIFReader():
                 multi_image.image_pl = image_stack[1]
                 multi_image.image_tran = image_stack[2]
 
-            except KeyError:
-                try:
-                    image_stack[0] = self.import_image(data['SHG'], 'SHG')
-                    multi_image.file_path = prefix
-                    multi_image.image_shg = image_stack[0]
-                except KeyError:
-                    raise RuntimeError('Image file not appropriately labelled')
-                try:
-                    (image_stack[1],
-                     image_stack[2]) = self.import_image(data['PL'], 'PL')
-                    multi_image.image_pl = image_stack[1]
-                    multi_image.image_tran = image_stack[2]
-                except KeyError:
-                    pass
+            else:
+                if 'SHG' in data:
+                    try:
+                        image_stack[0] = self.import_image(data['SHG'], 'SHG')
+                        multi_image.file_path = prefix
+                        multi_image.image_shg = image_stack[0]
+                        multi_image.preprocess_image_shg()
+                    except ImportError:
+                        logger.debug('Unable to load SHG file')
+                        remove_shg.append(prefix)
+                        multi_image.shg_analysis = False
+                        if self.shg:
+                            remove_image.append(prefix)
+                else:
+                    logger.debug('SHG Image file not appropriately labelled')
+                    multi_image.shg_analysis = False
+                    if self.shg:
+                        remove_image.append(prefix)
 
-            multi_image.preprocess_image_shg()
-            multi_image.preprocess_image_pl()
+                if 'PL' in data:
+                    try:
+                        (image_stack[1],
+                         image_stack[2]) = self.import_image(data['PL'], 'PL')
+                        multi_image.image_pl = image_stack[1]
+                        multi_image.image_tran = image_stack[2]
+                        multi_image.preprocess_image_pl()
+                    except ImportError:
+                        logger.debug('Unable to load PL file')
+                        remove_pl.append(prefix)
+                        multi_image.pl_analysis = False
+                        if self.pl:
+                            remove_image.append(prefix)
+                else:
+                    logger.debug('PL Image file not appropriately labelled')
+                    multi_image.pl_analysis = False
+                    if self.pl:
+                        remove_image.append(prefix)
 
             self.files[prefix]['image'] = multi_image
+
+        [self.files[key].pop('SHG', None) for key in remove_shg]
+        [self.files[key].pop('PL', None) for key in remove_pl]
+        [self.files.pop(key, None) for key in remove_image]

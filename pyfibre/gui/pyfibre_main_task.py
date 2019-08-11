@@ -190,7 +190,7 @@ class PyFibreMainTask(Task):
 
         while not self.queue.empty():
             msg = self.queue.get(0)
-            self.file_display_pane.progress += self.progress_int
+            #self.file_display_pane.progress += self.progress_int
             logger.info(msg)
 
     # ------------------
