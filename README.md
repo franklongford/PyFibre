@@ -8,30 +8,48 @@ PyFibre is an open source image analysis toolkit for fibrous tissue that can be 
 ## Installation
 
 PyFibre requires a local distributions of `python >= 3.6` and `pip >= 9.0` in order to run. 
-Either [Enthought](https://www.enthought.com/product/enthought-python-distribution/), [anaconda](https://www.anaconda.com/download/) or [miniconda](https://conda.io/miniconda.html) distributions are recommended.
+Either [Enthought](https://www.enthought.com/product/enthought-python-distribution/), 
+[anaconda](https://www.anaconda.com/download/) or [miniconda](https://conda.io/miniconda.html) distributions are recommended.
 
-The use of a package manager, such as [edm](https://www.enthought.com/product/enthought-deployment-manager/) or [conda](https://conda.io/docs/), is optional, but also recommended.
+The use of a package manager, such as [edm](https://www.enthought.com/product/enthought-deployment-manager/) or 
+[conda](https://conda.io/docs/), is optional, but also recommended.
+
+#### Native Installation
+
+If you wish to install PyFibre to run in your native machine environment, you will first need to install both `click`
+and `setuptools` python packages. Afterwards, run the command
+
+    python -m ci install
+    
+and enter the installation command for your local package manager when prompted. Please run
+the unit tests after installation is complete using the command
+
+    python -m ci test
+
+Be advised that if you are not using `edm` or `conda` package managers, there is no guarantee that all required 
+libraries will be available to install. In which case you may need to follow the steps below for installation in 
+a virtual environment. 
 
 #### EDM Installation (recommended)
 
-A light-weight installation can be performed using the Enthought Deployment Manager (EDM). After downloading [edm](https://www.enthought.com/product/enthought-deployment-manager/), simply create a default environment using:
+A light-weight installation can be performed using the Enthought Deployment Manager (EDM). After downloading 
+[edm](https://www.enthought.com/product/enthought-deployment-manager/), simply create a default environment using:
 
     edm install --version 3.6 -y click setuptools
     edm shell
 
 Then build the `PyFibre` environment using the following command:
 
-    python -m ci build-env
+    python -m ci build-env --edm
 
-Afterwards, activate the PyFibre environment and install a package egg with all binaries using:
+Afterwards, install a package egg with all binaries using:
 
-    edm shell -e PyFibre
-    python -m ci install
+    python -m ci install --edm
 
 This will install all required libraries and create the local `PyFibre` and `PyFibre_GUI` binaries.
-To make sure the installation has been sucessful, please run the unittests
+To make sure the installation has been successful, please run the unittests
 
-    python -m ci test
+    python -m ci test --edm
 
 #### Conda Installation
 
@@ -49,8 +67,10 @@ Afterwards, activate the PyFibre environment and install a package egg with all 
     source activate PyFibre
     python -m ci install --conda
 
-Then run `make` in a cloned or forked PyFibre directory to install the local binaries.
-Note: you may need to edit the `PYTHON` and `PIP` variables in the `Makefile`.
+This will install all required libraries and create the local `PyFibre` and `PyFibre_GUI` binaries.
+To make sure the installation has been successful, please run the unittests
+
+    python -m ci test
 
 ## Running the PyFibre GUI
 
