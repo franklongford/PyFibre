@@ -65,7 +65,7 @@ class TestImages(TestCase):
 
 	def test_image(self):
 
-		input_files = [pyfibre_dir + '/tests/stubs/test-pyfibre-pl-shg-Stack.tif']
+		input_files = [pyfibre_dir + '/tests/fixtures/test-pyfibre-pl-shg-Stack.tif']
 		reader = TIFReader(input_files, shg=True, pl=True)
 		reader.load_multi_images()
 

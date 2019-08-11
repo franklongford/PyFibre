@@ -35,7 +35,6 @@ class TestClickRun(TestCase):
         with mock.patch('pyfibre.gui.app.PyFibreGUI') as mock_pyfibre:
             mock_pyfibre.return_value = DummyPyFibreGUI()
             pyfibre.gui.app.run(
-                window_size=(1650, 1080),
                 debug=True,
                 profile=False
             )
@@ -47,7 +46,6 @@ class TestClickRun(TestCase):
         with mock.patch('pyfibre.gui.app.PyFibreGUI') as mock_pyfibre:
             mock_pyfibre.return_value = DummyPyFibreGUI()
             pyfibre.gui.app.run(
-                window_size=(1650, 1080),
                 debug=False,
                 profile=True
             )

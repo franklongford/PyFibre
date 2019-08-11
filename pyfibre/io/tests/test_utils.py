@@ -10,7 +10,7 @@ class TestUtils(TestCase):
 
     def setUp(self):
         self.file_name = (
-            pyfibre_dir + '/tests/stubs/test-pyfibre-pl-shg-Stack.tif'
+            pyfibre_dir + '/tests/fixtures/test-pyfibre-pl-shg-Stack.tif'
         )
         self.directory = os.path.dirname(self.file_name)
         self.key = 'shg'

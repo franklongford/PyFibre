@@ -94,7 +94,7 @@ def pyfibre(file_path, key, sigma, alpha, save_db, debug,
 
     if test:
         file_path = os.path.dirname(
-            os.path.dirname(__file__)) + '/tests/stubs'
+            os.path.dirname(__file__)) + '/tests/fixtures'
         shg = True
         pl = True
 

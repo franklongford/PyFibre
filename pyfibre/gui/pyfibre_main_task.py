@@ -13,7 +13,7 @@ from pyface.tasks.action.api import (
     SMenu, SMenuBar, SToolBar, TaskAction, TaskToggleGroup
 )
 from pyface.tasks.api import (
-    PaneItem, Task, TaskLayout, VSplitter
+    PaneItem, Task, TaskLayout, VSplitter, Tabbed
 )
 from pyface.timer.api import do_after
 from traits.api import (
@@ -75,13 +75,15 @@ class PyFibreMainTask(Task):
     def _default_layout_default(self):
         """ Defines the default layout of the task window """
         return TaskLayout(
-            left=VSplitter(
+            left=Tabbed(
                 PaneItem('pyfibre.file_display_pane'),
                 PaneItem('pyfibre.options_pane'))
         )
 
     def _options_pane_default(self):
-        return OptionsPane()
+        return OptionsPane(
+            pl_required = self.options_pane.pl_required
+        )
 
     def _file_display_pane_default(self):
         return FileDisplayPane()
@@ -126,6 +128,12 @@ class PyFibreMainTask(Task):
     @on_trait_change('change_options')
     def reselect_image(self):
         pass
+
+    @on_trait_change('options_pane.pl_required')
+    def update_shg_pl_requirements(self):
+        self.file_display_pane.pl_required = (
+            self.options_pane.pl_required
+        )
 
     # ------------------
     #   Private Methods

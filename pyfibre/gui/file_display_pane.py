@@ -37,7 +37,20 @@ class FileDisplayPane(TraitsDockPane):
 
     name = 'File Display Pane'
 
-    input_files = List(Unicode)
+    #: Remove the possibility to close the pane
+    closable = False
+
+    #: Remove the possibility to detach the pane from the GUI
+    floatable = False
+
+    #: Remove the possibility to move the pane in the GUI
+    movable = False
+
+    #: Make the pane visible by default
+    visible = True
+
+    #: PL options
+    pl_required = Bool(True)
 
     input_prefixes = List(Unicode)
 
@@ -47,11 +60,13 @@ class FileDisplayPane(TraitsDockPane):
 
     file_search = File()
 
-    tif_reader = TIFReader(pl=True, shg=True)
+    tif_reader = Instance(TIFReader)
 
     add_file_button = Button(name='Add Files')
 
     remove_file_button = Button(name='Remove Files')
+
+    filter_file_button = Button(name='Filter Files')
 
     key = Unicode()
 
@@ -61,9 +76,6 @@ class FileDisplayPane(TraitsDockPane):
     image = ImageResource('icon.ico')
 
     file_list = Dict()
-
-    def __init__(self, *args, **kwargs):
-        super(FileDisplayPane, self).__init__(*args, **kwargs)
 
     def default_traits_view(self):
 
@@ -104,10 +116,12 @@ class FileDisplayPane(TraitsDockPane):
                           editor=image_editor
                           )
                 ),
-                Group(
+                HGroup(
                     Item('key',
                          editor=TextEditor(),
                          style='simple'),
+                    Item('filter_file_button',
+                         label='Filter'),
                 ),
                 Group(
                     Item('file_search',
@@ -137,6 +151,14 @@ class FileDisplayPane(TraitsDockPane):
 
         return traits_view
 
+    def _tif_reader_default(self):
+        return TIFReader(pl=self.pl_required,
+                         shg=True)
+
+    @on_trait_change('shg_required,pl_required')
+    def update_tif_reader(self):
+        self.tif_reader.pl = self.pl_required
+
     def _add_file_button_fired(self):
 
         self.add_files(self.file_search)
@@ -145,13 +167,14 @@ class FileDisplayPane(TraitsDockPane):
 
         self.remove_file(self.selected_files)
 
+    def _filter_file_button_fired(self):
+
+        self.filter_files(self.key)
+
     def add_files(self, file_path):
 
         file_name, directory = parse_file_path(file_path)
         input_files = parse_files(file_name, directory, self.key)
-
-        input_files = [file for file in input_files
-                       if file not in self.input_files]
 
         self.tif_reader.get_image_lists(input_files)
 
@@ -159,10 +182,7 @@ class FileDisplayPane(TraitsDockPane):
             prefix for prefix, _ in self.tif_reader.files.items()
         ]
 
-        self.input_files += input_files
         self.input_prefixes += input_prefixes
-
-        print(self.input_files)
 
         self.file_table = []
         for key, data in self.tif_reader.files.items():
@@ -194,3 +214,18 @@ class FileDisplayPane(TraitsDockPane):
             self.file_table.remove(selected_row)
             prefix = selected_row.name
             self.tif_reader.files.pop(prefix, None)
+
+    def filter_files(self, key=None):
+
+        if key == '':
+            key = None
+
+        if key is not None:
+            selected_rows = []
+            for row in self.file_table:
+                prefix_name = self.file_table.name
+                if ((prefix_name.find(key) == -1) and
+                        (prefix_name not in selected_rows)):
+                    selected_rows.append(row)
+
+            self.remove_file(selected_rows)

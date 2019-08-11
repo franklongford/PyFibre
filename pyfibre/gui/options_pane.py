@@ -16,7 +16,22 @@ class OptionsPane(TraitsDockPane):
 
     name = 'Options Pane'
 
-    #ui.visible = Bool(False)
+    #: Remove the possibility to close the pane
+    closable = False
+
+    #: Remove the possibility to detach the pane from the GUI
+    floatable = False
+
+    #: Remove the possibility to move the pane in the GUI
+    movable = False
+
+    #: Make the pane visible by default
+    visible = True
+
+    #: SHG and PL options
+    shg_required = Bool(True)
+
+    pl_required = Bool(True)
 
     # Overwrite options
     ow_metric = Bool(False)
@@ -54,6 +69,8 @@ class OptionsPane(TraitsDockPane):
 
     traits_view = View(
         VGroup(
+            Item('shg_required'),
+            Item('pl_required'),
             Item('ow_network', label="Overwrite Network?"),
             Item('ow_segment', label="Overwrite Segments?"),
             Item('ow_metric', label="Overwrite Metrics?"),

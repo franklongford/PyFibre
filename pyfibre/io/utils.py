@@ -21,11 +21,10 @@ def parse_files(name=None, directory=None, key=None):
 
     if key is not None:
         removed_files = []
-        for key in key.split(','):
-            for file_name in input_files:
-                if ((file_name.find(key) == -1) and
-                        (file_name not in removed_files)):
-                    removed_files.append(file_name)
+        for file_name in input_files:
+            if ((file_name.find(key) == -1) and
+                    (file_name not in removed_files)):
+                removed_files.append(file_name)
 
         for file_name in removed_files:
             input_files.remove(file_name)

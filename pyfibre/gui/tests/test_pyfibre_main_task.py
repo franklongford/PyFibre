@@ -68,7 +68,7 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
 
     def test__run_pyfibre(self):
         test_file_path = (
-            pyfibre_dir + '/tests/stubs/test-pyfibre-pl-shg-Stack.tif'
+            pyfibre_dir + '/tests/fixtures/test-pyfibre-pl-shg-Stack.tif'
         )
 
         self.main_task.file_display_pane.add_files(test_file_path)

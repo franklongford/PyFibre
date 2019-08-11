@@ -278,7 +278,7 @@ class PyFibre():
     def test_image(self):
 
         if self.file_display['state'] == NORMAL:
-            input_files = [self.pyfibre_dir + '/tests/stubs/test-pyfibre-pl-shg-Stack.tif']
+            input_files = [self.pyfibre_dir + '/tests/fixtures/test-pyfibre-pl-shg-Stack.tif']
 
             self.file_display.add_files(input_files)
 

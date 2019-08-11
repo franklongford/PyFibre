@@ -19,8 +19,7 @@ class TestRun(TestCase):
                 mock_pyfibre.side_effect = mock_pyfibre_constructor
 
                 run(debug=False,
-                    profile=False,
-                    window_size=(1680, 1050))
+                    profile=False)
 
                 self.assertTrue(mock_pyfibre.called)
         finally:

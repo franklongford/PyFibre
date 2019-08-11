@@ -8,7 +8,7 @@ from envisage.ui.tasks.api import (
 from pyface.tasks.api import TaskWindowLayout
 
 from traits.api import (
-    Either, Tuple, Int, List, Property, Bool
+    Either, Tuple, Int, List, Property, Bool, Supports
 )
 
 BACKGROUND_COLOUR = '#d8baa9'
@@ -31,11 +31,6 @@ class PyFibreGUI(TasksApplication):
     always_use_default_layout = Bool(True)
 
     n_proc = Int(1)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.window_size is not None:
-            self.always_use_default_layout = True
 
     def _default_layout_default(self):
         tasks = [factory.id for factory in self.task_factories]

@@ -27,21 +27,14 @@ push_exception_handler(lambda *args: None,
     help="Run GUI under cProfile, creating .prof and .pstats "
          "files in the current directory."
 )
-@click.option(
-    '--window-size', nargs=2, type=int,
-    help="Sets the initial window size"
-)
-def pyfibre(debug, window_size, profile):
+def pyfibre(debug, profile):
     """Launches the FORCE workflow manager application"""
-    if not window_size:
-        window_size = None
 
     run(debug=debug,
-        window_size=window_size,
         profile=profile)
 
 
-def run(debug, window_size, profile):
+def run(debug, profile):
 
     if debug:
         logging.basicConfig(filename="pyfibre.log", filemode="w",
@@ -65,8 +58,8 @@ def run(debug, window_size, profile):
     plugins = [CorePlugin(), TasksPlugin(),
                PyFibrePlugin()]
 
-    pyfibre_gui = PyFibreGUI(plugins=plugins,
-                             window_size=window_size)
+    pyfibre_gui = PyFibreGUI(plugins=plugins)
+
     pyfibre_gui.run()
 
     if profile:

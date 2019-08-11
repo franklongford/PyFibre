@@ -1,7 +1,11 @@
 import logging
 import os
 from chaco.api import ArrayPlotData, Plot
+from chaco.tools.api import PanTool, ZoomTool
 from chaco.default_colormaps import binary, reverse
+from chaco.tools.image_inspector_tool import (
+    ImageInspectorTool, ImageInspectorOverlay
+)
 from enable.api import ComponentEditor
 
 from pyface.tasks.api import TraitsTaskPane
@@ -54,14 +58,24 @@ class ImageTab(HasTraits):
             plot = Plot(plot_data)
 
             if self.image.ndim == 2:
-                plot.img_plot("image_data",
-                              origin='top left',
-                              colormap=self.cmap,
-                              axis='off')
+                img_plot = plot.img_plot(
+                    "image_data",
+                    origin='top left',
+                    colormap=self.cmap,
+                    axis='off')[0]
             elif self.image.ndim == 3:
-                plot.img_plot("image_data",
-                              origin='top left',
-                              axis='off')
+                img_plot = plot.img_plot(
+                    "image_data",
+                    origin='top left',
+                    axis='off')[0]
+
+                # Attach some tools to the plot
+                plot.tools.append(PanTool(
+                    plot, constrain_key="shift"))
+                plot.overlays.append(ZoomTool(
+                    component=plot,
+                    tool_mode="box",
+                    always_on=False))
 
             return plot
 
