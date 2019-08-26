@@ -33,6 +33,10 @@ class TableRow(HasTraits):
 
 class FileDisplayPane(TraitsDockPane):
 
+    # --------------------
+    #  Regular Attributes
+    # --------------------
+
     id = 'pyfibre.file_display_pane'
 
     name = 'File Display Pane'
@@ -62,12 +66,6 @@ class FileDisplayPane(TraitsDockPane):
 
     tif_reader = Instance(TIFReader)
 
-    add_file_button = Button(name='Add Files')
-
-    remove_file_button = Button(name='Remove Files')
-
-    filter_file_button = Button(name='Filter Files')
-
     key = Unicode()
 
     progress = Int(0)
@@ -76,6 +74,16 @@ class FileDisplayPane(TraitsDockPane):
     image = ImageResource('icon.ico')
 
     file_list = Dict()
+
+    # --------------------
+    #       Buttons
+    # --------------------
+
+    add_file_button = Button(name='Add Files')
+
+    remove_file_button = Button(name='Remove Files')
+
+    filter_file_button = Button(name='Filter Files')
 
     def default_traits_view(self):
 
@@ -149,7 +157,7 @@ class FileDisplayPane(TraitsDockPane):
         return TIFReader(pl=self.pl_required,
                          shg=True)
 
-    @on_trait_change('shg_required,pl_required')
+    @on_trait_change('pl_required')
     def update_tif_reader(self):
         self.tif_reader.pl = self.pl_required
 

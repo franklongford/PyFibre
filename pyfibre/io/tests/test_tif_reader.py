@@ -98,6 +98,26 @@ class TestTIFReader(TestCase):
             self.reader.files['some/path/to/another/file']['SHG'],
             'some/path/to/another/file-shg.tif')
 
+    def test_update_multi_images(self):
+
+        self.reader.get_image_lists(self.input_files[:1])
+
+        with mock.patch(LOAD_IMAGE_PATH) as mock_load:
+            mock_load.return_value = np.ones((3, 100, 100))
+            self.reader.load_multi_images()
+
+        multi_image = self.reader.files['some/path/to/a/file']['image']
+        self.assertEqual(self.reader.ow_network, multi_image.ow_network)
+        self.assertEqual(self.reader.ow_segment, multi_image.ow_segment)
+        self.assertEqual(self.reader.ow_metric, multi_image.ow_metric)
+        self.assertEqual(self.reader.ow_figure, multi_image.ow_figure)
+
+        self.reader.ow_network = True
+        self.assertNotEqual(self.reader.ow_network, multi_image.ow_network)
+
+        self.reader.update_multi_images()
+        self.assertEqual(self.reader.ow_network, multi_image.ow_network)
+
     def test_load_multi_images(self):
 
         self.reader.get_image_lists(self.input_files[:1])

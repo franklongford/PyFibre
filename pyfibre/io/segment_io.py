@@ -7,6 +7,9 @@ def save_segment(segments, file_name, file_type=None):
     """Saves scikit image regions as pickled file"""
 
     n = len(segments)
+    if n == 0:
+        return
+
     segment_masks = np.zeros(
         ((n,) + segments[0]._label_image.shape),
         dtype=int

@@ -138,7 +138,17 @@ class PyFibreMainTask(Task):
 
         self.run_enabled = False
 
+        tif_reader = self.file_display_pane.tif_reader
+
+        tif_reader.ow_network = self.options_pane.ow_network
+        tif_reader.ow_segment = self.options_pane.ow_segment
+        tif_reader.ow_metric = self.options_pane.ow_metric
+        tif_reader.ow_figure = self.options_pane.ow_figure
+
+        self.file_display_pane.tif_reader.update_multi_images()
+
         files = self.file_display_pane.tif_reader.files
+
         prefix_list = list(files.keys())
         n_files = len(prefix_list)
 

@@ -359,3 +359,18 @@ class TIFReader():
         [self.files[key].pop('SHG', None) for key in remove_shg]
         [self.files[key].pop('PL', None) for key in remove_pl]
         [self.files.pop(key, None) for key in remove_image]
+
+    def update_multi_images(self):
+        """Update the MultiImages with new TifReader attributes"""
+
+        for prefix, data in self.files.items():
+
+            multi_image = data['image']
+
+            multi_image.ow_network = self.ow_network
+            multi_image.ow_segment = self.ow_segment
+            multi_image.ow_metric = self.ow_metric
+            multi_image.ow_figure = self.ow_figure
+            multi_image.shg_analysis = self.shg
+            multi_image.pl_analysis = self.pl
+            multi_image.p_intensity = self.p_intensity
