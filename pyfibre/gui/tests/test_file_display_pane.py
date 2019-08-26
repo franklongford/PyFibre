@@ -18,16 +18,11 @@ class TestFileDisplayPane(TestCase):
         )
 
     def test___init__(self):
-        self.assertEqual(0, len(self.file_display.input_prefixes))
         self.assertIsInstance(self.file_display.tif_reader, TIFReader)
 
     def test_add_file(self):
 
         self.file_display.add_files(self.file_path)
-
-        self.assertEqual(
-            pyfibre_dir + '/tests/fixtures/test-pyfibre',
-            self.file_display.input_prefixes[0])
 
         table_row = self.file_display.file_table[0]
         self.assertEqual(
@@ -40,10 +35,6 @@ class TestFileDisplayPane(TestCase):
 
         temp_dir = pyfibre_dir + '/tests/fixtures'
         self.file_display.add_files(temp_dir)
-
-        self.assertEqual(
-            pyfibre_dir + '/tests/fixtures/test-pyfibre',
-            self.file_display.input_prefixes[0])
 
         table_row = self.file_display.file_table[0]
         self.assertEqual(
@@ -69,6 +60,11 @@ class TestFileDisplayPane(TestCase):
 
         self.file_display.add_files(self.file_path)
         self.file_display.filter_files('pyfibre')
+
+        self.assertEqual(1, len(self.file_display.file_table))
+        self.assertEqual(1, len(self.file_display.tif_reader.files))
+
+        self.file_display.filter_files('sci-pyfibre')
 
         self.assertEqual(0, len(self.file_display.file_table))
         self.assertEqual(0, len(self.file_display.tif_reader.files))

@@ -56,8 +56,6 @@ class FileDisplayPane(TraitsDockPane):
     #: PL options
     pl_required = Bool(True)
 
-    input_prefixes = List(Unicode)
-
     file_table = List(TableRow)
 
     selected_files = List(TableRow)
@@ -181,27 +179,22 @@ class FileDisplayPane(TraitsDockPane):
         self.tif_reader.get_image_lists(input_files)
         self.tif_reader.load_multi_images()
 
-        input_prefixes = [
-            prefix for prefix in self.tif_reader.files.keys()
-            if prefix not in self.input_prefixes
-        ]
+        input_prefixes = [row.name for row in self.file_table]
 
-        self.input_prefixes += input_prefixes
+        for key, data in self.tif_reader.files.items():
+            if key not in input_prefixes:
+                image_tags = data.keys()
 
-        for key in input_prefixes:
-            data = self.tif_reader.files[key]
-            keys = data.keys()
+                shg = 'PL-SHG' in image_tags or 'SHG' in image_tags
+                pl = 'PL-SHG' in image_tags or 'PL' in image_tags
 
-            shg = 'PL-SHG' in keys or 'SHG' in keys
-            pl = 'PL-SHG' in keys or 'PL' in keys
-
-            self.file_table.append(
-                TableRow(
-                    name=key,
-                    shg=shg,
-                    pl=pl
+                self.file_table.append(
+                    TableRow(
+                        name=key,
+                        shg=shg,
+                        pl=pl
+                    )
                 )
-            )
 
     def open_file(self, selected_rows):
         """Opens corresponding to the first item in
@@ -217,7 +210,6 @@ class FileDisplayPane(TraitsDockPane):
             self.file_table.remove(selected_row)
             prefix = selected_row.name
             self.tif_reader.files.pop(prefix, None)
-            self.input_prefixes.remove(prefix)
 
     def filter_files(self, key=None):
 
@@ -227,9 +219,9 @@ class FileDisplayPane(TraitsDockPane):
         if key is not None:
             selected_rows = []
             for row in self.file_table:
-                prefix_name = self.file_table.name
-                if ((prefix_name.find(key) == -1) and
-                        (prefix_name not in selected_rows)):
+                prefix_name = row.name
+                if (key not in prefix_name and
+                        prefix_name not in selected_rows):
                     selected_rows.append(row)
 
             self.remove_file(selected_rows)
