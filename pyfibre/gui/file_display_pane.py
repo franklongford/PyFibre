@@ -92,10 +92,10 @@ class FileDisplayPane(TraitsDockPane):
                              resize_mode="stretch"),
                 ObjectColumn(name="shg",
                              label="shg",
-                             resize_mode="stretch"),
+                             resize_mode="fixed"),
                 ObjectColumn(name="pl",
                              label="pl",
-                             resize_mode="stretch")
+                             resize_mode="fixed")
             ],
             auto_size=False,
             selected='selected_files',
@@ -113,7 +113,7 @@ class FileDisplayPane(TraitsDockPane):
                                    allow_upscaling=False,
                                    preserve_aspect_ratio=True)
 
-        #progress_editor = ProgressEditor(min=0, max=100)
+        progress_editor = ProgressEditor(min=0, max=100)
 
         traits_view = View(
             VGroup(
@@ -142,6 +142,11 @@ class FileDisplayPane(TraitsDockPane):
                          editor=table_editor),
                     Item('remove_file_button',
                          label='Remove File'),
+                    show_labels=False
+                ),
+                Group(
+                    Item('progress',
+                         editor=progress_editor),
                     show_labels=False
                 )
             ),

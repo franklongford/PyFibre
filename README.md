@@ -76,7 +76,7 @@ To make sure the installation has been successful, please run the unittests
 
 Once installed, calling the executable `PyFibre_GUI` from the command line will initiate a graphical user interface.
 
-![GUI](pyfibre/gui/images/label.png)
+![GUI](pyfibre/docs/main_view.png)
 
 ### File Viewer
 

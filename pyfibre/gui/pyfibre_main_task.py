@@ -108,12 +108,14 @@ class PyFibreMainTask(Task):
                             "baseline_play_arrow_black_48dp"),
                         method="_run_pyfibre",
                         image_size=(64, 64),
-                        enabled=self.run_enabled
+                        enabled_name='run_enabled'
                     ),
                     TaskAction(
                         name="Save Database",
                         tooltip="Save database containing "
                                 "image metrics",
+                        image=ImageResource(
+                            "baseline_save_black_48dp"),
                         method="save_database"
                     )
                 )
@@ -130,6 +132,12 @@ class PyFibreMainTask(Task):
             self.options_pane.pl_required
         )
 
+    @on_trait_change('options_pane.pl_required')
+    def update_shg_pl_requirements(self):
+        self.file_display_pane.pl_required = (
+            self.options_pane.pl_required
+        )
+
     # ------------------
     #   Private Methods
     # ------------------
@@ -137,6 +145,7 @@ class PyFibreMainTask(Task):
     def _run_pyfibre(self):
 
         self.run_enabled = False
+        self.file_display_pane.trait_set(progress=0)
 
         tif_reader = self.file_display_pane.tif_reader
 
@@ -150,13 +159,19 @@ class PyFibreMainTask(Task):
         files = self.file_display_pane.tif_reader.files
 
         prefix_list = list(files.keys())
+
         n_files = len(prefix_list)
 
-        self.progress_int = int(100 / n_files)
+        if n_files == 0:
+            self.stop_run()
+            return
+
+        self.progress_int = 100 // n_files
         proc_count = np.min(
             (self.n_proc, n_files)
         )
-        index_split = np.array_split(np.arange(n_files), proc_count)
+        index_split = np.array_split(np.arange(n_files),
+                                     proc_count)
 
         self.processes = []
 
@@ -200,7 +215,7 @@ class PyFibreMainTask(Task):
 
         while not self.queue.empty():
             msg = self.queue.get(0)
-            #self.file_display_pane.progress += self.progress_int
+            self.file_display_pane.progress += self.progress_int
             logger.info(msg)
 
     # ------------------
@@ -226,8 +241,11 @@ class PyFibreMainTask(Task):
         fibre_database = pd.DataFrame()
         cell_database = pd.DataFrame()
 
-        for i, input_file_name in enumerate(
-                self.file_display_pane.input_prefixes):
+        input_prefixes = [
+            row.name for row in self.file_display_pane.file_table
+        ]
+
+        for i, input_file_name in enumerate(input_prefixes):
 
             image_name = os.path.basename(input_file_name)
             image_path = os.path.dirname(input_file_name)
@@ -265,5 +283,5 @@ class PyFibreMainTask(Task):
         for process in self.processes:
             process.terminate()
 
-        self.file_display_pane.progress = 0
+        self.file_display_pane.trait_set(progress=0)
         self.run_enabled = True
