@@ -217,6 +217,7 @@ class FileDisplayPane(TraitsDockPane):
             self.file_table.remove(selected_row)
             prefix = selected_row.name
             self.tif_reader.files.pop(prefix, None)
+            self.input_prefixes.remove(prefix)
 
     def filter_files(self, key=None):
 

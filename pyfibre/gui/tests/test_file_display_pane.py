@@ -60,6 +60,11 @@ class TestFileDisplayPane(TestCase):
         self.assertEqual(0, len(self.file_display.file_table))
         self.assertEqual(0, len(self.file_display.tif_reader.files))
 
+        self.file_display.add_files(self.file_path)
+
+        self.assertEqual(1, len(self.file_display.file_table))
+        self.assertEqual(1, len(self.file_display.tif_reader.files))
+
     def test_filter_files(self):
 
         self.file_display.add_files(self.file_path)
