@@ -1,8 +1,10 @@
 from unittest import TestCase
 import numpy as np
+
 from pyfibre.model.tools.analysis import (
-    tensor_analysis, angle_analysis
+    tensor_analysis, angle_analysis, fibre_analysis
 )
+from pyfibre.tests.dummy_classes import DummyFibre
 
 
 class TestAnalysis(TestCase):
@@ -32,3 +34,24 @@ class TestAnalysis(TestCase):
         angle_sdi = angle_analysis(angles, weights, N=10)
 
         self.assertEqual(angle_sdi, 0.225)
+
+    def test_fibre_analysis(self):
+
+        tot_fibres = [DummyFibre(fibre_l=1,
+                                 euclid_l=0.5,
+                                 direction=[0, 0.5]),
+                      DummyFibre(), DummyFibre()]
+
+        (fibre_lengths,
+         fibre_waviness,
+         fibre_angles) = fibre_analysis(tot_fibres)
+
+        self.assertEqual(3, len(fibre_lengths))
+        self.assertEqual(3, len(fibre_waviness))
+        self.assertEqual(3, len(fibre_angles))
+
+        self.assertTrue(np.all(fibre_waviness <= 1))
+
+        self.assertEqual(1, fibre_lengths[0])
+        self.assertEqual(0.5, fibre_waviness[0])
+        self.assertEqual(60, fibre_angles[0])

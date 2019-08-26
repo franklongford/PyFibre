@@ -134,7 +134,7 @@ def angle_analysis(angles, weights, N=200):
     return angle_sdi
 
 
-def fibre_analysis(tot_fibres, verbose=False):
+def fibre_analysis(tot_fibres):
 
     fibre_lengths = np.empty((0,), dtype='float64')
     fibre_waviness = np.empty((0,), dtype='float64')
@@ -142,14 +142,9 @@ def fibre_analysis(tot_fibres, verbose=False):
 
     for fibre in tot_fibres:
 
-        start = fibre.node_list[0]
-        end = fibre.node_list[-1]
-
-        #logger.debug(f"N nodes: {len(fibre.node_list)} Length: {fibre.fibre_l}\n"
-        #             f"Displacement: {fibre.euclid_l}  Direction: {fibre.direction}\n ")
-
         fibre_lengths = np.concatenate((fibre_lengths, [fibre.fibre_l]))
-        fibre_waviness = np.concatenate((fibre_waviness, [fibre.euclid_l / fibre.fibre_l]))
+        fibre_waviness = np.concatenate((fibre_waviness,
+                                         [fibre.euclid_l / fibre.fibre_l]))
 
         cos_the = branch_angles(fibre.direction, np.array([[0, 1]]), np.ones(1))
         fibre_angles = np.concatenate((fibre_angles, np.arccos(cos_the) * 180 / np.pi))
