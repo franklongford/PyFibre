@@ -76,11 +76,11 @@ To make sure the installation has been successful, please run the unittests
 
 Once installed, calling the executable `PyFibre_GUI` from the command line will initiate a graphical user interface.
 
-![GUI](pyfibre/docs/main_view.png)
+![GUI](docs/main_view.png)
 
 ### File Viewer
 
-PyFibre is set by default to detect Tagged Image Format (tif) files. To load in individual files to analyse, use the `Load Files` button and use the pop up window to navigate through your file tree. Alternatively, you can load in all tif files within a single directory by using the `Load Folder` button.
+PyFibre is set by default to detect Tagged Image Format (tif) files. To load in individual files to analyse, use the filwindow to navigate through your file treethe `Add Files` button and . Alternatively, you can load in all tif files within a single directory by using the `Load Folder` button.
 
 #### Automatic SHG and PL Image Detection
 
