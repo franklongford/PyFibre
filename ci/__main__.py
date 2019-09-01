@@ -9,16 +9,19 @@ PYFIBRE_REPO = os.path.abspath('.')
 
 EDM_CORE_DEPS = [
     'Click==7.0-1',
+    "chaco==4.7.2-3",
+    "enable==4.7.2-9",
     "envisage==4.7.2-1",
     'pytables==3.5.1-1',
     'traits==5.1.1-1',
     'traitsui==6.1.1-1',
     "pyface==6.1.0-2",
     "pygments==2.2.0-1",
-    "pyqt==4.11.4-7",
-    "qt==4.8.7-10",
-    "sip==4.18.1-1",
-    "pyzmq==16.0.0-7"
+    "pyqt>=4.11.4-7",
+    "qt>=4.8.7-10",
+    "sip>=4.18.1-1",
+    "pyzmq==16.0.0-7",
+    "swig==3.0.11-2"
              ]
 EDM_DEV_DEPS = ["flake8==3.7.7-1",
                 "mock==2.0.0-3"]
@@ -26,6 +29,7 @@ EDM_DEV_DEPS = ["flake8==3.7.7-1",
 CONDA_CORE_DEPS = [
     'Click',
     "envisage",
+    "chaco==4.7.2",
     'pytables',
     'traits==5.1.1',
     'traitsui==6.1.1',
