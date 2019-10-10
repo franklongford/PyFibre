@@ -4,7 +4,7 @@ import numpy as np
 from pyfibre.model.tools.analysis import (
     tensor_analysis, angle_analysis, fibre_analysis
 )
-from pyfibre.tests.dummy_classes import DummyFibre
+from pyfibre.tests.probe_classes import ProbeFibre
 
 
 class TestAnalysis(TestCase):
@@ -31,16 +31,13 @@ class TestAnalysis(TestCase):
                            180, 45, 45,
                            45, 90, 180])
         weights = np.ones(angles.shape)
-        angle_sdi = angle_analysis(angles, weights, N=10)
+        angle_sdi, _ = angle_analysis(angles, weights, n_bin=10)
 
         self.assertEqual(angle_sdi, 0.225)
 
     def test_fibre_analysis(self):
 
-        tot_fibres = [DummyFibre(fibre_l=1,
-                                 euclid_l=0.5,
-                                 direction=[0, 0.5]),
-                      DummyFibre(), DummyFibre()]
+        tot_fibres = [ProbeFibre(), ProbeFibre(), ProbeFibre()]
 
         (fibre_lengths,
          fibre_waviness,
@@ -52,6 +49,6 @@ class TestAnalysis(TestCase):
 
         self.assertTrue(np.all(fibre_waviness <= 1))
 
-        self.assertEqual(1, fibre_lengths[0])
-        self.assertEqual(0.5, fibre_waviness[0])
-        self.assertEqual(60, fibre_angles[0])
+        self.assertAlmostEqual(4.3904770, fibre_lengths[0], 5)
+        self.assertAlmostEqual(0.9990583, fibre_waviness[0], 5)
+        self.assertAlmostEqual(136.84761, fibre_angles[0], 5)

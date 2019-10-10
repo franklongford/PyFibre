@@ -26,7 +26,6 @@ from pyfibre.io.database_io import check_file_name
 from pyfibre.model.tools.figures import (
     create_tensor_image, create_region_image, create_network_image
 )
-from pyfibre.model.tools.extraction import network_extraction
 from pyfibre.utilities import flatten_list
 
 logger = logging.getLogger(__name__)

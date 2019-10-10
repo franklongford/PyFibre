@@ -59,7 +59,6 @@ def run(debug, profile):
                PyFibrePlugin()]
 
     pyfibre_gui = PyFibreGUI(plugins=plugins)
-
     pyfibre_gui.run()
 
     if profile:

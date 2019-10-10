@@ -1,44 +1,31 @@
 from unittest import TestCase
 import numpy as np
+import networkx as nx
 
+from pyfibre.io.tif_reader import load_image
 from pyfibre.model.tools.extraction import (
-    check_2D_arrays, distance_matrix, branch_angles
+    build_network, simplify_network, network_extraction
 )
+from pyfibre.tests.test_utilities import test_image_path
 
 
-class TestFIRE(TestCase):
+class TestExtraction(TestCase):
 
     def setUp(self):
-        self.pos_2D = np.array([[1, 3], [4, 2], [1, 5]])
-        self.answer_d_2D = np.array([[[0, 0], [3, -1], [0, 2]],
-                                    [[-3, 1], [0, 0], [-3, 3]],
-                                    [[0, -2], [3, -3], [0, 0]]])
-        self.answer_r2_2D = np.array([[0, 10, 4],
-                                      [10, 0, 18],
-                                      [4, 18, 0]])
-        self.answer_cos_the = np.array([0, 0.9486833])
+        self.image = load_image(test_image_path)[0].mean(axis=-1)
 
-    def test_check_2D_arrays(self):
+    def test_build_network(self):
 
-        indices = check_2D_arrays(self.pos_2D,
-                                  self.pos_2D + 1.5, 2)
-        self.assertEqual(indices[0], 2)
-        self.assertEqual(indices[1], 0)
+        network = build_network(self.image)
+        self.assertFalse(list(nx.isolates(network)))
+        self.assertEqual(526, network.number_of_nodes())
+        self.assertEqual(579, network.number_of_edges())
 
-    def test_distance_matrix(self):
-        d_2D, r2_2D = distance_matrix(self.pos_2D)
+    def test_clean_network(self):
+        pass
 
-        self.assertAlmostEqual(
-            abs(self.answer_d_2D - d_2D).sum(), 0, 7)
-        self.assertAlmostEqual(
-            abs(self.answer_r2_2D - r2_2D).sum(), 0, 7)
+    def test_simplify_network(self):
+        pass
 
-    def test_branch_angles(self):
-
-        direction = np.array([1, 0])
-        vectors = self.answer_d_2D[([2, 0], [0, 1])]
-        r = np.sqrt(self.answer_r2_2D[([2, 0], [0, 1])])
-
-        cos_the = branch_angles(direction, vectors, r)
-        self.assertAlmostEqual(
-            abs(self.answer_cos_the - cos_the).sum(), 0, 7)
+    def test_network_extraction(self):
+        pass

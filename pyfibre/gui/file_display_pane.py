@@ -6,7 +6,7 @@ from pyface.api import ImageResource
 
 from traits.api import (
     HasTraits, List, Unicode, Button, File, Dict,
-    Instance, Bool, on_trait_change, Int
+    Instance, Bool, on_trait_change, Int, Property
 )
 from traitsui.api import (
     View, Item, ListEditor, Group, TableEditor, ObjectColumn,
@@ -66,12 +66,12 @@ class FileDisplayPane(TraitsDockPane):
 
     key = Unicode()
 
-    progress = Int(0)
-
     #: The PyFibre logo. Stored at images/icon.ico
     image = ImageResource('icon.ico')
 
     file_list = Dict()
+
+    n_images = Property(Int, depends_on='file_table[]')
 
     # --------------------
     #       Buttons
@@ -113,8 +113,6 @@ class FileDisplayPane(TraitsDockPane):
                                    allow_upscaling=False,
                                    preserve_aspect_ratio=True)
 
-        progress_editor = ProgressEditor(min=0, max=100)
-
         traits_view = View(
             VGroup(
                 Group(
@@ -143,11 +141,6 @@ class FileDisplayPane(TraitsDockPane):
                     Item('remove_file_button',
                          label='Remove File'),
                     show_labels=False
-                ),
-                Group(
-                    Item('progress',
-                         editor=progress_editor),
-                    show_labels=False
                 )
             ),
             style='custom',
@@ -159,6 +152,9 @@ class FileDisplayPane(TraitsDockPane):
     def _tif_reader_default(self):
         return TIFReader(pl=self.pl_required,
                          shg=True)
+
+    def _get_n_images(self):
+        return len(self.file_table)
 
     @on_trait_change('pl_required')
     def update_tif_reader(self):

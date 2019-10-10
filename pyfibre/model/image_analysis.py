@@ -8,7 +8,7 @@ from skimage.exposure import equalize_adapthist
 
 from pyfibre.utilities import flatten_list
 from pyfibre.model.tools.extraction import (
-    FIRE, network_extraction
+    build_network, network_extraction
 )
 from pyfibre.model.tools.figures import (
     create_figure, create_tensor_image, create_region_image,
@@ -119,7 +119,7 @@ def image_analysis(multi_image, prefix, scale=1.25,
 
         "Call FIRE algorithm to extract full image network"
         logger.debug("Calling FIRE algorithm using image scale {}  alpha  {}".format(scale, alpha))
-        network = FIRE(image_nl, scale=scale, sigma=sigma, alpha=alpha)
+        network = build_network(image_nl, scale=scale, sigma=sigma, alpha=alpha)
 
         save_network(network, filename, "network")
 

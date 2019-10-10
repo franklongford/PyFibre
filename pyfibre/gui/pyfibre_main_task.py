@@ -145,7 +145,6 @@ class PyFibreMainTask(Task):
     def _run_pyfibre(self):
 
         self.run_enabled = False
-        self.file_display_pane.trait_set(progress=0)
 
         tif_reader = self.file_display_pane.tif_reader
 
@@ -160,18 +159,17 @@ class PyFibreMainTask(Task):
 
         prefix_list = list(files.keys())
 
-        n_files = len(prefix_list)
-
-        if n_files == 0:
+        if self.file_display_pane.n_images == 0:
             self.stop_run()
             return
 
-        self.progress_int = 100 // n_files
         proc_count = np.min(
-            (self.n_proc, n_files)
+            (self.n_proc, self.file_display_pane.n_images)
         )
-        index_split = np.array_split(np.arange(n_files),
-                                     proc_count)
+        index_split = np.array_split(
+            np.arange(self.file_display_pane.n_images),
+            proc_count
+        )
 
         self.processes = []
 
@@ -215,7 +213,6 @@ class PyFibreMainTask(Task):
 
         while not self.queue.empty():
             msg = self.queue.get(0)
-            self.file_display_pane.progress += self.progress_int
             logger.info(msg)
 
     # ------------------

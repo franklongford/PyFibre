@@ -23,25 +23,27 @@ from pyfibre.utilities import matrix_split
 logger = logging.getLogger(__name__)
 
 
-def fourier_transform_analysis(image, n_split=1, sigma=None, nbins=200):
+def fourier_transform_analysis(image, n_split=1, sigma=None, n_bins=200):
     """
     Calculates fourier amplitude spectrum for image
 
     Parameters
     ----------
-
-    image:  array_like (float); shape=(n_x, n_y)
-    Image to analyse
+    image :  array_like
+        Image to analyse
+    n_split : int, optional
+        Number of samples to split image into
+    sigma : float, optional
+        Standard deviation of Gaussian filter to be applied before
+        FFT
+    n_bins : int, optional
+        Number of bins for angular histogram
 
     Returns
     -------
-
-    angles:  array_like (float); shape=(n_bins)
-        Angles corresponding to fourier amplitudes
-
-    fourier_spec:  array_like (float); shape=(n_bins)
-        Average Fouier amplitudes of FT of image_shg
-
+    angles, fourier_spec:  array_like of floats
+        Angles and average fourier amplitudes of FFT performed on
+        image
     """
 
     if sigma != None:
@@ -72,7 +74,6 @@ def fourier_transform_analysis(image, n_split=1, sigma=None, nbins=200):
         angles[0][0] = 0
         angles = np.fft.fftshift(angles)
 
-
         sdi = np.mean(fourier_spec) / np.max(fourier_spec)
 
     return angles, fourier_spec, sdi
@@ -80,28 +81,20 @@ def fourier_transform_analysis(image, n_split=1, sigma=None, nbins=200):
 
 def tensor_analysis(tensor):
     """
-    tensor_analysis(tensor)
-
-    Calculates eigenvalues and eigenvectors of average tensor over area^2 pixels for n_samples
+    Calculates eigenvalues and eigenvectors of average tensor over area^2 pixels
+    for n_samples
 
     Parameters
     ----------
-
-    tensor:  array_like (float); shape(nframe, nx, ny, 2, 2)
-        Average tensor over area under examination
+    tensor :  array_like of floats
+        Average tensor over area under examination. Can either refer to a single image
+        or stack of images; in which case outer dimension must represent a different
+        image in the stack
 
     Returns
     -------
-
-    tot_anis:  array_like (float); shape=(n_frame, nx, ny)
-        Difference between eigenvalues of average tensors
-
-    tot_angle:  array_like (float); shape=(n_frame, nx, ny)
-        Angle of dominant eigenvector of average tensors
-
-    tot_energy:  array_like (float); shape=(n_frame, nx, ny)
-        Determinent of eigenvalues of average tensors
-
+    tot_anis, tot_angle, tot_energy : array_like of floats
+        Anisotropy, angle and energy values of input tensor
     """
 
     if tensor.ndim == 2:
@@ -124,18 +117,52 @@ def tensor_analysis(tensor):
     return tot_anis, tot_angle, tot_energy
 
 
-def angle_analysis(angles, weights, N=200):
+def angle_analysis(angles, weights=None, n_bin=200):
+    """Creates a histogram of values in array `angles`, with optional
+    argument `weights`. Returns SDI value of each binned angle in
+    histogram.
 
-    angle_hist, _ = np.histogram(angles.flatten(), bins=N,
-                                 weights=weights.flatten(),
-                                 density=True)
+    Parameters
+    ----------
+    angles : array_like of floats
+        Array of angles to bin
+    weights : array_like of floats, optional
+        Array of weights corresponding to each value in angles
+    n_bin : int, optional
+        Number of bins for histogram
+
+    Returns
+    -------
+    angle_sdi, angle_x: array_like of floats
+        Angle and SDI values corresponding to each bin in histogram
+    """
+
+    if weights is None:
+        weights = np.ones(angles.shape)
+
+    angle_hist, angle_x = np.histogram(
+        angles.flatten(), bins=n_bin, weights=weights.flatten(),
+        density=True
+    )
     angle_sdi = angle_hist.mean() / angle_hist.max()
 
-    return angle_sdi
+    return angle_sdi, angle_x
 
 
 def fibre_analysis(tot_fibres):
+    """Analysis of list of `Fibre` objects
 
+    Parameters
+    ----------
+    tot_fibres : list of `<class: Fibre>`
+        List of fibre to analyse
+
+    Returns
+    -------
+    fibre_lengths, fibre_waviness, fibre_angles : array_like of floats
+        Perimeter, waviness and angular orientation of each object in
+        `tot_fibres`
+    """
     fibre_lengths = np.empty((0,), dtype='float64')
     fibre_waviness = np.empty((0,), dtype='float64')
     fibre_angles = np.empty((0,), dtype='float64')
@@ -240,7 +267,7 @@ def segment_analysis(image, segment, n_tensor, tag):
      segment_angle_map) = tensor_analysis(segment_n_tensor)
 
     _, _, database[f"{tag} Fourier SDI"] = (0, 0, 0)#fourier_transform_analysis(segment_image)
-    database[f"{tag} Angle SDI"] = angle_analysis(segment_angle_map, segment_anis_map)
+    database[f"{tag} Angle SDI"], _ = angle_analysis(segment_angle_map, segment_anis_map)
 
     database[f"{tag} Mean"] = np.mean(segment_image)
     database[f"{tag} STD"] = np.std(segment_image)

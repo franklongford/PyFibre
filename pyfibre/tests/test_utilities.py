@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 THRESH = 1E-7
 
+test_image_path = pyfibre_dir + '/tests/fixtures/test-pyfibre-pl-shg-Stack.tif'
+
 
 class TestLogging(TestCase):
 
@@ -65,7 +67,7 @@ class TestImages(TestCase):
 
 	def test_image(self):
 
-		input_files = [pyfibre_dir + '/tests/fixtures/test-pyfibre-pl-shg-Stack.tif']
+		input_files = [test_image_path]
 		reader = TIFReader(input_files, shg=True, pl=True)
 		reader.load_multi_images()
 
