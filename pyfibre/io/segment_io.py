@@ -1,30 +1,20 @@
 import numpy as np
 
-from skimage.measure import regionprops
+from pyfibre.model.tools.segment_utilities import (
+    segments_to_binary, binary_to_segments
+)
 
 
-def save_segment(segments, file_name, file_type=None):
+def save_segment(segments, file_name, shape, file_type=None):
     """Saves scikit image regions as pickled file"""
 
-    n = len(segments)
-    if n == 0:
-        return
-
-    segment_masks = np.zeros(
-        ((n,) + segments[0]._label_image.shape),
-        dtype=int
-    )
-
-    for i, segment in enumerate(segments):
-        segment_masks[i] += np.where(
-            segments[i]._label_image == segments[i].label, 1, 0
-        )
+    binary = segments_to_binary(segments, shape)
 
     if file_type is not None:
         file_name = '_'.join([file_name, file_type])
 
     try:
-        np.save(f"{file_name}.npy", segment_masks)
+        np.save(f"{file_name}.npy", binary)
     except IOError as e:
         raise IOError(
             f"Cannot save to file {file_name}"
@@ -38,17 +28,12 @@ def load_segment(file_name, file_type=None, image=None):
         file_name = '_'.join([file_name, file_type])
 
     try:
-        segment_masks = np.load(f"{file_name}.npy")
+        binary = np.load(f"{file_name}.npy")
     except IOError as e:
         raise IOError(
             f"Cannot read file {file_name}.npy"
         ) from e
 
-    n = segment_masks.shape[0]
-    segments = []
-
-    for i in range(n):
-        segments += regionprops(segment_masks[i],
-                                intensity_image=image)
+    segments = binary_to_segments(binary, intensity_image=image)
 
     return segments

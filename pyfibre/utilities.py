@@ -63,6 +63,14 @@ def unit_vector(vector, axis=-1):
     return u_vector
 
 
+def label_set(labels, background=0):
+    """Return a unique set of non-background values in labels"""
+    label_set = np.unique(labels)
+    label_set = label_set[np.where(label_set != background)]
+
+    return label_set
+
+
 def nanmean(array_like, weights=None):
 
     if weights is None:

@@ -8,8 +8,12 @@ from skimage import data
 from scipy.ndimage.filters import gaussian_filter
 
 from pyfibre.io.tif_reader import TIFReader
-from pyfibre.utilities import unit_vector, numpy_remove, nanmean, ring, matrix_split
+from pyfibre.utilities import (
+	unit_vector, numpy_remove, nanmean, ring, matrix_split,
+	label_set
+)
 
+from .probe_classes import generate_image
 
 source_dir = os.path.dirname(os.path.realpath(__file__))
 pyfibre_dir = source_dir[:source_dir.rfind(os.path.sep)]
@@ -87,7 +91,7 @@ class TestImages(TestCase):
 class TestUtilities(TestCase):
 
 	def setUp(self):
-		pass
+		self.image, self.labels, self.binary = generate_image()
 
 	def test_unit_vector(self):
 
@@ -116,6 +120,18 @@ class TestUtilities(TestCase):
 		array_nan = np.array([2, 3, 1, np.nan])
 
 		self.assertEqual(nanmean(array_nan), 2)
+
+	def test_label_set(self):
+
+		labels = label_set(self.labels)
+		self.assertTrue(np.allclose(
+			labels, np.array([1, 2]))
+		)
+
+		labels = label_set(self.labels, background=-1)
+		self.assertTrue(np.allclose(
+			labels, np.array([0, 1, 2]))
+		)
 
 	def test_ring(self):
 

@@ -1,5 +1,6 @@
 import logging
 import os
+
 from chaco.api import ArrayPlotData, Plot
 from chaco.tools.api import PanTool, ZoomTool
 from chaco.default_colormaps import binary, reverse

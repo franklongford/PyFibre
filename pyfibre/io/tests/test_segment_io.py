@@ -1,6 +1,7 @@
-from unittest import mock, TestCase
-import numpy as np
+from unittest import TestCase
 import os
+
+import numpy as np
 
 from skimage.measure import label, regionprops
 
@@ -22,20 +23,25 @@ class TestSegmentIO(TestCase):
             self.image += 2 * np.eye(self.N, self.N, k=5-i)
             self.image += np.rot90(np.eye(self.N, self.N, k=5 - i))
 
-        self.label_image = label(self.image)
+        self.binary = np.where(self.image, 1, 0)
+        self.label_image = label(self.binary)
         self.segments = regionprops(self.label_image,
                                     intensity_image=self.image)
 
     def test_save_image(self):
 
         try:
-            save_segment(self.segments, 'test', 'segment')
+            save_segment(self.segments, 'test', self.image.shape, 'segment')
             self.assertTrue(os.path.exists('test_segment.npy'))
 
             test_masks = np.load('test_segment.npy', mmap_mode='r')
 
             self.assertEqual(test_masks.dtype, int)
-            self.assertEqual(test_masks.shape, (5, self.N, self.N))
+            self.assertEqual(test_masks.shape, (self.N, self.N))
+            self.assertTrue(np.allclose(
+                np.where(self.image > 0, 1, 0),
+                test_masks
+            ))
 
         finally:
             if os.path.exists('test_segment.npy'):
@@ -44,7 +50,7 @@ class TestSegmentIO(TestCase):
     def test_load_label_image(self):
 
         try:
-            save_segment(self.segments, 'test', 'segment')
+            save_segment(self.segments, 'test', self.image.shape, 'segment')
             self.assertTrue(os.path.exists('test_segment.npy'))
 
             test_segment = load_segment('test', 'segment')
