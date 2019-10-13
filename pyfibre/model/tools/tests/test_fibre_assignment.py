@@ -27,7 +27,7 @@ class TestFibreAssignment(TestCase):
         self.fibre_assignment._initialise_graph(self.graph)
         self.assertEqual([0, 1, 2, 3], list(self.fibre_assignment.graph.nodes))
         self.assertTrue(np.allclose(
-            np.array([[0, 0], [1, 1], [2, 2], [3, 3.2]]),
+            np.array([[0, 0], [1, 1], [2, 2], [2, 3]]),
             self.fibre_assignment.node_coord
         ))
         self.assertTrue(np.allclose(
@@ -36,26 +36,25 @@ class TestFibreAssignment(TestCase):
         ))
 
         self.assertTrue(np.allclose(
-            np.array([[0, 1, 2, 3],
-                      [-1, 0, 1, 2],
-                      [-2, -1, 0, 1],
-                      [-3, -2, -1, 0]]),
+            np.array([[0, 1, 2, 2],
+                      [-1, 0, 1, 1],
+                      [-2, -1, 0, 0],
+                      [-2, -1, 0, 0]]),
             self.fibre_assignment.d_coord[...,0]
         ))
 
         self.assertTrue(np.allclose(
-            np.array([[0, 1, 2, 3.2],
-                      [-1, 0, 1, 2.2],
-                      [-2, -1, 0, 1.2],
-                      [-3.2, -2.2, -1.2, 0]]),
+            np.array([[0, 1, 2, 3],
+                      [-1, 0, 1, 2],
+                      [-2, -1, 0, 1],
+                      [-3, -2, -1, 0]]),
             self.fibre_assignment.d_coord[...,1]
         ))
-
         self.assertTrue(np.allclose(
-            np.array([[0, 2, 8, 19.24],
-                      [2, 0, 2, 8.84],
-                      [8, 2, 0, 2.44],
-                      [19.24, 8.84, 2.44, 0]]),
+            np.array([[0, 2, 8, 13],
+                      [2, 0, 2, 5],
+                      [8, 2, 0, 1],
+                      [13, 5, 1, 0]]),
             self.fibre_assignment.r2_coord
         ))
 
@@ -86,7 +85,7 @@ class TestFibreAssignment(TestCase):
         self.fibre_assignment._initialise_graph(self.graph)
         fibre = self.fibre_assignment._create_fibre(0)
 
-        self.fibre_assignment._grow_fibre(fibre, 2)
+        self.fibre_assignment._grow_fibre(fibre)
         self.assertEqual([0, 1, 2], fibre.node_list)
         self.assertTrue(np.allclose(
             np.array([-0.70710678, -0.70710678]),
@@ -96,15 +95,16 @@ class TestFibreAssignment(TestCase):
         self.assertAlmostEqual(2.82842712, fibre.fibre_l, 5)
         self.assertAlmostEqual(2.82842712, fibre.euclid_l, 5)
 
-        self.fibre_assignment._grow_fibre(fibre, 3)
+        self.fibre_assignment._grow_fibre(fibre)
         self.assertEqual([0, 1, 2, 3], fibre.node_list)
         self.assertTrue(np.allclose(
-            np.array([-0.68394113, -0.7295372]),
+            np.array([-0.5547002, -0.83205029]),
             fibre.direction
         ))
         self.assertTrue(fibre.growing)
-        self.assertAlmostEqual(4.24264068, fibre.fibre_l, 5)
-        self.assertAlmostEqual(4.38634244, fibre.euclid_l, 5)
+        self.assertAlmostEqual(3.60555127, fibre.euclid_l)
+        self.assertAlmostEqual(3.82842712, fibre.fibre_l)
+        self.assertAlmostEqual(0.94178396, fibre.waviness)
 
     def test_assign_fibres(self):
 
@@ -115,9 +115,10 @@ class TestFibreAssignment(TestCase):
         fibre = tot_fibres[0]
         self.assertEqual([0, 1, 2, 3], fibre.node_list)
         self.assertTrue(np.allclose(
-            np.array([-0.68394113, -0.7295372]),
+            np.array([-0.5547002, -0.83205029]),
             fibre.direction
         ))
         self.assertFalse(fibre.growing)
-        self.assertAlmostEqual(4.24264068, fibre.fibre_l, 5)
-        self.assertAlmostEqual(4.38634244, fibre.euclid_l, 5)
+        self.assertAlmostEqual(3.60555127, fibre.euclid_l)
+        self.assertAlmostEqual(3.82842712, fibre.fibre_l)
+        self.assertAlmostEqual(0.94178396, fibre.waviness)

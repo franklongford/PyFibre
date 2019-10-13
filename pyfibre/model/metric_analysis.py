@@ -7,7 +7,7 @@ from pyfibre.model.tools.analysis import (
     segment_analysis, fibre_segment_analysis,
     cell_segment_analysis
 )
-from pyfibre.model.tools.segmentation import create_binary_image
+from pyfibre.model.tools.segment_utilities import segments_to_binary
 from pyfibre.model.tools.filters import form_structure_tensor
 from pyfibre.utilities import flatten_list
 
@@ -67,7 +67,7 @@ class SHGAnalyser(ImageAnalyser):
 
     def global_averaging(self, global_fibre_metrics, fibre_metrics):
 
-        fibre_binary = create_binary_image(self.fibre_seg, self.image.shape)
+        fibre_binary = segments_to_binary(self.fibre_seg, self.image.shape)
 
         global_fibre_metrics['No. Fibres'] = len(flatten_list(self.fibres))
         global_fibre_metrics['SHG Fibre Area'] = np.mean(fibre_metrics['SHG Fibre Area'])

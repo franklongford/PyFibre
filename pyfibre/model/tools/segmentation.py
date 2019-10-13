@@ -14,7 +14,7 @@ import numpy as np
 from scipy.ndimage.filters import gaussian_filter, median_filter
 from scipy.ndimage.morphology import binary_fill_holes, binary_dilation, binary_opening
 
-from skimage import measure, draw
+from skimage import measure
 from skimage.util import pad
 from skimage.transform import rescale, resize
 from skimage.morphology import remove_small_objects, remove_small_holes
@@ -24,62 +24,10 @@ from skimage.measure import regionprops
 
 from sklearn.cluster import MiniBatchKMeans
 
-from pyfibre.model.tools.preprocessing import clip_intensities
+from .preprocessing import clip_intensities
+from .segment_utilities import segment_check, networks_to_binary, binary_to_segments
 
 logger = logging.getLogger(__name__)
-
-
-def create_binary_image(segments, shape):
-
-    binary_image = np.zeros(shape)
-
-    for segment in segments:
-        minr, minc, maxr, maxc = segment.bbox
-        indices = np.mgrid[minr:maxr, minc:maxc]
-        binary_image[(indices[0], indices[1])] += segment.image
-
-    binary_image = np.where(binary_image, 1, 0)
-
-    return binary_image
-
-
-def segment_check(segment, min_size=0, min_frac=0, edges=False, max_x=0, max_y=0):
-
-    segment_check = True
-    minr, minc, maxr, maxc = segment.bbox
-
-    if edges:
-        edge_check = (minr != 0) * (minc != 0)
-        edge_check *= (maxr != max_x)
-        edge_check *= (maxc != max_y)
-
-        segment_check *= edge_check
-
-    segment_check *= segment.filled_area >= min_size
-    segment_frac = (segment.image * segment.intensity_image).sum() / segment.filled_area
-    segment_check *= (segment_frac >= min_frac)
-
-    return segment_check
-
-
-def get_segments(image, binary, min_size=0, min_frac=0):
-
-    labels = measure.label(binary.astype(np.int))
-    segments = []
-    areas = []
-
-    for segment in regionprops(labels, intensity_image=image,
-                                       coordinates='xy'):
-        seg_check = segment_check(segment, min_size, min_frac)
-
-        if seg_check:
-            segments.append(segment)
-            areas.append(segment.filled_area)
-
-    indices = np.argsort(areas)[::-1]
-    sorted_segs = [segments[i] for i in indices]
-
-    return sorted_segs
 
 
 def prepare_composite_image(image, p_intensity=(2, 98), sm_size=7):
@@ -125,7 +73,8 @@ def cluster_colours(image, n_clusters=8, n_init=10):
     return labels, centres
 
 
-def BD_filter(image, n_runs=2, n_clusters=10, p_intensity=(2, 98), sm_size=5, param=[0.65, 1.1, 1.40, 0.92]):
+def BD_filter(image, n_runs=2, n_clusters=10, p_intensity=(2, 98),
+              sm_size=5, param=[0.65, 1.1, 1.40, 0.92]):
     "Adapted from CurveAlign BDcreationHE routine"
 
     assert image.ndim == 3
@@ -251,7 +200,6 @@ def BD_filter(image, n_runs=2, n_clusters=10, p_intensity=(2, 98), sm_size=5, pa
     return mask_image
 
 
-
 def cell_segmentation(image_shg, image_pl, image_tran, scale=1.0, sigma=0.8, alpha=1.0,
                       min_size=400, edges=False):
     "Return binary filter for cellular identification"
@@ -328,93 +276,13 @@ def cell_segmentation(image_shg, image_pl, image_tran, scale=1.0, sigma=0.8, alp
     return sorted_cells, sorted_fibres
 
 
-def mean_binary(image, binary_1, binary_2, iterations=1, min_size=0, min_intensity=0, thresh=0.6):
-    "Compares two segmentations of image and produces a filter based on the overlap"
+def fibre_segmentation(image_shg, networks, area_threshold=200, iterations=9):
 
-    image = equalize_adapthist(image)
+    binary = networks_to_binary(networks, image_shg,
+                                area_threshold=area_threshold,
+                                iterations=iterations)
 
-    intensity_map = 0.5 * image * (binary_1 + binary_2)
-    intensity_binary = np.where(intensity_map >= min_intensity, True, False)
+    segments = binary_to_segments(binary, image_shg)
 
-    intensity_binary = remove_small_holes(intensity_binary)
-    intensity_binary = remove_small_objects(intensity_binary)
-    thresholded = binary_dilation(intensity_binary, iterations=iterations)
-
-    smoothed = gaussian_filter(thresholded.astype(np.float), sigma=1.5)
-    smoothed = np.where(smoothed >= thresh, True, False)
-
-    """
-    import matplotlib.pyplot as plt
-    plt.figure(0)
-    plt.imshow(intensity_map)
-    plt.figure(1)
-    plt.imshow(thresholded)
-    plt.figure(2)
-    plt.imshow(smoothed)
-    plt.show()
-    #"""
-
-    return smoothed
-
-
-def fibre_segmentation(image_shg, networks, networks_red, area_threshold=200, iterations=9):
-
-    n_net = len(networks)
-    fibres = []
-
-    iterator = zip(np.arange(n_net), networks, networks_red)
-
-    "Segment image based on connected components in network"
-    for i, network, network_red in iterator:
-
-        label_image = np.zeros(image_shg.shape, dtype=int)
-        label_image = draw_network(network, label_image, 1)
-
-        dilated_image = binary_dilation(label_image, iterations=iterations)
-        smoothed_image = gaussian_filter(dilated_image, sigma=0.5)
-        filled_image = remove_small_holes(smoothed_image, area_threshold=area_threshold)
-        binary_image = np.where(filled_image > 0, 1, 0)
-
-        segment = measure.regionprops(binary_image, intensity_image=image_shg, coordinates='xy')[0]
-        area = np.sum(segment.image)
-
-        minr, minc, maxr, maxc = segment.bbox
-        indices = np.mgrid[minr:maxr, minc:maxc]
-
-        #print(network.number_of_nodes(), area, 1E-2 * image_shg.size)
-
-        segment.label = (i + 1)
-        fibres.append(segment)
-
-    return fibres
-
-
-def draw_network(network, label_image, index):
-
-    nodes_coord = [network.nodes[i]['xy'] for i in network.nodes()]
-    nodes_coord = np.stack(nodes_coord)
-    label_image[nodes_coord[:,0],nodes_coord[:,1]] = index
-
-    for edge in list(network.edges):
-        start = list(network.nodes[edge[1]]['xy'])
-        end = list(network.nodes[edge[0]]['xy'])
-        line = draw.line(*(start+end))
-        label_image[line] = index
-
-    return label_image
-
-
-def filter_segments(segments, network, network_red, min_size=200):
-
-    remove_list = []
-    for i, segment in enumerate(segments):
-        area = np.sum(segment.image)
-        if area < min_size: remove_list.append(i)
-
-    for i in remove_list:
-        segments.remove(segment[i])
-        network.remove(network[i])
-        network_red.remove(network_red[i])
-
-    return 	segments, network, network_red
+    return segments
 

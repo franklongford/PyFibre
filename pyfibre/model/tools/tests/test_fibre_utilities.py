@@ -1,11 +1,10 @@
 from unittest import TestCase
+
 import numpy as np
-import networkx as nx
 
 from pyfibre.model.tools.fibre_utilities import (
     check_2D_arrays, distance_matrix, branch_angles
 )
-from pyfibre.tests.probe_classes import generate_probe_network
 
 
 class TestFibreUtilities(TestCase):

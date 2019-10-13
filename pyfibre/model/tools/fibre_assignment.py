@@ -5,54 +5,13 @@ import numpy as np
 
 from pyfibre.utilities import numpy_remove
 
+from .fibre import Fibre
 from .fibre_utilities import (
     distance_matrix, branch_angles,
     get_node_coord_aray
 )
 
 logger = logging.getLogger(__name__)
-
-
-class Fibre(nx.Graph):
-    """Networkx Graph object representing a single, un-branched fibre"""
-
-    def __init__(self, nodes=None, edges=None, growing=True):
-        super(Fibre, self).__init__()
-
-        if nodes is None:
-            nodes = []
-        if edges is None:
-            edges = []
-
-        self.add_nodes_from(nodes)
-        self.add_edges_from(edges)
-        self.growing = growing
-
-    @property
-    def node_list(self):
-        return list(self.nodes)
-
-    @property
-    def _d_coord(self):
-        start = self.node_list[0]
-        end = self.node_list[-1]
-        return self.nodes[end]['xy'] - self.nodes[start]['xy']
-
-    @property
-    def euclid_l(self):
-        return np.sqrt(np.sum(self._d_coord**2))
-
-    @property
-    def fibre_l(self):
-        fibre_l = [
-            self[edge[0]][edge[1]]['r']
-            for edge in self.edges
-        ]
-        return sum(fibre_l)
-
-    @property
-    def direction(self):
-        return -self._d_coord / self.euclid_l
 
 
 class FibreAssignment:
@@ -108,7 +67,7 @@ class FibreAssignment:
 
         return fibre
 
-    def _grow_fibre(self, fibre, node):
+    def _grow_fibre(self, fibre):
         """Grow fibre using node"""
 
         end_node = fibre.node_list[-1]
@@ -162,7 +121,7 @@ class FibreAssignment:
                 fibre = self._create_fibre(node)
 
                 while fibre.growing:
-                    self._grow_fibre(fibre, node)
+                    self._grow_fibre(fibre)
 
                 if fibre.number_of_nodes() >= self.min_n:
                     tot_fibres.append(fibre)

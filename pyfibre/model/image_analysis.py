@@ -204,7 +204,7 @@ def image_analysis(multi_image, prefix, scale=1.25,
         fibres = load_network_list(filename, "fibres")
 
         fibres = flatten_list(fibres)
-
+        print(fibre_seg)
         tensor_image = create_tensor_image(multi_image.image_shg)
         network_image = create_network_image(multi_image.image_shg, networks)
         fibre_image = create_network_image(multi_image.image_shg, fibres, 1)

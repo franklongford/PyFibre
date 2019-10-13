@@ -13,12 +13,14 @@ import numpy as np
 import pandas as pd
 import networkx as nx
 
-from skimage.feature import greycoprops, greycomatrix
+from skimage.feature import greycomatrix
 from skimage.measure import shannon_entropy
 from scipy.ndimage.filters import gaussian_filter
 
-from pyfibre.model.tools.extraction import branch_angles
 from pyfibre.utilities import matrix_split
+
+from .extraction import branch_angles
+from .feature import greycoprops_edit
 
 logger = logging.getLogger(__name__)
 
@@ -170,86 +172,12 @@ def fibre_analysis(tot_fibres):
     for fibre in tot_fibres:
 
         fibre_lengths = np.concatenate((fibre_lengths, [fibre.fibre_l]))
-        fibre_waviness = np.concatenate((fibre_waviness,
-                                         [fibre.euclid_l / fibre.fibre_l]))
+        fibre_waviness = np.concatenate((fibre_waviness, [fibre.waviness]))
 
         cos_the = branch_angles(fibre.direction, np.array([[0, 1]]), np.ones(1))
         fibre_angles = np.concatenate((fibre_angles, np.arccos(cos_the) * 180 / np.pi))
 
     return fibre_lengths, fibre_waviness, fibre_angles
-
-
-def greycoprops_edit(P, prop='contrast'):
-    """Edited version of the scikit-image greycoprops function,
-    including additional properties"""
-    (num_level, num_level2, num_dist, num_angle) = P.shape
-
-    assert num_level == num_level2
-    assert num_dist > 0
-    assert num_angle > 0
-
-    if prop in ['similarity', 'mean', 'covariance',
-                'cluster', 'entropy', 'autocorrelation']:
-        pass
-    else:
-        return greycoprops(P, prop)
-
-    # normalize each GLCM
-    I, J = np.ogrid[0:num_level, 0:num_level]
-    P = P.astype(np.float64)
-    glcm_sums = np.apply_over_axes(np.sum, P, axes=(0, 1))
-    glcm_sums[glcm_sums == 0] = 1
-    P /= glcm_sums
-
-    if prop in ['similarity']:
-        weights = 1. / (1. + abs(I - J))
-        weights = weights.reshape((num_level, num_level, 1, 1))
-        results = np.apply_over_axes(np.sum, (P * weights), axes=(0, 1))[0, 0]
-
-    elif prop == 'autocorrelation':
-        I = np.array(range(num_level)).reshape((num_level, 1, 1, 1))
-        J = np.array(range(num_level)).reshape((1, num_level, 1, 1))
-
-        results = np.apply_over_axes(np.sum, (P * I * J),
-                                 axes=(0, 1))[0, 0]
-
-    elif prop == 'mean':
-        I = np.array(range(num_level)).reshape((num_level, 1, 1, 1))
-        J = np.array(range(num_level)).reshape((1, num_level, 1, 1))
-        mean_i = np.apply_over_axes(np.sum, (I * P), axes=(0, 1))[0, 0]
-        mean_j = np.apply_over_axes(np.sum, (J * P), axes=(0, 1))[0, 0]
-
-        results = 0.5 * (mean_i + mean_j)
-
-    elif prop == 'covariance':
-        I = np.array(range(num_level)).reshape((num_level, 1, 1, 1))
-        J = np.array(range(num_level)).reshape((1, num_level, 1, 1))
-        diff_i = I - np.apply_over_axes(np.sum, (I * P), axes=(0, 1))[0, 0]
-        diff_j = J - np.apply_over_axes(np.sum, (J * P), axes=(0, 1))[0, 0]
-
-        results = np.apply_over_axes(np.sum, (P * (diff_i * diff_j)),
-                                 axes=(0, 1))[0, 0]
-
-    elif prop == 'cluster':
-        I = np.array(range(num_level)).reshape((num_level, 1, 1, 1))
-        J = np.array(range(num_level)).reshape((1, num_level, 1, 1))
-        diff_i = I - np.apply_over_axes(np.sum, (I * P), axes=(0, 1))[0, 0]
-        diff_j = J - np.apply_over_axes(np.sum, (J * P), axes=(0, 1))[0, 0]
-
-        results = np.apply_over_axes(np.sum, (P * (I + J - diff_i - diff_j)),
-                                 axes=(0, 1))[0, 0]
-
-    elif prop == 'entropy':
-        nat_log = np.log(P)
-
-        mask_0 = P < 1e-15
-        mask_0[P < 1e-15] = True
-        nat_log[mask_0] = 0
-
-        results = np.apply_over_axes(np.sum, (P * (- nat_log)),
-                                 axes=(0, 1))[0, 0]
-
-    return results
 
 
 def segment_analysis(image, segment, n_tensor, tag):

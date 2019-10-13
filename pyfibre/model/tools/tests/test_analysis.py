@@ -49,6 +49,6 @@ class TestAnalysis(TestCase):
 
         self.assertTrue(np.all(fibre_waviness <= 1))
 
-        self.assertAlmostEqual(4.3904770, fibre_lengths[0], 5)
-        self.assertAlmostEqual(0.9990583, fibre_waviness[0], 5)
-        self.assertAlmostEqual(136.84761, fibre_angles[0], 5)
+        self.assertAlmostEqual(3.8284271, fibre_lengths[0], 5)
+        self.assertAlmostEqual(0.9417840, fibre_waviness[0], 5)
+        self.assertAlmostEqual(146.30993, fibre_angles[0], 5)
