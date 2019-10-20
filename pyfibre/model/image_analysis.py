@@ -112,13 +112,16 @@ def image_analysis(multi_image, prefix, scale=1.25,
 
         logger.debug("Applying AHE to SHG image")
         image_equal = equalize_adapthist(multi_image.image_shg)
-        logger.debug("Performing NL Denoise using local windows {} {}"
-                     .format(*p_denoise))
+        logger.debug(
+            "Performing NL Denoise using local windows {} {}".format(*p_denoise)
+        )
 
         image_nl = nl_means(image_equal, p_denoise=p_denoise)
 
         "Call FIRE algorithm to extract full image network"
-        logger.debug("Calling FIRE algorithm using image scale {}  alpha  {}".format(scale, alpha))
+        logger.debug(
+            "Calling FIRE algorithm using image scale {}  alpha  {}".format(scale, alpha)
+        )
         network = build_network(image_nl, scale=scale, sigma=sigma, alpha=alpha)
 
         save_network(network, filename, "network")

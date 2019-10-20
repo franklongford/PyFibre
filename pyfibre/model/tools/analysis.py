@@ -19,7 +19,7 @@ from scipy.ndimage.filters import gaussian_filter
 
 from pyfibre.utilities import matrix_split
 
-from .extraction import branch_angles
+from .fibre_utilities import branch_angles
 from .feature import greycoprops_edit
 
 logger = logging.getLogger(__name__)

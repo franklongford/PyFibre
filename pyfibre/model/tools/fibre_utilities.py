@@ -137,10 +137,12 @@ def branch_angles(direction, branch_vector, branch_r):
 
 
 def transfer_edges(network, source, target):
+    """Transfer edges from source node to target"""
 
     for node in list(network.adj[source]):
         network.remove_edge(node, source)
-        if node != source:
+
+        if node != target:
             network.add_edge(node, target)
             network[node][target]['r'] = np.sqrt(
                 ((network.nodes[target]['xy'] - network.nodes[node]['xy']) ** 2).sum())
@@ -156,23 +158,29 @@ def distance_matrix(node_coord):
     d_node = node_coord_matrix - np.transpose(node_coord_matrix, (1, 0, 2))
     r2_node = np.sum(d_node**2, axis=2)
 
-    return d_node, r2_node
+    return d_node, r2_node.astype(float)
 
 
-def get_edge_list(graph, degree_min=2):
+def get_edge_list(graph, max_degree=2):
+    """Get a list of edges between nodes that contain less that
+    max_degree edges"""
 
     edge_list = np.empty((0, 2), dtype=int)
+
     for edge in graph.edges:
+
         edge = np.array(edge)
         degrees = np.array((graph.degree[edge[0]], graph.degree[edge[1]]))
 
         degree_check = np.any(degrees != 1)
-        degree_check *= np.all(degrees <= degree_min)
+        degree_check *= np.all(degrees <= max_degree)
 
         if degree_check:
             order = np.argsort(degrees)
-            edge_list = np.concatenate((edge_list,
-                    np.expand_dims(edge[order], axis=0)))
+            edge_list = np.concatenate(
+                (edge_list,
+                 np.expand_dims(edge[order], axis=0))
+            )
 
     return edge_list
 
@@ -182,6 +190,7 @@ def remove_redundant_nodes(network, r_thresh=2):
     other down to one, by transferring any edges on the least connected node
     to the most connected node before removing the least connected node"""
 
+    network = nx.convert_node_labels_to_integers(network)
     r2_thresh = r_thresh**2
     checking = True
 
@@ -206,8 +215,15 @@ def remove_redundant_nodes(network, r_thresh=2):
             elif network.degree[node1] + network.degree[node2] != 0:
                 transfer_edges(network, node2, node1)
 
-        # Remove all nodes with no edges
-        network.remove_nodes_from(list(nx.isolates(network)))
+        if len(network.edges) == 0:
+            # If no edges are left, reduce the network down to a single node
+            checking = False
+            remove_list = list(network.nodes)[1:]
+        else:
+            # Otherwise, remove all nodes with no edges
+            remove_list = list(nx.isolates(network))
+
+        network.remove_nodes_from(remove_list)
         network = nx.convert_node_labels_to_integers(network)
 
     return network

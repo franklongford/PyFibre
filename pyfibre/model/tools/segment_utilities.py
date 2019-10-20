@@ -60,6 +60,31 @@ def segment_check(segment, min_size=0, min_frac=0, edges=False, max_x=0, max_y=0
     return segment_check
 
 
+def segment_swap(masks, images, min_sizes, min_fracs):
+    """Performs a segment_check on each segment present in masks using images as
+    intensity image. If check fails, removes segment region from mask and performs
+    another segment_check using segment of same region with other image as
+    intensity image. If this check passes, assigns region onto other mask."""
+
+    for i, j in [[0, 1], [1, 0]]:
+        labels = measure.label(masks[i].astype(np.int))
+        for segment_1 in measure.regionprops(
+                labels, intensity_image=images[i], coordinates='xy'):
+
+            if not segment_check(segment_1, min_sizes[i], min_fracs[i]):
+                minr, minc, maxr, maxc = segment_1.bbox
+                indices = np.mgrid[minr:maxr, minc:maxc]
+                masks[i][np.where(labels == segment_1.label)] = False
+
+                segment_2 = measure.regionprops(
+                    np.array(segment_1.image, dtype=int),
+                    intensity_image=images[j][(indices[0], indices[1])],
+                    coordinates='xy')[0]
+
+                if segment_check(segment_2, 0, min_fracs[j]):
+                    masks[j][np.where(labels == segment_1.label)] = True
+
+
 def segments_to_binary(segments, shape):
     """Convert a list of scikit-image segments to a single binary mask"""
     binary_image = np.zeros(shape, dtype=int)
