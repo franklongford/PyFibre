@@ -5,7 +5,7 @@ import numpy as np
 from pyfibre.model.tools.fibre_assignment import (
     Fibre, FibreAssignment
 )
-from pyfibre.tests.probe_classes import generate_probe_network
+from pyfibre.tests.probe_classes import generate_probe_graph
 
 
 class TestFibreAssignment(TestCase):
@@ -13,7 +13,7 @@ class TestFibreAssignment(TestCase):
     def setUp(self):
 
         self.fibre_assignment = FibreAssignment()
-        self.graph = generate_probe_network()
+        self.graph = generate_probe_graph()
 
     def test___init__(self):
 

@@ -16,25 +16,22 @@ from scipy.ndimage.morphology import binary_dilation
 
 from skimage import measure, draw
 from skimage.morphology import remove_small_objects, remove_small_holes
-from skimage.exposure import equalize_adapthist
-from skimage.measure import regionprops
-
-from pyfibre.utilities import label_set
 
 logger = logging.getLogger(__name__)
 
 
-def binary_to_stack(binary):
+def smooth_binary(binary, sigma=None):
+    """Smooths binary image based on Guassian filter with
+     sigma standard deviation"""
 
-    label_image = measure.label(binary.astype(int))
-    labels = label_set(label_image)
+    if sigma is not None:
+        smoothed = gaussian_filter(
+            binary.astype(float), sigma=sigma
+        )
+        # Convert float image back to binary
+        binary = np.where(smoothed, 1, 0)
 
-    binary_stack = np.zeros((labels.size,) + binary.shape, dtype=int)
-
-    for index, label in enumerate(labels):
-        binary_stack[index] += np.where(label_image == label, 1, 0)
-
-    return np.where(binary_stack, 1, 0)
+    return binary
 
 
 def segment_check(segment, min_size=0, min_frac=0, edges=False, max_x=0, max_y=0):
@@ -69,7 +66,7 @@ def segment_swap(masks, images, min_sizes, min_fracs):
     for i, j in [[0, 1], [1, 0]]:
         labels = measure.label(masks[i].astype(np.int))
         for segment_1 in measure.regionprops(
-                labels, intensity_image=images[i], coordinates='xy'):
+                labels, intensity_image=images[i]):
 
             if not segment_check(segment_1, min_sizes[i], min_fracs[i]):
                 minr, minc, maxr, maxc = segment_1.bbox
@@ -78,65 +75,32 @@ def segment_swap(masks, images, min_sizes, min_fracs):
 
                 segment_2 = measure.regionprops(
                     np.array(segment_1.image, dtype=int),
-                    intensity_image=images[j][(indices[0], indices[1])],
-                    coordinates='xy')[0]
+                    intensity_image=images[j][(indices[0], indices[1])])[0]
 
                 if segment_check(segment_2, 0, min_fracs[j]):
                     masks[j][np.where(labels == segment_1.label)] = True
 
 
-def segments_to_binary(segments, shape):
-    """Convert a list of scikit-image segments to a single binary mask"""
-    binary_image = np.zeros(shape, dtype=int)
+def mean_binary(binaries, image, iterations=1, min_intensity=0,
+                area_threshold=0, sigma=None):
+    "Compares two binary of image and produces a filter based on the overlap"
 
-    for segment in segments:
-        minr, minc, maxr, maxc = segment.bbox
-        indices = np.mgrid[minr:maxr, minc:maxc]
-        binary_image[(indices[0], indices[1])] += segment.image
+    intensity_map = image * np.mean(binaries, axis=0)
 
-    binary_image = np.where(binary_image, 1, 0)
+    intensity_mask = np.where(intensity_map > min_intensity, True, False)
 
-    return binary_image
+    # Remove small holes and objects from masks
+    intensity_mask = remove_small_holes(intensity_mask,
+                                        area_threshold=area_threshold)
+    intensity_mask = remove_small_objects(intensity_mask,
+                                          min_size=area_threshold)
 
+    # Dilate image
+    binary = binary_dilation(intensity_mask, iterations=iterations)
 
-def binary_to_segments(binary, intensity_image=None, min_size=0, min_frac=0):
-    """Convert a binary mask image to a set of scikit-image segment objects"""
+    smooth_binary(binary, sigma)
 
-    if binary.ndim > 2:
-        binary = binary.sum(axis=0)
-
-    labels = measure.label(binary.astype(np.int))
-
-    segments = [
-        segment
-        for segment in regionprops(
-            labels, intensity_image=intensity_image, coordinates='xy')
-        if segment_check(segment, min_size, min_frac)
-    ]
-
-    areas = [segment.filled_area for segment in segments]
-    indices = np.argsort(areas)[::-1]
-    segments = [segments[i] for i in indices]
-
-    return segments
-
-
-def mean_binary(image, binary_1, binary_2, iterations=1, min_size=0, min_intensity=0, thresh=0.6):
-    "Compares two segmentations of image and produces a filter based on the overlap"
-
-    image = equalize_adapthist(image)
-
-    intensity_map = 0.5 * image * (binary_1 + binary_2)
-    intensity_binary = np.where(intensity_map >= min_intensity, True, False)
-
-    intensity_binary = remove_small_holes(intensity_binary)
-    intensity_binary = remove_small_objects(intensity_binary)
-    thresholded = binary_dilation(intensity_binary, iterations=iterations)
-
-    smoothed = gaussian_filter(thresholded.astype(np.float), sigma=1.5)
-    smoothed = smoothed >= thresh
-
-    return smoothed
+    return binary.astype(int)
 
 
 def draw_network(network, label_image, index=1):
@@ -152,40 +116,3 @@ def draw_network(network, label_image, index=1):
         label_image[line] = index
 
     return label_image
-
-
-def networks_to_binary(networks, image, area_threshold=200, iterations=9, sigma=0.5):
-
-    binary = np.zeros(image.shape, dtype=int)
-
-    "Segment image based on connected components in network"
-    for index, network in enumerate(networks):
-        draw_network(network, binary, index=1)
-
-    binary = binary_dilation(binary, iterations=iterations)
-
-    if sigma is not None:
-        binary = gaussian_filter(
-            binary.astype(float), sigma=sigma
-        )
-
-    binary = np.rint(binary).astype(bool)
-
-    binary = remove_small_holes(binary, area_threshold=area_threshold)
-
-    return binary.astype(int)
-
-
-def filter_segments(segments, network, network_red, min_size=200):
-
-    remove_list = []
-    for i, segment in enumerate(segments):
-        area = np.sum(segment.image)
-        if area < min_size: remove_list.append(i)
-
-    for i in remove_list:
-        segments.remove(segment[i])
-        network.remove(network[i])
-        network_red.remove(network_red[i])
-
-    return 	segments, network, network_red

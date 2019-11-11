@@ -13,7 +13,7 @@ from pyfibre.model.tools.bd_cluster import (
     BD_filter
 )
 from pyfibre.tests.probe_classes import (
-    generate_image, generate_probe_network
+    generate_image, generate_probe_graph
 )
 from pyfibre.tests.test_utilities import test_image_path
 
@@ -22,17 +22,29 @@ class TestBDCluster(TestCase):
 
     def setUp(self):
         self.image, self.labels, self.binary = generate_image()
-        self.network = generate_probe_network()
+        self.network = generate_probe_graph()
 
         self.image_stack = load_image(test_image_path).mean(axis=-1)
-        for image in self.image_stack:
-            image /= image.max()
+
+        self.image = np.zeros(self.image_stack[0].shape + (3,))
+        for index, image in enumerate(self.image_stack):
+            self.image[..., index] = image / image.max()
 
     def test_prepare_composite_image(self):
-        pass
+        image_scaled = prepare_composite_image(self.image)
+
+        self.assertEqual(image_scaled.shape, self.image.shape)
+        self.assertAlmostEqual(131.05258333, image_scaled.mean())
 
     def test_cluster_colours(self):
-        pass
+        labels, centres = cluster_colours(self.image)
+
+        self.assertListEqual(
+            [0, 1, 2, 3, 4, 5, 6, 7], list(np.unique(labels))
+        )
+        self.assertEqual((8, 3), centres.shape)
 
     def test_BD_filter(self):
-        BD_filter(self.image_stack)
+        mask_image = BD_filter(self.image)
+
+        self.assertEqual((200, 200), mask_image.shape)

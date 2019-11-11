@@ -5,7 +5,7 @@ from scipy.spatial.distance import cdist
 from skimage.morphology import local_maxima
 
 
-def get_node_coord_aray(graph):
+def get_node_coord_array(graph):
     """Return a numpy array containing xy attributes of all nodes
     in graph"""
 
@@ -227,3 +227,33 @@ def remove_redundant_nodes(network, r_thresh=2):
         network = nx.convert_node_labels_to_integers(network)
 
     return network
+
+
+def simplify_network(network):
+    """Simplify all linear sections of network by removing nodes
+    containing 2 degrees"""
+
+    new_network = network.copy()
+    edge_list = get_edge_list(new_network, max_degree=2)
+
+    while edge_list.size > 0:
+        for edge in edge_list:
+            try:
+                new_network = nx.contracted_edge(
+                    new_network, edge, self_loops=False)
+            except (ValueError, KeyError):
+                pass
+
+        edge_list = get_edge_list(new_network, max_degree=2)
+
+    new_network = nx.convert_node_labels_to_integers(new_network)
+
+    node_coord = [new_network.nodes[i]['xy'] for i in new_network.nodes()]
+    node_coord = np.stack(node_coord)
+    d_coord, r2_coord = distance_matrix(node_coord)
+    r_coord = np.sqrt(r2_coord)
+
+    for edge in new_network.edges:
+        new_network[edge[0]][edge[1]]['r'] = r_coord[edge[0]][edge[1]]
+
+    return new_network

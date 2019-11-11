@@ -1,7 +1,8 @@
 import networkx as nx
 import numpy as np
 
-from pyfibre.model.tools.fibre_assignment import Fibre
+from pyfibre.model.objects.fibre import Fibre
+from pyfibre.model.objects.fibre_network import FibreNetwork
 
 
 def generate_image():
@@ -24,7 +25,7 @@ def generate_image():
     return image, labels, binary
 
 
-def generate_probe_network():
+def generate_probe_graph():
 
     graph = nx.Graph()
     graph.add_nodes_from([2, 3, 4, 5])
@@ -44,6 +45,13 @@ def generate_probe_network():
 
 class ProbeFibre(Fibre):
 
-    def __init__(self,*args, **kwargs):
-        graph = generate_probe_network()
-        super(ProbeFibre, self).__init__(graph)
+    def __init__(self, *args, **kwargs):
+        super(ProbeFibre, self).__init__(
+            graph=generate_probe_graph())
+
+
+class ProbeFibreNetwork(FibreNetwork):
+
+    def __init__(self, *args, **kwargs):
+        super(ProbeFibreNetwork, self).__init__(
+            graph=generate_probe_graph())

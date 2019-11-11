@@ -5,10 +5,10 @@ import numpy as np
 
 from pyfibre.utilities import numpy_remove
 
-from .fibre import Fibre
+from pyfibre.model.objects.fibre import Fibre
 from .fibre_utilities import (
     distance_matrix, branch_angles,
-    get_node_coord_aray
+    get_node_coord_array
 )
 
 logger = logging.getLogger(__name__)
@@ -16,8 +16,9 @@ logger = logging.getLogger(__name__)
 
 class FibreAssignment:
 
-    def __init__(self, graph=None, angle_thresh=70, min_n=4):
+    def __init__(self, image=None, angle_thresh=70, min_n=4):
 
+        self.image = image
         self.angle_thresh = angle_thresh
         self.min_n = min_n
 
@@ -26,9 +27,6 @@ class FibreAssignment:
         self.edge_count = None
         self.d_coord = None
         self.r2_coord = None
-
-        if graph is not None:
-            self._initialise_graph(graph)
 
     @property
     def theta_thresh(self):
@@ -41,7 +39,7 @@ class FibreAssignment:
     def _initialise_graph(self, graph):
 
         self.graph = nx.convert_node_labels_to_integers(graph)
-        self.node_coord = get_node_coord_aray(self.graph)
+        self.node_coord = get_node_coord_array(self.graph)
         self.edge_count = np.array(
             [self.graph.degree[node] for node in self.graph],
             dtype=int
@@ -57,11 +55,11 @@ class FibreAssignment:
         new_node = new_nodes[np.argsort(edge_list)][-1]
         coord_r = self.graph[node][new_node]['r']
 
-        fibre = Fibre(nodes=[node, new_node])
+        fibre = Fibre(nodes=[node, new_node], image=self.image)
 
-        fibre.nodes[node]['xy'] = self.graph.nodes[node]['xy']
-        fibre.nodes[new_node]['xy'] = self.graph.nodes[new_node]['xy']
-        fibre.add_edge(
+        fibre.graph.nodes[node]['xy'] = self.graph.nodes[node]['xy']
+        fibre.graph.nodes[new_node]['xy'] = self.graph.nodes[new_node]['xy']
+        fibre.graph.add_edge(
             node, new_node, r=coord_r
         )
 
@@ -123,9 +121,9 @@ class FibreAssignment:
                 while fibre.growing:
                     self._grow_fibre(fibre)
 
-                if fibre.number_of_nodes() >= self.min_n:
+                if fibre.number_of_nodes >= self.min_n:
                     tot_fibres.append(fibre)
-                    for node in fibre:
+                    for node in fibre.graph:
                         tracing[node] = 0
 
         return tot_fibres

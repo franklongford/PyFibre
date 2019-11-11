@@ -1,8 +1,6 @@
 import numpy as np
 
-from pyfibre.model.tools.segment_utilities import (
-    segments_to_binary, binary_to_segments
-)
+from pyfibre.model.tools.convertors import segments_to_binary, binary_to_segments
 
 
 def save_segment(segments, file_name, shape, file_type=None):

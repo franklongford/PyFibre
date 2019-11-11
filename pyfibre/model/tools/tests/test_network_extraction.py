@@ -3,12 +3,12 @@ import unittest
 import numpy as np
 import networkx as nx
 
-from pyfibre.model.tools.fibre_extraction import (
-    FibreExtraction
+from pyfibre.model.tools.network_extraction import (
+    NetworkExtraction
 )
 
 
-class TestFibreExtraction(unittest.TestCase):
+class TestNetworkExtraction(unittest.TestCase):
 
     def setUp(self):
 
@@ -19,7 +19,7 @@ class TestFibreExtraction(unittest.TestCase):
             self.image += 2 * np.eye(self.N, self.N, k=5 - i)
             self.image += np.rot90(np.eye(self.N, self.N, k=5 - i))
 
-        self.network = FibreExtraction()
+        self.network = NetworkExtraction()
 
     def test___init__(self):
 

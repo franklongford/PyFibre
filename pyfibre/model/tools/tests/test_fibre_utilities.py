@@ -4,10 +4,11 @@ import numpy as np
 
 from pyfibre.model.tools.fibre_utilities import (
     check_2D_arrays, distance_matrix, branch_angles,
-    remove_redundant_nodes, transfer_edges, get_edge_list
+    remove_redundant_nodes, transfer_edges, get_edge_list,
+    simplify_network
 )
 from pyfibre.tests.probe_classes import (
-    generate_probe_network
+    generate_probe_graph
 )
 
 
@@ -15,7 +16,7 @@ class TestFibreUtilities(TestCase):
 
     def setUp(self):
 
-        self.network = generate_probe_network()
+        self.network = generate_probe_graph()
         self.pos_2D = np.array([[1, 3], [4, 2], [1, 5]])
         self.answer_d_2D = np.array([[[0, 0], [3, -1], [0, 2]],
                                     [[-3, 1], [0, 0], [-3, 3]],
@@ -86,3 +87,8 @@ class TestFibreUtilities(TestCase):
         network = remove_redundant_nodes(self.network)
         self.assertListEqual([0], list(network.nodes))
         self.assertEqual(0, network.degree[0])
+
+    def test_simplify_network(self):
+
+        network = simplify_network(self.network)
+        self.assertListEqual([0, 1], list(network.nodes))

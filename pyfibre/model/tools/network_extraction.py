@@ -16,7 +16,7 @@ from .fibre_utilities import (
 logger = logging.getLogger(__name__)
 
 
-class FibreExtraction:
+class NetworkExtraction:
     """Class that extracts a complete fibre network from a provided image
     as a single nx.Graph object"""
 

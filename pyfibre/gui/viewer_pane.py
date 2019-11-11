@@ -23,7 +23,7 @@ from traitsui.api import (
 from pyfibre.io.multi_image import MultiLayerImage
 from pyfibre.io.segment_io import load_segment
 from pyfibre.io.network_io import load_network
-from pyfibre.io.database_io import check_file_name
+from pyfibre.io.object_io import load_objects
 from pyfibre.model.tools.figures import (
     create_tensor_image, create_region_image, create_network_image
 )
@@ -173,11 +173,12 @@ class ViewerPane(TraitsTaskPane):
             image_name = os.path.basename(self.selected_image.file_path)
             image_path = os.path.dirname(self.selected_image.file_path)
             data_dir = image_path + '/data/'
+            filename = data_dir + image_name
             try:
-                networks = load_network(
-                    data_dir + image_name, "network")
+                fibre_networks = load_objects(filename, "fibre_networks")
+                networks = [fibre_network.graph for fibre_network in fibre_networks]
                 image_network_overlay = create_network_image(
-                    self.selected_image.image_shg, networks, 0)
+                    self.selected_image.image_shg, networks)
                 self.network_tab.image = image_network_overlay.astype('uint8')
             except (IOError, EOFError):
                 logger.info(
@@ -202,6 +203,7 @@ class ViewerPane(TraitsTaskPane):
         image_name = os.path.basename(self.selected_image.file_path)
         image_path = os.path.dirname(self.selected_image.file_path)
         data_dir = image_path + '/data/'
+        filename = data_dir + image_name
 
         if self.selected_image.shg_analysis:
             self.shg_image_tab.image = self.selected_image.image_shg
@@ -211,19 +213,21 @@ class ViewerPane(TraitsTaskPane):
             self.tensor_tab.image = tensor_image.astype('uint8')
 
             try:
-                networks = load_network(data_dir + image_name, "networks")
-                fibres = load_network(data_dir + image_name, "fibres")
+                fibre_networks = load_objects(filename, "fibre_networks")
 
             except (IOError, EOFError):
                 logger.info("Unable to display network for {}".format(image_name))
             else:
+                networks = [fibre_network.graph for fibre_network in fibre_networks]
+
                 network_image = create_network_image(
                     self.selected_image.image_shg,
                     networks,
                     0) * 255.999
                 self.network_tab.image = network_image.astype('uint8')
 
-                fibres = flatten_list(fibres)
+                fibres = [fibre_network.fibres for fibre_network in fibre_networks]
+                fibres = [fibre.graph for fibre in flatten_list(fibres)]
 
                 fibre_image = create_network_image(
                     self.selected_image.image_shg,
@@ -231,14 +235,11 @@ class ViewerPane(TraitsTaskPane):
                     1) * 255.999
                 self.fibre_tab.image = fibre_image.astype('uint8')
 
-            try:
-                segments = load_segment(data_dir + image_name, "fibre_segment")
-            except (AttributeError, IOError, EOFError):
-                logger.debug("Unable to display fibre segments for {}".format(image_name))
-            else:
+                fibre_segments = [fibre_network.segment for fibre_network in fibre_networks]
+
                 segment_image = create_region_image(
                     self.selected_image.image_shg,
-                    segments) * 255.999
+                    fibre_segments) * 255.999
                 self.fibre_segment_tab.image = segment_image.astype('uint8')
 
         if self.selected_image.pl_analysis:
@@ -247,11 +248,13 @@ class ViewerPane(TraitsTaskPane):
             self.tran_image_tab.image = self.selected_image.image_tran
 
             try:
-                segments = load_segment(data_dir + image_name, "cell_segment")
+                cells = load_objects(filename, "cells")
             except (AttributeError, IOError, EOFError):
                 logger.debug("Unable to display cell segments for {}".format(image_name))
             else:
+                cell_segments = [cell.segment for cell in cells]
+
                 segment_image = create_region_image(
                     self.selected_image.image_pl,
-                    segments) * 255.999
+                    cell_segments) * 255.999
                 self.cell_segment_tab.image = segment_image.astype('uint8')

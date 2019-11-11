@@ -27,25 +27,27 @@ logger = logging.getLogger(__name__)
 
 
 def prepare_composite_image(image, p_intensity=(2, 98), sm_size=7):
-
-    image_size = image.shape[0] * image.shape[1]
-    image_shape = (image.shape[0], image.shape[1])
+    """Create a composite image from 3 channels"""
     image_channels = image.shape[-1]
     image_scaled = np.zeros(image.shape, dtype=int)
     pad_size = 10 * sm_size
 
-    "Mimic contrast stretching decorrstrech routine in MatLab"
+    # Mimic contrast stretching decorrstrech routine in MatLab
     for i in range(image_channels):
         image_scaled[:, :, i] = 255 * clip_intensities(image[:, :, i], p_intensity=p_intensity)
 
-    "Pad each channel, equalise and smooth to remove salt and pepper noise"
+    # Pad each channel, equalise and smooth to remove salt and pepper noise
     for i in range(image_channels):
         padded = pad(image_scaled[:, :, i], [pad_size, pad_size], 'symmetric')
         equalised = 255 * equalize_hist(padded)
+
+        # Double median filter
         smoothed = median_filter(equalised, size=(sm_size, sm_size))
         smoothed = median_filter(smoothed, size=(sm_size, sm_size))
-        image_scaled[:, :, i] = smoothed[pad_size : pad_size + image.shape[0],
-                                pad_size : pad_size + image.shape[1]]
+
+        # Transfer original image from padded back
+        image_scaled[:, :, i] = smoothed[pad_size: pad_size + image.shape[0],
+                                         pad_size: pad_size + image.shape[1]]
 
     return image_scaled
 
@@ -56,7 +58,7 @@ def cluster_colours(image, n_clusters=8, n_init=10):
     image_shape = (image.shape[0], image.shape[1])
     image_channels = image.shape[-1]
 
-    "Perform k-means clustering on PL image"
+    # Perform k-means clustering on PL image
     X = np.array(image.reshape((image_size, image_channels)), dtype=float)
     clustering = MiniBatchKMeans(n_clusters=n_clusters, n_init=n_init,
                                  reassignment_ratio=0.99, init_size=n_init*100,
@@ -106,13 +108,13 @@ def BD_filter(image, n_runs=2, n_clusters=10, p_intensity=(2, 98),
         norm_centres = centres / np.repeat(magnitudes, image_channels).reshape(centres.shape)
         tot_centres.append(norm_centres)
 
-        "Convert RGB centroids to spherical coordinates"
+        # Convert RGB centroids to spherical coordinates
         X = np.arcsin(norm_centres[:, 0])
         Y = np.arcsin(norm_centres[:, 1])
         Z = np.arccos(norm_centres[:, 2])
         I = intensities
 
-        "Define the plane of division between cellular and fibourus clusters"
+        # Define the plane of division between cellular and fibrous clusters
         #data = np.stack((X, Y, Z, I), axis=1)
         #clusterer = KMeans(n_clusters=2)
         #clusterer.fit(data)
@@ -136,16 +138,17 @@ def BD_filter(image, n_runs=2, n_clusters=10, p_intensity=(2, 98),
 
     "Select blue regions to extract epithelial cells"
     epith_cell = np.zeros(image.shape)
-    for i in cell_clusters: epith_cell += segmented_image[i]
+    for i in cell_clusters:
+        epith_cell += segmented_image[i]
     epith_grey = rgb2grey(epith_cell)
 
+    """
     "Convert RGB centroids to spherical coordinates"
     X = np.arcsin(norm_centres[:, 0])
     Y = np.arcsin(norm_centres[:, 1])
     Z = np.arccos(norm_centres[:, 2])
     I = intensities
 
-    """
     print(X, Y, Z, I)
     print((X <= param[0]) * (Y <= param[1]) * (Z <= param[2]) * (I <= param[3]))
 
@@ -184,14 +187,14 @@ def BD_filter(image, n_runs=2, n_clusters=10, p_intensity=(2, 98),
     plt.show()	
     #"""
 
-    "Dilate binary image to smooth regions and remove small holes / objects"
+    # Dilate binary image to smooth regions and remove small holes / objects
     epith_cell_BW = np.where(epith_grey, True, False)
     epith_cell_BW_open = binary_opening(epith_cell_BW, iterations=2)
 
     BWx = binary_fill_holes(epith_cell_BW_open)
     BWy = remove_small_objects(~BWx, min_size=20)
 
-    "Return binary mask for cell identification"
+    # Return binary mask for cell identification
     mask_image = remove_small_objects(~BWy, min_size=20)
 
     return mask_image

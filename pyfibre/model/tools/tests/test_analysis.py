@@ -2,9 +2,11 @@ from unittest import TestCase
 import numpy as np
 
 from pyfibre.model.tools.analysis import (
-    tensor_analysis, angle_analysis, fibre_analysis
+    tensor_analysis, angle_analysis, fibre_analysis,
+    fibre_network_analysis
 )
-from pyfibre.tests.probe_classes import ProbeFibre
+from pyfibre.tests.probe_classes import (
+    ProbeFibre, ProbeFibreNetwork)
 
 
 class TestAnalysis(TestCase):
@@ -39,16 +41,19 @@ class TestAnalysis(TestCase):
 
         tot_fibres = [ProbeFibre(), ProbeFibre(), ProbeFibre()]
 
-        (fibre_lengths,
-         fibre_waviness,
-         fibre_angles) = fibre_analysis(tot_fibres)
+        fibre_database = fibre_analysis(tot_fibres)
+        self.assertEqual(3, len(fibre_database))
+        self.assertEqual(11, len(fibre_database.columns))
 
-        self.assertEqual(3, len(fibre_lengths))
-        self.assertEqual(3, len(fibre_waviness))
-        self.assertEqual(3, len(fibre_angles))
+    def test_fibre_network_analysis(self):
 
-        self.assertTrue(np.all(fibre_waviness <= 1))
+        fibre_network = ProbeFibreNetwork()
+        image = np.ones((5, 5))
+        image[2:, 2:] = 2
 
-        self.assertAlmostEqual(3.8284271, fibre_lengths[0], 5)
-        self.assertAlmostEqual(0.9417840, fibre_waviness[0], 5)
-        self.assertAlmostEqual(146.30993, fibre_angles[0], 5)
+        fibre_network_metrics = fibre_network_analysis(
+            [fibre_network], image)
+
+        print(fibre_network_metrics.columns)
+
+        self.assertEqual(15, len(fibre_network_metrics.columns))
