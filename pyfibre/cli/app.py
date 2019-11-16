@@ -18,7 +18,7 @@ import pyfibre.utilities as ut
 from pyfibre.version import __version__
 from pyfibre.model.image_analysis import image_analysis
 from pyfibre.io.database_io import save_database
-from pyfibre.io.tif_reader import TIFReader
+from pyfibre.io.shg_pl_reader import SHGPLReader
 from pyfibre.io.utils import parse_files, parse_file_path
 
 import matplotlib
@@ -104,12 +104,12 @@ def pyfibre(file_path, key, sigma, alpha, save_db, debug,
     logger.debug(f"{file_name} {directory}")
 
     input_files = parse_files(file_name, directory, key)
-    reader = TIFReader(input_files,
-                       shg=shg, pl=pl,
-                       ow_network=ow_network,
-                       ow_segment=ow_segment,
-                       ow_metric=ow_metric,
-                       ow_figure=ow_figure)
+    reader = SHGPLReader(input_files,
+                         shg=shg, pl=pl,
+                         ow_network=ow_network,
+                         ow_segment=ow_segment,
+                         ow_metric=ow_metric,
+                         ow_figure=ow_figure)
     reader.load_multi_images()
 
     global_database = pd.DataFrame()

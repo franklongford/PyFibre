@@ -8,23 +8,44 @@ class TestMultiLayerImage(TestCase):
 
     def setUp(self):
 
-        self.multi_image = MultiLayerImage(
-            shg_analysis=True)
+        self.multi_image = MultiLayerImage()
+
+        self.image = np.ones((15, 15))
+        self.image[5: 5] = 0
+        self.image[0: 0] = 2
 
     def test___init__(self):
 
-        self.assertFalse(self.multi_image.ow_segment)
-        self.assertFalse(self.multi_image.ow_metric)
-        self.assertFalse(self.multi_image.ow_figure)
-        self.assertFalse(self.multi_image.ow_network)
+        self.assertEqual(0, len(self.multi_image))
+        self.assertIsNone(self.multi_image.shape)
+        self.assertIsNone(self.multi_image.size)
 
-        self.assertIsNone(self.multi_image.image_shg)
-        self.assertIsNone(self.multi_image.image_pl)
-        self.assertIsNone(self.multi_image.image_tran)
+        self.assertFalse(self.multi_image.image_stack)
 
-    def test_assign_image(self):
+    def test_append_remove(self):
 
-        self.multi_image.image_shg = np.ones((50, 50))
-        self.multi_image.preprocess_image_shg()
+        self.multi_image.append(self.image)
 
-        self.assertTrue(self.multi_image.shg_analysis)
+        self.assertEqual(1, len(self.multi_image))
+        self.assertEqual((15, 15), self.multi_image.shape)
+        self.assertEqual(15**2, self.multi_image.size)
+
+        with self.assertRaises(ValueError):
+            self.multi_image.append(np.ones((10, 10)))
+
+        self.multi_image.remove(self.image)
+
+        self.assertEqual(0, len(self.multi_image))
+        self.assertIsNone(self.multi_image.shape)
+        self.assertIsNone(self.multi_image.size)
+
+    def test_preprocess_images(self):
+
+        self.multi_image.p_intensity = (10, 90)
+
+        self.multi_image.append(self.image)
+        self.multi_image.preprocess_images()
+
+        self.assertEqual(
+            np.ones(1),
+            np.unique(self.multi_image.image_stack[0]))

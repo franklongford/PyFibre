@@ -4,7 +4,7 @@ import networkx as nx
 import numpy as np
 from skimage.measure import regionprops
 
-from pyfibre.io.tif_reader import load_image
+from pyfibre.io.shg_pl_reader import load_image
 from pyfibre.model.tools.segmentation import (
     rgb_segmentation
 )

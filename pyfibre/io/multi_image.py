@@ -2,7 +2,7 @@ import numpy as np
 
 from traits.api import (
     HasTraits, ArrayOrNone, Property, Tuple, Bool,
-    on_trait_change, Instance, Unicode
+    on_trait_change, Instance, Unicode, List
 )
 
 from pyfibre.model.tools.preprocessing import clip_intensities
@@ -12,54 +12,43 @@ class MultiLayerImage(HasTraits):
 
     file_path = Unicode()
 
-    image_shg = ArrayOrNone()
-
-    image_pl = ArrayOrNone()
-
-    image_tran = ArrayOrNone()
-
-    ow_network = Bool(False)
-
-    ow_segment = Bool(False)
-
-    ow_metric = Bool(False)
-
-    ow_figure = Bool(False)
-
-    shg_analysis = Bool(False)
-
-    pl_analysis = Bool(False)
+    image_stack = List(ArrayOrNone)
 
     p_intensity = Tuple((1, 99))
 
-    shape = Property(Tuple, depends_on='image_shg')
+    shape = Property(Tuple, depends_on='image_stack')
 
-    size = Property(Tuple, depends_on='image_shg')
+    size = Property(Tuple, depends_on='image_stack')
+
+    def __len__(self):
+        return len(self.image_stack)
 
     def _get_shape(self):
-        if self.image_shg is not None:
-            return self.image_shg.shape
+        if self.image_stack:
+            return self.image_stack[0].shape
 
     def _get_size(self):
-        if self.image_shg is not None:
-            return self.image_shg.size
+        if self.image_stack:
+            return self.image_stack[0].size
 
-    def preprocess_image_shg(self):
+    def append(self, image):
+        """Appends an image to the image_stack. If image_stack
+        already contains existing images, make sure that the
+        shape on the incoming image matches"""
+        if self.image_stack:
+            if image.shape != self.shape:
+                raise ValueError(
+                    f'Image shape {image.shape} is not the same as '
+                    f'MultiImage shape {self.shape}')
 
-        self.shg_analysis = (
-                self.shg_analysis
-                and self.image_shg is not None
-        )
+        self.image_stack.append(image)
 
-        if self.image_shg is not None:
-            self.image_shg = clip_intensities(
-                self.image_shg, p_intensity=self.p_intensity
+    def remove(self, image):
+        """Removes an image to the image_stack"""
+        self.image_stack.remove(image)
+
+    def preprocess_images(self):
+        for i, image in enumerate(self.image_stack):
+            self.image_stack[i] = clip_intensities(
+                image, p_intensity=self.p_intensity
             )
-
-    def preprocess_image_pl(self):
-
-        self.pl_analysis = (
-                self.pl_analysis
-                and self.image_pl is not None
-                and self.image_tran is not None
-        )

@@ -4,7 +4,7 @@ from tkinter import Frame, Button, Entry, N, W, E, S
 from tkinter.ttk import Treeview
 from tkinter import filedialog
 
-from pyfibre.io.tif_reader import TIFReader
+from pyfibre.io.shg_pl_reader import SHGPLReader
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ class FileDisplay(Frame):
 
     def add_files(self, input_files):
 
-        reader = TIFReader(input_files, shg=True, pl=True)
+        reader = SHGPLReader(input_files, shg=True, pl=True)
         prefixes = [prefix for prefix, _ in reader.files.items()]
 
         new_indices = [i for i, prefix in enumerate(prefixes)\

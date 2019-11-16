@@ -4,6 +4,7 @@ import numpy as np
 import copy
 
 from skimage.io import imread
+from skimage import img_as_float
 
 from pyfibre.model.tools.preprocessing import clip_intensities
 from pyfibre.io.multi_image import MultiLayerImage
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def load_image(image_path):
     """Load in image as a numpy float array"""
-    image = imread(image_path).astype(np.float64)
+    image = img_as_float(imread(image_path))
 
     return image
 
@@ -57,7 +58,9 @@ def extract_prefix(image_name, label):
     return prefix
 
 
-class TIFReader():
+class SHGPLReader():
+    """Reader class for a combined SHG/PL/Transmission
+    file"""
 
     def __init__(self, input_files=None, shg=False, pl=False, p_intensity=(1, 99),
                  ow_network=False, ow_segment=False, ow_metric=False,
@@ -296,12 +299,6 @@ class TIFReader():
             image_stack = [None, None, None]
 
             multi_image = MultiLayerImage(
-                ow_network=self.ow_network,
-                ow_segment=self.ow_segment,
-                ow_metric=self.ow_metric,
-                ow_figure=self.ow_figure,
-                shg_analysis=self.shg,
-                pl_analysis=self.pl,
                 p_intensity=self.p_intensity
             )
 
