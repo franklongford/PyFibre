@@ -1,7 +1,8 @@
 from unittest import TestCase
 import numpy as np
 
-from pyfibre.io.multi_image import MultiLayerImage
+from pyfibre.io.multi_image import (
+    MultiLayerImage, SHGPLTransImage)
 
 
 class TestMultiLayerImage(TestCase):
@@ -49,3 +50,57 @@ class TestMultiLayerImage(TestCase):
         self.assertEqual(
             np.ones(1),
             np.unique(self.multi_image.image_stack[0]))
+
+
+class TestPLSHGTransImage(TestCase):
+
+    def setUp(self):
+
+        self.image = np.ones((15, 15))
+        self.image[5: 5] = 0
+        self.image[0: 0] = 2
+
+        self.multi_image = SHGPLTransImage()
+
+    def test_init_(self):
+
+        self.assertListEqual(
+            [None, None, None],
+            self.multi_image.image_stack
+        )
+
+    def test_assign_images(self):
+
+        self.multi_image.assign_shg_image(self.image)
+        self.assertEqual(
+            id(self.image),
+            id(self.multi_image.shg_image)
+            )
+        self.assertEqual(
+            id(self.image),
+            id(self.multi_image.image_stack[0])
+        )
+
+        pl_image = np.zeros_like(self.image)
+
+        self.multi_image.assign_pl_image(pl_image)
+        self.assertEqual(
+            id(pl_image),
+            id(self.multi_image.pl_image)
+        )
+        self.assertEqual(
+            id(pl_image),
+            id(self.multi_image.image_stack[1])
+        )
+
+        trans_image = np.zeros_like(self.image)
+
+        self.multi_image.assign_trans_image(trans_image)
+        self.assertEqual(
+            id(trans_image),
+            id(self.multi_image.trans_image)
+        )
+        self.assertEqual(
+            id(trans_image),
+            id(self.multi_image.image_stack[2])
+        )

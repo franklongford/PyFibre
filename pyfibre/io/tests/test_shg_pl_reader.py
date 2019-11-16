@@ -5,7 +5,7 @@ import numpy as np
 from pyfibre.io.shg_pl_reader import SHGPLReader, get_image_type
 
 
-LOAD_IMAGE_PATH = 'pyfibre.io.tif_reader.load_image'
+LOAD_IMAGE_PATH = 'pyfibre.io.shg_pl_reader.load_image'
 
 
 class TestImageReader(TestCase):
@@ -22,7 +22,7 @@ class TestImageReader(TestCase):
 class TestTIFReader(TestCase):
 
     def setUp(self):
-        self.reader = SHGPLReader(shg=True, pl=True)
+        self.reader = SHGPLReader()
         self.input_files = ['some/path/to/a/file-pl-shg.tif',
                             'some/path/to/another/file-pl.tif',
                             'some/path/to/another/file-shg.tif']

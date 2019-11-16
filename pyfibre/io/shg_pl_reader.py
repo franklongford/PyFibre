@@ -6,8 +6,10 @@ import copy
 from skimage.io import imread
 from skimage import img_as_float
 
+from traits.api import HasTraits, Unicode, Instance
+
 from pyfibre.model.tools.preprocessing import clip_intensities
-from pyfibre.io.multi_image import MultiLayerImage
+from pyfibre.io.multi_image import MultiLayerImage, SHGPLTransImage
 
 logger = logging.getLogger(__name__)
 
@@ -58,13 +60,15 @@ def extract_prefix(image_name, label):
     return prefix
 
 
-class SHGPLReader():
+class SHGPLReader(HasTraits):
     """Reader class for a combined SHG/PL/Transmission
     file"""
 
-    def __init__(self, input_files=None, shg=False, pl=False, p_intensity=(1, 99),
-                 ow_network=False, ow_segment=False, ow_metric=False,
-                 ow_figure=False):
+    filename = Unicode()
+
+    image = Instance(SHGPLTransImage)
+
+    def __init__(self):
 
         self._dim_list_shg = [2, 3, 4]
         self._dim_list_pl = [3, 4]
@@ -73,18 +77,7 @@ class SHGPLReader():
         self._n_mode_pl = 2
         self._n_mode_pl_shg = 3
 
-        self.ow_network = ow_network
-        self.ow_segment = ow_segment
-        self.ow_metric = ow_metric
-        self.ow_figure = ow_figure
-
         self.files = {}
-        self.shg = shg
-        self.pl = pl
-        self.p_intensity = p_intensity
-
-        if input_files is not None:
-            self.get_image_lists(copy.copy(input_files))
 
     def _check_dimension(self, ndim, image_type):
 
@@ -273,19 +266,17 @@ class SHGPLReader():
                 indices = [j for j, pl_prefix in enumerate(pl_prefixes)
                            if prefix in pl_prefix]
 
-                if len(indices) > 0:
-                    self.files[prefix] = {}
-                    if self.shg:
-                        self.files[prefix]['SHG'] = shg_files[i]
-                    if self.pl:
-                        self.files[prefix]['PL'] = pl_files[indices[0]]
-
-                elif self.shg:
+                if indices:
                     self.files[prefix] = {}
                     self.files[prefix]['SHG'] = shg_files[i]
-                    if self.pl:
-                        self.files.pop(prefix, None)
-                        logger.debug(f'Could not find PL image data for {prefix}')
+                    self.files[prefix]['PL'] = pl_files[indices[0]]
+
+                else:
+                    self.files[prefix] = {}
+                    self.files[prefix]['SHG'] = shg_files[i]
+
+                    self.files.pop(prefix, None)
+                    logger.debug(f'Could not find PL image data for {prefix}')
 
     def load_multi_images(self):
         """Load in SHG and PL files from file name tuple"""
@@ -298,9 +289,7 @@ class SHGPLReader():
 
             image_stack = [None, None, None]
 
-            multi_image = MultiLayerImage(
-                p_intensity=self.p_intensity
-            )
+            multi_image = SHGPLTransImage()
 
             if 'PL-SHG' in data:
 
@@ -309,7 +298,8 @@ class SHGPLReader():
                  image_stack[2]) = self.import_image(data['PL-SHG'], 'PL-SHG')
 
                 multi_image.file_path = prefix
-                multi_image.image_shg = image_stack[0]
+                multi_image.assign_shg_image(image_stack[0])
+                multi_image.shg = image_stack[0]
                 multi_image.image_pl = image_stack[1]
                 multi_image.image_tran = image_stack[2]
 
