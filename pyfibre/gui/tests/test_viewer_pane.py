@@ -5,14 +5,14 @@ import numpy as np
 from pyfibre.gui.viewer_pane import (
     ViewerPane, ImageTab
 )
-from pyfibre.io.multi_image import MultiLayerImage
+from pyfibre.io.multi_image import MultiImage
 
 
 class TestImageTab(TestCase):
 
     def setUp(self):
 
-        self.multi_image = MultiLayerImage()
+        self.multi_image = MultiImage()
         self.image_tab = ImageTab(
             label='SHG',
             image=self.multi_image.image_shg

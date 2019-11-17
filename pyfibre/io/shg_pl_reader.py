@@ -6,19 +6,18 @@ import copy
 from skimage.io import imread
 from skimage import img_as_float
 
-from traits.api import HasTraits, Unicode, Instance
+from traits.api import (
+    HasTraits, Int, Unicode, Instance, File, Type,
+    List, Enum, Property)
+from traitsui.api import View, Item
 
 from pyfibre.model.tools.preprocessing import clip_intensities
-from pyfibre.io.multi_image import MultiLayerImage, SHGPLTransImage
+
+from .multi_image import SHGPLImage
+from .multi_image_reader import load_image, MultiImageReader
+
 
 logger = logging.getLogger(__name__)
-
-
-def load_image(image_path):
-    """Load in image as a numpy float array"""
-    image = img_as_float(imread(image_path))
-
-    return image
 
 
 def get_image_type(image_path):
@@ -60,78 +59,130 @@ def extract_prefix(image_name, label):
     return prefix
 
 
-class SHGPLReader(HasTraits):
+class SHGPLReader(MultiImageReader):
     """Reader class for a combined SHG/PL/Transmission
     file"""
 
-    filename = Unicode()
+    load_mode = Enum('SHG-PL File', 'Separate Files')
 
-    image = Instance(SHGPLTransImage)
+    shg_pl_filename = File()
 
-    def __init__(self):
+    shg_filename = File()
 
-        self._dim_list_shg = [2, 3, 4]
-        self._dim_list_pl = [3, 4]
+    pl_filename = File()
+
+    filenames = Property(List(File), depends_on='load_mode,shg_pl_filename,'
+                                                'shg_filename,pl_filename')
+
+    multi_image_class = Type(SHGPLImage)
+
+    traits_view = View(
+        Item('load_mode'),
+        Item('shg_pl_filename', visible_when="load_mode=='SHG-PL File'"),
+        Item('shg_filename', visible_when="load_mode=='Separate Files'"),
+        Item('pl_filename', visible_when="load_mode=='Separate Files'")
+    )
+
+    def __init__(self, *args, **kwargs):
+        super(SHGPLReader, self).__init__(*args, **kwargs)
 
         self._n_mode_shg = 2
         self._n_mode_pl = 2
         self._n_mode_pl_shg = 3
 
-        self.files = {}
+    def _get_filenames(self):
+        if self.load_mode == 'Load File':
+            return [self.shg_pl_filename]
+        else:
+            return [self.shg_filename, self.pl_filename]
 
     def _check_dimension(self, ndim, image_type):
 
-        if image_type == 'SHG':
-            dim_list = self._dim_list_shg
+        if 'PL' in image_type:
+            dim_list = [3, 4]
         else:
-            dim_list = self._dim_list_pl
+            dim_list = [2, 3, 4]
 
-        if ndim not in dim_list:
-            return False
-
-        return True
+        return ndim in dim_list
 
     def _check_shape(self, shape, image_type):
 
+        if len(shape) == 4:
+            n_mode = shape[0]
+        elif len(shape) == 3:
+            n_mode = min(shape)
+        else:
+            return True
+
         if image_type == 'PL-SHG':
-            if len(shape) == 4:
-                n_mode = shape[0]
-            else:
-                n_mode = min(shape)
-            if n_mode != self._n_mode_pl_shg:
-                return False
-
+            return n_mode == self._n_mode_pl_shg
         elif image_type == 'PL':
-            if len(shape) == 4:
-                n_mode = shape[0]
+            return n_mode == self._n_mode_pl
+        else:
+            return n_mode == self._n_mode_shg
+
+    def _get_minor_axis(self, image):
+
+        if image.ndim == 2:
+            xy_dim = image.shape
+            minor_axis = None
+        else:
+            if image.ndim == 4:
+                logger.info("Number of image types = {}".format(image.shape[0]))
+                image_shape = image.shape[1]
             else:
-                n_mode = min(shape)
-            if n_mode != self._n_mode_pl:
-                return False
+                image_shape = image.shape
 
-        elif image_type == 'SHG':
-            if len(shape) == 4:
-                n_mode = shape[0]
-                if n_mode != self._n_mode_shg:
-                    return False
-            elif len(shape) == 3:
-                image_shape = shape
-                n_mode = int(np.min(image_shape))
-                if n_mode <= self._n_mode_shg:
-                    return False
+            minor_axis = int(np.argmin(image_shape))
+            xy_dim = tuple(x for i, x in enumerate(image_shape) if i != minor_axis)
 
-        return True
+            n_stacks = image_shape[minor_axis]
+            logger.debug("Number of stacks = {}".format(n_stacks))
 
-    def import_image(self, image_path, image_type):
-        """
-        Image importer able to automatically deal with stacks and mixed SHG/PL image types
-        :param image_path:
-        :return:
-        """
+        logger.debug("Size of image = {}".format(xy_dim))
 
-        logger.debug(f"Loading {image_path}")
-        image = load_image(image_path)
-        logger.debug(f"Input image shape = {image.shape}")
+        return minor_axis
+
+    def _format_shg_pl_image(self, image, minor_axis):
+
+        if image.ndim == 4:
+            image_shg = np.mean(image[0], axis=minor_axis)
+            image_pl = np.mean(image[1], axis=minor_axis)
+            image_tran = np.mean(image[2], axis=minor_axis)
+        else:
+            image_shg = np.take(image, 0, minor_axis)
+            image_pl = np.take(image, 1, minor_axis)
+            image_tran = np.take(image, 2, minor_axis)
+
+        return (
+            img_as_float(image_shg),
+            img_as_float(image_pl),
+            img_as_float(image_tran))
+
+    def _format_shg_image(self, image, minor_axis):
+
+        if minor_axis is None:
+            image_shg = image
+        elif image.ndim == 4:
+            image_shg = np.mean(image[1], axis=minor_axis)
+        else:
+            image_shg = np.mean(image, axis=minor_axis)
+
+        return img_as_float(image_shg)
+
+    def _format_pl_image(self, image, minor_axis):
+
+        if image.ndim == 4:
+            image_pl = np.mean(image[0], axis=minor_axis)
+            image_tran = np.mean(image[1], axis=minor_axis)
+        else:
+            image_pl = np.take(image, 0, minor_axis)
+            image_tran = np.take(image, 1, minor_axis)
+
+        return (img_as_float(image_pl),
+                img_as_float(image_tran))
+
+    def image_preprocessing(self, image, image_type):
 
         image_check = self._check_dimension(image.ndim, image_type)
         image_check *= self._check_shape(image.shape, image_type)
@@ -141,223 +192,155 @@ class SHGPLReader(HasTraits):
                 f"Image shape ({image.shape}) not suitable for type {image_type}"
             )
 
-        if 'PL' in image_type:
+        minor_axis = self._get_minor_axis(image)
 
-            major_axis = 0
+        if image_type == 'PL-SHG':
+            images = self._format_shg_pl_image(image, minor_axis)
+        elif image_type == 'PL':
+            images = self._format_pl_image(image, minor_axis)
+        else:
+            images = self._format_shg_image(image, minor_axis)
 
-            if image.ndim == 4:
-                image_shape = image[major_axis].shape
-            else:
-                image_shape = image.shape
+        return images
 
-            logger.info("Number of image types = {}".format(image.shape[major_axis]))
+    def load_multi_image(self):
+        """
+        Image loader able to automatically deal with stacks and mixed SHG/PL image types
+        """
 
-            minor_axis = int(np.argmin(image_shape))
-            xy_dim = tuple(x for i, x in enumerate(image_shape) if i != minor_axis)
-            n_stacks = image_shape[minor_axis]
+        if self.load_mode == "SHG-PL File":
+            image_types = ['SHG-PL']
+        else:
+            image_types = ['SHG', 'PL']
 
-            logger.debug("Size of image = {}".format(xy_dim))
-            logger.debug("Number of stacks = {}".format(n_stacks))
+        images = self.load_images()
 
-            if image_type == 'PL':
-                if image.ndim == 4:
-                    image_pl = np.mean(image[0], axis=minor_axis)
-                    image_tran = np.mean(image[1], axis=minor_axis)
-                else:
-                    image_pl = np.take(image, 0, minor_axis)
-                    image_tran = np.take(image, 1, minor_axis)
+        for index, image, image_type in enumerate(images):
+            image_type = image_types[index]
 
-                image_pl = clip_intensities(image_pl, p_intensity=(0, 100))
-                image_tran = clip_intensities(image_tran, p_intensity=(0, 100))
+            logger.debug(f"Input image shape = {image.shape}")
 
-                return image_pl, image_tran
+            images[index] = self.image_preprocessing(image, image_type)
 
-            elif image_type == 'PL-SHG':
-                if image.ndim == 4:
-                    image_shg = np.mean(image[0], axis=minor_axis)
-                    image_pl = np.mean(image[1], axis=minor_axis)
-                    image_tran = np.mean(image[2], axis=minor_axis)
-                else:
-                    image_shg = np.take(image, 0, minor_axis)
-                    image_pl = np.take(image, 1, minor_axis)
-                    image_tran = np.take(image, 2, minor_axis)
+        multi_image = self.multi_image_class(image_stack=images)
 
-                image_shg = clip_intensities(image_shg, p_intensity=(0, 100))
-                image_pl = clip_intensities(image_pl, p_intensity=(0, 100))
-                image_tran = clip_intensities(image_tran, p_intensity=(0, 100))
+        return multi_image
 
-                return image_shg, image_pl, image_tran
 
-        elif image_type == 'SHG':
+def get_image_lists(self, input_files):
+    """"Automatically find all combined PL-SHG files or match
+    up individual images if seperate"""
 
-            if image.ndim == 4:
-                major_axis = 0
-                image_shape = image[major_axis].shape
+    input_files = copy.copy(input_files)
+    removed_files = []
 
-                logger.info("Number of image types = {}".format(image.shape[major_axis]))
+    for filename in input_files:
+        if not filename.endswith('.tif'):
+            removed_files.append(filename)
+        elif filename.find('display') != -1:
+            removed_files.append(filename)
+        elif filename.find('virada') != -1:
+            removed_files.append(filename)
+        elif filename.find('asterisco') != -1:
+            removed_files.append(filename)
 
-                minor_axis = np.argmin(image_shape)
-                xy_dim = tuple(x for i, x in enumerate(image_shape) if i != minor_axis)
-                n_stacks = image_shape[minor_axis]
+    for filename in removed_files:
+        input_files.remove(filename)
 
-                logger.debug("Number of stacks = {}".format(n_stacks))
+    files, prefixes = get_files_prefixes(input_files, '-pl-shg')
 
-                image_shg = np.mean(image[1], axis=minor_axis)
+    for filename, prefix in zip(files, prefixes):
+        self.files[prefix] = {}
+        self.files[prefix]['PL-SHG'] = filename
+        input_files.remove(filename)
 
-            elif image.ndim == 3:
-                image_shape = image.shape
+    shg_files, shg_prefixes = get_files_prefixes(input_files, '-shg')
+    pl_files, pl_prefixes = get_files_prefixes(input_files, '-pl')
 
-                minor_axis = np.argmin(image_shape)
-                xy_dim = tuple(x for i, x in enumerate(image_shape) if i != minor_axis)
-                n_stacks = image_shape[minor_axis]
+    for i, prefix in enumerate(shg_prefixes):
 
-                logger.debug("Number of stacks = {}".format(n_stacks))
+        if prefix not in self.files.keys():
 
-                image_shg = np.mean(image, axis=minor_axis)
+            indices = [j for j, pl_prefix in enumerate(pl_prefixes)
+                       if prefix in pl_prefix]
 
-            else:
-                xy_dim = image.shape
-                image_shg = image
-
-            logger.debug("Size of image = {}".format(xy_dim))
-            image_shg = clip_intensities(image_shg, p_intensity=(0, 100))
-
-            return image_shg
-
-        raise RuntimeError('Image file not appropriately labelled')
-
-    def _clean_files(self):
-        self.files = {}
-
-    def get_image_lists(self, input_files):
-        """"Automatically find all combined PL-SHG files or match
-        up individual images if seperate"""
-
-        input_files = copy.copy(input_files)
-        removed_files = []
-
-        for filename in input_files:
-            if not filename.endswith('.tif'):
-                removed_files.append(filename)
-            elif filename.find('display') != -1:
-                removed_files.append(filename)
-            elif filename.find('virada') != -1:
-                removed_files.append(filename)
-            elif filename.find('asterisco') != -1:
-                removed_files.append(filename)
-
-        for filename in removed_files:
-            input_files.remove(filename)
-
-        files, prefixes = get_files_prefixes(input_files, '-pl-shg')
-
-        for filename, prefix in zip(files, prefixes):
-            self.files[prefix] = {}
-            self.files[prefix]['PL-SHG'] = filename
-            input_files.remove(filename)
-
-        shg_files, shg_prefixes = get_files_prefixes(input_files, '-shg')
-        pl_files, pl_prefixes = get_files_prefixes(input_files, '-pl')
-
-        for i, prefix in enumerate(shg_prefixes):
-
-            if prefix not in self.files.keys():
-
-                indices = [j for j, pl_prefix in enumerate(pl_prefixes)
-                           if prefix in pl_prefix]
-
-                if indices:
-                    self.files[prefix] = {}
-                    self.files[prefix]['SHG'] = shg_files[i]
-                    self.files[prefix]['PL'] = pl_files[indices[0]]
-
-                else:
-                    self.files[prefix] = {}
-                    self.files[prefix]['SHG'] = shg_files[i]
-
-                    self.files.pop(prefix, None)
-                    logger.debug(f'Could not find PL image data for {prefix}')
-
-    def load_multi_images(self):
-        """Load in SHG and PL files from file name tuple"""
-
-        remove_image = []
-        remove_shg = []
-        remove_pl = []
-
-        for prefix, data in self.files.items():
-
-            image_stack = [None, None, None]
-
-            multi_image = SHGPLTransImage()
-
-            if 'PL-SHG' in data:
-
-                (image_stack[0],
-                 image_stack[1],
-                 image_stack[2]) = self.import_image(data['PL-SHG'], 'PL-SHG')
-
-                multi_image.file_path = prefix
-                multi_image.assign_shg_image(image_stack[0])
-                multi_image.shg = image_stack[0]
-                multi_image.image_pl = image_stack[1]
-                multi_image.image_tran = image_stack[2]
+            if indices:
+                self.files[prefix] = {}
+                self.files[prefix]['SHG'] = shg_files[i]
+                self.files[prefix]['PL'] = pl_files[indices[0]]
 
             else:
-                if 'SHG' in data:
-                    try:
-                        image_stack[0] = self.import_image(data['SHG'], 'SHG')
-                        multi_image.file_path = prefix
-                        multi_image.image_shg = image_stack[0]
-                        multi_image.preprocess_image_shg()
-                    except ImportError:
-                        logger.debug('Unable to load SHG file')
-                        remove_shg.append(prefix)
-                        multi_image.shg_analysis = False
-                        if self.shg:
-                            remove_image.append(prefix)
-                else:
-                    logger.debug('SHG Image file not appropriately labelled')
+                self.files[prefix] = {}
+                self.files[prefix]['SHG'] = shg_files[i]
+
+                self.files.pop(prefix, None)
+                logger.debug(f'Could not find PL image data for {prefix}')
+
+def load_multi_images(self):
+    """Load in SHG and PL files from file name tuple"""
+
+    remove_image = []
+    remove_shg = []
+    remove_pl = []
+
+    for prefix, data in self.files.items():
+
+        image_stack = [None, None, None]
+
+        multi_image = SHGPLTransImage()
+
+        if 'PL-SHG' in data:
+
+            (image_stack[0],
+             image_stack[1],
+             image_stack[2]) = self.import_image(data['PL-SHG'], 'PL-SHG')
+
+            multi_image.file_path = prefix
+            multi_image.assign_shg_image(image_stack[0])
+            multi_image.shg = image_stack[0]
+            multi_image.image_pl = image_stack[1]
+            multi_image.image_tran = image_stack[2]
+
+        else:
+            if 'SHG' in data:
+                try:
+                    image_stack[0] = self.import_image(data['SHG'], 'SHG')
+                    multi_image.file_path = prefix
+                    multi_image.image_shg = image_stack[0]
+                    multi_image.preprocess_image_shg()
+                except ImportError:
+                    logger.debug('Unable to load SHG file')
+                    remove_shg.append(prefix)
                     multi_image.shg_analysis = False
                     if self.shg:
                         remove_image.append(prefix)
+            else:
+                logger.debug('SHG Image file not appropriately labelled')
+                multi_image.shg_analysis = False
+                if self.shg:
+                    remove_image.append(prefix)
 
-                if 'PL' in data:
-                    try:
-                        (image_stack[1],
-                         image_stack[2]) = self.import_image(data['PL'], 'PL')
-                        multi_image.image_pl = image_stack[1]
-                        multi_image.image_tran = image_stack[2]
-                        multi_image.preprocess_image_pl()
-                    except ImportError:
-                        logger.debug('Unable to load PL file')
-                        remove_pl.append(prefix)
-                        multi_image.pl_analysis = False
-                        if self.pl:
-                            remove_image.append(prefix)
-                else:
-                    logger.debug('PL Image file not appropriately labelled')
+            if 'PL' in data:
+                try:
+                    (image_stack[1],
+                     image_stack[2]) = self.import_image(data['PL'], 'PL')
+                    multi_image.image_pl = image_stack[1]
+                    multi_image.image_tran = image_stack[2]
+                    multi_image.preprocess_image_pl()
+                except ImportError:
+                    logger.debug('Unable to load PL file')
+                    remove_pl.append(prefix)
                     multi_image.pl_analysis = False
                     if self.pl:
                         remove_image.append(prefix)
+            else:
+                logger.debug('PL Image file not appropriately labelled')
+                multi_image.pl_analysis = False
+                if self.pl:
+                    remove_image.append(prefix)
 
-            self.files[prefix]['image'] = multi_image
+        self.files[prefix]['image'] = multi_image
 
-        [self.files[key].pop('SHG', None) for key in remove_shg]
-        [self.files[key].pop('PL', None) for key in remove_pl]
-        [self.files.pop(key, None) for key in remove_image]
-
-    def update_multi_images(self):
-        """Update the MultiImages with new TifReader attributes"""
-
-        for prefix, data in self.files.items():
-
-            multi_image = data['image']
-
-            multi_image.ow_network = self.ow_network
-            multi_image.ow_segment = self.ow_segment
-            multi_image.ow_metric = self.ow_metric
-            multi_image.ow_figure = self.ow_figure
-            multi_image.shg_analysis = self.shg
-            multi_image.pl_analysis = self.pl
-            multi_image.p_intensity = self.p_intensity
+    [self.files[key].pop('SHG', None) for key in remove_shg]
+    [self.files[key].pop('PL', None) for key in remove_pl]
+    [self.files.pop(key, None) for key in remove_image]

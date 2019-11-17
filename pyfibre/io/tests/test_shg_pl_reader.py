@@ -19,7 +19,7 @@ class TestImageReader(TestCase):
         self.assertEqual(get_image_type('some-psh-test.tif'), 'Unknown')
 
 
-class TestTIFReader(TestCase):
+class TestSHGPLReader(TestCase):
 
     def setUp(self):
         self.reader = SHGPLReader()
@@ -137,3 +137,6 @@ class TestTIFReader(TestCase):
                 multi_image.shape,
 
             )
+
+    def test_view_shg_pl_reader(self):
+        self.reader.configure_traits()

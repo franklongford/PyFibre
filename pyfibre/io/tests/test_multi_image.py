@@ -2,14 +2,14 @@ from unittest import TestCase
 import numpy as np
 
 from pyfibre.io.multi_image import (
-    MultiLayerImage, SHGPLTransImage)
+    MultiImage, SHGPLImage)
 
 
-class TestMultiLayerImage(TestCase):
+class TestMultiImage(TestCase):
 
     def setUp(self):
 
-        self.multi_image = MultiLayerImage()
+        self.multi_image = MultiImage()
 
         self.image = np.ones((15, 15))
         self.image[5: 5] = 0
@@ -60,12 +60,12 @@ class TestPLSHGTransImage(TestCase):
         self.image[5: 5] = 0
         self.image[0: 0] = 2
 
-        self.multi_image = SHGPLTransImage()
+        self.multi_image = SHGPLImage()
 
     def test_init_(self):
 
         self.assertListEqual(
-            [None, None, None],
+            [None, None],
             self.multi_image.image_stack
         )
 

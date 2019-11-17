@@ -1,16 +1,14 @@
 import numpy as np
 
 from traits.api import (
-    HasTraits, ArrayOrNone, Property, Tuple,
-    Either, Int, Unicode, List, Array
+    HasTraits, ArrayOrNone, Property, Tuple, Instance,
+    Either, Int, Unicode, List, Array, on_trait_change
 )
 
 from pyfibre.model.tools.preprocessing import clip_intensities
 
 
-class MultiLayerImage(HasTraits):
-
-    file_path = Unicode()
+class MultiImage(HasTraits):
 
     image_stack = List(ArrayOrNone)
 
@@ -54,16 +52,14 @@ class MultiLayerImage(HasTraits):
             )
 
 
-class SHGPLTransImage(MultiLayerImage):
+class SHGPLImage(MultiImage):
 
     shg_image = Property(ArrayOrNone, depends_on='image_stack')
 
     pl_image = Property(ArrayOrNone, depends_on='image_stack')
 
-    trans_image = Property(ArrayOrNone, depends_on='image_stack')
-
-    def _image_stack_default(self):
-        return [None, None, None]
+    def _default_image_stack(self):
+        return [None, None]
 
     def _get_shg_image(self):
         return self.image_stack[0]
@@ -71,14 +67,8 @@ class SHGPLTransImage(MultiLayerImage):
     def _get_pl_image(self):
         return self.image_stack[1]
 
-    def _get_trans_image(self):
-        return self.image_stack[2]
-
     def assign_shg_image(self, image):
         self.image_stack[0] = image
 
     def assign_pl_image(self, image):
         self.image_stack[1] = image
-
-    def assign_trans_image(self, image):
-        self.image_stack[2] = image
