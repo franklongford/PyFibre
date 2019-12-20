@@ -43,3 +43,47 @@ def parse_file_path(file_path):
         directory = file_path
 
     return file_name, directory
+
+
+def pop_recursive(dictionary, remove_key):
+    """Recursively remove a named key from dictionary and any contained
+    dictionaries."""
+    try:
+        dictionary.pop(remove_key)
+    except KeyError:
+        pass
+
+    for key, value in dictionary.items():
+        # If remove_key is in the dict, remove it
+        if isinstance(value, dict):
+            pop_recursive(value, remove_key)
+        # If we have a non-dict iterable which contains a dict,
+        # call pop.(remove_key) from that as well
+        elif isinstance(value, (tuple, list)):
+            for element in value:
+                if isinstance(element, dict):
+                    pop_recursive(element, remove_key)
+
+    return dictionary
+
+
+def pop_dunder_recursive(dictionary):
+    """ Recursively removes all dunder keys from a nested dictionary. """
+    keys = [key for key in dictionary.keys()]
+    for key in keys:
+        if key.startswith('__') and key.endswith('__'):
+            dictionary.pop(key)
+
+    for key, value in dictionary.items():
+        # Check subdicts for dunder keys
+        if isinstance(value, dict):
+            pop_dunder_recursive(value)
+        # If we have a non-dict iterable which contains a dict,
+        # remove dunder keys from that too
+        elif isinstance(value, (tuple, list)):
+            for element in value:
+                if isinstance(element, dict):
+                    pop_dunder_recursive(element)
+
+    return dictionary
+
