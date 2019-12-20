@@ -16,7 +16,9 @@ from pyfibre.model.tools.figures import (
 )
 from pyfibre.model.tools.preprocessing import nl_means
 from pyfibre.io.segment_io import load_segment, save_segment
-from pyfibre.io.object_io import save_objects, load_objects
+from pyfibre.io.object_io import (
+    save_fibre_networks, load_fibre_networks,
+    save_objects, load_objects)
 from pyfibre.io.network_io import save_network, load_network
 from pyfibre.io.database_io import save_database, load_database
 
@@ -145,7 +147,7 @@ def image_analysis(multi_image, prefix, scale=1.25,
 
         end_seg = time.time()
 
-        save_objects(fibre_networks, filename, "fibre_networks")
+        save_fibre_networks(fibre_networks, filename)
         save_objects(cells, filename, 'cells')
 
         logger.info(f"TOTAL SEGMENTATION TIME = {round(end_seg - start_seg, 3)} s")
@@ -155,7 +157,7 @@ def image_analysis(multi_image, prefix, scale=1.25,
         start_met = time.time()
 
         # Load networks and segments"
-        fibre_networks = load_objects(filename, "fibre_networks")
+        fibre_networks = load_fibre_networks(filename)
         cells = load_objects(filename, "cells")
 
         global_dataframe, dataframes = metric_analysis(
@@ -175,7 +177,7 @@ def image_analysis(multi_image, prefix, scale=1.25,
 
         start_fig = time.time()
 
-        fibre_networks = load_objects(filename, "fibre_networks")
+        fibre_networks = load_fibre_networks(filename)
         cells = load_objects(filename, "cells")
 
         fibre_segments = [fibre_network.segment for fibre_network in fibre_networks]
