@@ -166,18 +166,27 @@ def load_pickle(file_name):
 def save_json(data, file_name):
     """Saves data as JSON file"""
 
-    with open(file_name, 'w') as outfile:
-        json.dump(data, outfile, indent=4)
+    try:
+        with open(f"{file_name}.json", 'w') as outfile:
+            json.dump(data, outfile, indent=4)
+    except IOError as e:
+        raise IOError(
+            f"Cannot save to file {file_name}.json"
+        ) from e
 
 
 def load_json(file_name):
     """Loads JSON file as data"""
 
-    with open(file_name, 'r') as infile:
-        data = json.load(infile)
+    try:
+        with open(f"{file_name}.json", 'r') as infile:
+            data = json.load(infile)
+    except IOError as e:
+        raise IOError(
+            f"Cannot read file {file_name}.json"
+        ) from e
 
     return data
-
 
 
 def dict_extract(dictionary, keys):
