@@ -1,3 +1,6 @@
+from networkx.readwrite.json_graph import node_link_data
+
+from pyfibre.io.utils import pop_under_recursive
 from pyfibre.model.tools.convertors import networks_to_segments
 from pyfibre.model.tools.fibre_utilities import get_node_coord_array
 
@@ -9,11 +12,24 @@ class BaseGraphSegment:
     def __init__(self, graph=None, image=None):
 
         self.graph = graph
+        self.image = image
+
         self._area_threshold = 64
         self._iterations = 2
         self._sigma = 0.5
 
-        self.image = image
+    def __getstate__(self):
+        """Return the object state in a form that can be
+        serialised as a JSON file"""
+        status = pop_under_recursive(self.__dict__)
+
+        graph = node_link_data(status['graph'])
+        for coord in graph['nodes']:
+            coord['xy'] = coord['xy'].tolist()
+
+        status['graph'] = graph
+
+        return status
 
     @property
     def node_list(self):

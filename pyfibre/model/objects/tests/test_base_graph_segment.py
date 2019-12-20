@@ -15,6 +15,29 @@ class TestBaseGraphSegment(TestCase):
         self.graph = generate_probe_graph()
         self.graph_segment = BaseGraphSegment(graph=self.graph)
 
+    def test__getstate__(self):
+        status = self.graph_segment.__getstate__()
+
+        self.assertListEqual(
+            ['graph', 'image'],
+            list(status.keys())
+        )
+
+        self.assertDictEqual(
+            status['graph'],
+            {'directed': False,
+             'graph': {},
+             'links': [{'r': 1.4142135623730951, 'source': 2, 'target': 3},
+                       {'r': 1.4142135623730951, 'source': 3, 'target': 4},
+                       {'r': 1, 'source': 4, 'target': 5}],
+             'multigraph': False,
+             'nodes': [{'xy': [0, 0], 'id': 2},
+                       {'xy': [1, 1], 'id': 3},
+                       {'xy': [2, 2], 'id': 4},
+                       {'xy': [2, 3], 'id': 5}]
+             }
+        )
+
     def test_network_init(self):
 
         self.assertEqual(4, self.graph_segment.number_of_nodes)
