@@ -2,7 +2,7 @@ import os
 from unittest import TestCase
 
 from pyfibre.gui.file_display_pane import FileDisplayPane
-from pyfibre.io.tif_reader import TIFReader
+from pyfibre.io.shg_pl_reader import SHGPLReader
 
 source_dir = os.path.dirname(os.path.realpath(__file__))
 pyfibre_dir = os.path.dirname(os.path.dirname(source_dir))
@@ -18,7 +18,7 @@ class TestFileDisplayPane(TestCase):
         )
 
     def test___init__(self):
-        self.assertIsInstance(self.file_display.tif_reader, TIFReader)
+        self.assertIsInstance(self.file_display.tif_reader, SHGPLReader)
 
     def test_add_file(self):
 

@@ -2,10 +2,10 @@ from unittest import TestCase, mock
 
 import numpy as np
 
-from pyfibre.io.tif_reader import TIFReader, get_image_type
+from pyfibre.io.shg_pl_reader import SHGPLReader, get_image_type
 
 
-LOAD_IMAGE_PATH = 'pyfibre.io.tif_reader.load_image'
+LOAD_IMAGE_PATH = 'pyfibre.io.shg_pl_reader.load_image'
 
 
 class TestImageReader(TestCase):
@@ -19,10 +19,10 @@ class TestImageReader(TestCase):
         self.assertEqual(get_image_type('some-psh-test.tif'), 'Unknown')
 
 
-class TestTIFReader(TestCase):
+class TestSHGPLReader(TestCase):
 
     def setUp(self):
-        self.reader = TIFReader(shg=True, pl=True)
+        self.reader = SHGPLReader()
         self.input_files = ['some/path/to/a/file-pl-shg.tif',
                             'some/path/to/another/file-pl.tif',
                             'some/path/to/another/file-shg.tif']
@@ -137,3 +137,6 @@ class TestTIFReader(TestCase):
                 multi_image.shape,
 
             )
+
+    def test_view_shg_pl_reader(self):
+        self.reader.configure_traits()

@@ -8,6 +8,7 @@ from traits.api import push_exception_handler
 
 from pyfibre.version import __version__
 
+from pyfibre.gui.pyfibre_main_task import PyFibreMainTask
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
 from pyfibre.gui.pyfibre_plugin import PyFibrePlugin
 from pyfibre.utilities import logo
@@ -59,6 +60,7 @@ def run(debug, profile):
                PyFibrePlugin()]
 
     pyfibre_gui = PyFibreGUI(plugins=plugins)
+
     pyfibre_gui.run()
 
     if profile:

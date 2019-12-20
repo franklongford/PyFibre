@@ -8,7 +8,7 @@ from matplotlib.figure import Figure
 from pyfibre.utilities import flatten_list
 from pyfibre.model.tools.filters import form_structure_tensor
 from pyfibre.model.tools.analysis import tensor_analysis, fibre_analysis
-from pyfibre.io.multi_image import MultiLayerImage
+from pyfibre.io.multi_image import MultiImage
 from pyfibre.io.database_io import check_file_name
 from pyfibre.io.segment_io import load_segment
 
@@ -59,7 +59,7 @@ class PyFibreGraphs:
         data_dir = image_path + '/data/'
 
         file_index = self.parent.input_prefixes.index(selected_file)
-        multi_image = MultiLayerImage(
+        multi_image = MultiImage(
             self.parent.input_files[file_index],
             p_intensity=(self.parent.p0.get(), self.parent.p1.get()))
 

@@ -12,7 +12,7 @@ from pyfibre.io.database_io import check_file_name
 from pyfibre.model.tools.figures import (
     create_tensor_image, create_region_image, create_network_image
 )
-from pyfibre.io.multi_image import MultiLayerImage
+from pyfibre.io.multi_image import MultiImage
 from pyfibre.utilities import flatten_list
 
 
@@ -136,7 +136,7 @@ class PyFibreViewer:
         data_dir = image_path + '/data/'
 
         file_index = self.parent.input_prefixes.index(selected_file)
-        self.multi_image = MultiLayerImage(
+        self.multi_image = MultiImage(
             self.parent.input_files[file_index],
             p_intensity=(self.parent.p0.get(), self.parent.p1.get()))
 

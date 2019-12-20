@@ -21,7 +21,7 @@ class PyFibreGUI(TasksApplication):
 
     name = 'PyFibre GUI'
 
-    window_size = Either(Tuple(Int, Int), None)
+    window_size = Tuple((1680, 1050))
 
     # The default window-level layout for the application.
     default_layout = List(TaskWindowLayout)
@@ -34,18 +34,11 @@ class PyFibreGUI(TasksApplication):
 
     def _default_layout_default(self):
         tasks = [factory.id for factory in self.task_factories]
-        if self.window_size is not None:
-            return [TaskWindowLayout(
-                *tasks,
-                active_task='pyfibre.pyfibre_main_task',
-                size=self.window_size
-            )]
-        else:
-            return [TaskWindowLayout(
-                *tasks,
-                active_task='pyfibre.pyfibre_main_task',
-                size=(1680, 1050)
-            )]
+        return [TaskWindowLayout(
+            *tasks,
+            active_task='pyfibre.pyfibre_main_task',
+            size=self.window_size
+        )]
 
     # FIXME: This isn't needed if the bug in traitsui/qt4/ui_panel.py is fixed
     def _application_exiting_fired(self):

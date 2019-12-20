@@ -14,7 +14,7 @@ from traitsui.api import (
     TextEditor, ProgressEditor
 )
 
-from pyfibre.io.tif_reader import TIFReader
+from pyfibre.io.shg_pl_reader import SHGPLReader
 from pyfibre.io.utils import parse_files, parse_file_path
 
 
@@ -62,7 +62,7 @@ class FileDisplayPane(TraitsDockPane):
 
     file_search = File()
 
-    tif_reader = Instance(TIFReader)
+    tif_reader = Instance(SHGPLReader)
 
     key = Unicode()
 
@@ -150,8 +150,8 @@ class FileDisplayPane(TraitsDockPane):
         return traits_view
 
     def _tif_reader_default(self):
-        return TIFReader(pl=self.pl_required,
-                         shg=True)
+        return SHGPLReader(pl=self.pl_required,
+                           shg=True)
 
     def _get_n_images(self):
         return len(self.file_table)

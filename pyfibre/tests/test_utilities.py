@@ -7,7 +7,7 @@ import numpy as np
 from skimage import data
 from scipy.ndimage.filters import gaussian_filter
 
-from pyfibre.io.tif_reader import TIFReader
+from pyfibre.io.shg_pl_reader import SHGPLReader
 from pyfibre.utilities import (
 	unit_vector, numpy_remove, nanmean, ring, matrix_split,
 	label_set
@@ -38,7 +38,7 @@ class TestImages(TestCase):
 
 		N = 50
 		self.test_images = {}
-		self.reader = TIFReader()
+		self.reader = SHGPLReader()
 
 		"Make ringed test image"
 		image_grid = np.mgrid[:N, :N]
@@ -72,7 +72,7 @@ class TestImages(TestCase):
 	def test_image(self):
 
 		input_files = [test_image_path]
-		reader = TIFReader(input_files, shg=True, pl=True)
+		reader = SHGPLReader(input_files, shg=True, pl=True)
 		reader.load_multi_images()
 
 		for prefix, data in reader.files.items():

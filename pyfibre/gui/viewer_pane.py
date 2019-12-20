@@ -20,7 +20,7 @@ from traitsui.api import (
     Spring, Image, Item, ListEditor
 )
 
-from pyfibre.io.multi_image import MultiLayerImage
+from pyfibre.io.multi_image import MultiImage
 from pyfibre.io.segment_io import load_segment
 from pyfibre.io.network_io import load_network
 from pyfibre.io.object_io import load_objects
@@ -111,7 +111,7 @@ class ViewerPane(TraitsTaskPane):
     metric_tab = Instance(MetricTab)
 
     # Properties
-    selected_image = Instance(MultiLayerImage)
+    selected_image = Instance(MultiImage)
 
     list_editor = ListEditor(
         page_name='.label',

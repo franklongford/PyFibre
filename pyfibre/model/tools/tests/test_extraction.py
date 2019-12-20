@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import networkx as nx
 
-from pyfibre.io.tif_reader import load_image
+from pyfibre.io.shg_pl_reader import load_image
 from pyfibre.model.tools.extraction import (
     build_network, clean_network, fibre_network_assignment
 )
