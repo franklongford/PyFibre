@@ -15,6 +15,15 @@ class TestNetwork(TestCase):
         self.graph = generate_probe_graph()
         self.network = FibreNetwork(graph=self.graph)
 
+    def test__getstate__(self):
+
+        status = self.network.__getstate__()
+
+        self.assertListEqual(
+            ['graph', 'image'],
+            list(status.keys())
+        )
+
     def test_fibres(self):
 
         fibres = self.network.fibres

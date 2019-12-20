@@ -8,6 +8,7 @@ Created on: 01/11/2015
 Last Modified: 12/04/2018
 """
 import pickle
+import json
 
 import numpy as np
 
@@ -160,6 +161,32 @@ def load_pickle(file_name):
         object_ = pickle.load(infile)
 
     return object_
+
+
+def save_json(data, file_name):
+    """Saves data as JSON file"""
+
+    try:
+        with open(f"{file_name}.json", 'w') as outfile:
+            json.dump(data, outfile, indent=4)
+    except IOError as e:
+        raise IOError(
+            f"Cannot save to file {file_name}.json"
+        ) from e
+
+
+def load_json(file_name):
+    """Loads JSON file as data"""
+
+    try:
+        with open(f"{file_name}.json", 'r') as infile:
+            data = json.load(infile)
+    except IOError as e:
+        raise IOError(
+            f"Cannot read file {file_name}.json"
+        ) from e
+
+    return data
 
 
 def dict_extract(dictionary, keys):
