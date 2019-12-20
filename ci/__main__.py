@@ -21,19 +21,17 @@ EDM_CORE_DEPS = [
     "qt>=4.8.7-10",
     "sip>=4.18.1-1",
     "pyzmq==16.0.0-7",
-    "swig==3.0.11-2"
-             ]
+    "swig==3.0.11-2"]
+
 EDM_DEV_DEPS = ["flake8==3.7.7-1",
                 "mock==2.0.0-3"]
 
 CONDA_CORE_DEPS = [
     'Click',
     "envisage",
-    "chaco==4.7.2",
     'pytables',
     'traits==5.1.1',
     'traitsui==6.1.1',
-    "pyface==6.1.0",
     "pygments",
     "pyqt",
     "qt",
@@ -41,13 +39,16 @@ CONDA_CORE_DEPS = [
     "pyzmq",
     'wxpython',
     'swig',
-    'Cython'
-             ]
+    'Cython']
+
+CONDA_PIP_DEPS = [
+    "chaco==4.7.2",
+    "pyface==6.1.0"]
+
 CONDA_DEV_DEPS = ["flake8==3.7.7",
                   "mock==2.0.0"]
 
 DOCS_DEPS = []
-PIP_DEPS = []
 
 
 def get_env_name():
@@ -119,7 +120,7 @@ def build_env(python_version, edm, conda):
            "--yes"] + CONDA_CORE_DEPS + CONDA_DEV_DEPS + DOCS_DEPS
                    )
     else:
-        print('Include flag to specify enviroment package manager,'
+        print('Include flag to specify environment package manager,'
               ' either EDM (--edm) or Conda (--conda)')
 
 
@@ -142,6 +143,9 @@ def install(python_version, edm, conda):
         print('Installing PyFibre to edm environment')
         edm_run(env_name, ['pip', 'install', '-e', '.'])
     elif conda:
+        print('Installing additional pip packages')
+        check_call(['pip', 'install'] + CONDA_PIP_DEPS)
+
         print('Installing PyFibre to conda environment')
         check_call(['pip', 'install', '-e', '.'])
     else:
