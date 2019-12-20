@@ -55,7 +55,7 @@ To make sure the installation has been successful, please run the unittests
 
 If using anaconda or miniconda python distribution, this can be easily initiated by creating a default environment:
 
-    conda create -n setup python=3.6 -y click setuptools
+    conda create -n setup python=3.6 click setuptools -y
     source activate setup
 
 Then build the `PyFibre` environment using same command as before but with the `--conda` flag:
