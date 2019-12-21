@@ -119,6 +119,7 @@ def networks_to_segments(networks, image=None, shape=None,
                                 iterations=iterations,
                                 sigma=sigma)
 
-    segments = binary_to_segments(binary, intensity_image=image)
+    segments = binary_to_segments(binary,
+                                  intensity_image=image)
 
     return segments

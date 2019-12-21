@@ -67,6 +67,7 @@ class TestBaseGraphSegment(TestCase):
 
         self.graph_segment._iterations = 0
         self.graph_segment._area_threshold = 0
+        self.graph_segment._sigma = None
 
         self.assertEqual((3, 4), self.graph_segment.segment.image.shape)
         self.assertEqual(4, self.graph_segment.segment.area)
