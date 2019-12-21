@@ -1,21 +1,16 @@
+import copy
 import logging
 import os
+
 import numpy as np
-import copy
-
-from skimage.io import imread
 from skimage import img_as_float
-
 from traits.api import (
-    HasTraits, Int, Unicode, Instance, File, Type,
+    File, Type, HasTraits,
     List, Enum, Property)
 from traitsui.api import View, Item
 
-from pyfibre.model.tools.preprocessing import clip_intensities
-
-from .multi_image import SHGPLImage
-from .multi_image_reader import load_image, MultiImageReader
-
+from pyfibre.model.objects.multi_image import SHGPLImage
+#from .multi_image_reader import MultiImageReader
 
 logger = logging.getLogger(__name__)
 
@@ -37,16 +32,6 @@ def get_image_type(image_path):
     return image_type
 
 
-def get_files_prefixes(file_list, label):
-    """Get the file path and file prefix of all files
-    containing label"""
-    files = [filename for filename in file_list
-             if label in os.path.basename(filename).lower()]
-    prefixes = [extract_prefix(filename, label) for filename in files]
-
-    return files, prefixes
-
-
 def extract_prefix(image_name, label):
     """Extract the prefix of image_name, before label"""
     directory = os.path.dirname(image_name)
@@ -59,7 +44,69 @@ def extract_prefix(image_name, label):
     return prefix
 
 
-class SHGPLReader(MultiImageReader):
+def get_files_prefixes(input_files, label):
+    """Get the file path and file prefix of all files
+    containing label"""
+    files = [filename for filename in input_files
+             if label in os.path.basename(filename).lower()]
+    prefixes = [extract_prefix(filename, label) for filename in files]
+
+    return files, prefixes
+
+
+def filter_input_files(input_files):
+
+    removed_files = []
+
+    for filename in input_files:
+        if not filename.endswith('.tif'):
+            removed_files.append(filename)
+        elif filename.find('display') != -1:
+            removed_files.append(filename)
+        elif filename.find('virada') != -1:
+            removed_files.append(filename)
+        elif filename.find('asterisco') != -1:
+            removed_files.append(filename)
+
+    for filename in removed_files:
+        input_files.remove(filename)
+
+    return input_files
+
+
+def populate_image_dictionary(input_files, image_dictionary, label):
+    """Populate image_dictionary argument using prefixes and filenames
+    of input_files list"""
+
+    files, prefixes = get_files_prefixes(input_files, f"-{label.lower()}")
+
+    for filename, prefix in zip(files, prefixes):
+
+        if prefix not in image_dictionary:
+            image_dictionary[prefix] = {}
+
+        image_dictionary[prefix][label] = filename
+        input_files.remove(filename)
+
+
+def collate_image_dictionary(input_files):
+    """"Automatically find all combined PL-SHG files or match
+    up individual images if seperate"""
+
+    input_files = filter_input_files(copy.copy(input_files))
+
+    image_dictionary = {}
+
+    populate_image_dictionary(input_files, image_dictionary, 'PL-SHG')
+
+    populate_image_dictionary(input_files, image_dictionary, 'SHG')
+
+    populate_image_dictionary(input_files, image_dictionary, 'PL')
+
+    return image_dictionary
+
+
+class SHGPLReader(HasTraits):
     """Reader class for a combined SHG/PL/Transmission
     file"""
 
@@ -98,10 +145,9 @@ class SHGPLReader(MultiImageReader):
 
     def _check_dimension(self, ndim, image_type):
 
+        dim_list = [2, 3, 4]
         if 'PL' in image_type:
-            dim_list = [3, 4]
-        else:
-            dim_list = [2, 3, 4]
+            dim_list.pop(0)
 
         return ndim in dim_list
 
@@ -226,55 +272,6 @@ class SHGPLReader(MultiImageReader):
 
         return multi_image
 
-
-def get_image_lists(self, input_files):
-    """"Automatically find all combined PL-SHG files or match
-    up individual images if seperate"""
-
-    input_files = copy.copy(input_files)
-    removed_files = []
-
-    for filename in input_files:
-        if not filename.endswith('.tif'):
-            removed_files.append(filename)
-        elif filename.find('display') != -1:
-            removed_files.append(filename)
-        elif filename.find('virada') != -1:
-            removed_files.append(filename)
-        elif filename.find('asterisco') != -1:
-            removed_files.append(filename)
-
-    for filename in removed_files:
-        input_files.remove(filename)
-
-    files, prefixes = get_files_prefixes(input_files, '-pl-shg')
-
-    for filename, prefix in zip(files, prefixes):
-        self.files[prefix] = {}
-        self.files[prefix]['PL-SHG'] = filename
-        input_files.remove(filename)
-
-    shg_files, shg_prefixes = get_files_prefixes(input_files, '-shg')
-    pl_files, pl_prefixes = get_files_prefixes(input_files, '-pl')
-
-    for i, prefix in enumerate(shg_prefixes):
-
-        if prefix not in self.files.keys():
-
-            indices = [j for j, pl_prefix in enumerate(pl_prefixes)
-                       if prefix in pl_prefix]
-
-            if indices:
-                self.files[prefix] = {}
-                self.files[prefix]['SHG'] = shg_files[i]
-                self.files[prefix]['PL'] = pl_files[indices[0]]
-
-            else:
-                self.files[prefix] = {}
-                self.files[prefix]['SHG'] = shg_files[i]
-
-                self.files.pop(prefix, None)
-                logger.debug(f'Could not find PL image data for {prefix}')
 
 def load_multi_images(self):
     """Load in SHG and PL files from file name tuple"""

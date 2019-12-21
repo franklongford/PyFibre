@@ -2,7 +2,10 @@ from unittest import TestCase, mock
 
 import numpy as np
 
-from pyfibre.io.shg_pl_reader import SHGPLReader, get_image_type
+from pyfibre.io.shg_pl_reader import (
+    get_image_type, extract_prefix, get_files_prefixes,
+    filter_input_files, populate_image_dictionary,
+    collate_image_dictionary, SHGPLReader)
 
 
 LOAD_IMAGE_PATH = 'pyfibre.io.shg_pl_reader.load_image'
@@ -11,12 +14,88 @@ LOAD_IMAGE_PATH = 'pyfibre.io.shg_pl_reader.load_image'
 class TestImageReader(TestCase):
 
     def test_get_image_type(self):
-        self.assertEqual(get_image_type('some-pl-shg-test.tif'), 'PL-SHG')
-        self.assertEqual(get_image_type('some-pl-test.tif'), 'PL')
-        self.assertEqual(get_image_type('some-shg-test.tif'), 'SHG')
+        self.assertEqual('PL-SHG', get_image_type('some-pl-shg-test.tif'))
+        self.assertEqual('PL', get_image_type('some-pl-test.tif'))
+        self.assertEqual('SHG', get_image_type('some-shg-test.tif'))
 
-    def test_get_image_type_failure(self):
-        self.assertEqual(get_image_type('some-psh-test.tif'), 'Unknown')
+        # Test failure
+        self.assertEqual('Unknown', get_image_type('some-psh-test.tif'))
+
+    def test_extract_prefix(self):
+        self.assertEqual('/directory/prefix',
+                         extract_prefix('/directory/prefix-pl-shg-test.tif', '-pl-shg'))
+        self.assertEqual('/directory/prefix',
+                         extract_prefix('/directory/prefix-pl-test.tif', '-pl'))
+        self.assertEqual('/directory/prefix',
+                         extract_prefix('/directory/prefix-shg-test.tif', '-shg'))
+
+    def test_get_files_prefixes(self):
+        input_files = ['/directory/prefix1-pl-shg-test.tif',
+                       '/directory/prefix2-pl-shg-test.tif',
+                       '/directory/prefix-shg-test.tif']
+
+        files, prefixes = get_files_prefixes(input_files, '-pl-shg')
+        self.assertListEqual(
+            ['/directory/prefix1-pl-shg-test.tif',
+             '/directory/prefix2-pl-shg-test.tif'], files)
+        self.assertListEqual(
+            ['/directory/prefix1', '/directory/prefix2'], prefixes)
+
+    def test_filter_input_files(self):
+        input_files = ['/directory/prefix1-pl-shg-test.png',
+                       '/directory/prefix2-pl-shg-test.tif',
+                       '/directory/prefix-display-test.tif',
+                       '/directory/prefix-shg-virada.tif',
+                       '/directory/prefix-shg-asterisco.tif']
+
+        filtered_files = filter_input_files(input_files)
+
+        self.assertListEqual(
+            ['/directory/prefix2-pl-shg-test.tif'], filtered_files)
+
+    def test_populate_image_dictionary(self):
+        input_files = ['/directory/prefix-pl-shg-test.tif',
+                       '/directory/prefix-pl-test.tif',
+                       '/directory/prefix-shg-test.tif']
+        image_dict = {}
+
+        populate_image_dictionary(input_files, image_dict, 'PL-SHG')
+
+        self.assertDictEqual(
+            {'/directory/prefix': {
+                'PL-SHG': '/directory/prefix-pl-shg-test.tif'}},
+            image_dict)
+        self.assertListEqual(
+            ['/directory/prefix-pl-test.tif',
+             '/directory/prefix-shg-test.tif'],
+            input_files)
+
+        populate_image_dictionary(input_files, image_dict, 'PL')
+
+        self.assertDictEqual(
+            {'/directory/prefix': {
+                'PL-SHG': '/directory/prefix-pl-shg-test.tif',
+                'PL': '/directory/prefix-pl-test.tif'}},
+            image_dict)
+        self.assertListEqual(
+            ['/directory/prefix-shg-test.tif'],
+            input_files)
+
+    def test_collate_image_dictionary(self):
+        input_files = ['/directory/prefix-pl-shg-test.tif',
+                       '/directory/prefix-pl-test.tif',
+                       '/directory/prefix-shg-test.tif',
+                       '/directory/prefix-pl-display.tif',]
+
+        image_dict = collate_image_dictionary(input_files)
+
+        self.assertDictEqual(
+            {'/directory/prefix': {
+                'PL-SHG': '/directory/prefix-pl-shg-test.tif',
+                'PL': '/directory/prefix-pl-test.tif',
+                'SHG': '/directory/prefix-shg-test.tif'}},
+            image_dict)
+        self.assertEqual(4, len(input_files))
 
 
 class TestSHGPLReader(TestCase):

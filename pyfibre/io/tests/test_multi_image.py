@@ -1,8 +1,9 @@
 from unittest import TestCase
+
 import numpy as np
 
-from pyfibre.io.multi_image import (
-    MultiImage, SHGPLImage)
+from pyfibre.model.objects.multi_image import (
+    MultiImage, SHGPLImage, SHGPLTransImage)
 
 
 class TestMultiImage(TestCase):
@@ -52,7 +53,7 @@ class TestMultiImage(TestCase):
             np.unique(self.multi_image.image_stack[0]))
 
 
-class TestPLSHGTransImage(TestCase):
+class TestPLSHGImage(TestCase):
 
     def setUp(self):
 
@@ -92,6 +93,26 @@ class TestPLSHGTransImage(TestCase):
             id(pl_image),
             id(self.multi_image.image_stack[1])
         )
+
+
+class TestPLSHGTransImage(TestCase):
+
+    def setUp(self):
+
+        self.image = np.ones((15, 15))
+        self.image[5: 5] = 0
+        self.image[0: 0] = 2
+
+        self.multi_image = SHGPLTransImage()
+
+    def test_init_(self):
+
+        self.assertListEqual(
+            [None, None, None],
+            self.multi_image.image_stack
+        )
+
+    def test_assign_images(self):
 
         trans_image = np.zeros_like(self.image)
 
