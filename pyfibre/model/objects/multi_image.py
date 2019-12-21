@@ -58,7 +58,7 @@ class SHGPLImage(MultiImage):
 
     pl_image = Property(ArrayOrNone, depends_on='image_stack')
 
-    def _default_image_stack(self):
+    def _image_stack_default(self):
         return [None, None]
 
     def _get_shg_image(self):
@@ -72,3 +72,17 @@ class SHGPLImage(MultiImage):
 
     def assign_pl_image(self, image):
         self.image_stack[1] = image
+
+
+class SHGPLTransImage(SHGPLImage):
+
+    trans_image = Property(ArrayOrNone, depends_on='image_stack')
+
+    def _image_stack_default(self):
+        return [None, None, None]
+
+    def _get_trans_image(self):
+        return self.image_stack[2]
+
+    def assign_trans_image(self, image):
+        self.image_stack[2] = image

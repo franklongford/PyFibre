@@ -2,28 +2,20 @@ import logging
 import os
 
 from chaco.api import ArrayPlotData, Plot
-from chaco.tools.api import PanTool, ZoomTool
 from chaco.default_colormaps import binary, reverse
-from chaco.tools.image_inspector_tool import (
-    ImageInspectorTool, ImageInspectorOverlay
-)
+from chaco.tools.api import PanTool, ZoomTool
 from enable.api import ComponentEditor
-
 from pyface.tasks.api import TraitsTaskPane
-
 from traits.api import (
     HasTraits, Instance, Unicode, List, on_trait_change,
-    ArrayOrNone, Property, Array, Function
+    ArrayOrNone, Property, Function
 )
 from traitsui.api import (
-    View, VGroup, Group, UItem, ImageEditor, HGroup,
-    Spring, Image, Item, ListEditor
+    View, Group, Item, ListEditor
 )
 
-from pyfibre.io.multi_image import MultiImage
-from pyfibre.io.segment_io import load_segment
-from pyfibre.io.network_io import load_network
 from pyfibre.io.object_io import load_objects
+from pyfibre.model.objects.multi_image import MultiImage
 from pyfibre.model.tools.figures import (
     create_tensor_image, create_region_image, create_network_image
 )

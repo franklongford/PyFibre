@@ -5,7 +5,7 @@ import numpy as np
 from pyfibre.gui.viewer_pane import (
     ViewerPane, ImageTab
 )
-from pyfibre.io.multi_image import MultiImage
+from pyfibre.model.objects.multi_image import MultiImage
 
 
 class TestImageTab(TestCase):

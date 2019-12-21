@@ -1,16 +1,16 @@
-from tkinter import Toplevel, Frame, TOP
-import numpy as np
 from pickle import UnpicklingError
+from tkinter import Toplevel, Frame, TOP
 
+import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-from pyfibre.utilities import flatten_list
-from pyfibre.model.tools.filters import form_structure_tensor
-from pyfibre.model.tools.analysis import tensor_analysis, fibre_analysis
-from pyfibre.io.multi_image import MultiImage
 from pyfibre.io.database_io import check_file_name
 from pyfibre.io.segment_io import load_segment
+from pyfibre.model.objects.multi_image import MultiImage
+from pyfibre.model.tools.analysis import tensor_analysis, fibre_analysis
+from pyfibre.model.tools.filters import form_structure_tensor
+from pyfibre.utilities import flatten_list
 
 
 class PyFibreGraphs:

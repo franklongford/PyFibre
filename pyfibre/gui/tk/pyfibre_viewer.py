@@ -1,18 +1,18 @@
-from PIL import ImageTk, Image
+from pickle import UnpicklingError
 from tkinter import (
     Toplevel, Canvas, Scrollbar, Text, END, DISABLED, VERTICAL, RIGHT,
     LEFT, Y, NW, NORMAL
 )
 from tkinter.ttk import Notebook, Frame
 
-from pickle import UnpicklingError
+from PIL import ImageTk, Image
 
-from pyfibre.io.segment_io import load_segment
 from pyfibre.io.database_io import check_file_name
+from pyfibre.io.segment_io import load_segment
+from pyfibre.model.objects.multi_image import MultiImage
 from pyfibre.model.tools.figures import (
     create_tensor_image, create_region_image, create_network_image
 )
-from pyfibre.io.multi_image import MultiImage
 from pyfibre.utilities import flatten_list
 
 
