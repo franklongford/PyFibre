@@ -1,15 +1,17 @@
-from pyfibre.model.image_analysis import image_analysis
+from pyfibre.model.image_analyser import ImageAnalyser
 
 
 def process_run(files, p_denoise, sigma, alpha, queue):
     print('process_run')
     print('entering for loop')
+
+    image_analyser = ImageAnalyser(
+        p_denoise=p_denoise, sigma=sigma, alpha=alpha)
+
     for prefix, data in files.items():
         try:
-            image_analysis(
-                data['image'], prefix, scale=1.25,
-                sigma=sigma, alpha=alpha, p_denoise=p_denoise
-            )
+            image_analyser.image_analysis(
+                data['image'], prefix)
             print('image_analysis done')
             queue.put("Analysis of {} complete".format(prefix))
 

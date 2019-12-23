@@ -15,11 +15,11 @@ from pyfibre.model.tools.convertors import segments_to_binary, binary_to_segment
 logger = logging.getLogger(__name__)
 
 
-def cell_segmentation(multi_image, fibre_networks, scale=1.0):
+def cell_segmentation(multi_image, fibre_networks, scale=1.0, pl_analysis=False):
 
     fibre_segments = [fibre_network.segment for fibre_network in fibre_networks]
 
-    if multi_image.pl_analysis:
+    if pl_analysis:
 
         # Create a filter for the SHG image that enhances the segments
         # identified by the FIRE algorithm
@@ -31,9 +31,9 @@ def cell_segmentation(multi_image, fibre_networks, scale=1.0):
 
         # Segment the PL image using k-means clustering
         cell_segments, fibre_col_seg = rgb_segmentation(
-            multi_image.image_shg * fibre_filter,
-            multi_image.image_pl,
-            multi_image.image_tran,
+            multi_image.shg_image * fibre_filter,
+            multi_image.pl_image,
+            multi_image.trans_image,
             scale=scale)
 
         # Create a filter for the SHG image that enhances the segments
@@ -48,15 +48,15 @@ def cell_segmentation(multi_image, fibre_networks, scale=1.0):
         # from both FIRE and k-means algorithms
         fibre_binary = mean_binary(
             np.array([fibre_net_binary, fibre_col_binary]),
-            multi_image.image_shg,
+            multi_image.shg_image,
             min_intensity=0.13)
 
         # Create a new set of segments for each cell region
         cell_segments = binary_to_segments(
-            ~fibre_binary, multi_image.image_pl, 250, 0.01)
+            ~fibre_binary, multi_image.pl_image, 250, 0.01)
 
         cells = [Cell(segment=cell_segment,
-                      image=multi_image.image_pl)
+                      image=multi_image.pl_image)
                  for cell_segment in cell_segments]
 
     else:
@@ -70,11 +70,11 @@ def cell_segmentation(multi_image, fibre_networks, scale=1.0):
 
         # Segment the PL image using this filter
         cell_segments = binary_to_segments(
-            cell_binary, multi_image.image_shg, 250, 0.01
+            cell_binary, multi_image.shg_image, 250, 0.01
         )
 
         cells = [Cell(segment=cell_segment,
-                      image=multi_image.image_shg)
+                      image=multi_image.shg_image)
                  for cell_segment in cell_segments]
 
     return cells

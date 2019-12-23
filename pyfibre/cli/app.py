@@ -16,9 +16,9 @@ import pandas as pd
 
 import pyfibre.utilities as ut
 from pyfibre.version import __version__
-from pyfibre.model.image_analysis import image_analysis
+from pyfibre.model.image_analyser import ImageAnalyser
 from pyfibre.io.database_io import save_database
-from pyfibre.io.shg_pl_reader import SHGPLReader
+from pyfibre.io.shg_pl_reader import collate_image_dictionary, SHGPLTransReader
 from pyfibre.io.utils import parse_files, parse_file_path
 
 import matplotlib
@@ -32,11 +32,11 @@ matplotlib.use("Agg")
     help="Prints extra debug information in pyfibre.log"
 )
 @click.option(
-    '--shg', is_flag=True, default=False,
+    '--shg_analysis', is_flag=True, default=False,
     help='Toggles analysis of SHG images'
 )
 @click.option(
-    '--pl', is_flag=True, default=False,
+    '--pl_analysis', is_flag=True, default=False,
     help='Toggles analysis of PL images'
 )
 @click.option(
@@ -80,8 +80,8 @@ matplotlib.use("Agg")
     required=False, default='.'
 )
 def pyfibre(file_path, key, sigma, alpha, save_db, debug,
-        shg, pl, ow_metric, ow_segment, ow_network, ow_figure,
-        test):
+        shg_analysis, pl_analysis, ow_metric, ow_segment,
+        ow_network, ow_figure, test):
 
     if debug:
         logging.basicConfig(filename="pyfibre.log", filemode="w",
@@ -95,8 +95,8 @@ def pyfibre(file_path, key, sigma, alpha, save_db, debug,
     if test:
         file_path = os.path.dirname(
             os.path.dirname(__file__)) + '/tests/fixtures'
-        shg = True
-        pl = True
+        shg_analysis = True
+        pl_analysis = True
 
     file_name, directory = parse_file_path(file_path)
 
@@ -104,28 +104,33 @@ def pyfibre(file_path, key, sigma, alpha, save_db, debug,
     logger.debug(f"{file_name} {directory}")
 
     input_files = parse_files(file_name, directory, key)
-    reader = SHGPLReader(input_files,
-                         shg=shg, pl=pl,
-                         ow_network=ow_network,
-                         ow_segment=ow_segment,
-                         ow_metric=ow_metric,
-                         ow_figure=ow_figure)
-    reader.load_multi_images()
 
+    image_dictionary = collate_image_dictionary(input_files)
+
+    reader = SHGPLTransReader()
+    image_analyser = ImageAnalyser(
+        sigma=sigma, alpha=alpha,
+        shg_analysis=shg_analysis, pl_analysis=pl_analysis,
+        ow_metric=ow_metric, ow_segment=ow_segment,
+        ow_network=ow_network, ow_figure=ow_figure
+    )
     global_database = pd.DataFrame()
     fibre_database = pd.DataFrame()
     cell_database = pd.DataFrame()
 
-    for prefix, data in reader.files.items():
+    for prefix, data in image_dictionary.items():
 
-        databases = image_analysis(
-            data['image'],
-            prefix, sigma=sigma, alpha=alpha)
+        reader.assign_images(data)
+
+        multi_image = reader.load_multi_image()
+
+        databases = image_analyser.image_analysis(
+            multi_image, prefix)
 
         global_database = global_database.append(databases[0], ignore_index=True)
-        if shg:
+        if shg_analysis:
             fibre_database = pd.concat([fibre_database, databases[1]])
-        if pl:
+        if pl_analysis:
             cell_database = pd.concat([cell_database, databases[2]])
 
         logger.debug(prefix)
@@ -134,7 +139,7 @@ def pyfibre(file_path, key, sigma, alpha, save_db, debug,
 
     if save_db is not None:
         save_database(global_database, save_db)
-        if shg:
+        if shg_analysis:
             save_database(fibre_database, save_db, 'fibre')
-        if pl:
+        if pl_analysis:
             save_database(cell_database, save_db, 'cell')

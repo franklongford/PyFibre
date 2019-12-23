@@ -117,7 +117,8 @@ class PLAnalyser(ImageAnalyser):
         self.global_metrics['No. Cells'] = len(self.objects)
 
 
-def metric_analysis(multi_image, filename, fibre_networks, cells, sigma):
+def metric_analysis(multi_image, filename, fibre_networks, cells, sigma,
+                    shg_analysis=False, pl_analysis=False):
 
     global_dataframe = pd.Series()
     global_dataframe['File'] = '{}_global_segment.pkl'.format(filename)
@@ -126,11 +127,11 @@ def metric_analysis(multi_image, filename, fibre_networks, cells, sigma):
 
     logger.debug(" Performing Image analysis")
 
-    if multi_image.shg_analysis:
+    if shg_analysis:
         start = time.time()
 
         shg_analyser = SHGAnalyser(
-            multi_image.image_shg, filename, fibre_networks, sigma
+            multi_image.shg_image, filename, fibre_networks, sigma
         )
         shg_analyser.analyse()
 
@@ -141,11 +142,11 @@ def metric_analysis(multi_image, filename, fibre_networks, cells, sigma):
         end = time.time()
         logger.debug(f" Fibre segment analysis: {end-start} s")
 
-    if multi_image.pl_analysis:
+    if pl_analysis:
         start = time.time()
 
         pl_analyser = PLAnalyser(
-            multi_image.image_pl, filename, cells, sigma
+            multi_image.pl_image, filename, cells, sigma
         )
 
         pl_analyser.analyse()
