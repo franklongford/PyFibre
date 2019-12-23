@@ -1,8 +1,8 @@
 from unittest import TestCase
 
 import networkx as nx
+from skimage.io import imread
 
-from pyfibre.io.shg_pl_reader import load_image
 from pyfibre.model.tools.extraction import (
     build_network, clean_network, fibre_network_assignment
 )
@@ -16,7 +16,7 @@ class TestExtraction(TestCase):
 
     def setUp(self):
         self.network = generate_probe_graph()
-        self.image = load_image(test_image_path)[0].mean(axis=-1)
+        self.image = imread(test_image_path)[0].mean(axis=-1)
 
     def test_build_network(self):
 

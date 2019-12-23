@@ -71,21 +71,10 @@ class TestImages(TestCase):
 
 	def test_image(self):
 
-		input_files = [test_image_path]
-		reader = SHGPLReader(input_files, shg=True, pl=True)
-		reader.load_multi_images()
+		reader = SHGPLReader()
+		reader.shg_pl_filename = test_image_path
+		multi_image = reader.load_multi_image()
 
-		for prefix, data in reader.files.items():
-			multi_image = data['image']
-			image_name = os.path.basename(prefix)
-
-			self.assertEqual(image_name, 'test-pyfibre')
-
-			self.assertEqual(multi_image.image_shg.shape, (200, 200))
-			self.assertEqual(multi_image.image_pl.shape, (200, 200))
-			self.assertEqual(multi_image.image_tran.shape, (200, 200))
-			self.assertTrue(multi_image.shg_analysis)
-			self.assertTrue(multi_image.pl_analysis)
 
 
 class TestUtilities(TestCase):
