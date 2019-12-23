@@ -25,7 +25,8 @@ from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.gui.process_run import process_run
 from pyfibre.io.database_io import save_database, load_database
-from pyfibre.utilities import dict_extract
+from pyfibre.model.image_analyser import ImageAnalyser
+
 
 logger = logging.getLogger(__name__)
 
@@ -123,22 +124,6 @@ class PyFibreMainTask(Task):
         return tool_bars
 
     # ------------------
-    #     Listeners
-    # ------------------
-
-    @on_trait_change('options_pane.pl_required')
-    def update_shg_pl_requirements(self):
-        self.file_display_pane.pl_required = (
-            self.options_pane.pl_required
-        )
-
-    @on_trait_change('options_pane.pl_required')
-    def update_shg_pl_requirements(self):
-        self.file_display_pane.pl_required = (
-            self.options_pane.pl_required
-        )
-
-    # ------------------
     #   Private Methods
     # ------------------
 
@@ -146,46 +131,39 @@ class PyFibreMainTask(Task):
 
         self.run_enabled = False
 
-        tif_reader = self.file_display_pane.tif_reader
-
-        tif_reader.ow_network = self.options_pane.ow_network
-        tif_reader.ow_segment = self.options_pane.ow_segment
-        tif_reader.ow_metric = self.options_pane.ow_metric
-        tif_reader.ow_figure = self.options_pane.ow_figure
-
-        self.file_display_pane.tif_reader.update_multi_images()
-
-        files = self.file_display_pane.tif_reader.files
-
-        prefix_list = list(files.keys())
-
         if self.file_display_pane.n_images == 0:
             self.stop_run()
             return
 
+        file_table = self.file_display_pane.file_table
+
         proc_count = np.min(
-            (self.n_proc, self.file_display_pane.n_images)
-        )
+            (self.n_proc, self.file_display_pane.n_images))
         index_split = np.array_split(
             np.arange(self.file_display_pane.n_images),
-            proc_count
-        )
+            proc_count)
 
         self.processes = []
 
         for indices in index_split:
-            key_list = [prefix_list[index] for index in indices]
-            batch_dict = dict_extract(files, key_list)
+            batch_rows = [file_table[index] for index in indices]
+            batch_dict = {row.name: row._dictionary
+                          for row in batch_rows}
+
+            image_analyser = ImageAnalyser(
+                p_denoise=(self.options_pane.n_denoise,
+                           self.options_pane.m_denoise),
+                sigma=self.options_pane.sigma,
+                alpha=self.options_pane.alpha,
+                ow_network=self.options_pane.ow_network,
+                ow_segment=self.options_pane.ow_segment,
+                ow_metric=self.options_pane.ow_metric,
+                ow_figure=self.options_pane.ow_figure)
 
             process = Process(
                 target=process_run,
-                args=(
-                    batch_dict,
-                    (self.options_pane.n_denoise,
-                     self.options_pane.m_denoise),
-                    self.options_pane.sigma,
-                    self.options_pane.alpha,
-                    self.queue))
+                args=(batch_dict,
+                      image_analyser))
             process.daemon = True
             self.processes.append(process)
 

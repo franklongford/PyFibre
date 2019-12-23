@@ -2,7 +2,7 @@ import os
 from unittest import TestCase
 
 from pyfibre.gui.file_display_pane import FileDisplayPane
-from pyfibre.io.shg_pl_reader import SHGPLReader
+from pyfibre.io.shg_pl_reader import SHGPLTransReader
 
 source_dir = os.path.dirname(os.path.realpath(__file__))
 pyfibre_dir = os.path.dirname(os.path.dirname(source_dir))
@@ -18,7 +18,9 @@ class TestFileDisplayPane(TestCase):
         )
 
     def test___init__(self):
-        self.assertIsInstance(self.file_display.tif_reader, SHGPLReader)
+        self.assertIsInstance(
+            self.file_display.multi_image_reader,
+            SHGPLTransReader)
 
     def test_add_file(self):
 
@@ -49,12 +51,10 @@ class TestFileDisplayPane(TestCase):
         self.file_display.remove_file([self.file_display.file_table[0]])
 
         self.assertEqual(0, len(self.file_display.file_table))
-        self.assertEqual(0, len(self.file_display.tif_reader.files))
 
         self.file_display.add_files(self.file_path)
 
         self.assertEqual(1, len(self.file_display.file_table))
-        self.assertEqual(1, len(self.file_display.tif_reader.files))
 
     def test_filter_files(self):
 
@@ -62,22 +62,7 @@ class TestFileDisplayPane(TestCase):
         self.file_display.filter_files('pyfibre')
 
         self.assertEqual(1, len(self.file_display.file_table))
-        self.assertEqual(1, len(self.file_display.tif_reader.files))
 
         self.file_display.filter_files('sci-pyfibre')
 
         self.assertEqual(0, len(self.file_display.file_table))
-        self.assertEqual(0, len(self.file_display.tif_reader.files))
-
-    def test_shg_pl_requirements(self):
-
-        shg_file = (
-                pyfibre_dir +
-                '/tests/fixtures/test-pyfibre-shg-Stack.tif'
-        )
-        self.file_display.tif_reader.pl = False
-        self.file_display.add_files(shg_file)
-
-        table_row = self.file_display.file_table[0]
-        self.assertTrue(table_row.shg)
-        self.assertFalse(table_row.pl)
