@@ -12,7 +12,9 @@ def get_networkx_graph(data):
     networkx Graph object"""
 
     for coord in data['nodes']:
-        coord['xy'] = np.array(coord['xy'])
+        coord['xy'] = np.asarray(coord['xy'])
+        if 'direction' in coord:
+            coord['direction'] = np.asarray(coord['direction'])
 
     return node_link_graph(data)
 
@@ -36,6 +38,7 @@ def load_base_graph_segment(file_name, file_type=None, klass=BaseGraphSegment):
     data = load_json(file_name)
 
     data['graph'] = get_networkx_graph(data['graph'])
+    data['image'] = np.asarray(data['image'])
 
     return klass(**data)
 
@@ -68,6 +71,8 @@ def load_base_graph_segments(file_name, file_type=None, klass=BaseGraphSegment):
     for graph_segment in data[file_type]:
         graph_segment['graph'] = get_networkx_graph(
             graph_segment['graph'])
+        graph_segment['image'] = np.asarray(
+            graph_segment['image'])
 
     graph_segments = [
         klass(**kwargs) for kwargs in data[file_type]

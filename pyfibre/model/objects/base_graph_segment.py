@@ -29,8 +29,11 @@ class BaseGraphSegment:
 
         for coord in graph['nodes']:
             coord['xy'] = coord['xy'].tolist()
+            if 'direction' in coord:
+                coord['direction'] = coord['direction'].tolist()
 
         status['graph'] = graph
+        status['image'] = status['image'].tolist()
 
         return status
 
