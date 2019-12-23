@@ -38,7 +38,9 @@ def load_base_graph_segment(file_name, file_type=None, klass=BaseGraphSegment):
     data = load_json(file_name)
 
     data['graph'] = get_networkx_graph(data['graph'])
-    data['image'] = np.asarray(data['image'])
+
+    if data['image'] is not None:
+        data['image'] = np.asarray(data['image'])
 
     return klass(**data)
 
@@ -71,8 +73,10 @@ def load_base_graph_segments(file_name, file_type=None, klass=BaseGraphSegment):
     for graph_segment in data[file_type]:
         graph_segment['graph'] = get_networkx_graph(
             graph_segment['graph'])
-        graph_segment['image'] = np.asarray(
-            graph_segment['image'])
+
+        if graph_segment['image'] is not None:
+            graph_segment['image'] = np.asarray(
+                graph_segment['image'])
 
     graph_segments = [
         klass(**kwargs) for kwargs in data[file_type]

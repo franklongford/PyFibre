@@ -33,7 +33,9 @@ class BaseGraphSegment:
                 coord['direction'] = coord['direction'].tolist()
 
         status['graph'] = graph
-        status['image'] = status['image'].tolist()
+
+        if status['image'] is not None:
+            status['image'] = status['image'].tolist()
 
         return status
 
