@@ -1,14 +1,13 @@
-from unittest import TestCase, mock
+from unittest import TestCase
 
 import numpy as np
 
 from pyfibre.io.shg_pl_reader import (
-    get_image_type, extract_prefix, get_files_prefixes,
-    filter_input_files, populate_image_dictionary,
-    collate_image_dictionary, SHGPLReader)
-
-
-LOAD_IMAGE_PATH = 'pyfibre.io.shg_pl_reader.load_image'
+    get_image_type, get_image_data, extract_prefix,
+    get_files_prefixes, filter_input_files,
+    populate_image_dictionary,
+    collate_image_dictionary, SHGPLReader,
+    SHGPLTransReader)
 
 
 class TestImageReader(TestCase):
@@ -20,6 +19,27 @@ class TestImageReader(TestCase):
 
         # Test failure
         self.assertEqual('Unknown', get_image_type('some-psh-test.tif'))
+
+    def test_get_image_data(self):
+
+        test_image = np.zeros((100, 100))
+        self.assertEqual((None, 1, (100, 100)), get_image_data(test_image))
+
+        test_image = np.zeros((100, 100, 3))
+        self.assertEqual((2, 1, (100, 100)), get_image_data(test_image))
+
+        test_image = np.zeros((3, 100, 100))
+        self.assertEqual((None, 3, (100, 100)), get_image_data(test_image))
+
+        test_image = np.zeros((4, 100, 100, 3))
+        self.assertEqual((3, 4, (100, 100)), get_image_data(test_image))
+
+        test_image = np.zeros((2, 100, 100, 3))
+        self.assertEqual((3, 2, (100, 100)), get_image_data(test_image))
+
+        test_image = np.zeros((2, 100, 100, 3, 4))
+        with self.assertRaises(IndexError):
+            get_image_data(test_image)
 
     def test_extract_prefix(self):
         self.assertEqual('/directory/prefix',
@@ -98,13 +118,39 @@ class TestImageReader(TestCase):
         self.assertEqual(4, len(input_files))
 
 
+class ProbeSHGPLReader(SHGPLReader):
+
+    def load_images(self):
+        if self.load_mode == 'PL-SHG File':
+            return [np.ones((2, 100, 100, 3))]
+        return [np.ones((100, 100, 3))] * 2
+
+
 class TestSHGPLReader(TestCase):
 
     def setUp(self):
-        self.reader = SHGPLReader()
+        self.reader = ProbeSHGPLReader()
         self.input_files = ['some/path/to/a/file-pl-shg.tif',
                             'some/path/to/another/file-pl.tif',
                             'some/path/to/another/file-shg.tif']
+
+    def test_filenames(self):
+        self.reader.shg_pl_filename = self.input_files[0]
+        self.reader.pl_filename = self.input_files[1]
+        self.reader.shg_filename = self.input_files[2]
+
+        self.assertListEqual(
+            ['some/path/to/a/file-pl-shg.tif'],
+            self.reader.filenames
+        )
+
+        self.reader.load_mode = 'Separate Files'
+
+        self.assertListEqual(
+            ['some/path/to/another/file-shg.tif',
+             'some/path/to/another/file-pl.tif'],
+            self.reader.filenames
+        )
 
     def test_check_dimension(self):
 
@@ -115,107 +161,121 @@ class TestSHGPLReader(TestCase):
         self.assertTrue(self.reader._check_dimension(3, 'PL'))
         self.assertTrue(self.reader._check_dimension(3, 'SHG'))
         self.assertTrue(self.reader._check_dimension(2, 'SHG'))
-
-    def test_check_dimension_failure(self):
+        self.assertTrue(self.reader._check_dimension(2, 'PL'))
 
         self.assertFalse(self.reader._check_dimension(2, 'PL-SHG'))
-        self.assertFalse(self.reader._check_dimension(2, 'PL'))
+        self.assertFalse(self.reader._check_dimension(5, 'PL'))
+        self.assertFalse(self.reader._check_dimension(5, 'SHG'))
 
-    def test_check_shape(self):
+    def test_check_n_modes(self):
 
-        self.assertTrue(self.reader._check_shape((3, 7, 100, 100), 'PL-SHG'))
-        self.assertTrue(self.reader._check_shape((3, 100, 100, 7), 'PL-SHG'))
+        self.assertTrue(self.reader._check_n_modes(3, 'PL-SHG'))
+        self.assertTrue(self.reader._check_n_modes(2, 'SHG'))
+        self.assertTrue(self.reader._check_n_modes(2, 'PL'))
+        self.assertTrue(self.reader._check_n_modes(1, 'PL'))
+        self.assertTrue(self.reader._check_n_modes(1, 'SHG'))
 
-        self.assertTrue(self.reader._check_shape((3, 100, 100), 'PL-SHG'))
-        self.assertTrue(self.reader._check_shape((100, 100, 3), 'PL-SHG'))
-        self.assertTrue(self.reader._check_shape((3, 100, 100), 'SHG'))
+        self.assertFalse(self.reader._check_n_modes(5, 'PL-SHG'))
+        self.assertFalse(self.reader._check_n_modes(4, 'PL'))
+        self.assertFalse(self.reader._check_n_modes(4, 'SHG'))
 
-        self.assertTrue(self.reader._check_shape((2, 100, 100), 'PL'))
-        self.assertTrue(self.reader._check_shape((3, 100, 100), 'SHG'))
+    def test_format_image(self):
 
-        self.assertTrue(self.reader._check_shape((2, 100, 100, 3), 'PL'))
-        self.assertTrue(self.reader._check_shape((2, 100, 100, 3), 'SHG'))
-        self.assertTrue(self.reader._check_shape((100, 100, 3), 'SHG'))
+        test_image = np.zeros((2, 100, 100, 3))
+        formatted_image = self.reader._format_image(test_image, 2, 3)
+        self.assertEqual(2, len(formatted_image))
+        self.assertEqual((100, 100), formatted_image[0].shape)
 
-    def test_check_shape_failure(self):
+        test_image = np.zeros((100, 100, 3))
+        formatted_image = self.reader._format_image(test_image, 1, 2)
+        self.assertEqual(1, len(formatted_image))
+        self.assertEqual((100, 100), formatted_image[0].shape)
 
-        self.assertFalse(self.reader._check_shape((7, 3, 100, 100), 'PL-SHG'))
-        self.assertFalse(self.reader._check_shape((3, 100, 100, 2), 'PL'))
-        self.assertFalse(self.reader._check_shape((3, 100, 100, 7), 'SHG'))
-        self.assertFalse(self.reader._check_shape((2, 100, 100), 'PL-SHG'))
+        test_image = np.zeros((3, 100, 100))
+        formatted_image = self.reader._format_image(test_image, 3, None)
+        self.assertEqual(3, len(formatted_image))
+        self.assertEqual((100, 100), formatted_image[0].shape)
 
-    def test_import_image(self):
+        test_image = np.zeros((100, 100))
+        formatted_image = self.reader._format_image(test_image, 1, None)
+        self.assertEqual(1, len(formatted_image))
+        self.assertEqual((100, 100), formatted_image[0].shape)
 
-        with mock.patch(LOAD_IMAGE_PATH) as mock_load:
+    def test_image_preprocessing(self):
 
-            mock_load.return_value = np.ones((3, 100, 100, 10))
-            image_stack = self.reader.import_image(self.input_files[0], 'PL-SHG')
-            self.assertEqual(len(image_stack), 3)
-            self.assertEqual(image_stack[0].shape, (100, 100))
+        images = [np.zeros((2, 100, 100, 3))]
 
-            mock_load.return_value = np.ones((2, 100, 100, 10))
-            image_stack = self.reader.import_image(self.input_files[1], 'PL')
-            self.assertEqual(len(image_stack), 2)
-            self.assertEqual(image_stack[0].shape, (100, 100))
+        processed_images = self.reader.image_preprocessing(images)
+        self.assertEqual(2, len(processed_images))
+        self.assertEqual((100, 100), processed_images[0].shape)
 
-            mock_load.return_value = np.ones((2, 100, 100, 10))
-            image_stack = self.reader.import_image(self.input_files[2], 'SHG')
-            self.assertEqual(image_stack.shape, (100, 100))
+        self.reader.load_mode = 'Separate Files'
+        images = [np.zeros((100, 100, 3)),
+                  np.zeros((100, 100))]
 
-    def test_get_image_lists(self):
+        processed_images = self.reader.image_preprocessing(images)
+        self.assertEqual(2, len(processed_images))
+        self.assertEqual((100, 100), processed_images[0].shape)
 
-        self.reader.get_image_lists(self.input_files)
+    def test_load_multi_image(self):
 
-        self.assertEqual(len(self.reader.files.keys()), 2)
-        self.assertEqual(
-            self.reader.files['some/path/to/a/file']['PL-SHG'],
-            'some/path/to/a/file-pl-shg.tif')
-        self.assertEqual(
-            self.reader.files['some/path/to/another/file']['PL'],
-            'some/path/to/another/file-pl.tif')
-        self.assertEqual(
-            self.reader.files['some/path/to/another/file']['SHG'],
-            'some/path/to/another/file-shg.tif')
+        self.reader.shg_pl_filename = self.input_files[0]
+        self.reader.pl_filename = self.input_files[1]
+        self.reader.shg_filename = self.input_files[2]
 
-    def test_update_multi_images(self):
+        multi_image = self.reader.load_multi_image()
+        self.assertEqual((100, 100), multi_image.shape)
+        self.assertEqual(2, len(multi_image))
 
-        self.reader.get_image_lists(self.input_files[:1])
+        self.reader.load_mode = 'Separate Files'
+        multi_image = self.reader.load_multi_image()
+        self.assertEqual((100, 100), multi_image.shape)
+        self.assertEqual(2, len(multi_image))
 
-        with mock.patch(LOAD_IMAGE_PATH) as mock_load:
-            mock_load.return_value = np.ones((3, 100, 100))
-            self.reader.load_multi_images()
 
-        multi_image = self.reader.files['some/path/to/a/file']['image']
-        self.assertEqual(self.reader.ow_network, multi_image.ow_network)
-        self.assertEqual(self.reader.ow_segment, multi_image.ow_segment)
-        self.assertEqual(self.reader.ow_metric, multi_image.ow_metric)
-        self.assertEqual(self.reader.ow_figure, multi_image.ow_figure)
+class ProbeSHGPLTransReader(SHGPLTransReader):
 
-        self.reader.ow_network = True
-        self.assertNotEqual(self.reader.ow_network, multi_image.ow_network)
+    def load_images(self):
+        if self.load_mode == 'PL-SHG File':
+            return [np.ones((3, 100, 100, 3))]
+        return [np.ones((2, 100, 100, 3))] * 2
 
-        self.reader.update_multi_images()
-        self.assertEqual(self.reader.ow_network, multi_image.ow_network)
 
-    def test_load_multi_images(self):
+class TestSHGPLTransReader(TestCase):
 
-        self.reader.get_image_lists(self.input_files[:1])
+    def setUp(self):
+        self.reader = ProbeSHGPLTransReader()
+        self.input_files = ['some/path/to/a/file-pl-shg.tif',
+                            'some/path/to/another/file-pl.tif',
+                            'some/path/to/another/file-shg.tif']
 
-        with mock.patch(LOAD_IMAGE_PATH) as mock_load:
-            mock_load.return_value = np.ones((3, 100, 100))
-            self.reader.load_multi_images()
-            mock_load.assert_called()
+    def test_image_preprocessing(self):
 
-            multi_image = self.reader.files['some/path/to/a/file']['image']
+        images = [np.zeros((3, 100, 100, 3))]
 
-            self.assertIsNotNone(multi_image.image_shg)
-            self.assertIsNotNone(multi_image.image_pl)
-            self.assertIsNotNone(multi_image.image_tran)
-            self.assertEqual(
-                (100, 100),
-                multi_image.shape,
+        processed_images = self.reader.image_preprocessing(images)
+        self.assertEqual(3, len(processed_images))
+        self.assertEqual((100, 100), processed_images[0].shape)
 
-            )
+        self.reader.load_mode = 'Separate Files'
+        images = [np.zeros((2, 100, 100, 3)),
+                  np.zeros((2, 100, 100))]
 
-    def test_view_shg_pl_reader(self):
-        self.reader.configure_traits()
+        processed_images = self.reader.image_preprocessing(images)
+        self.assertEqual(3, len(processed_images))
+        self.assertEqual((100, 100), processed_images[0].shape)
+
+    def test_load_multi_image(self):
+
+        self.reader.shg_pl_filename = self.input_files[0]
+        self.reader.pl_filename = self.input_files[1]
+        self.reader.shg_filename = self.input_files[2]
+
+        multi_image = self.reader.load_multi_image()
+        self.assertEqual((100, 100), multi_image.shape)
+        self.assertEqual(3, len(multi_image))
+
+        self.reader.load_mode = 'Separate Files'
+        multi_image = self.reader.load_multi_image()
+        self.assertEqual((100, 100), multi_image.shape)
+        self.assertEqual(3, len(multi_image))
