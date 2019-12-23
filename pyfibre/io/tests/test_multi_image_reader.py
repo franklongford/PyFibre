@@ -1,17 +1,17 @@
-from unittest import TestCase, mock
-from functools import partial
+from unittest import TestCase
 
 import numpy as np
 
 from pyfibre.io.multi_image_reader import MultiImageReader
 
-LOAD_IMAGE_PATH = 'pyfibre.io.multi_image_reader.MultiImageReader.load_images'
-
 
 class ProbeMultiImageReader(MultiImageReader):
 
     def image_preprocessing(self, images):
-        return [np.ones((100, 100, 3))] * len(self.filenames)
+        return images
+
+    def load_images(self):
+        return [np.ones((100, 100))] * len(self.filenames)
 
 
 class TestMultiImageReader(TestCase):
@@ -25,6 +25,7 @@ class TestMultiImageReader(TestCase):
 
     def test_load_multi_image(self):
 
-        with mock.patch(
-                LOAD_IMAGE_PATH, mock.mock_open()):
-            self.reader.load_multi_image()
+        multi_image = self.reader.load_multi_image()
+
+        self.assertEqual((100, 100), multi_image.shape)
+        self.assertEqual(3, len(multi_image))
