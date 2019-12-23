@@ -17,60 +17,60 @@ logger = logging.getLogger(__name__)
 
 
 def clip_intensities(image, p_intensity=(1, 98)):
-	"""
-	Pre-process image to remove outliers, reduce noise and rescale
+    """
+    Pre-process image to remove outliers, reduce noise and rescale
 
-	Parameters
-	----------
+    Parameters
+    ----------
 
-	image:  array_like (float); shape=(n_y, n_x)
-		Image to pre-process
+    image:  array_like (float); shape=(n_y, n_x)
+        Image to pre-process
 
-	p_intensity: tuple (float); shape=(2,)
-		Percentile range for intensity rescaling (used to remove outliers)
+    p_intensity: tuple (float); shape=(2,)
+        Percentile range for intensity rescaling (used to remove outliers)
 
 
-	Returns
-	-------
+    Returns
+    -------
 
-	image:  array_like (float); shape=(n_y, n_x)
-		Pre-processed image
+    image:  array_like (float); shape=(n_y, n_x)
+        Pre-processed image
 
-	"""
+    """
 
-	logger.debug(f"Preprocessing images using clipped intensity percentages {p_intensity}")
-	low, high = np.percentile(image, p_intensity)
-	image = rescale_intensity(image, in_range=(low, high), out_range=(0.0, 1.0))
+    logger.debug(f"Preprocessing images using clipped intensity percentages {p_intensity}")
+    low, high = np.percentile(image, p_intensity)
+    image = rescale_intensity(image, in_range=(low, high), out_range=(0.0, 1.0))
 
-	return image
+    return image
 
 
 def nl_means(image, p_denoise=(5, 35)):
-	"""
-	Non-local means denoise algorithm using estimate of Gaussian noise
+    """
+    Non-local means denoise algorithm using estimate of Gaussian noise
 
-	Parameters
-	----------
+    Parameters
+    ----------
 
-	image:  array_like (float); shape=(n_y, n_x)
-		Image to pre-process
-	
-	p_denoise: tuple (float); shape=(2,)
-		Parameters for non-linear means denoise algorithm (used to remove noise)
+    image:  array_like (float); shape=(n_y, n_x)
+        Image to pre-process
 
-	Returns
-	-------
+    p_denoise: tuple (float); shape=(2,)
+        Parameters for non-linear means denoise algorithm (used to remove noise)
 
-	image:  array_like (float); shape=(n_y, n_x)
-		Pre-processed image
+    Returns
+    -------
 
-	"""
+    image:  array_like (float); shape=(n_y, n_x)
+        Pre-processed image
 
-	sigma = estimate_sigma(image)
-	image = denoise_nl_means(
-		image, patch_size=p_denoise[0],
-		patch_distance=p_denoise[1],
-		fast_mode=True, h = 1.2 * sigma,
-		sigma=sigma, multichannel=False)
+    """
 
-	return image
+    sigma = estimate_sigma(image)
+    image = denoise_nl_means(
+        image, patch_size=p_denoise[0],
+        patch_distance=p_denoise[1],
+        fast_mode=True, h = 1.2 * sigma,
+        sigma=sigma, multichannel=False)
+
+    return image

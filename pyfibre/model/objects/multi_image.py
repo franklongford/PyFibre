@@ -1,8 +1,5 @@
-import numpy as np
-
 from traits.api import (
-    HasTraits, ArrayOrNone, Property, Tuple, Instance,
-    Either, Int, Unicode, List, Array, on_trait_change
+    HasTraits, ArrayOrNone, Property, Tuple, List,
 )
 
 from pyfibre.model.tools.preprocessing import clip_intensities
@@ -48,8 +45,7 @@ class MultiImage(HasTraits):
     def preprocess_images(self):
         for i, image in enumerate(self.image_stack):
             self.image_stack[i] = clip_intensities(
-                image, p_intensity=self.p_intensity
-            )
+                image, p_intensity=self.p_intensity)
 
 
 class SHGPLImage(MultiImage):
