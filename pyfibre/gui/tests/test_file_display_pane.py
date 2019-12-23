@@ -17,11 +17,6 @@ class TestFileDisplayPane(TestCase):
             pyfibre_dir + '/tests/fixtures/test-pyfibre-pl-shg-Stack.tif'
         )
 
-    def test___init__(self):
-        self.assertIsInstance(
-            self.file_display.multi_image_reader,
-            SHGPLTransReader)
-
     def test_add_file(self):
 
         self.file_display.add_files(self.file_path)

@@ -32,4 +32,3 @@ class TestViewerPane(TestCase):
     def setUp(self):
 
         self.viewer_pane = ViewerPane()
-

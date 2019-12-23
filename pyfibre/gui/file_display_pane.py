@@ -16,7 +16,7 @@ from traitsui.api import (
 )
 
 from pyfibre.io.shg_pl_reader import (
-    collate_image_dictionary, SHGPLTransReader)
+    collate_image_dictionary)
 from pyfibre.io.utils import parse_files, parse_file_path
 
 
@@ -73,8 +73,6 @@ class FileDisplayPane(TraitsDockPane):
 
     file_search = File()
 
-    multi_image_reader = Instance(SHGPLTransReader)
-
     key = Unicode()
 
     #: The PyFibre logo. Stored at images/icon.ico
@@ -108,7 +106,7 @@ class FileDisplayPane(TraitsDockPane):
             ],
             auto_size=False,
             selected='selected_files',
-            on_select=self.open_file,
+            on_select=self.view_selected_row,
             selection_mode='rows',
             editable=False
         )
@@ -158,9 +156,6 @@ class FileDisplayPane(TraitsDockPane):
 
         return traits_view
 
-    def _multi_image_reader_default(self):
-        return SHGPLTransReader()
-
     def _get_n_images(self):
         return len(self.file_table)
 
@@ -193,18 +188,12 @@ class FileDisplayPane(TraitsDockPane):
                 if table_row.shg and table_row.pl:
                     self.file_table.append(table_row)
 
-    def open_file(self, selected_rows):
+    def view_selected_row(self, selected_rows):
         """Opens corresponding to the first item in
         selected_rows"""
-
-        self.multi_image_reader.assign_images(
-            selected_rows[0]._dictionary)
-
-        multi_image = self.multi_image_reader.load_multi_image()
-        self.task.window.central_pane.selected_image = multi_image
+        self.task.window.central_pane.selected_row = selected_rows[0]
 
     def remove_file(self, selected_rows):
-
         for selected_row in selected_rows:
             self.file_table.remove(selected_row)
 

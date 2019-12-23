@@ -210,8 +210,6 @@ class PyFibreMainTask(Task):
 
     def create_databases(self):
 
-        print('create_databases')
-
         global_database = pd.DataFrame()
         fibre_database = pd.DataFrame()
         cell_database = pd.DataFrame()
