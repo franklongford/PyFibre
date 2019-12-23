@@ -220,7 +220,8 @@ class SHGPLReader(MultiImageReader):
         else:
             image_stack = (image,)
 
-        image_stack = [img_as_float(image) for image in image_stack]
+        image_stack = [img_as_float(image / image.max())
+                       for image in image_stack]
 
         return image_stack
 
@@ -246,6 +247,15 @@ class SHGPLReader(MultiImageReader):
                 image_stack += self._format_image(image, 1, minor_axis)
 
         return image_stack
+
+    def assign_images(self, image_dictionary):
+
+        if 'PL-SHG' in image_dictionary:
+            self.shg_pl_filename = image_dictionary['PL-SHG']
+        if 'PL' in image_dictionary:
+            self.pl_filename = image_dictionary['PL']
+        if 'SHG' in image_dictionary:
+            self.shg_filename = image_dictionary['SHG']
 
 
 class SHGPLTransReader(SHGPLReader):

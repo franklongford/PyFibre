@@ -232,6 +232,25 @@ class TestSHGPLReader(TestCase):
         self.assertEqual((100, 100), multi_image.shape)
         self.assertEqual(2, len(multi_image))
 
+    def test_assign_images(self):
+
+        image_dictionary = {
+            'PL-SHG': '/directory/prefix-pl-shg-test.tif',
+            'PL': '/directory/prefix-pl-test.tif',
+            'SHG': '/directory/prefix-shg-test.tif'}
+
+        self.reader.assign_images(image_dictionary)
+
+        self.assertEqual(
+            '/directory/prefix-pl-shg-test.tif',
+            self.reader.shg_pl_filename)
+        self.assertEqual(
+            '/directory/prefix-pl-test.tif',
+            self.reader.pl_filename)
+        self.assertEqual(
+            '/directory/prefix-shg-test.tif',
+            self.reader.shg_filename)
+
 
 class ProbeSHGPLTransReader(SHGPLTransReader):
 
