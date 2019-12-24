@@ -11,7 +11,6 @@ class TestOptionsPane(TestCase):
 
     def test___init__(self):
 
-        self.assertFalse(self.options_pane.ow_figure)
         self.assertFalse(self.options_pane.ow_metric)
         self.assertFalse(self.options_pane.ow_segment)
         self.assertFalse(self.options_pane.ow_network)

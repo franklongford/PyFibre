@@ -5,37 +5,26 @@ import numpy as np
 from pyfibre.gui.viewer_pane import (
     ViewerPane, ImageTab
 )
-from pyfibre.io.multi_image import MultiImage
+from pyfibre.model.objects.multi_image import SHGPLTransImage
 
 
 class TestImageTab(TestCase):
 
     def setUp(self):
 
-        self.multi_image = MultiImage()
+        self.multi_image = SHGPLTransImage()
+        self.multi_image.assign_shg_image(np.ones((50, 50)))
         self.image_tab = ImageTab(
             label='SHG',
-            image=self.multi_image.image_shg
+            image=self.multi_image.shg_image
         )
 
     def test___init__(self):
 
         self.assertEqual('SHG', self.image_tab.label)
-        self.assertIsNone(self.image_tab.image)
-        self.assertIsNone(self.image_tab.plot)
-
-    def test_assign_image(self):
-
-        self.multi_image.trait_set(image_shg=np.ones((50, 50)))
-
-        self.assertIsNotNone(self.multi_image.image_shg)
-
-        image_tab = ImageTab(
-            label='SHG',
-            image=self.multi_image.image_shg
-        )
-
-        self.assertIsNotNone(image_tab.image)
+        self.assertIsNotNone(self.multi_image.shg_image)
+        self.assertIsNotNone(self.image_tab.image)
+        self.assertIsNotNone(self.image_tab.plot)
 
 
 class TestViewerPane(TestCase):
@@ -43,4 +32,3 @@ class TestViewerPane(TestCase):
     def setUp(self):
 
         self.viewer_pane = ViewerPane()
-

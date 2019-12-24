@@ -1,21 +1,17 @@
+import copy
 import logging
 import os
+
 import numpy as np
-import copy
-
-from skimage.io import imread
 from skimage import img_as_float
-
 from traits.api import (
-    HasTraits, Int, Unicode, Instance, File, Type,
+    File, Type, Unicode,
     List, Enum, Property)
 from traitsui.api import View, Item
 
-from pyfibre.model.tools.preprocessing import clip_intensities
-
-from .multi_image import SHGPLImage
-from .multi_image_reader import load_image, MultiImageReader
-
+from pyfibre.io.multi_image_reader import MultiImageReader
+from pyfibre.model.objects.multi_image import (
+    SHGPLImage, SHGPLTransImage)
 
 logger = logging.getLogger(__name__)
 
@@ -37,14 +33,40 @@ def get_image_type(image_path):
     return image_type
 
 
-def get_files_prefixes(file_list, label):
-    """Get the file path and file prefix of all files
-    containing label"""
-    files = [filename for filename in file_list
-             if label in os.path.basename(filename).lower()]
-    prefixes = [extract_prefix(filename, label) for filename in files]
+def get_image_data(image):
+    """Return the number of different modes, xy dimensions and index of
+    image that contains stacks of repeats"""
 
-    return files, prefixes
+    minor_axis = None
+
+    if image.ndim == 2:
+        n_modes = 1
+        xy_dim = image.shape
+
+    elif image.ndim == 3:
+        if np.argmin(image.shape) == 0:
+            n_modes = image.shape[0]
+            xy_dim = image.shape[1:]
+        else:
+            n_modes = 1
+            xy_dim = image.shape[:2]
+            minor_axis = 2
+
+    elif image.ndim == 4:
+        n_modes = image.shape[0]
+        xy_dim = image.shape[1:3]
+        minor_axis = image.shape[3]
+
+    else:
+        raise IndexError(f"Image shape {image.shape} not supported")
+
+    logger.info("Number of image modes = {}".format(n_modes))
+    logger.debug("Size of image = {}".format(xy_dim))
+    if minor_axis is not None:
+        n_stacks = image.shape[minor_axis]
+        logger.debug("Number of stacks = {}".format(n_stacks))
+
+    return minor_axis, n_modes, xy_dim
 
 
 def extract_prefix(image_name, label):
@@ -59,179 +81,18 @@ def extract_prefix(image_name, label):
     return prefix
 
 
-class SHGPLReader(MultiImageReader):
-    """Reader class for a combined SHG/PL/Transmission
-    file"""
+def get_files_prefixes(input_files, label):
+    """Get the file path and file prefix of all files
+    containing label"""
+    files = [filename for filename in input_files
+             if label in os.path.basename(filename).lower()]
+    prefixes = [extract_prefix(filename, label) for filename in files]
 
-    load_mode = Enum('SHG-PL File', 'Separate Files')
-
-    shg_pl_filename = File()
-
-    shg_filename = File()
-
-    pl_filename = File()
-
-    filenames = Property(List(File), depends_on='load_mode,shg_pl_filename,'
-                                                'shg_filename,pl_filename')
-
-    multi_image_class = Type(SHGPLImage)
-
-    traits_view = View(
-        Item('load_mode'),
-        Item('shg_pl_filename', visible_when="load_mode=='SHG-PL File'"),
-        Item('shg_filename', visible_when="load_mode=='Separate Files'"),
-        Item('pl_filename', visible_when="load_mode=='Separate Files'")
-    )
-
-    def __init__(self, *args, **kwargs):
-        super(SHGPLReader, self).__init__(*args, **kwargs)
-
-        self._n_mode_shg = 2
-        self._n_mode_pl = 2
-        self._n_mode_pl_shg = 3
-
-    def _get_filenames(self):
-        if self.load_mode == 'Load File':
-            return [self.shg_pl_filename]
-        else:
-            return [self.shg_filename, self.pl_filename]
-
-    def _check_dimension(self, ndim, image_type):
-
-        if 'PL' in image_type:
-            dim_list = [3, 4]
-        else:
-            dim_list = [2, 3, 4]
-
-        return ndim in dim_list
-
-    def _check_shape(self, shape, image_type):
-
-        if len(shape) == 4:
-            n_mode = shape[0]
-        elif len(shape) == 3:
-            n_mode = min(shape)
-        else:
-            return True
-
-        if image_type == 'PL-SHG':
-            return n_mode == self._n_mode_pl_shg
-        elif image_type == 'PL':
-            return n_mode == self._n_mode_pl
-        else:
-            return n_mode == self._n_mode_shg
-
-    def _get_minor_axis(self, image):
-
-        if image.ndim == 2:
-            xy_dim = image.shape
-            minor_axis = None
-        else:
-            if image.ndim == 4:
-                logger.info("Number of image types = {}".format(image.shape[0]))
-                image_shape = image.shape[1]
-            else:
-                image_shape = image.shape
-
-            minor_axis = int(np.argmin(image_shape))
-            xy_dim = tuple(x for i, x in enumerate(image_shape) if i != minor_axis)
-
-            n_stacks = image_shape[minor_axis]
-            logger.debug("Number of stacks = {}".format(n_stacks))
-
-        logger.debug("Size of image = {}".format(xy_dim))
-
-        return minor_axis
-
-    def _format_shg_pl_image(self, image, minor_axis):
-
-        if image.ndim == 4:
-            image_shg = np.mean(image[0], axis=minor_axis)
-            image_pl = np.mean(image[1], axis=minor_axis)
-            image_tran = np.mean(image[2], axis=minor_axis)
-        else:
-            image_shg = np.take(image, 0, minor_axis)
-            image_pl = np.take(image, 1, minor_axis)
-            image_tran = np.take(image, 2, minor_axis)
-
-        return (
-            img_as_float(image_shg),
-            img_as_float(image_pl),
-            img_as_float(image_tran))
-
-    def _format_shg_image(self, image, minor_axis):
-
-        if minor_axis is None:
-            image_shg = image
-        elif image.ndim == 4:
-            image_shg = np.mean(image[1], axis=minor_axis)
-        else:
-            image_shg = np.mean(image, axis=minor_axis)
-
-        return img_as_float(image_shg)
-
-    def _format_pl_image(self, image, minor_axis):
-
-        if image.ndim == 4:
-            image_pl = np.mean(image[0], axis=minor_axis)
-            image_tran = np.mean(image[1], axis=minor_axis)
-        else:
-            image_pl = np.take(image, 0, minor_axis)
-            image_tran = np.take(image, 1, minor_axis)
-
-        return (img_as_float(image_pl),
-                img_as_float(image_tran))
-
-    def image_preprocessing(self, image, image_type):
-
-        image_check = self._check_dimension(image.ndim, image_type)
-        image_check *= self._check_shape(image.shape, image_type)
-
-        if not image_check:
-            raise ImportError(
-                f"Image shape ({image.shape}) not suitable for type {image_type}"
-            )
-
-        minor_axis = self._get_minor_axis(image)
-
-        if image_type == 'PL-SHG':
-            images = self._format_shg_pl_image(image, minor_axis)
-        elif image_type == 'PL':
-            images = self._format_pl_image(image, minor_axis)
-        else:
-            images = self._format_shg_image(image, minor_axis)
-
-        return images
-
-    def load_multi_image(self):
-        """
-        Image loader able to automatically deal with stacks and mixed SHG/PL image types
-        """
-
-        if self.load_mode == "SHG-PL File":
-            image_types = ['SHG-PL']
-        else:
-            image_types = ['SHG', 'PL']
-
-        images = self.load_images()
-
-        for index, image, image_type in enumerate(images):
-            image_type = image_types[index]
-
-            logger.debug(f"Input image shape = {image.shape}")
-
-            images[index] = self.image_preprocessing(image, image_type)
-
-        multi_image = self.multi_image_class(image_stack=images)
-
-        return multi_image
+    return files, prefixes
 
 
-def get_image_lists(self, input_files):
-    """"Automatically find all combined PL-SHG files or match
-    up individual images if seperate"""
+def filter_input_files(input_files):
 
-    input_files = copy.copy(input_files)
     removed_files = []
 
     for filename in input_files:
@@ -247,34 +108,186 @@ def get_image_lists(self, input_files):
     for filename in removed_files:
         input_files.remove(filename)
 
-    files, prefixes = get_files_prefixes(input_files, '-pl-shg')
+    return input_files
+
+
+def populate_image_dictionary(input_files, image_dictionary, label):
+    """Populate image_dictionary argument using prefixes and filenames
+    of input_files list"""
+
+    files, prefixes = get_files_prefixes(input_files, f"-{label.lower()}")
 
     for filename, prefix in zip(files, prefixes):
-        self.files[prefix] = {}
-        self.files[prefix]['PL-SHG'] = filename
+
+        if prefix not in image_dictionary:
+            image_dictionary[prefix] = {}
+
+        image_dictionary[prefix][label] = filename
         input_files.remove(filename)
 
-    shg_files, shg_prefixes = get_files_prefixes(input_files, '-shg')
-    pl_files, pl_prefixes = get_files_prefixes(input_files, '-pl')
 
-    for i, prefix in enumerate(shg_prefixes):
+def collate_image_dictionary(input_files):
+    """"Automatically find all combined PL-SHG files or match
+    up individual images if seperate"""
 
-        if prefix not in self.files.keys():
+    input_files = filter_input_files(copy.copy(input_files))
 
-            indices = [j for j, pl_prefix in enumerate(pl_prefixes)
-                       if prefix in pl_prefix]
+    image_dictionary = {}
 
-            if indices:
-                self.files[prefix] = {}
-                self.files[prefix]['SHG'] = shg_files[i]
-                self.files[prefix]['PL'] = pl_files[indices[0]]
+    populate_image_dictionary(input_files, image_dictionary, 'PL-SHG')
 
+    populate_image_dictionary(input_files, image_dictionary, 'SHG')
+
+    populate_image_dictionary(input_files, image_dictionary, 'PL')
+
+    return image_dictionary
+
+
+class SHGPLReader(MultiImageReader):
+    """Reader class for a combined SHG/PL/Transmission
+    file"""
+
+    load_mode = Enum('PL-SHG File', 'Separate Files')
+
+    shg_pl_filename = File()
+
+    shg_filename = File()
+
+    pl_filename = File()
+
+    filenames = Property(List(File),
+                         depends_on='load_mode,shg_pl_filename,'
+                                    'shg_filename,pl_filename')
+
+    image_types = Property(List(Unicode),
+                           depends_on='load_mode')
+
+    traits_view = View(
+        Item('load_mode'),
+        Item('shg_pl_filename', visible_when="load_mode=='PL-SHG File'"),
+        Item('shg_filename', visible_when="load_mode=='Separate Files'"),
+        Item('pl_filename', visible_when="load_mode=='Separate Files'")
+    )
+
+    def _get_filenames(self):
+        """Switch files to be loaded, according to loading mode"""
+        if self.load_mode == 'PL-SHG File':
+            return [self.shg_pl_filename]
+        else:
+            return [self.shg_filename, self.pl_filename]
+
+    def _get_image_types(self):
+        if self.load_mode == "PL-SHG File":
+            return ['PL-SHG']
+        else:
+            return ['SHG', 'PL']
+
+    def _multi_image_class_default(self):
+        return SHGPLImage
+
+    def _check_dimension(self, n_dim, image_type):
+        """Assert that dimension of an image is allowed for
+        selected image type"""
+
+        if image_type == 'PL-SHG':
+            return n_dim in [3, 4]
+        else:
+            return n_dim in [2, 3, 4]
+
+    def _check_n_modes(self, n_modes, image_type):
+        """Assert that the number of modes contained in an image
+        is allowed for selected image type"""
+
+        if image_type == 'PL-SHG':
+            return n_modes in [2, 3]
+        else:
+            return n_modes in [1, 2]
+
+    def _format_image(self, image, n_modes, minor_axis):
+
+        if image.ndim == 4:
+            image_stack = tuple(
+                np.mean(image[index], axis=minor_axis-1)
+                for index in range(n_modes))
+
+        elif image.ndim == 3:
+            if minor_axis is None:
+                image_stack = tuple(
+                    image[index]
+                    for index in range(n_modes))
             else:
-                self.files[prefix] = {}
-                self.files[prefix]['SHG'] = shg_files[i]
+                image_stack = (np.mean(image, axis=minor_axis),)
+        else:
+            image_stack = (image,)
 
-                self.files.pop(prefix, None)
-                logger.debug(f'Could not find PL image data for {prefix}')
+        image_stack = [img_as_float(image / image.max())
+                       for image in image_stack]
+
+        return image_stack
+
+    def image_preprocessing(self, images):
+
+        image_stack = []
+
+        for image, image_type in zip(images, self.image_types):
+
+            minor_axis, n_modes, xy_dim = get_image_data(image)
+
+            image_check = self._check_dimension(image.ndim, image_type)
+            image_check *= self._check_n_modes(n_modes, image_type)
+
+            if not image_check:
+                raise ImportError(
+                    f"Image shape ({image.shape}) not suitable for type {image_type}"
+                )
+
+            if image_type == 'PL-SHG':
+                image_stack += self._format_image(image, n_modes, minor_axis)
+            else:
+                image_stack += self._format_image(image, 1, minor_axis)
+
+        return image_stack
+
+    def assign_images(self, image_dictionary):
+        """Assign images from an image_dictionary to
+        the PL-SHG, PL and SHG file names"""
+
+        if 'PL-SHG' in image_dictionary:
+            self.shg_pl_filename = image_dictionary['PL-SHG']
+        if 'PL' in image_dictionary:
+            self.pl_filename = image_dictionary['PL']
+        if 'SHG' in image_dictionary:
+            self.shg_filename = image_dictionary['SHG']
+
+
+class SHGPLTransReader(SHGPLReader):
+
+    def _multi_image_class_default(self):
+        return SHGPLTransImage
+
+    def image_preprocessing(self, images):
+
+        image_stack = []
+
+        for image, image_type in zip(images, self.image_types):
+
+            minor_axis, n_modes, xy_dim = get_image_data(image)
+
+            image_check = self._check_dimension(image.ndim, image_type)
+            image_check *= self._check_n_modes(n_modes, image_type)
+
+            if not image_check:
+                raise ImportError(
+                    f"Image shape ({image.shape}) not suitable for type {image_type}"
+                )
+
+            if image_type == 'SHG':
+                image_stack += self._format_image(image, 1, minor_axis)
+            else:
+                image_stack += self._format_image(image, n_modes, minor_axis)
+
+        return image_stack
+
 
 def load_multi_images(self):
     """Load in SHG and PL files from file name tuple"""

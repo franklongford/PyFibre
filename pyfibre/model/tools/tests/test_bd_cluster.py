@@ -3,8 +3,8 @@ from unittest import TestCase
 import networkx as nx
 import numpy as np
 from skimage.measure import regionprops
+from skimage.io import imread
 
-from pyfibre.io.shg_pl_reader import load_image
 from pyfibre.model.tools.bd_cluster import (
     prepare_composite_image
 )
@@ -24,7 +24,7 @@ class TestBDCluster(TestCase):
         self.image, self.labels, self.binary = generate_image()
         self.network = generate_probe_graph()
 
-        self.image_stack = load_image(test_image_path).mean(axis=-1)
+        self.image_stack = imread(test_image_path).mean(axis=-1)
 
         self.image = np.zeros(self.image_stack[0].shape + (3,))
         for index, image in enumerate(self.image_stack):

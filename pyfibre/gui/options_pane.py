@@ -40,8 +40,6 @@ class OptionsPane(TraitsDockPane):
 
     ow_network = Bool(False)
 
-    ow_figure = Bool(False)
-
     save_database = Bool(False)
 
     database_filename = File()
@@ -74,7 +72,6 @@ class OptionsPane(TraitsDockPane):
             Item('ow_network', label="Overwrite Network?"),
             Item('ow_segment', label="Overwrite Segments?"),
             Item('ow_metric', label="Overwrite Metrics?"),
-            Item('ow_figure', label="Overwrite Figures?"),
             Item('save_database', label='Save Database?'),
             Item('database_filename',
                  label='Database file',

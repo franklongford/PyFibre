@@ -1,15 +1,22 @@
-from pyfibre.model.image_analysis import image_analysis
+from pyfibre.io.shg_pl_reader import SHGPLTransReader
 
 
-def process_run(files, p_denoise, sigma, alpha, queue):
+def process_run(image_dictionary, image_analyser, queue):
+
     print('process_run')
     print('entering for loop')
-    for prefix, data in files.items():
+
+    reader = SHGPLTransReader()
+
+    for prefix, data in image_dictionary.items():
         try:
-            image_analysis(
-                data['image'], prefix, scale=1.25,
-                sigma=sigma, alpha=alpha, p_denoise=p_denoise
-            )
+            reader.assign_images(data)
+
+            multi_image = reader.load_multi_image()
+
+            image_analyser.image_analysis(
+                multi_image, prefix)
+
             print('image_analysis done')
             queue.put("Analysis of {} complete".format(prefix))
 

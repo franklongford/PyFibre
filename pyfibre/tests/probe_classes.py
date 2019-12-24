@@ -1,8 +1,13 @@
+import os
+
 import networkx as nx
 import numpy as np
 
+from skimage.io import imread
+
 from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
+from pyfibre.model.objects.multi_image import SHGPLTransImage
 
 
 def generate_image():
@@ -55,3 +60,22 @@ class ProbeFibreNetwork(FibreNetwork):
     def __init__(self, *args, **kwargs):
         super(ProbeFibreNetwork, self).__init__(
             graph=generate_probe_graph())
+
+
+class ProbeSHGPLTransImage(SHGPLTransImage):
+
+    def __init__(self, *args, **kwargs):
+        kwargs.pop('image_stack', None)
+
+        directory = os.path.dirname(os.path.abspath(__file__))
+        images = imread(directory + '/fixtures/test-pyfibre-pl-shg-Stack.tif')
+
+        image_stack = []
+        for image in images:
+            image = np.mean(image, axis=-1)
+            image = image / image.max()
+            image_stack.append(image)
+
+        super(ProbeSHGPLTransImage, self).__init__(
+            *args, image_stack=image_stack, **kwargs
+        )

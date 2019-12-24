@@ -6,7 +6,8 @@ from pyface.api import ImageResource
 
 from traits.api import (
     HasTraits, List, Unicode, Button, File, Dict,
-    Instance, Bool, on_trait_change, Int, Property
+    Instance, Bool, on_trait_change, Int, Property,
+    Enum
 )
 from traitsui.api import (
     View, Item, ListEditor, Group, TableEditor, ObjectColumn,
@@ -14,7 +15,8 @@ from traitsui.api import (
     TextEditor, ProgressEditor
 )
 
-from pyfibre.io.shg_pl_reader import SHGPLReader
+from pyfibre.io.shg_pl_reader import (
+    collate_image_dictionary)
 from pyfibre.io.utils import parse_files, parse_file_path
 
 
@@ -26,9 +28,21 @@ class TableRow(HasTraits):
 
     name = Unicode()
 
-    shg = Bool(False)
+    _dictionary = Dict()
 
-    pl = Bool(False)
+    shg = Property(Bool, depends_on='_dictionary')
+
+    pl = Property(Bool, depends_on='_dictionary')
+
+    def _get_shg(self):
+        return (
+            'PL-SHG' in self._dictionary
+            or 'SHG' in self._dictionary)
+
+    def _get_pl(self):
+        return (
+            'PL-SHG' in self._dictionary
+            or 'PL' in self._dictionary)
 
 
 class FileDisplayPane(TraitsDockPane):
@@ -53,23 +67,16 @@ class FileDisplayPane(TraitsDockPane):
     #: Make the pane visible by default
     visible = True
 
-    #: PL options
-    pl_required = Bool(True)
-
     file_table = List(TableRow)
 
     selected_files = List(TableRow)
 
     file_search = File()
 
-    tif_reader = Instance(SHGPLReader)
-
     key = Unicode()
 
     #: The PyFibre logo. Stored at images/icon.ico
     image = ImageResource('icon.ico')
-
-    file_list = Dict()
 
     n_images = Property(Int, depends_on='file_table[]')
 
@@ -99,7 +106,7 @@ class FileDisplayPane(TraitsDockPane):
             ],
             auto_size=False,
             selected='selected_files',
-            on_select=self.open_file,
+            on_select=self.view_selected_row,
             selection_mode='rows',
             editable=False
         )
@@ -149,16 +156,8 @@ class FileDisplayPane(TraitsDockPane):
 
         return traits_view
 
-    def _tif_reader_default(self):
-        return SHGPLReader(pl=self.pl_required,
-                           shg=True)
-
     def _get_n_images(self):
         return len(self.file_table)
-
-    @on_trait_change('pl_required')
-    def update_tif_reader(self):
-        self.tif_reader.pl = self.pl_required
 
     def _add_file_button_fired(self):
 
@@ -177,40 +176,26 @@ class FileDisplayPane(TraitsDockPane):
         file_name, directory = parse_file_path(file_path)
         input_files = parse_files(file_name, directory, self.key)
 
-        self.tif_reader.get_image_lists(input_files)
-        self.tif_reader.load_multi_images()
+        image_dictionary = collate_image_dictionary(input_files)
 
         input_prefixes = [row.name for row in self.file_table]
 
-        for key, data in self.tif_reader.files.items():
+        for key, data in image_dictionary.items():
             if key not in input_prefixes:
-                image_tags = data.keys()
+                table_row = TableRow(
+                    name=key,
+                    _dictionary=data)
+                if table_row.shg and table_row.pl:
+                    self.file_table.append(table_row)
 
-                shg = 'PL-SHG' in image_tags or 'SHG' in image_tags
-                pl = 'PL-SHG' in image_tags or 'PL' in image_tags
-
-                self.file_table.append(
-                    TableRow(
-                        name=key,
-                        shg=shg,
-                        pl=pl
-                    )
-                )
-
-    def open_file(self, selected_rows):
+    def view_selected_row(self, selected_rows):
         """Opens corresponding to the first item in
         selected_rows"""
-
-        prefix = selected_rows[0].name
-        multi_image = self.tif_reader.files[prefix]['image']
-        self.task.window.central_pane.selected_image = multi_image
+        self.task.window.central_pane.selected_row = selected_rows[0]
 
     def remove_file(self, selected_rows):
-
         for selected_row in selected_rows:
             self.file_table.remove(selected_row)
-            prefix = selected_row.name
-            self.tif_reader.files.pop(prefix, None)
 
     def filter_files(self, key=None):
 

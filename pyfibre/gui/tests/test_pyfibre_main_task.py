@@ -62,10 +62,6 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
             self.main_task.create_dock_panes()[1], OptionsPane
         )
 
-    def test_open_file(self):
-
-        print(self.main_task.window.__dict__.keys())
-
     def test__run_pyfibre(self):
         test_file_path = (
             pyfibre_dir + '/tests/fixtures/test-pyfibre-pl-shg-Stack.tif'

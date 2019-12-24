@@ -25,7 +25,9 @@ from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.gui.process_run import process_run
 from pyfibre.io.database_io import save_database, load_database
-from pyfibre.utilities import dict_extract
+from pyfibre.model.image_analyser import ImageAnalyser
+from pyfibre.io.shg_pl_reader import SHGPLTransReader
+
 
 logger = logging.getLogger(__name__)
 
@@ -123,22 +125,6 @@ class PyFibreMainTask(Task):
         return tool_bars
 
     # ------------------
-    #     Listeners
-    # ------------------
-
-    @on_trait_change('options_pane.pl_required')
-    def update_shg_pl_requirements(self):
-        self.file_display_pane.pl_required = (
-            self.options_pane.pl_required
-        )
-
-    @on_trait_change('options_pane.pl_required')
-    def update_shg_pl_requirements(self):
-        self.file_display_pane.pl_required = (
-            self.options_pane.pl_required
-        )
-
-    # ------------------
     #   Private Methods
     # ------------------
 
@@ -146,46 +132,40 @@ class PyFibreMainTask(Task):
 
         self.run_enabled = False
 
-        tif_reader = self.file_display_pane.tif_reader
-
-        tif_reader.ow_network = self.options_pane.ow_network
-        tif_reader.ow_segment = self.options_pane.ow_segment
-        tif_reader.ow_metric = self.options_pane.ow_metric
-        tif_reader.ow_figure = self.options_pane.ow_figure
-
-        self.file_display_pane.tif_reader.update_multi_images()
-
-        files = self.file_display_pane.tif_reader.files
-
-        prefix_list = list(files.keys())
-
         if self.file_display_pane.n_images == 0:
             self.stop_run()
             return
 
+        file_table = self.file_display_pane.file_table
+
         proc_count = np.min(
-            (self.n_proc, self.file_display_pane.n_images)
-        )
+            (self.n_proc, self.file_display_pane.n_images))
         index_split = np.array_split(
             np.arange(self.file_display_pane.n_images),
-            proc_count
-        )
+            proc_count)
 
         self.processes = []
 
         for indices in index_split:
-            key_list = [prefix_list[index] for index in indices]
-            batch_dict = dict_extract(files, key_list)
+            batch_rows = [file_table[index] for index in indices]
+            batch_dict = {row.name: row._dictionary
+                          for row in batch_rows}
+
+            image_analyser = ImageAnalyser(
+                p_denoise=(self.options_pane.n_denoise,
+                           self.options_pane.m_denoise),
+                sigma=self.options_pane.sigma,
+                alpha=self.options_pane.alpha,
+                ow_network=self.options_pane.ow_network,
+                ow_segment=self.options_pane.ow_segment,
+                ow_metric=self.options_pane.ow_metric,
+                save_figures=False)
 
             process = Process(
                 target=process_run,
-                args=(
-                    batch_dict,
-                    (self.options_pane.n_denoise,
-                     self.options_pane.m_denoise),
-                    self.options_pane.sigma,
-                    self.options_pane.alpha,
-                    self.queue))
+                args=(batch_dict,
+                      image_analyser,
+                      self.queue))
             process.daemon = True
             self.processes.append(process)
 
@@ -230,9 +210,35 @@ class PyFibreMainTask(Task):
         return [self.file_display_pane,
                 self.options_pane]
 
-    def create_databases(self):
+    def create_figures(self):
 
-        print('create_databases')
+        file_table = self.file_display_pane.file_table
+        reader = SHGPLTransReader()
+        image_analyser = ImageAnalyser(
+            p_denoise=(self.options_pane.n_denoise,
+                       self.options_pane.m_denoise),
+            sigma=self.options_pane.sigma,
+            alpha=self.options_pane.alpha)
+
+        for row in file_table:
+
+            reader.assign_images(row._dictionary)
+            multi_image = reader.load_multi_image()
+
+            working_dir = os.path.dirname(row.name)
+            image_name = os.path.basename(row.name)
+            data_dir = working_dir + '/data/'
+            fig_dir = working_dir + '/fig/'
+
+            if not os.path.exists(fig_dir):
+                os.mkdir(fig_dir)
+
+            filename = data_dir + image_name
+            figname = fig_dir + image_name
+
+            image_analyser.create_figures(multi_image, filename, figname)
+
+    def create_databases(self):
 
         global_database = pd.DataFrame()
         fibre_database = pd.DataFrame()
@@ -280,5 +286,6 @@ class PyFibreMainTask(Task):
         for process in self.processes:
             process.terminate()
 
+        self.create_figures()
         self.file_display_pane.trait_set(progress=0)
         self.run_enabled = True
