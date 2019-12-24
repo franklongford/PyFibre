@@ -33,7 +33,7 @@ class ImageAnalyser:
 
     def __init__(self, scale=1.25, p_denoise=(5, 35), sigma=0.5, alpha=0.5,
                  shg_analysis=True, pl_analysis=False, ow_metric=False,
-                 ow_segment=False, ow_network=False, ow_figure=False):
+                 ow_segment=False, ow_network=False, save_figures=False):
 
         self.shg_analysis = shg_analysis
         self.pl_analysis = pl_analysis
@@ -46,14 +46,14 @@ class ImageAnalyser:
         self.ow_metric = ow_metric
         self.ow_segment = ow_segment
         self.ow_network = ow_network
-        self.ow_figure = ow_figure
+
+        self.save_figures = save_figures
 
     def get_ow_options(self, filename):
 
         ow_network = self.ow_network
         ow_segment = self.ow_segment
         ow_metric = self.ow_metric
-        ow_figure = self.ow_figure
 
         try:
             load_network(filename, "network")
@@ -62,7 +62,6 @@ class ImageAnalyser:
             ow_network = True
             ow_segment = True
             ow_metric = True
-            ow_figure = True
 
         try:
             load_segment(filename, "fibre_segment")
@@ -72,7 +71,6 @@ class ImageAnalyser:
             logger.info("Cannot load segments for {}".format(filename))
             ow_segment = True
             ow_metric = True
-            ow_figure = True
 
         try:
             load_database(filename, 'global_metric')
@@ -81,9 +79,8 @@ class ImageAnalyser:
         except (UnpicklingError, Exception):
             logger.info("Cannot load metrics for {}".format(filename))
             ow_metric = True
-            ow_figure = True
 
-        return ow_network, ow_segment, ow_metric, ow_figure
+        return ow_network, ow_segment, ow_metric
 
     def network_analysis(self, multi_image, filename):
 
@@ -227,7 +224,7 @@ class ImageAnalyser:
 
         filename = data_dir + image_name
         figname = fig_dir + image_name
-        ow_network, ow_segment, ow_metric, ow_figure = self.get_ow_options(filename)
+        ow_network, ow_segment, ow_metric = self.get_ow_options(filename)
 
         logger.debug(f"Overwrite options:\n "
                      f"shg_analysis = {self.shg_analysis}\n "
@@ -235,7 +232,7 @@ class ImageAnalyser:
                      f"ow_network = {ow_network}\n "
                      f"ow_segment = {ow_segment}\n "
                      f"ow_metric = {ow_metric}\n "
-                     f"ow_figure = {ow_figure}")
+                     f"save_figures = {self.save_figures}")
 
         start = time.time()
 
@@ -248,7 +245,7 @@ class ImageAnalyser:
         if ow_metric:
             self.metric_analysis(multi_image, filename)
 
-        if ow_figure:
+        if self.save_figures:
             self.create_figures(multi_image, filename, figname)
 
         end = time.time()

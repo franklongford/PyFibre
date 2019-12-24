@@ -112,8 +112,7 @@ def pyfibre(file_path, key, sigma, alpha, save_db, debug,
         sigma=sigma, alpha=alpha,
         shg_analysis=shg_analysis, pl_analysis=pl_analysis,
         ow_metric=ow_metric, ow_segment=ow_segment,
-        ow_network=ow_network, ow_figure=ow_figure
-    )
+        ow_network=ow_network, save_figures=True)
     global_database = pd.DataFrame()
     fibre_database = pd.DataFrame()
     cell_database = pd.DataFrame()

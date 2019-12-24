@@ -26,6 +26,7 @@ from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.gui.process_run import process_run
 from pyfibre.io.database_io import save_database, load_database
 from pyfibre.model.image_analyser import ImageAnalyser
+from pyfibre.io.shg_pl_reader import SHGPLTransReader
 
 
 logger = logging.getLogger(__name__)
@@ -158,12 +159,13 @@ class PyFibreMainTask(Task):
                 ow_network=self.options_pane.ow_network,
                 ow_segment=self.options_pane.ow_segment,
                 ow_metric=self.options_pane.ow_metric,
-                ow_figure=self.options_pane.ow_figure)
+                save_figures=False)
 
             process = Process(
                 target=process_run,
                 args=(batch_dict,
-                      image_analyser))
+                      image_analyser,
+                      self.queue))
             process.daemon = True
             self.processes.append(process)
 
@@ -207,6 +209,34 @@ class PyFibreMainTask(Task):
         """
         return [self.file_display_pane,
                 self.options_pane]
+
+    def create_figures(self):
+
+        file_table = self.file_display_pane.file_table
+        reader = SHGPLTransReader()
+        image_analyser = ImageAnalyser(
+            p_denoise=(self.options_pane.n_denoise,
+                       self.options_pane.m_denoise),
+            sigma=self.options_pane.sigma,
+            alpha=self.options_pane.alpha)
+
+        for row in file_table:
+
+            reader.assign_images(row._dictionary)
+            multi_image = reader.load_multi_image()
+
+            working_dir = os.path.dirname(row.name)
+            image_name = os.path.basename(row.name)
+            data_dir = working_dir + '/data/'
+            fig_dir = working_dir + '/fig/'
+
+            if not os.path.exists(fig_dir):
+                os.mkdir(fig_dir)
+
+            filename = data_dir + image_name
+            figname = fig_dir + image_name
+
+            image_analyser.create_figures(multi_image, filename, figname)
 
     def create_databases(self):
 
@@ -256,5 +286,6 @@ class PyFibreMainTask(Task):
         for process in self.processes:
             process.terminate()
 
+        self.create_figures()
         self.file_display_pane.trait_set(progress=0)
         self.run_enabled = True

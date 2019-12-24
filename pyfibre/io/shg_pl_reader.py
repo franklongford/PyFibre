@@ -249,6 +249,8 @@ class SHGPLReader(MultiImageReader):
         return image_stack
 
     def assign_images(self, image_dictionary):
+        """Assign images from an image_dictionary to
+        the PL-SHG, PL and SHG file names"""
 
         if 'PL-SHG' in image_dictionary:
             self.shg_pl_filename = image_dictionary['PL-SHG']

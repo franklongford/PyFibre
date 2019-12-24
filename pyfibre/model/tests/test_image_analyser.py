@@ -30,23 +30,21 @@ class TestImageAnalyser(TestCase):
 
         filename = "test_filename"
 
-        ow_network, ow_segment, ow_metric, ow_figure = (
+        ow_network, ow_segment, ow_metric = (
             self.image_analyser.get_ow_options(filename))
 
         self.assertTrue(ow_network)
         self.assertTrue(ow_segment)
         self.assertTrue(ow_metric)
-        self.assertTrue(ow_figure)
 
         with mock.patch(LOAD_NETWORK_PATH,
                         mock.mock_open(read_data=nx.Graph())):
-            ow_network, ow_segment, ow_metric, ow_figure = (
+            ow_network, ow_segment, ow_metric = (
                 self.image_analyser.get_ow_options(filename))
 
         self.assertFalse(ow_network)
         self.assertTrue(ow_segment)
         self.assertTrue(ow_metric)
-        self.assertTrue(ow_figure)
 
     def test_network_analysis(self):
 
