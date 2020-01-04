@@ -14,7 +14,7 @@ from pyfibre.utilities import flatten_list
 logger = logging.getLogger(__name__)
 
 
-class ImageAnalyser:
+class MetricAnalyser:
 
     def __init__(self, image, filename, objects, sigma):
 
@@ -27,7 +27,7 @@ class ImageAnalyser:
         self.global_dataframe = None
 
 
-class SHGAnalyser(ImageAnalyser):
+class SHGAnalyser(MetricAnalyser):
 
     def __init__(self, image_shg, filename, fibre_networks, sigma):
         super().__init__(image=image_shg, filename=filename,
@@ -85,7 +85,7 @@ class SHGAnalyser(ImageAnalyser):
             fibre_metrics['SHG Network Connectivity'])
 
 
-class PLAnalyser(ImageAnalyser):
+class PLAnalyser(MetricAnalyser):
 
     def __init__(self, image_pl, filename, cells, sigma):
         super().__init__(image=image_pl, filename=filename,
