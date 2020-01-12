@@ -42,7 +42,7 @@ class OptionsPane(TraitsDockPane):
 
     save_database = Bool(False)
 
-    database_filename = File()
+    database_filename = File('pyfibre_database')
 
     # Image analysis parameters
     sigma = Float(0.5)
