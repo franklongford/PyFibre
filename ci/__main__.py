@@ -9,13 +9,13 @@ PYFIBRE_REPO = os.path.abspath('.')
 
 EDM_CORE_DEPS = [
     'Click==7.0-1',
-    "chaco==4.7.2-3",
-    "enable==4.7.2-9",
-    "envisage==4.7.2-1",
+    "chaco==4.8.0-2",
+    "enable==4.8.1-1",
+    "envisage==4.9.0-1",
     'pytables==3.5.1-1',
-    'traits==5.1.1-1',
-    'traitsui==6.1.1-1',
-    "pyface==6.1.0-2",
+    'traits==5.2.0-1',
+    'traitsui==6.1.3-4',
+    "pyface==6.1.2-4",
     "pygments==2.2.0-1",
     "pyqt>=4.11.4-7",
     "qt>=4.8.7-10",
@@ -28,10 +28,10 @@ EDM_DEV_DEPS = ["flake8==3.7.7-1",
 
 CONDA_CORE_DEPS = [
     'Click',
-    "envisage",
     'pytables',
-    'traits==5.1.1',
-    'traitsui==6.1.1',
+    'traits==5.2.0',
+    'traitsui==6.1.3',
+    "pyface==6.1.2",
     "pygments",
     "pyqt",
     "qt",
@@ -42,8 +42,10 @@ CONDA_CORE_DEPS = [
     'Cython']
 
 CONDA_PIP_DEPS = [
-    "chaco==4.7.2",
-    "pyface==6.1.0"]
+    "chaco==4.8.0",
+    "enable==4.8.1",
+    'envisage==4.9.0'
+    ]
 
 CONDA_DEV_DEPS = ["flake8==3.7.7",
                   "mock==2.0.0"]
@@ -139,6 +141,7 @@ def build_env(python_version, edm, conda):
 def install(python_version, edm, conda):
 
     env_name = get_env_name()
+
     if edm:
         print('Installing PyFibre to edm environment')
         edm_run(env_name, ['pip', 'install', '-e', '.'])
