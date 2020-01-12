@@ -52,8 +52,8 @@ matplotlib.use("Agg")
     help='Toggles overwrite network extraction'
 )
 @click.option(
-    '--ow_figure', is_flag=True, default=False,
-    help='Toggles overwrite figures'
+    '--save_figures', is_flag=True, default=False,
+    help='Toggles saving of figures'
 )
 @click.option(
     '--test', is_flag=True, default=False,
@@ -72,23 +72,29 @@ matplotlib.use("Agg")
     default=0.5
 )
 @click.option(
-    '--save_db', help='Output database filename',
-    default=None
+    '--database_name', help='Output database filename',
+    default='pyfibre_database'
+)
+@click.option(
+    '--log_name', help='Pyfibre log filename',
+    default='pyfibre'
 )
 @click.argument(
     'file_path', type=click.Path(exists=True),
     required=False, default='.'
 )
-def pyfibre(file_path, key, sigma, alpha, save_db, debug,
-        shg_analysis, pl_analysis, ow_metric, ow_segment,
-        ow_network, ow_figure, test):
+def pyfibre(file_path, key, sigma, alpha, log_name,
+            database_name, debug,
+            shg_analysis, pl_analysis, ow_metric, ow_segment,
+            ow_network, save_figures, test):
 
     if debug:
-        logging.basicConfig(filename="pyfibre.log", filemode="w",
-                            level=logging.DEBUG)
+        level = logging.DEBUG
     else:
-        logging.basicConfig(filename="pyfibre.log", filemode="w",
-                            level=logging.INFO)
+        level = logging.INFO
+
+    logging.basicConfig(filename=f"{log_name}.log", filemode="w",
+                        level=level)
 
     logger = logging.getLogger(__name__)
 
@@ -112,21 +118,31 @@ def pyfibre(file_path, key, sigma, alpha, save_db, debug,
         sigma=sigma, alpha=alpha,
         shg_analysis=shg_analysis, pl_analysis=pl_analysis,
         ow_metric=ow_metric, ow_segment=ow_segment,
-        ow_network=ow_network, save_figures=True)
+        ow_network=ow_network, save_figures=save_figures)
     global_database = pd.DataFrame()
     fibre_database = pd.DataFrame()
     cell_database = pd.DataFrame()
 
     for prefix, data in image_dictionary.items():
 
+        logger.info(f"Processing image data for {data}")
+
         reader.assign_images(data)
+
+        if 'PL-SHG' in data:
+            reader.load_mode = 'PL-SHG File'
+        elif 'PL' in data and 'SHG' in data:
+            reader.load_mode = 'Separate Files'
+        else:
+            continue
 
         multi_image = reader.load_multi_image()
 
         databases = image_analyser.image_analysis(
             multi_image, prefix)
 
-        global_database = global_database.append(databases[0], ignore_index=True)
+        global_database = global_database.append(
+            databases[0], ignore_index=True)
         if shg_analysis:
             fibre_database = pd.concat([fibre_database, databases[1]])
         if pl_analysis:
@@ -136,9 +152,8 @@ def pyfibre(file_path, key, sigma, alpha, save_db, debug,
         logger.debug("Global Image Analysis Metrics:")
         logger.debug(databases[0].iloc[0])
 
-    if save_db is not None:
-        save_database(global_database, save_db)
-        if shg_analysis:
-            save_database(fibre_database, save_db, 'fibre')
-        if pl_analysis:
-            save_database(cell_database, save_db, 'cell')
+    save_database(global_database, database_name)
+    if shg_analysis:
+        save_database(fibre_database, database_name, 'fibre')
+    if pl_analysis:
+        save_database(cell_database, database_name, 'cell')

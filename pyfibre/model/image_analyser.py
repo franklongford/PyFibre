@@ -34,7 +34,31 @@ class ImageAnalyser:
     def __init__(self, scale=1.25, p_denoise=(5, 35), sigma=0.5, alpha=0.5,
                  shg_analysis=True, pl_analysis=False, ow_metric=False,
                  ow_segment=False, ow_network=False, save_figures=False):
+        """ Set parameters for ImageAnalyser routines
 
+        Parameters
+        ----------
+        scale: float (optional)
+            Unit of scale to resize image
+        p_denoise: tuple (float); shape=(2,) (optional)
+            Parameters for non-linear means denoise algorithm (used to remove noise)
+        sigma: float (optional)
+            Standard deviation of Gaussian smoothing
+        alpha: float (optional)
+            Metric for hysterisis segmentation
+        shg_analysis: bool (optional)
+            Toggles analysis of SHG image data
+        pl_analysis: bool (optional)
+            Toggles analysis of PL image data
+        ow_metric: bool (optional)
+            Toggles force overwrite of existing metric analysis
+        ow_segment: bool (optional)
+            Toggles force overwrite of existing segmentation
+        ow_network: bool (optional)
+            Toggles force overwrite of existing fibre network
+        save_figures: bool (optional)
+            Toggles creation of figures
+        """
         self.shg_analysis = shg_analysis
         self.pl_analysis = pl_analysis
 
@@ -49,28 +73,29 @@ class ImageAnalyser:
 
         self.save_figures = save_figures
 
-    def get_ow_options(self, filename):
+    def get_analysis_options(self, filename):
+        """Get image-specific options"""
 
-        ow_network = self.ow_network
-        ow_segment = self.ow_segment
-        ow_metric = self.ow_metric
+        network = self.ow_network
+        segment = self.ow_segment
+        metric = self.ow_metric
 
         try:
             load_network(filename, "network")
         except (UnpicklingError, Exception):
             logger.info("Cannot load networks for {}".format(filename))
-            ow_network = True
-            ow_segment = True
-            ow_metric = True
+            network = True
+            segment = True
+            metric = True
 
         try:
-            load_segment(filename, "fibre_segment")
+            load_fibre_networks(filename)
             if self.pl_analysis:
-                load_segment(filename, "cell_segment")
+                load_objects(filename, "cells")
         except (UnpicklingError, Exception):
             logger.info("Cannot load segments for {}".format(filename))
-            ow_segment = True
-            ow_metric = True
+            segment = True
+            metric = True
 
         try:
             load_database(filename, 'global_metric')
@@ -78,13 +103,23 @@ class ImageAnalyser:
             load_database(filename, 'cell_metric')
         except (UnpicklingError, Exception):
             logger.info("Cannot load metrics for {}".format(filename))
-            ow_metric = True
+            metric = True
 
-        return ow_network, ow_segment, ow_metric
+        return network, segment, metric
 
     def network_analysis(self, multi_image, filename):
+        """Perform FIRE algorithm on image and save networkx
+        object for further analysis
 
-        start_net = time.time()
+        Parameters
+        ----------
+        multi_image: MultiImage
+            MultiImage object to analyse
+        filename: str
+            Reference to original tif files for output data
+        """
+
+        start_time = time.time()
 
         logger.debug("Applying AHE to SHG image")
         image_equal = equalize_adapthist(multi_image.shg_image)
@@ -103,15 +138,26 @@ class ImageAnalyser:
 
         save_network(network, filename, "network")
 
-        end_net = time.time()
+        end_time = time.time()
 
-        logger.info(f"TOTAL NETWORK EXTRACTION TIME = {round(end_net - start_net, 3)} s")
+        logger.info(
+            f"TOTAL NETWORK EXTRACTION TIME = {round(end_time - start_time, 3)} s")
 
         return network
 
     def segment_analysis(self, multi_image, filename):
+        """Segment image into fiborous and cellular regions based on
+        fibre network
 
-        start_seg = time.time()
+        Parameters
+        ----------
+        multi_image: MultiImage
+            MultiImage object to analyse
+        filename: str
+            Reference to original tif files for output data
+        """
+
+        start_time = time.time()
 
         network = load_network(filename, "network")
 
@@ -122,18 +168,27 @@ class ImageAnalyser:
             multi_image, fibre_networks, scale=self.scale,
             pl_analysis=self.pl_analysis)
 
-        end_seg = time.time()
-
         save_fibre_networks(fibre_networks, filename)
         save_objects(cells, filename, 'cells')
 
-        logger.info(f"TOTAL SEGMENTATION TIME = {round(end_seg - start_seg, 3)} s")
+        end_time = time.time()
+
+        logger.info(f"TOTAL SEGMENTATION TIME = {round(end_time - start_time, 3)} s")
 
         return fibre_networks, cells
 
     def metric_analysis(self, multi_image, filename):
+        """Perform metric analysis on segmented image
 
-        start_met = time.time()
+        Parameters
+        ----------
+        multi_image: MultiImage
+            MultiImage object to analyse
+        filename: str
+            Reference to original tif files for output data
+        """
+
+        start_time = time.time()
 
         # Load networks and segments"
         fibre_networks = load_fibre_networks(filename)
@@ -143,17 +198,18 @@ class ImageAnalyser:
             multi_image, filename, fibre_networks, cells,
             self.sigma, self.shg_analysis, self.pl_analysis)
 
-        end_met = time.time()
-
         if self.shg_analysis:
             save_database(global_dataframe, filename, 'global_metric')
             save_database(dataframes[0], filename, 'fibre_metric')
         if self.pl_analysis:
             save_database(dataframes[1], filename, 'cell_metric')
 
-        logger.info(f"TOTAL METRIC TIME = {round(end_met - start_met, 3)} s")
+        end_time = time.time()
+
+        logger.info(f"TOTAL METRIC TIME = {round(end_time - start_time, 3)} s")
 
     def create_figures(self, multi_image, filename, figname):
+        """Create and save figures"""
 
         start_fig = time.time()
 
@@ -189,7 +245,7 @@ class ImageAnalyser:
 
     def image_analysis(self, multi_image, prefix):
         """
-        Analyse imput image by calculating metrics and segmenting via FIRE algorithm
+        Analyse input image by calculating metrics and segmenting via FIRE algorithm
 
         Parameters
         ----------
@@ -197,14 +253,6 @@ class ImageAnalyser:
             MultiImage containing PL and SHG data
         prefix: str
            Prefix path of image
-        scale: float (optional)
-            Unit of scale to resize image
-        p_denoise: tuple (float); shape=(2,) (optional)
-            Parameters for non-linear means denoise algorithm (used to remove noise)
-        sigma: float (optional)
-            Standard deviation of Gaussian smoothing
-        alpha: float (optional)
-            Metric for hysterisis segmentation
 
         Returns
         -------
@@ -224,25 +272,25 @@ class ImageAnalyser:
 
         filename = data_dir + image_name
         figname = fig_dir + image_name
-        ow_network, ow_segment, ow_metric = self.get_ow_options(filename)
+        network, segment, metric = self.get_analysis_options(filename)
 
-        logger.debug(f"Overwrite options:\n "
+        logger.debug(f"Analysis options:\n "
                      f"shg_analysis = {self.shg_analysis}\n "
                      f"pl_analysis = {self.pl_analysis}\n "
-                     f"ow_network = {ow_network}\n "
-                     f"ow_segment = {ow_segment}\n "
-                     f"ow_metric = {ow_metric}\n "
+                     f"network_analysis = {network}\n "
+                     f"segment_analysis = {segment}\n "
+                     f"metric_analysis = {metric}\n "
                      f"save_figures = {self.save_figures}")
 
         start = time.time()
 
-        if ow_network:
+        if network:
             self.network_analysis(multi_image, filename)
 
-        if ow_segment:
+        if segment:
             self.segment_analysis(multi_image, filename)
 
-        if ow_metric:
+        if metric:
             self.metric_analysis(multi_image, filename)
 
         if self.save_figures:

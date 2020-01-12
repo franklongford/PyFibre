@@ -28,11 +28,6 @@ class OptionsPane(TraitsDockPane):
     #: Make the pane visible by default
     visible = True
 
-    #: SHG and PL options
-    shg_required = Bool(True)
-
-    pl_required = Bool(True)
-
     # Overwrite options
     ow_metric = Bool(False)
 
@@ -42,7 +37,7 @@ class OptionsPane(TraitsDockPane):
 
     save_database = Bool(False)
 
-    database_filename = File()
+    database_filename = File('pyfibre_database')
 
     # Image analysis parameters
     sigma = Float(0.5)
@@ -67,8 +62,6 @@ class OptionsPane(TraitsDockPane):
 
     traits_view = View(
         VGroup(
-            Item('shg_required'),
-            Item('pl_required'),
             Item('ow_network', label="Overwrite Network?"),
             Item('ow_segment', label="Overwrite Segments?"),
             Item('ow_metric', label="Overwrite Metrics?"),
