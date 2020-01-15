@@ -143,6 +143,7 @@ def fibre_network_assignment(network, image=None):
             fibre_networks.append(fibre_network)
 
     # Sort segments ranked by graph size
-    fibre_networks = sorted(fibre_networks, key=lambda network: network.number_of_nodes)
+    fibre_networks = sorted(fibre_networks,
+                            key=lambda network: network.number_of_nodes)
 
     return fibre_networks

@@ -1,6 +1,9 @@
 import logging
 import os
 
+import networkx as nx
+from skimage.measure._regionprops import RegionProperties
+
 from chaco.api import ArrayPlotData, Plot
 from chaco.default_colormaps import binary, reverse
 from chaco.tools.api import PanTool, ZoomTool
@@ -8,7 +11,7 @@ from enable.api import ComponentEditor
 from pyface.tasks.api import TraitsTaskPane
 from traits.api import (
     HasTraits, Instance, Unicode, List, on_trait_change,
-    ArrayOrNone, Property, Function
+    ArrayOrNone, Property, Function, Int
 )
 from traitsui.api import (
     View, Group, Item, ListEditor
@@ -44,6 +47,28 @@ class ImageTab(HasTraits):
         resizable=True
     )
 
+    def _plot_image(self, plot):
+
+        if self.image.ndim == 2:
+            img_plot = plot.img_plot(
+                "image_data",
+                origin='top left',
+                colormap=self.cmap,
+                axis='off')[0]
+        elif self.image.ndim == 3:
+            img_plot = plot.img_plot(
+                "image_data",
+                origin='top left',
+                axis='off')[0]
+
+            # Attach some tools to the plot
+            plot.tools.append(PanTool(
+                plot, constrain_key="shift"))
+            plot.overlays.append(ZoomTool(
+                component=plot,
+                tool_mode="box",
+                always_on=False))
+
     def _get_plot(self):
         if self.image is not None:
             plot_data = ArrayPlotData(
@@ -51,25 +76,51 @@ class ImageTab(HasTraits):
 
             plot = Plot(plot_data)
 
-            if self.image.ndim == 2:
-                img_plot = plot.img_plot(
-                    "image_data",
-                    origin='top left',
-                    colormap=self.cmap,
-                    axis='off')[0]
-            elif self.image.ndim == 3:
-                img_plot = plot.img_plot(
-                    "image_data",
-                    origin='top left',
-                    axis='off')[0]
+            self._plot_image(plot)
 
-                # Attach some tools to the plot
-                plot.tools.append(PanTool(
-                    plot, constrain_key="shift"))
-                plot.overlays.append(ZoomTool(
-                    component=plot,
-                    tool_mode="box",
-                    always_on=False))
+            return plot
+
+
+class NetworkImageTab(ImageTab):
+
+    networks = List(nx.Graph)
+
+    c_mode = Int(0)
+
+    def _get_plot(self):
+        if self.image is not None:
+
+            image_network_overlay = create_network_image(
+                self.image,
+                self.networks,
+                c_mode=self.c_mode) * 255.999
+
+            plot_data = ArrayPlotData(
+                image_data=image_network_overlay.astype('uint8'))
+
+            plot = Plot(plot_data)
+
+            self._plot_image(plot)
+
+            return plot
+
+
+class SegmentImageTab(ImageTab):
+
+    segments = List(RegionProperties)
+
+    def _get_plot(self):
+        if self.image is not None:
+            segment_image = create_region_image(
+                self.image,
+                self.segments) * 255.999
+
+            plot_data = ArrayPlotData(
+                image_data=segment_image.astype('uint8'))
+
+            plot = Plot(plot_data)
+
+            self._plot_image(plot)
 
             return plot
 
@@ -94,13 +145,13 @@ class ViewerPane(TraitsTaskPane):
 
     tensor_tab = Instance(ImageTab)
 
-    network_tab = Instance(ImageTab)
+    network_tab = Instance(NetworkImageTab)
 
-    fibre_tab = Instance(ImageTab)
+    fibre_tab = Instance(NetworkImageTab)
 
-    fibre_segment_tab = Instance(ImageTab)
+    fibre_segment_tab = Instance(SegmentImageTab)
 
-    cell_segment_tab = Instance(ImageTab)
+    cell_segment_tab = Instance(SegmentImageTab)
 
     metric_tab = Instance(MetricTab)
 
@@ -178,33 +229,19 @@ class ViewerPane(TraitsTaskPane):
         return image_tab
 
     def _network_tab_default(self):
-        image_tab = ImageTab(label='Network')
-        if self.selected_image is not None:
-            image_name = os.path.basename(self.selected_row.name)
-            image_path = os.path.dirname(self.selected_row.name)
-            data_dir = image_path + '/data/'
-            filename = data_dir + image_name
-            try:
-                fibre_networks = load_objects(filename, "fibre_networks")
-                networks = [fibre_network.graph for fibre_network in fibre_networks]
-                image_network_overlay = create_network_image(
-                    self.selected_image.image_shg, networks)
-                self.network_tab.image = image_network_overlay.astype('uint8')
-            except (IOError, EOFError):
-                logger.info(
-                    "Unable to display network for {}".format(image_name))
+        image_tab = NetworkImageTab(label='Network')
         return image_tab
 
     def _fibre_tab_default(self):
-        image_tab = ImageTab(label='Fibres')
+        image_tab = NetworkImageTab(label='Fibres', c_mode=1)
         return image_tab
 
     def _fibre_segment_tab_default(self):
-        image_tab = ImageTab(label='Fibre Segments')
+        image_tab = SegmentImageTab(label='Fibre Segments')
         return image_tab
 
     def _cell_segment_tab_default(self):
-        image_tab = ImageTab(label='Cell Segments')
+        image_tab = SegmentImageTab(label='Cell Segments')
         return image_tab
 
     @on_trait_change('selected_image')
@@ -213,7 +250,7 @@ class ViewerPane(TraitsTaskPane):
         if self.selected_row is not None:
             image_name = os.path.basename(self.selected_row.name)
             image_path = os.path.dirname(self.selected_row.name)
-            data_dir = image_path + '/data/'
+            data_dir = f"{image_path}/{image_name}/data/"
             filename = data_dir + image_name
 
             self.shg_image_tab.image = self.selected_image.shg_image
@@ -232,22 +269,14 @@ class ViewerPane(TraitsTaskPane):
                 fibres = [fibre_network.fibres for fibre_network in fibre_networks]
                 fibres = [fibre.graph for fibre in flatten_list(fibres)]
 
-                network_image = create_network_image(
-                    self.selected_image.shg_image,
-                    networks,
-                    0) * 255.999
-                self.network_tab.image = network_image.astype('uint8')
+                self.network_tab.networks = networks
+                self.network_tab.image = self.selected_image.shg_image
 
-                fibre_image = create_network_image(
-                    self.selected_image.shg_image,
-                    fibres,
-                    1) * 255.999
-                self.fibre_tab.image = fibre_image.astype('uint8')
+                self.fibre_tab.networks = fibres
+                self.fibre_tab.image = self.selected_image.shg_image
 
-                segment_image = create_region_image(
-                    self.selected_image.shg_image,
-                    fibre_segments) * 255.999
-                self.fibre_segment_tab.image = segment_image.astype('uint8')
+                self.fibre_segment_tab.segments = fibre_segments
+                self.fibre_segment_tab.image = self.selected_image.shg_image
 
             self.pl_image_tab.image = self.selected_image.pl_image
             self.trans_image_tab.image = self.selected_image.trans_image
@@ -259,7 +288,5 @@ class ViewerPane(TraitsTaskPane):
             else:
                 cell_segments = [cell.segment for cell in cells]
 
-                segment_image = create_region_image(
-                    self.selected_image.pl_image,
-                    cell_segments) * 255.999
-                self.cell_segment_tab.image = segment_image.astype('uint8')
+                self.cell_segment_tab.segments = cell_segments
+                self.cell_segment_tab.image = self.selected_image.pl_image
