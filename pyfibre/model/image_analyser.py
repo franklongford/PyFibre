@@ -82,6 +82,28 @@ class ImageAnalyser:
 
         return ow_network, ow_segment, ow_metric
 
+    def _create_directory(self, prefix):
+
+        image_name = os.path.basename(prefix)
+        working_dir = (
+            f"{os.path.dirname(prefix)}/{image_name}-analysis")
+
+        if not os.path.exists(working_dir):
+            os.mkdir(working_dir)
+
+        data_dir = working_dir + '/data/'
+        fig_dir = working_dir + '/fig/'
+
+        if not os.path.exists(data_dir):
+            os.mkdir(data_dir)
+        if not os.path.exists(fig_dir):
+            os.mkdir(fig_dir)
+
+        filename = data_dir + image_name
+        figname = fig_dir + image_name
+
+        return filename, figname
+
     def network_analysis(self, multi_image, filename):
 
         start_net = time.time()
@@ -119,7 +141,8 @@ class ImageAnalyser:
             network, image=multi_image.shg_image)
 
         cells = cell_segmentation(
-            multi_image, fibre_networks, scale=self.scale,
+            multi_image, fibre_networks,
+            scale=self.scale,
             pl_analysis=self.pl_analysis)
 
         end_seg = time.time()
@@ -212,18 +235,7 @@ class ImageAnalyser:
             Calculated metrics for further analysis
         """
 
-        working_dir = os.path.dirname(prefix)
-        image_name = os.path.basename(prefix)
-        data_dir = working_dir + '/data/'
-        fig_dir = working_dir + '/fig/'
-
-        if not os.path.exists(data_dir):
-            os.mkdir(data_dir)
-        if not os.path.exists(fig_dir):
-            os.mkdir(fig_dir)
-
-        filename = data_dir + image_name
-        figname = fig_dir + image_name
+        filename, figname = self._create_directory(prefix)
         ow_network, ow_segment, ow_metric = self.get_ow_options(filename)
 
         logger.debug(f"Overwrite options:\n "
