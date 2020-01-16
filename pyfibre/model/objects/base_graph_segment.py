@@ -25,17 +25,22 @@ class BaseGraphSegment:
         serialised as a JSON file"""
         status = pop_under_recursive(copy.copy(self.__dict__))
 
+        status.pop('image', None)
+
         graph = node_link_data(status['graph'])
 
         for coord in graph['nodes']:
             coord['xy'] = coord['xy'].tolist()
+            coord['id'] = int(coord['id'])
             if 'direction' in coord:
                 coord['direction'] = coord['direction'].tolist()
 
-        status['graph'] = graph
+        if "links" in graph:
+            for link in graph["links"]:
+                link['source'] = int(link['source'])
+                link['target'] = int(link['target'])
 
-        if status['image'] is not None:
-            status['image'] = status['image'].tolist()
+        status['graph'] = graph
 
         return status
 

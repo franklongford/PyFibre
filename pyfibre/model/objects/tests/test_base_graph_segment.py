@@ -19,7 +19,7 @@ class TestBaseGraphSegment(TestCase):
         status = self.graph_segment.__getstate__()
 
         self.assertListEqual(
-            ['graph', 'image'],
+            ['graph'],
             list(status.keys())
         )
 

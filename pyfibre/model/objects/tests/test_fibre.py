@@ -20,7 +20,7 @@ class TestFibre(TestCase):
         status = fibre.__getstate__()
 
         self.assertListEqual(
-            ['graph', 'image', 'growing'],
+            ['graph', 'growing'],
             list(status.keys())
         )
 

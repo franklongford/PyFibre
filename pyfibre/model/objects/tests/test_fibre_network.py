@@ -20,7 +20,7 @@ class TestNetwork(TestCase):
         status = self.network.__getstate__()
 
         self.assertListEqual(
-            ['graph', 'image'],
+            ['graph'],
             list(status.keys())
         )
 
