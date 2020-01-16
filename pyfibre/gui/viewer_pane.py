@@ -17,7 +17,8 @@ from traitsui.api import (
     View, Group, Item, ListEditor
 )
 
-from pyfibre.io.object_io import load_objects, load_fibre_networks
+from pyfibre.io.object_io import (
+    load_objects, load_fibre_networks, load_fibres)
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 from pyfibre.gui.file_display_pane import TableRow
 from pyfibre.model.objects.multi_image import MultiImage
@@ -250,7 +251,7 @@ class ViewerPane(TraitsTaskPane):
         if self.selected_row is not None:
             image_name = os.path.basename(self.selected_row.name)
             image_path = os.path.dirname(self.selected_row.name)
-            data_dir = f"{image_path}/{image_name}/data/"
+            data_dir = f"{image_path}/{image_name}-analysis/data/"
             filename = data_dir + image_name
 
             self.shg_image_tab.image = self.selected_image.shg_image
@@ -266,17 +267,24 @@ class ViewerPane(TraitsTaskPane):
             else:
                 fibre_segments = [fibre_network.segment for fibre_network in fibre_networks]
                 networks = [fibre_network.graph for fibre_network in fibre_networks]
-                fibres = [fibre_network.fibres for fibre_network in fibre_networks]
-                fibres = [fibre.graph for fibre in flatten_list(fibres)]
 
                 self.network_tab.networks = networks
                 self.network_tab.image = self.selected_image.shg_image
 
-                self.fibre_tab.networks = fibres
-                self.fibre_tab.image = self.selected_image.shg_image
-
                 self.fibre_segment_tab.segments = fibre_segments
                 self.fibre_segment_tab.image = self.selected_image.shg_image
+
+                try:
+                    fibres = load_fibres(filename)
+                except (IOError, EOFError):
+                    fibres = flatten_list([
+                        fibre_network.fibres
+                        for fibre_network in fibre_networks])
+
+                networks = [fibre.graph for fibre in fibres]
+
+                self.fibre_tab.networks = networks
+                self.fibre_tab.image = self.selected_image.shg_image
 
             self.pl_image_tab.image = self.selected_image.pl_image
             self.trans_image_tab.image = self.selected_image.trans_image
