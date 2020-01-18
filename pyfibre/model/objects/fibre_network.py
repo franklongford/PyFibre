@@ -9,11 +9,20 @@ class FibreNetwork(BaseGraphSegment):
     """Container for a Networkx Graph and scikit-image region
     representing a connected fibrous region"""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, fibres=None, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.fibres = fibres
 
         self._area_threshold = 200
         self._iterations = 5
+
+    def __getstate__(self):
+        """Return the object state in a form that can be
+        serialised as a JSON file"""
+        state = super().__getstate__()
+        state.pop('fibres', None)
+        return state
 
     @property
     def fibre_assigner(self):
@@ -23,8 +32,7 @@ class FibreNetwork(BaseGraphSegment):
     def red_graph(self):
         return simplify_network(self.graph)
 
-    @property
-    def fibres(self):
+    def generate_fibres(self):
         return self.fibre_assigner.assign_fibres(self.graph)
 
     def generate_database(self, image=None):

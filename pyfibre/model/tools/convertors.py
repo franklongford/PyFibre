@@ -38,6 +38,15 @@ def binary_to_stack(binary):
     return np.where(binary_stack, 1, 0)
 
 
+def stack_to_binary(stack):
+    """Converts a stack to a binary image"""
+
+    binary = np.sum(stack, axis=0)
+    binary = np.where(binary, 1, 0)
+
+    return binary
+
+
 def segments_to_stack(segments, shape):
     """Convert a list of scikit-image segments to a single binary mask"""
     stack = np.zeros(

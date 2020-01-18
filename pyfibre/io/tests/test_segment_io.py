@@ -37,7 +37,7 @@ class TestSegmentIO(TestCase):
             test_masks = np.load('test_segment.npy', mmap_mode='r')
 
             self.assertEqual(test_masks.dtype, int)
-            self.assertEqual(test_masks.shape, (self.N, self.N))
+            self.assertEqual(test_masks.shape, (1, self.N, self.N))
             self.assertTrue(np.allclose(
                 np.where(self.image > 0, 1, 0),
                 test_masks

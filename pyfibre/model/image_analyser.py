@@ -15,18 +15,15 @@ from pyfibre.model.tools.figures import (
     create_network_image
 )
 from pyfibre.model.tools.preprocessing import nl_means
-from pyfibre.io.segment_io import load_segments, save_segments
 from pyfibre.io.object_io import (
     save_fibre_networks, load_fibre_networks,
     save_cells, load_cells,
-    save_fibres, load_fibres,
-    save_objects, load_objects)
+    save_fibres, load_fibres)
 from pyfibre.io.network_io import save_network, load_network
 from pyfibre.io.database_io import save_database, load_database
 
 from pyfibre.model.metric_analysis import metric_analysis
 from pyfibre.model.pyfibre_segmentation import cell_segmentation
-from pyfibre.model.tools.convertors import segments_to_binary
 
 logger = logging.getLogger(__name__)
 
@@ -111,23 +108,15 @@ class ImageAnalyser:
 
     def _create_directory(self, prefix):
 
-        image_name = os.path.basename(prefix)
-        working_dir = (
-            f"{os.path.dirname(prefix)}/{image_name}-analysis")
+        (working_dir, data_dir, fig_dir,
+         filename, figname) = self.get_filenames(prefix)
 
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
-
-        data_dir = working_dir + '/data/'
-        fig_dir = working_dir + '/fig/'
-
         if not os.path.exists(data_dir):
             os.mkdir(data_dir)
         if not os.path.exists(fig_dir):
             os.mkdir(fig_dir)
-
-        filename = data_dir + image_name
-        figname = fig_dir + image_name
 
         return filename, figname
 

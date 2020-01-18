@@ -26,7 +26,7 @@ class TestNetwork(TestCase):
 
     def test_fibres(self):
 
-        fibres = self.network.fibres
+        fibres = self.network.generate_fibres()
 
         self.assertEqual(1, len(fibres))
         self.assertListEqual([0, 1, 2, 3], fibres[0].node_list)
