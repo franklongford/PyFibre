@@ -1,5 +1,8 @@
 import os
 
+import numpy as np
+from networkx import node_link_graph
+
 
 def parse_files(name=None, directory=None, key=None):
 
@@ -94,3 +97,15 @@ def pop_dunder_recursive(dictionary):
     pop_recursive(dictionary, remove_dunder)
 
     return dictionary
+
+
+def get_networkx_graph(data):
+    """Transform JSON serialised data into a
+    networkx Graph object"""
+
+    for coord in data['nodes']:
+        coord['xy'] = np.asarray(coord['xy'])
+        if 'direction' in coord:
+            coord['direction'] = np.asarray(coord['direction'])
+
+    return node_link_graph(data)

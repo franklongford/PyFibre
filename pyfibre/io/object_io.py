@@ -1,6 +1,4 @@
-import numpy as np
-from networkx.readwrite import node_link_graph
-
+from pyfibre.io.utils import get_networkx_graph
 from pyfibre.model.objects.base_graph_segment import BaseGraphSegment
 from pyfibre.model.objects.cell import Cell
 from pyfibre.model.objects.fibre import Fibre
@@ -9,18 +7,6 @@ from pyfibre.utilities import (
     save_pickle, load_pickle, save_json, load_json)
 
 from .segment_io import save_segments, load_segments
-
-
-def get_networkx_graph(data):
-    """Transform JSON serialised data into a
-    networkx Graph object"""
-
-    for coord in data['nodes']:
-        coord['xy'] = np.asarray(coord['xy'])
-        if 'direction' in coord:
-            coord['direction'] = np.asarray(coord['direction'])
-
-    return node_link_graph(data)
 
 
 def save_base_graph_segment(graph_segment, file_name, file_type=None):
@@ -54,11 +40,17 @@ def save_base_graph_segments(graph_segments, file_name, file_type=None):
     else:
         file_type = 'graph_segment'
 
-    data = {
-        file_type : [
-            graph_segment.__getstate__()
-            for graph_segment in graph_segments]
-    }
+    data = {file_type: []}
+
+    for graph_segment in graph_segments:
+        if isinstance(graph_segment, BaseGraphSegment):
+            data["file_type"].append(
+                graph_segment.__getstate__())
+        else:
+            data["file_type"] += [
+                element.__getstate__()
+                for element in graph_segment
+            ]
 
     save_json(data, file_name)
 
@@ -74,9 +66,16 @@ def load_base_graph_segments(
     data = load_json(file_name)
 
     for graph_segment in data[file_type]:
-        graph_segment['graph'] = get_networkx_graph(
-            graph_segment['graph'])
-        graph_segment['image'] = image
+        if isinstance(graph_segment, dict):
+            graph_segment['graph'] = get_networkx_graph(
+                graph_segment['graph'])
+            graph_segment['image'] = image
+        else:
+            for element in graph_segment:
+                graph_segment['graph'] = get_networkx_graph(
+                    graph_segment['graph'])
+                graph_segment['image'] = image
+
 
     graph_segments = [
         klass(**kwargs) for kwargs in data[file_type]
@@ -86,12 +85,12 @@ def load_base_graph_segments(
 
 
 def save_fibres(fibres, file_name):
-    """Save a list of Fibre instances"""
+    """Save a nested list of Fibre instances"""
     save_base_graph_segments(fibres, file_name, 'fibres')
 
 
 def load_fibres(file_name, image=None):
-    """Load a list of FibreNetwork instances"""
+    """Load a nested list of FibreNetwork instances"""
     return load_base_graph_segments(
         file_name, 'fibres', Fibre, image=image)
 
