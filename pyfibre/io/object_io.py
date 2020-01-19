@@ -27,7 +27,6 @@ def load_base_graph_segment(
         file_name = '_'.join([file_name, file_type])
 
     data = load_json(file_name)
-    data['graph'] = get_networkx_graph(data['graph'])
     data['image'] = image
 
     return klass(**data)
@@ -40,17 +39,10 @@ def save_base_graph_segments(graph_segments, file_name, file_type=None):
     else:
         file_type = 'graph_segment'
 
-    data = {file_type: []}
-
-    for graph_segment in graph_segments:
-        if isinstance(graph_segment, BaseGraphSegment):
-            data["file_type"].append(
-                graph_segment.__getstate__())
-        else:
-            data["file_type"] += [
-                element.__getstate__()
-                for element in graph_segment
-            ]
+    data = {file_type: [
+        graph_segment.__getstate__()
+        for graph_segment in graph_segments]
+    }
 
     save_json(data, file_name)
 
@@ -66,16 +58,7 @@ def load_base_graph_segments(
     data = load_json(file_name)
 
     for graph_segment in data[file_type]:
-        if isinstance(graph_segment, dict):
-            graph_segment['graph'] = get_networkx_graph(
-                graph_segment['graph'])
-            graph_segment['image'] = image
-        else:
-            for element in graph_segment:
-                graph_segment['graph'] = get_networkx_graph(
-                    graph_segment['graph'])
-                graph_segment['image'] = image
-
+        graph_segment['image'] = image
 
     graph_segments = [
         klass(**kwargs) for kwargs in data[file_type]

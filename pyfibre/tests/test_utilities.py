@@ -80,7 +80,8 @@ class TestImages(TestCase):
 class TestUtilities(TestCase):
 
     def setUp(self):
-        self.image, self.labels, self.binary = generate_image()
+        (self.image, self.labels,
+         self.binary, self.stack) = generate_image()
 
     def test_unit_vector(self):
 
