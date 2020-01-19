@@ -27,9 +27,8 @@ def load_base_graph_segment(
         file_name = '_'.join([file_name, file_type])
 
     data = load_json(file_name)
-    data['image'] = image
 
-    return klass(**data)
+    return klass(image=image, **data)
 
 
 def save_base_graph_segments(graph_segments, file_name, file_type=None):
@@ -57,11 +56,9 @@ def load_base_graph_segments(
 
     data = load_json(file_name)
 
-    for graph_segment in data[file_type]:
-        graph_segment['image'] = image
-
     graph_segments = [
-        klass(**kwargs) for kwargs in data[file_type]
+        klass(image=image, **kwargs)
+        for kwargs in data[file_type]
     ]
 
     return graph_segments
