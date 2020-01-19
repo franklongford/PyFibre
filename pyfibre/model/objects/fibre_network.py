@@ -17,7 +17,7 @@ class FibreNetwork(BaseGraphSegment):
             self.fibres = []
         elif isinstance(fibres, list):
             self.fibres = [
-                Fibre(**element)
+                Fibre(image=self.image, **element)
                 if isinstance(element, dict)
                 else element
                 for element in fibres
