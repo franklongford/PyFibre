@@ -18,8 +18,8 @@ from pyfibre.tests.test_utilities import test_image_path
 class TestSegmentation(TestCase):
 
     def setUp(self):
-
-        self.image, self.labels, self.binary = generate_image()
+        (self.image, self.labels,
+         self.binary, self.stack) = generate_image()
         self.network = generate_probe_graph()
 
         self.image_stack = imread(test_image_path).mean(axis=-1)

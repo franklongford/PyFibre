@@ -6,10 +6,10 @@ import numpy as np
 from skimage.measure import label, regionprops
 
 from pyfibre.io.segment_io import (
-    save_segment, load_segment
+    save_segments, load_segments
 )
 
-SAVE_SEGMENT_PATH = 'pyfibre.io.segment_io.save_segment'
+SAVE_SEGMENT_PATH = 'pyfibre.io.segment_io.save_segments'
 
 
 class TestSegmentIO(TestCase):
@@ -31,13 +31,13 @@ class TestSegmentIO(TestCase):
     def test_save_image(self):
 
         try:
-            save_segment(self.segments, 'test', self.image.shape, 'segment')
+            save_segments(self.segments, 'test', self.image.shape, 'segment')
             self.assertTrue(os.path.exists('test_segment.npy'))
 
             test_masks = np.load('test_segment.npy', mmap_mode='r')
 
             self.assertEqual(test_masks.dtype, int)
-            self.assertEqual(test_masks.shape, (self.N, self.N))
+            self.assertEqual(test_masks.shape, (1, self.N, self.N))
             self.assertTrue(np.allclose(
                 np.where(self.image > 0, 1, 0),
                 test_masks
@@ -50,10 +50,10 @@ class TestSegmentIO(TestCase):
     def test_load_label_image(self):
 
         try:
-            save_segment(self.segments, 'test', self.image.shape, 'segment')
+            save_segments(self.segments, 'test', self.image.shape, 'segment')
             self.assertTrue(os.path.exists('test_segment.npy'))
 
-            test_segment = load_segment('test', 'segment')
+            test_segment = load_segments('test', 'segment')
 
             self.assertEqual(len(self.segments), len(test_segment))
 
@@ -67,7 +67,7 @@ class TestSegmentIO(TestCase):
                 np.all(self.segments[0].image == test_segment[0].image)
             )
 
-            test_segment = load_segment('test', 'segment', image=self.image)
+            test_segment = load_segments('test', 'segment', image=self.image)
 
             self.assertAlmostEqual(
                 0,

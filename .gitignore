@@ -15,8 +15,7 @@ __pycache__/
 # Distribution / packaging
 .DS_Store/
 .Python
-pyfibre/tests/fixtures/fig/
-pyfibre/tests/fixtures/data/
+pyfibre/tests/fixtures/*/
 build/
 develop-eggs/
 dist/

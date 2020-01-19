@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 
 def cell_segmentation(multi_image, fibre_networks, scale=1.0, pl_analysis=False):
 
-    fibre_segments = [fibre_network.segment for fibre_network in fibre_networks]
+    fibre_segments = [fibre_network.segment
+                      for fibre_network in fibre_networks]
 
     if pl_analysis:
-
         # Create a filter for the SHG image that enhances the segments
         # identified by the FIRE algorithm
         fibre_net_binary = segments_to_binary(
@@ -41,7 +41,8 @@ def cell_segmentation(multi_image, fibre_networks, scale=1.0, pl_analysis=False)
         fibre_col_binary = segments_to_binary(
             fibre_col_seg,  multi_image.shape
         )
-        fibre_col_binary = binary_dilation(fibre_col_binary, iterations=2)
+        fibre_col_binary = binary_dilation(fibre_col_binary,
+                                           iterations=2)
         fibre_col_binary = binary_closing(fibre_col_binary)
 
         # Generate a filter for the SHG image that combines information
@@ -52,12 +53,8 @@ def cell_segmentation(multi_image, fibre_networks, scale=1.0, pl_analysis=False)
             min_intensity=0.13)
 
         # Create a new set of segments for each cell region
-        cell_segments = binary_to_segments(
-            ~fibre_binary, multi_image.pl_image, 250, 0.01)
-
-        cells = [Cell(segment=cell_segment,
-                      image=multi_image.pl_image)
-                 for cell_segment in cell_segments]
+        image = multi_image.pl_image
+        cell_binary = ~fibre_binary
 
     else:
         # Create a filter for the PL image that corresponds
@@ -66,15 +63,16 @@ def cell_segmentation(multi_image, fibre_networks, scale=1.0, pl_analysis=False)
         fibre_binary = segments_to_binary(
             fibre_segments, multi_image.shape
         )
+        image = multi_image.shg_image
         cell_binary = ~fibre_binary
 
-        # Segment the PL image using this filter
-        cell_segments = binary_to_segments(
-            cell_binary, multi_image.shg_image, 250, 0.01
-        )
+    # Segment the image using this filter
+    cell_segments = binary_to_segments(
+        cell_binary, image, 250, 0.01
+    )
 
-        cells = [Cell(segment=cell_segment,
-                      image=multi_image.shg_image)
-                 for cell_segment in cell_segments]
+    cells = [Cell(segment=cell_segment,
+                  image=image)
+             for cell_segment in cell_segments]
 
     return cells

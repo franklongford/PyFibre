@@ -38,6 +38,53 @@ def binary_to_stack(binary):
     return np.where(binary_stack, 1, 0)
 
 
+def stack_to_binary(stack):
+    """Converts a stack to a binary image"""
+
+    binary = np.sum(stack, axis=0)
+    binary = np.where(binary, 1, 0)
+
+    return binary
+
+
+def segments_to_stack(segments, shape):
+    """Convert a list of scikit-image segments to a single binary mask"""
+    stack = np.zeros(
+        (len(segments),) + shape, dtype=int)
+
+    for index, segment in enumerate(segments):
+        minr, minc, maxr, maxc = segment.bbox
+        indices = np.mgrid[minr:maxr, minc:maxc]
+        binary_image = np.zeros(shape, dtype=int)
+        binary_image[(indices[0], indices[1])] += segment.image
+        stack[index] += binary_image
+
+    stack = np.where(stack, 1, 0)
+
+    return stack
+
+
+def stack_to_segments(stack, intensity_image=None, min_size=0, min_frac=0):
+    """Convert a binary mask image to a set of scikit-image segment objects"""
+
+    segments = []
+
+    for binary in stack:
+        labels = measure.label(binary.astype(np.int))
+        segments += [
+            segment
+            for segment in regionprops(
+                labels, intensity_image=intensity_image)
+            if segment_check(segment, min_size, min_frac)
+        ]
+
+    areas = [segment.filled_area for segment in segments]
+    indices = np.argsort(areas)[::-1]
+    segments = [segments[i] for i in indices]
+
+    return segments
+
+
 def segments_to_binary(segments, shape):
     """Convert a list of scikit-image segments to a single binary mask"""
     binary_image = np.zeros(shape, dtype=int)

@@ -48,12 +48,11 @@ class TestAnalysis(TestCase):
     def test_fibre_network_analysis(self):
 
         fibre_network = ProbeFibreNetwork()
+        fibre_network.fibres = fibre_network.generate_fibres()
         image = np.ones((5, 5))
         image[2:, 2:] = 2
 
         fibre_network_metrics = fibre_network_analysis(
             [fibre_network], image)
-
-        print(fibre_network_metrics.columns)
 
         self.assertEqual(15, len(fibre_network_metrics.columns))

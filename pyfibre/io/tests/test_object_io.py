@@ -5,9 +5,9 @@ import numpy as np
 import networkx as nx
 
 from pyfibre.io.object_io import (
-    get_networkx_graph,
     save_base_graph_segment, load_base_graph_segment,
     save_base_graph_segments, load_base_graph_segments)
+from pyfibre.io.utils import get_networkx_graph
 from pyfibre.model.objects.base_graph_segment import (
     BaseGraphSegment
 )

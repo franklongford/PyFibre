@@ -5,7 +5,8 @@ import numpy as np
 
 from pyfibre.model.tools.convertors import (
     binary_to_stack, segments_to_binary, binary_to_segments,
-    networks_to_binary)
+    networks_to_binary, stack_to_binary, stack_to_segments,
+    segments_to_stack)
 from pyfibre.tests.probe_classes import (
     generate_image, generate_probe_graph
 )
@@ -14,7 +15,8 @@ from pyfibre.tests.probe_classes import (
 class TestConvertors(TestCase):
 
     def setUp(self):
-        self.image, self.labels, self.binary = generate_image()
+        (self.image, self.labels,
+         self.binary, self.stack) = generate_image()
         self.network = generate_probe_graph()
 
     def test_binary_to_stack(self):
@@ -23,6 +25,14 @@ class TestConvertors(TestCase):
         self.assertEqual((2, 10, 10), binary_stack.shape)
         self.assertEqual(9, binary_stack[0].sum())
         self.assertEqual(3, binary_stack[1].sum())
+
+    def test_stack_to_binary(self):
+
+        binary = stack_to_binary(self.stack)
+        self.assertEqual((10, 10), binary.shape)
+        self.assertTrue(
+            np.allclose(self.binary, binary)
+        )
 
     def test_binary_to_segments(self):
         segments = binary_to_segments(self.binary, self.image)
@@ -38,8 +48,7 @@ class TestConvertors(TestCase):
         self.assertEqual(1, len(segments))
         self.assertEqual(3, segments[0].filled_area)
 
-        binary_stack = binary_to_stack(self.binary)
-        segments = binary_to_segments(binary_stack, self.image)
+        segments = binary_to_segments(self.stack, self.image)
         self.assertEqual(2, len(segments))
         self.assertEqual(9, segments[0].filled_area)
         self.assertEqual(3, segments[1].filled_area)
@@ -68,3 +77,16 @@ class TestConvertors(TestCase):
 
     def test_networks_to_segments(self):
         pass
+
+    def test_segments_to_stack(self):
+        segments = stack_to_segments(self.stack)
+        stack = segments_to_stack(segments, (10, 10))
+        self.assertTrue(
+            np.allclose(self.stack, stack)
+        )
+
+    def test_stack_to_segments(self):
+        segments = stack_to_segments(self.stack)
+        self.assertEqual(2, len(segments))
+        self.assertEqual(9, segments[0].filled_area)
+        self.assertEqual(3, segments[1].filled_area)

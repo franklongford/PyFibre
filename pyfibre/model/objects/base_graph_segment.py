@@ -1,8 +1,9 @@
 import copy
 
+from networkx import Graph
 from networkx.readwrite.json_graph import node_link_data
 
-from pyfibre.io.utils import pop_under_recursive
+from pyfibre.io.utils import pop_under_recursive, get_networkx_graph
 from pyfibre.model.tools.convertors import networks_to_segments
 from pyfibre.model.tools.fibre_utilities import get_node_coord_array
 
@@ -12,6 +13,11 @@ class BaseGraphSegment:
     representing a connected fibrous region"""
 
     def __init__(self, graph=None, image=None):
+
+        if isinstance(graph, dict):
+            graph = get_networkx_graph(graph)
+        elif graph is None:
+            graph = Graph()
 
         self.graph = graph
         self.image = image
@@ -24,18 +30,22 @@ class BaseGraphSegment:
         """Return the object state in a form that can be
         serialised as a JSON file"""
         status = pop_under_recursive(copy.copy(self.__dict__))
+        status.pop('image', None)
 
         graph = node_link_data(status['graph'])
 
         for coord in graph['nodes']:
             coord['xy'] = coord['xy'].tolist()
+            coord['id'] = int(coord['id'])
             if 'direction' in coord:
                 coord['direction'] = coord['direction'].tolist()
 
-        status['graph'] = graph
+        if "links" in graph:
+            for link in graph["links"]:
+                link['source'] = int(link['source'])
+                link['target'] = int(link['target'])
 
-        if status['image'] is not None:
-            status['image'] = status['image'].tolist()
+        status['graph'] = graph
 
         return status
 
@@ -50,6 +60,14 @@ class BaseGraphSegment:
     @property
     def node_coord(self):
         return get_node_coord_array(self.graph)
+
+    def add_node(self, *args, **kwargs):
+        """Add node to Networkx graph attribute"""
+        self.graph.add_node(*args, **kwargs)
+
+    def add_edge(self, *args, **kwargs):
+        """Add edge to Networkx graph attribute"""
+        self.graph.add_edge(*args, **kwargs)
 
     @property
     def segment(self):
@@ -71,14 +89,6 @@ class BaseGraphSegment:
                 sigma=self._sigma)
 
         return segments[0]
-
-    def add_node(self, *args, **kwargs):
-        """Add node to Networkx graph attribute"""
-        self.graph.add_node(*args, **kwargs)
-
-    def add_edge(self, *args, **kwargs):
-        """Add edge to Networkx graph attribute"""
-        self.graph.add_edge(*args, **kwargs)
 
     def generate_database(self, image=None):
         """Generates a Pandas database with all graph and segment metrics

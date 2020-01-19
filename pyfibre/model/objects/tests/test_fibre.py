@@ -20,8 +20,26 @@ class TestFibre(TestCase):
         status = fibre.__getstate__()
 
         self.assertListEqual(
-            ['graph', 'image', 'growing'],
+            ['graph', 'growing'],
             list(status.keys())
+        )
+
+        new_fibre = Fibre(**status)
+        status = new_fibre.__getstate__()
+
+        self.assertDictEqual(
+            status['graph'],
+            {'directed': False,
+             'graph': {},
+             'links': [{'r': 1.4142135623730951, 'source': 2, 'target': 3},
+                       {'r': 1.4142135623730951, 'source': 3, 'target': 4},
+                       {'r': 1, 'source': 4, 'target': 5}],
+             'multigraph': False,
+             'nodes': [{'xy': [0, 0], 'id': 2},
+                       {'xy': [1, 1], 'id': 3},
+                       {'xy': [2, 2], 'id': 4},
+                       {'xy': [2, 3], 'id': 5}]
+             }
         )
 
     def test_node_list_init(self):

@@ -27,7 +27,12 @@ def generate_image():
     binary[2, 4:8] = 1
     binary[8, 1:4] = 1
 
-    return image, labels, binary
+    stack = np.zeros((2, 10, 10))
+    stack[0, 0:6, 4] = 1
+    stack[0, 2, 4:8] = 1
+    stack[1, 8, 1:4] = 1
+
+    return image, labels, binary, stack
 
 
 def generate_probe_graph():

@@ -8,7 +8,7 @@ from tkinter.ttk import Notebook, Frame
 from PIL import ImageTk, Image
 
 from pyfibre.io.database_io import check_file_name
-from pyfibre.io.segment_io import load_segment
+from pyfibre.io.segment_io import load_segments
 from pyfibre.model.objects.multi_image import MultiImage
 from pyfibre.model.tools.figures import (
     create_tensor_image, create_region_image, create_network_image
@@ -153,7 +153,7 @@ class PyFibreViewer:
             self.update_log("Displaying SHG tensor image {}".format(fig_name))
 
             try:
-                networks = load_segment(data_dir + fig_name, "network")
+                networks = load_segments(data_dir + fig_name, "network")
                 self.display_network(self.network_tab.canvas, image_shg, networks)
                 self.update_log("Displaying network for {}".format(fig_name))
             except (UnpicklingError, IOError, EOFError):
@@ -161,7 +161,7 @@ class PyFibreViewer:
                 self.update_log("Unable to display network for {}".format(fig_name))
 
             try:
-                fibres = load_segment(data_dir + fig_name, "fibre")
+                fibres = load_segments(data_dir + fig_name, "fibre")
                 fibres = flatten_list(fibres)
                 self.display_network(self.fibre_tab.canvas, image_shg, fibres, 1)
                 self.update_log("Displaying fibres for {}".format(fig_name))
@@ -170,7 +170,7 @@ class PyFibreViewer:
                 self.update_log("Unable to display fibres for {}".format(fig_name))
 
             try:
-                segments = load_segment(data_dir + fig_name, "fibre_segment")
+                segments = load_segments(data_dir + fig_name, "fibre_segment")
                 self.display_regions(self.segment_tab.canvas, image_shg, segments)
                 self.update_log("Displaying fibre segments for {}".format(fig_name))
             except (AttributeError, UnpicklingError, IOError, EOFError):
@@ -195,7 +195,7 @@ class PyFibreViewer:
             self.update_log("Displaying PL Transmission image {}".format(fig_name))
 
             try:
-                cells = load_segment(data_dir + fig_name, "cell_segment")
+                cells = load_segments(data_dir + fig_name, "cell_segment")
                 self.display_regions(self.cell_tab.canvas, image_pl, cells)
                 self.update_log("Displaying cell segments for {}".format(fig_name))
             except (AttributeError, UnpicklingError, IOError, EOFError):

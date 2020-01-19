@@ -1,22 +1,12 @@
-import numpy as np
-from networkx.readwrite import node_link_graph
-
+from pyfibre.io.utils import get_networkx_graph
 from pyfibre.model.objects.base_graph_segment import BaseGraphSegment
+from pyfibre.model.objects.cell import Cell
+from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
 from pyfibre.utilities import (
     save_pickle, load_pickle, save_json, load_json)
 
-
-def get_networkx_graph(data):
-    """Transform JSON serialised data into a
-    networkx Graph object"""
-
-    for coord in data['nodes']:
-        coord['xy'] = np.asarray(coord['xy'])
-        if 'direction' in coord:
-            coord['direction'] = np.asarray(coord['direction'])
-
-    return node_link_graph(data)
+from .segment_io import save_segments, load_segments
 
 
 def save_base_graph_segment(graph_segment, file_name, file_type=None):
@@ -29,7 +19,8 @@ def save_base_graph_segment(graph_segment, file_name, file_type=None):
     save_json(data, file_name)
 
 
-def load_base_graph_segment(file_name, file_type=None, klass=BaseGraphSegment):
+def load_base_graph_segment(
+        file_name, file_type=None, klass=BaseGraphSegment, image=None):
     """Loads pickled image objects"""
 
     if file_type is not None:
@@ -37,12 +28,7 @@ def load_base_graph_segment(file_name, file_type=None, klass=BaseGraphSegment):
 
     data = load_json(file_name)
 
-    data['graph'] = get_networkx_graph(data['graph'])
-
-    if data['image'] is not None:
-        data['image'] = np.asarray(data['image'])
-
-    return klass(**data)
+    return klass(image=image, **data)
 
 
 def save_base_graph_segments(graph_segments, file_name, file_type=None):
@@ -52,16 +38,16 @@ def save_base_graph_segments(graph_segments, file_name, file_type=None):
     else:
         file_type = 'graph_segment'
 
-    data = {
-        file_type : [
-            graph_segment.__getstate__()
-            for graph_segment in graph_segments]
+    data = {file_type: [
+        graph_segment.__getstate__()
+        for graph_segment in graph_segments]
     }
 
     save_json(data, file_name)
 
 
-def load_base_graph_segments(file_name, file_type=None, klass=BaseGraphSegment):
+def load_base_graph_segments(
+        file_name, file_type=None, klass=BaseGraphSegment, image=None):
 
     if file_type is not None:
         file_name = '_'.join([file_name, file_type])
@@ -70,19 +56,39 @@ def load_base_graph_segments(file_name, file_type=None, klass=BaseGraphSegment):
 
     data = load_json(file_name)
 
-    for graph_segment in data[file_type]:
-        graph_segment['graph'] = get_networkx_graph(
-            graph_segment['graph'])
-
-        if graph_segment['image'] is not None:
-            graph_segment['image'] = np.asarray(
-                graph_segment['image'])
-
     graph_segments = [
-        klass(**kwargs) for kwargs in data[file_type]
+        klass(image=image, **kwargs)
+        for kwargs in data[file_type]
     ]
 
     return graph_segments
+
+
+def save_fibres(fibres, file_name):
+    """Save a nested list of Fibre instances"""
+    save_base_graph_segments(fibres, file_name, 'fibres')
+
+
+def load_fibres(file_name, image=None):
+    """Load a nested list of FibreNetwork instances"""
+    return load_base_graph_segments(
+        file_name, 'fibres', Fibre, image=image)
+
+
+def save_cells(cells, file_name, shape=None):
+    """Save a list of Cell instances"""
+    segments = [cell.segment for cell in cells]
+    if shape is None:
+        shape = cells[0].segment.image.shape
+    save_segments(segments, file_name, shape, 'cells')
+
+
+def load_cells(file_name, image=None):
+    """Load a list of Cell instances"""
+    segments = load_segments(
+        file_name, 'cells', image=image)
+    return [Cell(segment=segment)
+            for segment in segments]
 
 
 def save_fibre_networks(fibre_networks, file_name):
@@ -90,10 +96,10 @@ def save_fibre_networks(fibre_networks, file_name):
     save_base_graph_segments(fibre_networks, file_name, 'fibre_networks')
 
 
-def load_fibre_networks(file_name):
+def load_fibre_networks(file_name, image=None):
     """Load a list of FibreNetwork instances"""
     return load_base_graph_segments(
-        file_name, 'fibre_networks', FibreNetwork)
+        file_name, 'fibre_networks', FibreNetwork, image=image)
 
 
 def save_objects(objects, file_name, file_type=None):

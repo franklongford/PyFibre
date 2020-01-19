@@ -15,7 +15,8 @@ from pyfibre.tests.probe_classes import (
 class TestSegmentUtilities(TestCase):
 
     def setUp(self):
-        self.image, self.labels, self.binary = generate_image()
+        (self.image, self.labels,
+         self.binary, self.stack) = generate_image()
         self.network = generate_probe_graph()
 
     def test_segment_check(self):

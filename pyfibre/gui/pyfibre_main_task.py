@@ -225,18 +225,14 @@ class PyFibreMainTask(Task):
             reader.assign_images(row._dictionary)
             multi_image = reader.load_multi_image()
 
-            working_dir = os.path.dirname(row.name)
-            image_name = os.path.basename(row.name)
-            data_dir = working_dir + '/data/'
-            fig_dir = working_dir + '/fig/'
+            (working_dir, data_dir, fig_dir,
+             filename, figname) = image_analyser.get_filenames(row.name)
 
             if not os.path.exists(fig_dir):
                 os.mkdir(fig_dir)
 
-            filename = data_dir + image_name
-            figname = fig_dir + image_name
-
-            image_analyser.create_figures(multi_image, filename, figname)
+            image_analyser.create_figures(
+                multi_image, filename, figname)
 
     def create_databases(self):
 

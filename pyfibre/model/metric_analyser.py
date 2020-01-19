@@ -9,46 +9,39 @@ from pyfibre.model.tools.analysis import (
 )
 from pyfibre.model.tools.convertors import segments_to_binary, binary_to_segments
 from pyfibre.model.tools.filters import form_structure_tensor
-from pyfibre.utilities import flatten_list
 
 logger = logging.getLogger(__name__)
 
 
-class ImageAnalyser:
+class MetricAnalyser:
 
     def __init__(self, image, filename, objects, sigma):
 
         self.filename = filename
         self.image = image
+        self.objects = objects
         self.sigma = sigma
 
-        self.objects = objects
-
-        self.global_dataframe = None
-
-
-class SHGAnalyser(ImageAnalyser):
-
-    def __init__(self, image_shg, filename, fibre_networks, sigma):
-        super().__init__(image=image_shg, filename=filename,
-                         objects=fibre_networks, sigma=sigma)
-
         # Form structure tensors for each pixel
-        self.shg_j_tensor = form_structure_tensor(
+        self.j_tensor = form_structure_tensor(
             image=self.image, sigma=self.sigma)
 
-        self.fibre_dataframe = None
+        self.local_dataframe = None
+        self.global_dataframe = None
         self.global_metrics = None
+
+
+class SHGAnalyser(MetricAnalyser):
 
     def analyse(self):
 
-        "Analyse fibre network and individual regions"
+        # Analyse fibre network and individual regions
         fibre_metrics = fibre_network_analysis(self.objects, self.image, self.sigma)
 
         fibre_filenames = pd.Series(
-            ['{}_fibre_segment.pkl'.format(self.filename)] * len(self.objects),
+            ['{}_fibre_networks.json'.format(self.filename)] * len(self.objects),
             name='File')
-        self.fibre_dataframe = pd.concat((fibre_filenames, fibre_metrics), axis=1)
+        self.local_dataframe = pd.concat((fibre_filenames, fibre_metrics), axis=1)
 
         # Perform non-linear analysis on global region
         fibre_segments = [fibre_network.segment for fibre_network in self.objects]
@@ -85,18 +78,7 @@ class SHGAnalyser(ImageAnalyser):
             fibre_metrics['SHG Network Connectivity'])
 
 
-class PLAnalyser(ImageAnalyser):
-
-    def __init__(self, image_pl, filename, cells, sigma):
-        super().__init__(image=image_pl, filename=filename,
-                         objects=cells, sigma=sigma)
-
-        "Form structure tensors for each pixel"
-        self.pl_j_tensor = form_structure_tensor(
-            image=self.image, sigma=sigma)
-
-        self.cell_dataframe = None
-        self.global_metrics = None
+class PLAnalyser(MetricAnalyser):
 
     def analyse(self):
 
@@ -104,7 +86,7 @@ class PLAnalyser(ImageAnalyser):
 
         cell_filenames = pd.Series(
             ['{}_cell_segment.pkl'.format(self.filename)] * len(self.objects), name='File')
-        self.cell_dataframe = pd.concat((cell_filenames, cell_metrics), axis=1)
+        self.local_dataframe = pd.concat((cell_filenames, cell_metrics), axis=1)
 
         # Perform non-linear analysis on global region
         cell_segments = [cell.segment for cell in self.objects]
@@ -131,13 +113,15 @@ def metric_analysis(multi_image, filename, fibre_networks, cells, sigma,
         start = time.time()
 
         shg_analyser = SHGAnalyser(
-            multi_image.shg_image, filename, fibre_networks, sigma
+            multi_image.shg_image, filename,
+            fibre_networks, sigma
         )
         shg_analyser.analyse()
 
-        dataframes[0] = shg_analyser.fibre_dataframe
+        dataframes[0] = shg_analyser.local_dataframe
         global_dataframe = pd.concat(
-            (global_dataframe, shg_analyser.global_metrics), axis=0)
+            (global_dataframe, shg_analyser.global_metrics),
+            axis=0)
 
         end = time.time()
         logger.debug(f" Fibre segment analysis: {end-start} s")
@@ -151,7 +135,7 @@ def metric_analysis(multi_image, filename, fibre_networks, cells, sigma,
 
         pl_analyser.analyse()
 
-        dataframes[1] = pl_analyser.cell_dataframe
+        dataframes[1] = pl_analyser.local_dataframe
         global_dataframe = pd.concat(
             (global_dataframe, pl_analyser.global_metrics), axis=0)
         end = time.time()

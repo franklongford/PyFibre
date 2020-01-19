@@ -18,10 +18,25 @@ class TestBaseGraphSegment(TestCase):
     def test__getstate__(self):
         status = self.graph_segment.__getstate__()
 
-        self.assertListEqual(
-            ['graph', 'image'],
-            list(status.keys())
+        self.assertDictEqual(
+            status['graph'],
+            {'directed': False,
+             'graph': {},
+             'links': [{'r': 1.4142135623730951, 'source': 2, 'target': 3},
+                       {'r': 1.4142135623730951, 'source': 3, 'target': 4},
+                       {'r': 1, 'source': 4, 'target': 5}],
+             'multigraph': False,
+             'nodes': [{'xy': [0, 0], 'id': 2},
+                       {'xy': [1, 1], 'id': 3},
+                       {'xy': [2, 2], 'id': 4},
+                       {'xy': [2, 3], 'id': 5}]
+             }
         )
+
+    def test_deserialise(self):
+        status = self.graph_segment.__getstate__()
+        new_graph_segment = BaseGraphSegment(**status)
+        status = new_graph_segment.__getstate__()
 
         self.assertDictEqual(
             status['graph'],
@@ -59,25 +74,26 @@ class TestBaseGraphSegment(TestCase):
 
     def test_network_segment(self):
 
+        segment = self.graph_segment.segment
         self.assertEqual((3, 4), self.graph_segment.segment.image.shape)
-        self.assertEqual(12, self.graph_segment.segment.area)
+        self.assertEqual(12, segment.area)
 
         with self.assertRaises(AttributeError):
-            _ = self.graph_segment.segment.intensity_image
+            _ = segment.intensity_image
 
         self.graph_segment._iterations = 0
         self.graph_segment._area_threshold = 0
         self.graph_segment._sigma = None
+        segment = self.graph_segment.segment
 
-        self.assertEqual((3, 4), self.graph_segment.segment.image.shape)
-        self.assertEqual(4, self.graph_segment.segment.area)
+        self.assertEqual((3, 4), segment.image.shape)
+        self.assertEqual(4, segment.area)
 
         self.graph_segment.image = np.ones((5, 5)) * 2
+        segment = self.graph_segment.segment
 
-        self.assertEqual(
-            (3, 4), self.graph_segment.segment.image.shape)
-        self.assertEqual(
-            (3, 4), self.graph_segment.segment.intensity_image.shape)
+        self.assertEqual((3, 4), segment.image.shape)
+        self.assertEqual((3, 4), segment.intensity_image.shape)
 
     def test_add_node_edge(self):
 

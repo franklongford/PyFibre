@@ -6,7 +6,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.figure import Figure
 
 from pyfibre.io.database_io import check_file_name
-from pyfibre.io.segment_io import load_segment
+from pyfibre.io.segment_io import load_segments
 from pyfibre.model.objects.multi_image import MultiImage
 from pyfibre.model.tools.analysis import tensor_analysis, fibre_analysis
 from pyfibre.model.tools.filters import form_structure_tensor
@@ -79,7 +79,7 @@ class PyFibreGraphs:
             # self.angle_ax.set_xlim(0, 180)
 
             try:
-                fibres = load_segment(data_dir + fig_name + "_fibre")
+                fibres = load_segments(data_dir + fig_name + "_fibre")
                 fibres = flatten_list(fibres)
 
                 lengths, _, angles = fibre_analysis(fibres)

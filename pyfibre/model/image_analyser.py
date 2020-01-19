@@ -15,16 +15,14 @@ from pyfibre.model.tools.figures import (
     create_network_image
 )
 from pyfibre.model.tools.preprocessing import nl_means
-from pyfibre.io.segment_io import load_segment, save_segment
 from pyfibre.io.object_io import (
     save_fibre_networks, load_fibre_networks,
-    save_objects, load_objects)
+    save_cells, load_cells)
 from pyfibre.io.network_io import save_network, load_network
 from pyfibre.io.database_io import save_database, load_database
 
-from pyfibre.model.metric_analysis import metric_analysis
+from pyfibre.model.metric_analyser import metric_analysis
 from pyfibre.model.pyfibre_segmentation import cell_segmentation
-from pyfibre.model.tools.convertors import segments_to_binary
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +89,7 @@ class ImageAnalyser:
         try:
             load_fibre_networks(filename)
             if self.pl_analysis:
-                load_objects(filename, "cells")
+                load_cells(filename)
         except (UnpicklingError, Exception):
             logger.info("Cannot load segments for {}".format(filename))
             segment = True
@@ -106,6 +104,20 @@ class ImageAnalyser:
             metric = True
 
         return network, segment, metric
+
+    def _create_directory(self, prefix):
+
+        (working_dir, data_dir, fig_dir,
+         filename, figname) = self.get_filenames(prefix)
+
+        if not os.path.exists(working_dir):
+            os.mkdir(working_dir)
+        if not os.path.exists(data_dir):
+            os.mkdir(data_dir)
+        if not os.path.exists(fig_dir):
+            os.mkdir(fig_dir)
+
+        return filename, figname
 
     def network_analysis(self, multi_image, filename):
         """Perform FIRE algorithm on image and save networkx
@@ -165,11 +177,12 @@ class ImageAnalyser:
             network, image=multi_image.shg_image)
 
         cells = cell_segmentation(
-            multi_image, fibre_networks, scale=self.scale,
+            multi_image, fibre_networks,
+            scale=self.scale,
             pl_analysis=self.pl_analysis)
 
         save_fibre_networks(fibre_networks, filename)
-        save_objects(cells, filename, 'cells')
+        save_cells(cells, filename, multi_image.shape)
 
         end_time = time.time()
 
@@ -191,8 +204,10 @@ class ImageAnalyser:
         start_time = time.time()
 
         # Load networks and segments"
-        fibre_networks = load_fibre_networks(filename)
-        cells = load_objects(filename, "cells")
+        fibre_networks = load_fibre_networks(
+            filename, image=multi_image.shg_image)
+        cells = load_cells(
+            filename, image=multi_image.pl_image)
 
         global_dataframe, dataframes = metric_analysis(
             multi_image, filename, fibre_networks, cells,
@@ -213,18 +228,23 @@ class ImageAnalyser:
 
         start_fig = time.time()
 
-        fibre_networks = load_fibre_networks(filename)
-        cells = load_objects(filename, "cells")
+        fibre_networks = load_fibre_networks(
+            filename, image=multi_image.shg_image)
 
-        fibre_segments = [fibre_network.segment for fibre_network in fibre_networks]
-        networks = [fibre_network.graph for fibre_network in fibre_networks]
-        fibres = [fibre_network.fibres for fibre_network in fibre_networks]
-        fibres = [fibre.graph for fibre in flatten_list(fibres)]
+        segments = [fibre_network.segment
+                    for fibre_network in fibre_networks]
+        fibres = [fibre_network.fibres
+                  for fibre_network in fibre_networks]
+
+        segment_graphs = [fibre_network.graph
+                          for fibre_network in fibre_networks]
+        fibre_graphs = [fibre.graph
+                        for fibre in flatten_list(fibres)]
 
         tensor_image = create_tensor_image(multi_image.shg_image)
-        network_image = create_network_image(multi_image.shg_image, networks)
-        fibre_image = create_network_image(multi_image.shg_image, fibres, 1)
-        fibre_region_image = create_region_image(multi_image.shg_image, fibre_segments)
+        network_image = create_network_image(multi_image.shg_image, segment_graphs)
+        fibre_image = create_network_image(multi_image.shg_image, fibre_graphs, 1)
+        fibre_region_image = create_region_image(multi_image.shg_image, segments)
 
         create_figure(multi_image.shg_image, figname + '_SHG', cmap='binary_r')
         create_figure(tensor_image, figname + '_tensor')
@@ -232,16 +252,34 @@ class ImageAnalyser:
         create_figure(fibre_image, figname + '_fibre')
         create_figure(fibre_region_image, figname + '_fibre_seg')
 
+        cells = load_cells(filename, image=multi_image.pl_image)
+
+        cell_segments = [cell.segment for cell in cells]
+        cell_region_image = create_region_image(multi_image.pl_image, cell_segments)
+        create_figure(cell_region_image, figname + '_cell_seg')
+
         if self.pl_analysis:
-            cell_segments = [cell.segment for cell in cells]
-            cell_region_image = create_region_image(multi_image.pl_image, cell_segments)
             create_figure(multi_image.pl_image, figname + '_PL', cmap='binary_r')
             create_figure(multi_image.trans_image, figname + '_trans', cmap='binary_r')
-            create_figure(cell_region_image, figname + '_cell_seg')
 
         end_fig = time.time()
 
         logger.info(f"TOTAL FIGURE TIME = {round(end_fig - start_fig, 3)} s")
+
+    def get_filenames(self, prefix):
+
+        image_name = os.path.basename(prefix)
+        working_dir = (
+            f"{os.path.dirname(prefix)}/{image_name}"
+            "-pyfibre-analysis")
+
+        data_dir = working_dir + '/data/'
+        fig_dir = working_dir + '/fig/'
+
+        filename = data_dir + image_name
+        figname = fig_dir + image_name
+
+        return working_dir, data_dir, fig_dir, filename, figname
 
     def image_analysis(self, multi_image, prefix):
         """
@@ -260,18 +298,7 @@ class ImageAnalyser:
             Calculated metrics for further analysis
         """
 
-        working_dir = os.path.dirname(prefix)
-        image_name = os.path.basename(prefix)
-        data_dir = working_dir + '/data/'
-        fig_dir = working_dir + '/fig/'
-
-        if not os.path.exists(data_dir):
-            os.mkdir(data_dir)
-        if not os.path.exists(fig_dir):
-            os.mkdir(fig_dir)
-
-        filename = data_dir + image_name
-        figname = fig_dir + image_name
+        filename, figname = self._create_directory(prefix)
         network, segment, metric = self.get_analysis_options(filename)
 
         logger.debug(f"Analysis options:\n "
