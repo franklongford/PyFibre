@@ -17,8 +17,7 @@ from pyfibre.model.tools.figures import (
 from pyfibre.model.tools.preprocessing import nl_means
 from pyfibre.io.object_io import (
     save_fibre_networks, load_fibre_networks,
-    save_cells, load_cells,
-    save_fibres, load_fibres)
+    save_cells, load_cells)
 from pyfibre.io.network_io import save_network, load_network
 from pyfibre.io.database_io import save_database, load_database
 
@@ -185,11 +184,6 @@ class ImageAnalyser:
         save_fibre_networks(fibre_networks, filename)
         save_cells(cells, filename, multi_image.shape)
 
-        fibres = flatten_list([
-            fibre_network.generate_fibres()
-            for fibre_network in fibre_networks])
-        save_fibres(fibres, filename)
-
         end_time = time.time()
 
         logger.info(f"TOTAL SEGMENTATION TIME = {round(end_time - start_time, 3)} s")
@@ -215,15 +209,6 @@ class ImageAnalyser:
         cells = load_cells(
             filename, image=multi_image.pl_image)
 
-        try:
-            fibre_lists = load_fibres(filename, image=multi_image.shg_image)
-        except (IOError, EOFError):
-            fibre_lists = [fibre_network.generate_fibres()
-                           for fibre_network in fibre_networks]
-
-        for fibres, fibre_network in zip(fibre_lists, fibre_networks):
-            fibre_network.fibres = fibres
-
         global_dataframe, dataframes = metric_analysis(
             multi_image, filename, fibre_networks, cells,
             self.sigma, self.shg_analysis, self.pl_analysis)
@@ -246,21 +231,20 @@ class ImageAnalyser:
         fibre_networks = load_fibre_networks(
             filename, image=multi_image.shg_image)
 
-        fibre_segments = [fibre_network.segment for fibre_network in fibre_networks]
-        networks = [fibre_network.graph for fibre_network in fibre_networks]
+        segments = [fibre_network.segment
+                    for fibre_network in fibre_networks]
+        fibres = [fibre_network.fibres
+                  for fibre_network in fibre_networks]
 
-        try:
-            fibre_lists = load_fibres(filename, image=multi_image.shg_image)
-        except (IOError, EOFError):
-            fibre_lists = [fibre_network.generate_fibres()
-                           for fibre_network in fibre_networks]
-
-        fibres = [fibre.graph for fibre in flatten_list(fibre_lists)]
+        segment_graphs = [fibre_network.graph
+                          for fibre_network in fibre_networks]
+        fibre_graphs = [fibre.graph
+                        for fibre in flatten_list(fibres)]
 
         tensor_image = create_tensor_image(multi_image.shg_image)
-        network_image = create_network_image(multi_image.shg_image, networks)
-        fibre_image = create_network_image(multi_image.shg_image, fibres, 1)
-        fibre_region_image = create_region_image(multi_image.shg_image, fibre_segments)
+        network_image = create_network_image(multi_image.shg_image, segment_graphs)
+        fibre_image = create_network_image(multi_image.shg_image, fibre_graphs, 1)
+        fibre_region_image = create_region_image(multi_image.shg_image, segments)
 
         create_figure(multi_image.shg_image, figname + '_SHG', cmap='binary_r')
         create_figure(tensor_image, figname + '_tensor')
