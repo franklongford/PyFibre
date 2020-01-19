@@ -8,7 +8,7 @@ from pyfibre.model.objects.fibre_network import (
 from pyfibre.tests.probe_classes import generate_probe_graph
 
 
-class TestNetwork(TestCase):
+class TestFibreNetwork(TestCase):
 
     def setUp(self):
 
@@ -20,8 +20,12 @@ class TestNetwork(TestCase):
         status = self.network.__getstate__()
 
         self.assertListEqual(
-            ['graph'],
+            ['graph', 'fibres'],
             list(status.keys())
+        )
+
+        self.assertListEqual(
+            [], status['fibres']
         )
 
     def test_fibres(self):
@@ -30,6 +34,19 @@ class TestNetwork(TestCase):
 
         self.assertEqual(1, len(fibres))
         self.assertListEqual([0, 1, 2, 3], fibres[0].node_list)
+
+        self.network.fibres = fibres
+        status = self.network.__getstate__()
+        self.assertEqual(1, len(status["fibres"]))
+
+    def test_serialisation(self):
+        self.network.fibres = self.network.generate_fibres()
+        status = self.network.__getstate__()
+        new_network = FibreNetwork(**status)
+
+        self.assertEqual(1, len(new_network.fibres))
+        self.assertListEqual(
+            [0, 1, 2, 3], new_network.fibres[0].node_list)
 
     def test_generate_database(self):
 

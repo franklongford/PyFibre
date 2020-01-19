@@ -14,14 +14,12 @@ class Fibre(BaseGraphSegment):
 
     def __init__(self, *args, graph=None, nodes=None, edges=None, growing=True, **kwargs):
 
-        if not isinstance(graph, nx.Graph):
-            graph = nx.Graph()
-            if nodes is not None:
-                graph.add_nodes_from(nodes)
-            if edges is not None:
-                graph.add_edges_from(edges)
-
         super().__init__(*args, graph=graph, **kwargs)
+
+        if nodes is not None:
+            self.graph.add_nodes_from(nodes)
+        if edges is not None:
+            self.graph.add_edges_from(edges)
 
         self.growing = growing
 

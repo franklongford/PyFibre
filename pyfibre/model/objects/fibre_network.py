@@ -3,6 +3,7 @@ from pyfibre.model.tools.fibre_assignment import FibreAssignment
 from pyfibre.model.tools.fibre_utilities import simplify_network
 
 from .base_graph_segment import BaseGraphSegment
+from .fibre import Fibre
 
 
 class FibreNetwork(BaseGraphSegment):
@@ -12,7 +13,15 @@ class FibreNetwork(BaseGraphSegment):
     def __init__(self, *args, fibres=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fibres = fibres
+        if fibres is None:
+            self.fibres = []
+        elif isinstance(fibres, list):
+            self.fibres = [
+                Fibre(**element)
+                if isinstance(element, dict)
+                else element
+                for element in fibres
+            ]
 
         self._area_threshold = 200
         self._iterations = 5
@@ -21,7 +30,10 @@ class FibreNetwork(BaseGraphSegment):
         """Return the object state in a form that can be
         serialised as a JSON file"""
         state = super().__getstate__()
-        state.pop('fibres', None)
+        state["fibres"] = [
+            fibre.__getstate__()
+            for fibre in self.fibres]
+
         return state
 
     @property
