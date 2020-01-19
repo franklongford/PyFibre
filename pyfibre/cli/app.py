@@ -32,6 +32,11 @@ matplotlib.use("Agg")
     help="Prints extra debug information in pyfibre.log"
 )
 @click.option(
+    '--profile', is_flag=True, default=False,
+    help="Run GUI under cProfile, creating .prof and .pstats "
+         "files in the current directory."
+)
+@click.option(
     '--shg_analysis', is_flag=True, default=False,
     help='Toggles analysis of SHG images'
 )
@@ -84,7 +89,7 @@ matplotlib.use("Agg")
     required=False, default='.'
 )
 def pyfibre(file_path, key, sigma, alpha, log_name,
-            database_name, debug,
+            database_name, debug, profile,
             shg_analysis, pl_analysis, ow_metric, ow_segment,
             ow_network, save_figures, test):
 
@@ -98,11 +103,19 @@ def pyfibre(file_path, key, sigma, alpha, log_name,
 
     logger = logging.getLogger(__name__)
 
+    if profile:
+        import cProfile
+        import pstats
+        profiler = cProfile.Profile()
+        profiler.enable()
+
     if test:
         file_path = os.path.dirname(
             os.path.dirname(__file__)) + '/tests/fixtures'
         shg_analysis = True
         pl_analysis = True
+        ow_network = True,
+        save_figures = True
 
     file_name, directory = parse_file_path(file_path)
 
@@ -152,8 +165,22 @@ def pyfibre(file_path, key, sigma, alpha, log_name,
         logger.debug("Global Image Analysis Metrics:")
         logger.debug(databases[0].iloc[0])
 
-    save_database(global_database, database_name)
-    if shg_analysis:
-        save_database(fibre_database, database_name, 'fibre')
-    if pl_analysis:
-        save_database(cell_database, database_name, 'cell')
+    if database_name:
+        save_database(global_database, database_name)
+        if shg_analysis:
+            save_database(fibre_database, database_name, 'fibre')
+        if pl_analysis:
+            save_database(cell_database, database_name, 'cell')
+
+    if profile:
+        profiler.disable()
+        from sys import version_info
+        fname = 'pyfibre-{}-{}.{}.{}'.format(__version__,
+                                             version_info.major,
+                                             version_info.minor,
+                                             version_info.micro)
+
+        profiler.dump_stats(fname + '.prof')
+        with open(fname + '.pstats', 'w') as fp:
+            stats = pstats.Stats(profiler, stream=fp).sort_stats('cumulative')
+            stats.print_stats()
