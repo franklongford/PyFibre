@@ -1,4 +1,4 @@
-from pyfibre.model.tools.analysis import network_analysis, segment_analysis
+from pyfibre.model.tools.metrics import segment_metrics, network_metrics
 from pyfibre.model.tools.fibre_assignment import FibreAssignment
 from pyfibre.model.tools.fibre_utilities import simplify_network
 
@@ -51,16 +51,16 @@ class FibreNetwork(BaseGraphSegment):
         """Generates a Pandas database with all graph and segment metrics
         for assigned image"""
 
-        database = network_analysis(self.graph, self.red_graph, 'SHG')
+        database = network_metrics(self.graph, self.red_graph, 'SHG')
 
         if image is not None:
-            segment_metrics = segment_analysis(
+            metrics = segment_metrics(
                 self.segment, image=image, tag='Network')
 
         else:
-            segment_metrics = segment_analysis(
+            metrics = segment_metrics(
                 self.segment, tag='Network')
 
-        database = database.append(segment_metrics, ignore_index=False)
+        database = database.append(metrics, ignore_index=False)
 
         return database

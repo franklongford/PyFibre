@@ -3,10 +3,8 @@ import time
 import numpy as np
 import pandas as pd
 
-from pyfibre.model.tools.analysis import (
-    segment_analysis, fibre_network_analysis,
-    cell_analysis
-)
+from pyfibre.model.tools.metrics import (
+    segment_metrics, fibre_network_metrics, cell_metrics)
 from pyfibre.model.tools.convertors import segments_to_binary, binary_to_segments
 from pyfibre.model.tools.filters import form_structure_tensor
 
@@ -36,64 +34,64 @@ class SHGAnalyser(MetricAnalyser):
     def analyse(self):
 
         # Analyse fibre network and individual regions
-        fibre_metrics = fibre_network_analysis(self.objects, self.image, self.sigma)
+        metrics = fibre_network_metrics(self.objects, self.image, self.sigma)
 
         fibre_filenames = pd.Series(
             ['{}_fibre_networks.json'.format(self.filename)] * len(self.objects),
             name='File')
-        self.local_dataframe = pd.concat((fibre_filenames, fibre_metrics), axis=1)
+        self.local_dataframe = pd.concat((fibre_filenames, metrics), axis=1)
 
         # Perform non-linear analysis on global region
         fibre_segments = [fibre_network.segment for fibre_network in self.objects]
         fibre_binary = segments_to_binary(fibre_segments, self.image.shape)
         global_segment = binary_to_segments(fibre_binary, self.image)[0]
 
-        self.global_metrics = segment_analysis(global_segment, self.image, 'SHG Fibre')
+        self.global_metrics = segment_metrics(global_segment, self.image, 'SHG Fibre')
         # Average linear properties over all regions
-        self.global_averaging(self.global_metrics, fibre_metrics, fibre_binary)
+        self.global_averaging(self.global_metrics, metrics, fibre_binary)
 
-    def global_averaging(self, global_fibre_metrics, fibre_metrics, fibre_binary):
+    def global_averaging(self, global_fibre_metrics, metrics, fibre_binary):
 
         global_fibre_metrics['No. Fibres'] = sum([
             len(fibre_network.fibres) for fibre_network in self.objects])
-        global_fibre_metrics['SHG Fibre Area'] = np.mean(fibre_metrics['Network Area'])
+        global_fibre_metrics['SHG Fibre Area'] = np.mean(metrics['Network Area'])
         global_fibre_metrics['SHG Fibre Coverage'] = np.sum(fibre_binary) / self.image.size
-        global_fibre_metrics['SHG Fibre Eccentricity'] = np.mean(fibre_metrics['Network Eccentricity'])
-        global_fibre_metrics['SHG Fibre Linearity'] = np.mean(fibre_metrics['Network Linearity'])
+        global_fibre_metrics['SHG Fibre Eccentricity'] = np.mean(metrics['Network Eccentricity'])
+        global_fibre_metrics['SHG Fibre Linearity'] = np.mean(metrics['Network Linearity'])
         global_fibre_metrics['SHG Fibre Density'] = np.mean(self.image[np.where(fibre_binary)])
-        global_fibre_metrics['SHG Fibre Hu Moment 1'] = np.mean(fibre_metrics['Network Hu Moment 1'])
-        global_fibre_metrics['SHG Fibre Hu Moment 2'] = np.mean(fibre_metrics['Network Hu Moment 2'])
+        global_fibre_metrics['SHG Fibre Hu Moment 1'] = np.mean(metrics['Network Hu Moment 1'])
+        global_fibre_metrics['SHG Fibre Hu Moment 2'] = np.mean(metrics['Network Hu Moment 2'])
 
         global_fibre_metrics = global_fibre_metrics.drop(['SHG Fibre Hu Moment 3', 'SHG Fibre Hu Moment 4'])
 
-        global_fibre_metrics['SHG Fibre Waviness'] = np.nanmean(fibre_metrics['Mean Fibre Waviness'])
-        global_fibre_metrics['SHG Fibre Length'] = np.nanmean(fibre_metrics['Mean Fibre Length'])
-        global_fibre_metrics['SHG Fibre Cross-Link Density'] = np.nanmean(fibre_metrics['SHG Fibre Cross-Link Density'])
+        global_fibre_metrics['SHG Fibre Waviness'] = np.nanmean(metrics['Mean Fibre Waviness'])
+        global_fibre_metrics['SHG Fibre Length'] = np.nanmean(metrics['Mean Fibre Length'])
+        global_fibre_metrics['SHG Fibre Cross-Link Density'] = np.nanmean(metrics['SHG Fibre Cross-Link Density'])
 
-        logger.debug(fibre_metrics['SHG Network Degree'].values)
+        logger.debug(metrics['SHG Network Degree'].values)
 
-        global_fibre_metrics['SHG Fibre Network Degree'] = np.nanmean(fibre_metrics['SHG Network Degree'].values)
-        global_fibre_metrics['SHG Fibre Network Eigenvalue'] = np.nanmean(fibre_metrics['SHG Network Eigenvalue'])
+        global_fibre_metrics['SHG Fibre Network Degree'] = np.nanmean(metrics['SHG Network Degree'].values)
+        global_fibre_metrics['SHG Fibre Network Eigenvalue'] = np.nanmean(metrics['SHG Network Eigenvalue'])
         global_fibre_metrics['SHG Fibre Network Connectivity'] = np.nanmean(
-            fibre_metrics['SHG Network Connectivity'])
+            metrics['SHG Network Connectivity'])
 
 
 class PLAnalyser(MetricAnalyser):
 
     def analyse(self):
 
-        cell_metrics = cell_analysis(self.objects, self.image)
+        metrics = cell_metrics(self.objects, self.image)
 
         cell_filenames = pd.Series(
             ['{}_cell_segment.pkl'.format(self.filename)] * len(self.objects), name='File')
-        self.local_dataframe = pd.concat((cell_filenames, cell_metrics), axis=1)
+        self.local_dataframe = pd.concat((cell_filenames, metrics), axis=1)
 
         # Perform non-linear analysis on global region
         cell_segments = [cell.segment for cell in self.objects]
         cell_binary = segments_to_binary(cell_segments, self.image.shape)
         global_segment = binary_to_segments(cell_binary, self.image)[0]
 
-        self.global_metrics = segment_analysis(global_segment, self.image, 'PL Cell')
+        self.global_metrics = segment_metrics(global_segment, self.image, 'PL Cell')
         self.global_metrics = self.global_metrics.drop(
             ['PL Cell Hu Moment 3', 'PL Cell Hu Moment 4'])
         self.global_metrics['No. Cells'] = len(self.objects)

@@ -304,8 +304,8 @@ class ImageAnalyser:
         logger.debug(f"Analysis options:\n "
                      f"shg_analysis = {self.shg_analysis}\n "
                      f"pl_analysis = {self.pl_analysis}\n "
-                     f"network_analysis = {network}\n "
-                     f"segment_analysis = {segment}\n "
+                     f"network_metrics = {network}\n "
+                     f"segment_metrics = {segment}\n "
                      f"metric_analysis = {metric}\n "
                      f"save_figures = {self.save_figures}")
 

@@ -8,7 +8,8 @@ from matplotlib.figure import Figure
 from pyfibre.io.database_io import check_file_name
 from pyfibre.io.segment_io import load_segments
 from pyfibre.model.objects.multi_image import MultiImage
-from pyfibre.model.tools.analysis import tensor_analysis, fibre_analysis
+from pyfibre.model.tools.analysis import tensor_analysis
+from pyfibre.model.tools.metrics import fibre_metrics
 from pyfibre.model.tools.filters import form_structure_tensor
 from pyfibre.utilities import flatten_list
 
@@ -82,7 +83,7 @@ class PyFibreGraphs:
                 fibres = load_segments(data_dir + fig_name + "_fibre")
                 fibres = flatten_list(fibres)
 
-                lengths, _, angles = fibre_analysis(fibres)
+                lengths, _, angles = fibre_metrics(fibres)
 
                 self.fibre_ax.clear()
                 self.fibre_ax.set_title('Fibre Angle Histogram')

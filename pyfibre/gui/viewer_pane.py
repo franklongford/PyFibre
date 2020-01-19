@@ -18,7 +18,7 @@ from traitsui.api import (
 )
 
 from pyfibre.io.object_io import (
-    load_objects, load_fibre_networks, load_fibres)
+    load_cells, load_fibre_networks, load_fibres)
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 from pyfibre.gui.file_display_pane import TableRow
 from pyfibre.model.objects.multi_image import MultiImage
@@ -290,7 +290,8 @@ class ViewerPane(TraitsTaskPane):
             self.trans_image_tab.image = self.selected_image.trans_image
 
             try:
-                cells = load_objects(filename, "cells")
+                cells = load_cells(
+                    filename, image=self.selected_image.pl_image)
             except (AttributeError, IOError, EOFError):
                 logger.debug("Unable to display cell segments for {}".format(image_name))
             else:
