@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 
-class TestImageAnalyser(TestCase):
+class TestMetricAnalyser(TestCase):
 
     def setUp(self):
 

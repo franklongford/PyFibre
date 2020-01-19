@@ -1,2 +1,2 @@
 [flake8]
-exclude = docs/*
+exclude = docs/*,pyfibre/gui/tk/*

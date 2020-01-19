@@ -77,8 +77,11 @@ python_version_option = click.option(
     help="Python version for environment"
 )
 
-@cli.command(name="build-env",
-             help="Creates the edm execution environment")
+
+@cli.command(
+    name="build-env",
+    help="Creates the edm execution environment"
+)
 @click.option(
     '--edm', is_flag=True, default=False,
     help='Toggles EDM build'
@@ -126,7 +129,8 @@ def build_env(python_version, edm, conda):
               ' either EDM (--edm) or Conda (--conda)')
 
 
-@cli.command(name="install",
+@cli.command(
+    name="install",
     help='Creates the execution binary inside the PyFibre environment'
 )
 @click.option(

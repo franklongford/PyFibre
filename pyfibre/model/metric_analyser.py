@@ -9,12 +9,11 @@ from pyfibre.model.tools.analysis import (
 )
 from pyfibre.model.tools.convertors import segments_to_binary, binary_to_segments
 from pyfibre.model.tools.filters import form_structure_tensor
-from pyfibre.utilities import flatten_list
 
 logger = logging.getLogger(__name__)
 
 
-class ImageAnalyser:
+class MetricAnalyser:
 
     def __init__(self, image, filename, objects, sigma):
 
@@ -32,7 +31,7 @@ class ImageAnalyser:
         self.global_metrics = None
 
 
-class SHGAnalyser(ImageAnalyser):
+class SHGAnalyser(MetricAnalyser):
 
     def analyse(self):
 
@@ -79,7 +78,7 @@ class SHGAnalyser(ImageAnalyser):
             fibre_metrics['SHG Network Connectivity'])
 
 
-class PLAnalyser(ImageAnalyser):
+class PLAnalyser(MetricAnalyser):
 
     def analyse(self):
 
