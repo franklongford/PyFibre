@@ -15,7 +15,7 @@ def write_version_py():
         os.path.abspath('.'),
         'pyfibre',
         'version.py')
-    print(filename)
+
     ver = f"__version__ = '{VERSION}'\n"
     with open(filename, 'w') as outfile:
         outfile.write(ver)
