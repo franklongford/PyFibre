@@ -31,7 +31,7 @@ def nematic_tensor_metrics(segment, nematic_tensor, tag=''):
     return database
 
 
-def segment_metrics(segment, image=None, tag=''):
+def segment_shape_metrics(segment, tag=''):
     """Analysis for a scikit-image region"""
 
     database = pd.Series()
@@ -47,6 +47,13 @@ def segment_metrics(segment, image=None, tag=''):
     database[f"{tag} Hu Moment 2"] = segment_hu[1]
     database[f"{tag} Hu Moment 3"] = segment_hu[2]
     database[f"{tag} Hu Moment 4"] = segment_hu[3]
+
+    return database
+
+
+def segment_texture_metrics(segment, image=None, tag=''):
+
+    database = pd.Series()
 
     # Check to see whether intensity_image is present or image argument
     # has been supplied
@@ -212,7 +219,7 @@ def cell_metrics(cells, image=None, sigma=0.0001):
 
     for i, cell in enumerate(cells):
 
-        cell_series = segment_metrics(cell.segment, image, 'Cell')
+        cell_series = segment_shape_metrics(cell.segment, image, 'Cell')
 
         nematic_metrics = nematic_tensor_metrics(
             cell.segment, nematic_tensor, 'Cell')

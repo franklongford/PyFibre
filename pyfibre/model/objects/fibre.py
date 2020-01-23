@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from pyfibre.model.tools.metrics import segment_metrics
+from pyfibre.model.tools.metrics import segment_shape_metrics
 from pyfibre.model.tools.fibre_utilities import branch_angles
 
 from .base_graph_segment import BaseGraphSegment
@@ -78,13 +78,8 @@ class Fibre(BaseGraphSegment):
         database['Fibre Length'] = self.fibre_l
         database['Fibre Angle'] = self.angle
 
-        if image is not None:
-            metrics = segment_metrics(
-                self.segment, image=image, tag='Fibre')
-
-        else:
-            metrics = segment_metrics(
-                self.segment, tag='Fibre')
+        metrics = segment_shape_metrics(
+            self.segment, tag='Fibre')
 
         database = database.append(metrics, ignore_index=False)
 

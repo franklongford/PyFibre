@@ -4,7 +4,9 @@ import numpy as np
 import pandas as pd
 
 from pyfibre.model.tools.metrics import (
-    segment_metrics, fibre_network_metrics, cell_metrics)
+    segment_shape_metrics, fibre_network_metrics,
+    cell_metrics, segment_texture_metrics
+)
 from pyfibre.model.tools.convertors import segments_to_binary, binary_to_segments
 from pyfibre.model.tools.filters import form_structure_tensor
 
@@ -46,7 +48,12 @@ class SHGAnalyser(MetricAnalyser):
         fibre_binary = segments_to_binary(fibre_segments, self.image.shape)
         global_segment = binary_to_segments(fibre_binary, self.image)[0]
 
-        self.global_metrics = segment_metrics(global_segment, self.image, 'SHG Fibre')
+        self.global_metrics = segment_shape_metrics(global_segment, 'SHG Fibre')
+        self.global_metrics.append(
+            segment_texture_metrics(global_segment, self.image, 'SHG Fibre'),
+            ignore_index=False
+        )
+
         # Average linear properties over all regions
         self.global_averaging(self.global_metrics, metrics, fibre_binary)
 
@@ -91,7 +98,12 @@ class PLAnalyser(MetricAnalyser):
         cell_binary = segments_to_binary(cell_segments, self.image.shape)
         global_segment = binary_to_segments(cell_binary, self.image)[0]
 
-        self.global_metrics = segment_metrics(global_segment, self.image, 'PL Cell')
+        self.global_metrics = segment_shape_metrics(global_segment, 'PL Cell')
+        self.global_metrics.append(
+            segment_texture_metrics(global_segment, self.image, 'PL Cell'),
+            ignore_index=False
+        )
+
         self.global_metrics = self.global_metrics.drop(
             ['PL Cell Hu Moment 3', 'PL Cell Hu Moment 4'])
         self.global_metrics['No. Cells'] = len(self.objects)
@@ -130,7 +142,6 @@ def metric_analysis(multi_image, filename, fibre_networks, cells, sigma,
         pl_analyser = PLAnalyser(
             multi_image.pl_image, filename, cells, sigma
         )
-
         pl_analyser.analyse()
 
         dataframes[1] = pl_analyser.local_dataframe

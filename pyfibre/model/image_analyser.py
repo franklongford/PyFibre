@@ -157,7 +157,7 @@ class ImageAnalyser:
 
         return network
 
-    def segment_analysis(self, multi_image, filename):
+    def segment_shape_analysis(self, multi_image, filename):
         """Segment image into fiborous and cellular regions based on
         fibre network
 
@@ -305,7 +305,7 @@ class ImageAnalyser:
                      f"shg_analysis = {self.shg_analysis}\n "
                      f"pl_analysis = {self.pl_analysis}\n "
                      f"network_metrics = {network}\n "
-                     f"segment_metrics = {segment}\n "
+                     f"segment_shape_metrics = {segment}\n "
                      f"metric_analysis = {metric}\n "
                      f"save_figures = {self.save_figures}")
 

@@ -81,9 +81,9 @@ class TestFibre(TestCase):
         image[2:, 2:] = 2
 
         database = fibre.generate_database(image)
-        self.assertEqual(25, len(database))
+        self.assertEqual(11, len(database))
 
         fibre.image = image
 
         database = fibre.generate_database()
-        self.assertEqual(25, len(database))
+        self.assertEqual(11, len(database))
