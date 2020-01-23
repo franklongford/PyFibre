@@ -219,7 +219,7 @@ def cell_metrics(cells, image=None, sigma=0.0001):
 
     for i, cell in enumerate(cells):
 
-        cell_series = segment_shape_metrics(cell.segment, image, 'Cell')
+        cell_series = cell.generate_database()
 
         nematic_metrics = nematic_tensor_metrics(
             cell.segment, nematic_tensor, 'Cell')
