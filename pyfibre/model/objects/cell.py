@@ -1,6 +1,7 @@
 import pandas as pd
 
-from pyfibre.model.tools.analysis import segment_analysis
+from pyfibre.model.tools.analysis import (
+    segment_shape_analysis, segment_texture_analysis)
 
 
 class Cell:
@@ -16,15 +17,13 @@ class Cell:
 
         database = pd.Series()
 
-        if image is not None:
-            segment_metrics = segment_analysis(
-                self.segment, image=image, tag='Cell')
+        shape_metrics = segment_shape_analysis(
+            self.segment, tag='Cell')
+        texture_metrics = segment_texture_analysis(
+            self.segment, image=image, tag='Cell')
 
-        else:
-            segment_metrics = segment_analysis(
-                self.segment, tag='Cell')
-
-        database = database.append(segment_metrics, ignore_index=False)
+        database = database.append(shape_metrics, ignore_index=False)
+        database = database.append(texture_metrics, ignore_index=False)
 
         return database
 

@@ -1,4 +1,5 @@
-from pyfibre.model.tools.analysis import network_analysis, segment_analysis
+from pyfibre.model.tools.analysis import (
+    network_analysis, segment_shape_analysis, segment_texture_analysis)
 from pyfibre.model.tools.fibre_assignment import FibreAssignment
 from pyfibre.model.tools.fibre_utilities import simplify_network
 
@@ -53,14 +54,12 @@ class FibreNetwork(BaseGraphSegment):
 
         database = network_analysis(self.graph, self.red_graph, 'SHG')
 
-        if image is not None:
-            segment_metrics = segment_analysis(
-                self.segment, image=image, tag='Network')
+        shape_metrics = segment_shape_analysis(
+            self.segment, tag='Network')
+        texture_metrics = segment_texture_analysis(
+            self.segment, image=image, tag='Network')
 
-        else:
-            segment_metrics = segment_analysis(
-                self.segment, tag='Network')
-
-        database = database.append(segment_metrics, ignore_index=False)
+        database = database.append(shape_metrics, ignore_index=False)
+        database = database.append(texture_metrics, ignore_index=False)
 
         return database

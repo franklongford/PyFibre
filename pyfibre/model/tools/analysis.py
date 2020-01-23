@@ -173,8 +173,51 @@ def nematic_tensor_analysis(segment, nematic_tensor, tag=''):
     return database
 
 
-def segment_analysis(segment, image=None, tag=''):
-    """Analysis for a scikit-image region"""
+def segment_texture_analysis(segment, image=None, tag=''):
+    """Texture analysis for a scikit-image segment"""
+
+    database = pd.Series()
+
+    # Check to see whether intensity_image is present or image argument
+    # has been supplied
+    if image is not None:
+        minr, minc, maxr, maxc = segment.bbox
+        indices = np.mgrid[minr:maxr, minc:maxc]
+        segment_image = image[(indices[0], indices[1])]
+    else:
+        try:
+            segment_image = segment.intensity_image
+        except AttributeError:
+            return database
+
+    _, _, database[f"{tag} Fourier SDI"] = (0, 0, 0)  # fourier_transform_analysis(segment_image)
+
+    database[f"{tag} Mean"] = np.mean(segment_image)
+    database[f"{tag} STD"] = np.std(segment_image)
+    database[f"{tag} Entropy"] = shannon_entropy(segment_image)
+    database[f"{tag} Density"] = np.sum(segment_image * segment.image) / segment.area
+
+    glcm = greycomatrix((segment_image * segment.image * 255.999).astype('uint8'),
+                        [1, 2], [0, np.pi / 4, np.pi / 2, np.pi * 3 / 4], 256,
+                        symmetric=True, normed=True)
+    glcm[0, :, :, :] = 0
+    glcm[:, 0, :, :] = 0
+
+    database[f"{tag} GLCM Contrast"] = greycoprops_edit(glcm, 'contrast').mean()
+    database[f"{tag} GLCM Homogeneity"] = greycoprops_edit(glcm, 'homogeneity').mean()
+    database[f"{tag} GLCM Energy"] = greycoprops_edit(glcm, 'energy').mean()
+    database[f"{tag} GLCM Entropy"] = greycoprops_edit(glcm, 'entropy').mean()
+    database[f"{tag} GLCM Autocorrelation"] = greycoprops_edit(glcm, 'autocorrelation').mean()
+    database[f"{tag} GLCM Clustering"] = greycoprops_edit(glcm, 'cluster').mean()
+    database[f"{tag} GLCM Mean"] = greycoprops_edit(glcm, 'mean').mean()
+    database[f"{tag} GLCM Covariance"] = greycoprops_edit(glcm, 'covariance').mean()
+    database[f"{tag} GLCM Correlation"] = greycoprops_edit(glcm, 'correlation').mean()
+
+    return database
+
+
+def segment_shape_analysis(segment, tag=''):
+    """Shape analysis for a scikit-image segment"""
 
     database = pd.Series()
 
@@ -189,41 +232,6 @@ def segment_analysis(segment, image=None, tag=''):
     database[f"{tag} Hu Moment 2"] = segment_hu[1]
     database[f"{tag} Hu Moment 3"] = segment_hu[2]
     database[f"{tag} Hu Moment 4"] = segment_hu[3]
-
-    # Check to see whether intensity_image is present or image argument
-    # has been supplied
-    if image is not None:
-        minr, minc, maxr, maxc = segment.bbox
-        indices = np.mgrid[minr:maxr, minc:maxc]
-        segment_image = image[(indices[0], indices[1])]
-    else:
-        try:
-            segment_image = segment.intensity_image
-        except AttributeError:
-            return database
-
-    _, _, database[f"{tag} Fourier SDI"] = (0, 0, 0)#fourier_transform_analysis(segment_image)
-
-    database[f"{tag} Mean"] = np.mean(segment_image)
-    database[f"{tag} STD"] = np.std(segment_image)
-    database[f"{tag} Entropy"] = shannon_entropy(segment_image)
-    database[f"{tag} Density"] = np.sum(segment_image * segment.image) / segment.area
-
-    glcm = greycomatrix((segment_image * segment.image * 255.999).astype('uint8'),
-                         [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256,
-                         symmetric=True, normed=True)
-    glcm[0, :, :, :] = 0
-    glcm[:, 0, :, :] = 0
-
-    database[f"{tag} GLCM Contrast"] = greycoprops_edit(glcm, 'contrast').mean()
-    database[f"{tag} GLCM Homogeneity"] = greycoprops_edit(glcm, 'homogeneity').mean()
-    database[f"{tag} GLCM Energy"] = greycoprops_edit(glcm, 'energy').mean()
-    database[f"{tag} GLCM Entropy"] = greycoprops_edit(glcm, 'entropy').mean()
-    database[f"{tag} GLCM Autocorrelation"] = greycoprops_edit(glcm, 'autocorrelation').mean()
-    database[f"{tag} GLCM Clustering"] = greycoprops_edit(glcm, 'cluster').mean()
-    database[f"{tag} GLCM Mean"] = greycoprops_edit(glcm, 'mean').mean()
-    database[f"{tag} GLCM Covariance"] = greycoprops_edit(glcm, 'covariance').mean()
-    database[f"{tag} GLCM Correlation"] = greycoprops_edit(glcm, 'correlation').mean()
 
     return database
 
@@ -352,7 +360,7 @@ def cell_analysis(cells, image=None, sigma=0.0001):
 
     for i, cell in enumerate(cells):
 
-        cell_series = segment_analysis(cell.segment, image, 'Cell')
+        cell_series = cell.generate_database()
 
         nematic_metrics = nematic_tensor_analysis(
             cell.segment, nematic_tensor, 'Cell')
