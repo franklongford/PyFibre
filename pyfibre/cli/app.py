@@ -114,7 +114,7 @@ def pyfibre(file_path, key, sigma, alpha, log_name,
             os.path.dirname(__file__)) + '/tests/fixtures'
         shg_analysis = True
         pl_analysis = True
-        ow_network = True,
+        ow_network = True
         save_figures = True
 
     file_name, directory = parse_file_path(file_path)

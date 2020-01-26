@@ -1,6 +1,6 @@
 from pyfibre.model.tools.metrics import (
     segment_shape_metrics, network_metrics, segment_texture_metrics)
-from pyfibre.model.tools.fibre_assignment import FibreAssignment
+from pyfibre.model.tools.fibre_assigner import FibreAssigner
 from pyfibre.model.tools.fibre_utilities import simplify_network
 
 from .base_graph_segment import BaseGraphSegment
@@ -16,7 +16,7 @@ class FibreNetwork(BaseGraphSegment):
 
         if fibres is None:
             self.fibres = []
-        elif isinstance(fibres, list):
+        else:
             self.fibres = [
                 Fibre(image=self.image, **element)
                 if isinstance(element, dict)
@@ -39,7 +39,8 @@ class FibreNetwork(BaseGraphSegment):
 
     @property
     def fibre_assigner(self):
-        return FibreAssignment(image=self.image)
+        return FibreAssigner(
+            image=self.image, shape=self.shape)
 
     @property
     def red_graph(self):
@@ -52,14 +53,20 @@ class FibreNetwork(BaseGraphSegment):
         """Generates a Pandas database with all graph and segment metrics
         for assigned image"""
 
+        if image is None:
+            image = self.image
+
         database = network_metrics(self.graph, self.red_graph, 'SHG')
 
         shape_metrics = segment_shape_metrics(
             self.segment, tag='Network')
-        texture_metrics = segment_texture_metrics(
-            self.segment, image=image, tag='Network')
-
         database = database.append(shape_metrics, ignore_index=False)
-        database = database.append(texture_metrics, ignore_index=False)
+
+        try:
+            texture_metrics = segment_texture_metrics(
+                self.segment, image=image, tag='Network')
+            database = database.append(texture_metrics, ignore_index=False)
+        except AttributeError:
+            pass
 
         return database

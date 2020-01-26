@@ -5,25 +5,20 @@ import numpy as np
 from pyfibre.model.objects.fibre_network import (
     FibreNetwork
 )
-from pyfibre.tests.probe_classes import generate_probe_graph
+from pyfibre.tests.probe_classes import ProbeFibreNetwork
 
 
 class TestFibreNetwork(TestCase):
 
     def setUp(self):
 
-        self.graph = generate_probe_graph()
-        self.network = FibreNetwork(graph=self.graph)
+        self.network = ProbeFibreNetwork()
 
     def test__getstate__(self):
 
         status = self.network.__getstate__()
 
-        self.assertListEqual(
-            ['graph', 'fibres'],
-            list(status.keys())
-        )
-
+        self.assertIn('fibres', status)
         self.assertListEqual(
             [], status['fibres']
         )
@@ -53,7 +48,7 @@ class TestFibreNetwork(TestCase):
         database = self.network.generate_database()
         self.assertEqual(12, len(database))
 
-        image = np.ones((5, 5))
+        image = np.ones((10, 10))
         image[2:, 2:] = 2
 
         database = self.network.generate_database(image)

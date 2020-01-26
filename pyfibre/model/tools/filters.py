@@ -116,7 +116,7 @@ def form_nematic_tensor(image, sigma=None, size=None):
 	return n_tensor
 
 
-def form_structure_tensor(image, sigma=0.0001, size=None):
+def form_structure_tensor(image, sigma=0.0001):
 	"""
 	form_structure_tensor(image)
 
@@ -142,7 +142,8 @@ def form_structure_tensor(image, sigma=0.0001, size=None):
 	jyy = np.zeros(image.shape)
 
 	for frame in range(nframe):
-		jxx[frame], jxy[frame], jyy[frame] = structure_tensor(image[frame], sigma=sigma)
+		jxx[frame], jxy[frame], jyy[frame] = structure_tensor(
+			image[frame], sigma=sigma)
 
 	j_tensor = np.stack((jxx, jxy, jxy, jyy), -1).reshape(jxx.shape + (2,2))
 	if nframe == 1:
@@ -151,7 +152,7 @@ def form_structure_tensor(image, sigma=0.0001, size=None):
 	return j_tensor
 
 
-def form_hessian_tensor(image, sigma=None, size=None):
+def form_hessian_tensor(image, sigma=None):
 	"""
 	form_hessian_tensor(image)
 
@@ -159,12 +160,8 @@ def form_hessian_tensor(image, sigma=None, size=None):
 
 	Parameters
 	----------
-
-	dx_grid:  array_like (float); shape=(nframe, n_y, n_x)
-		Matrix of derivative of image intensity with respect to x axis for each pixel
-
-	dy_grid:  array_like (float); shape=(nframe, n_y, n_x)
-		Matrix of derivative of image intensity with respect to y axis for each pixel
+	image:  array_like (float); shape(n_y, n_x)
+		Image to analyse
 
 	Returns
 	-------
@@ -182,7 +179,8 @@ def form_hessian_tensor(image, sigma=None, size=None):
 	dydy = np.zeros(image.shape)
 
 	for frame in range(nframe):
-		dxdx[frame], dxdy[frame], dydy[frame] = hessian_matrix(image[frame], order="xy", sigma=sigma)
+		dxdx[frame], dxdy[frame], dydy[frame] = hessian_matrix(
+			image[frame], order="xy", sigma=sigma)
 
 	H_tensor = np.stack((dxdx, dxdy, dxdy, dydy), -1).reshape(dxdx.shape + (2,2))
 	if nframe == 1:

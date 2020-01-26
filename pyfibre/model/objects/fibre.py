@@ -11,9 +11,9 @@ class Fibre(BaseGraphSegment):
     """Container for a Networkx Graph and scikit-image region
     representing a single, un-branched fibre"""
 
-    def __init__(self, *args, graph=None, nodes=None, edges=None, growing=True, **kwargs):
+    def __init__(self, *args, nodes=None, edges=None, growing=True, **kwargs):
 
-        super().__init__(*args, graph=graph, **kwargs)
+        super().__init__(*args, **kwargs)
 
         if nodes is not None:
             self.graph.add_nodes_from(nodes)

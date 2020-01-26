@@ -21,7 +21,7 @@ from pyfibre.io.object_io import (
 from pyfibre.io.network_io import save_network, load_network
 from pyfibre.io.database_io import save_database, load_database
 
-from pyfibre.model.metric_analyser import metric_analysis
+from pyfibre.model.metric_analyser import generate_metrics
 from pyfibre.model.pyfibre_segmentation import cell_segmentation
 
 logger = logging.getLogger(__name__)
@@ -75,12 +75,12 @@ class ImageAnalyser:
         """Get image-specific options"""
 
         network = self.ow_network
-        segment = self.ow_segment
-        metric = self.ow_metric
+        segment = network or self.ow_segment
+        metric = segment or self.ow_metric
 
         try:
             load_network(filename, "network")
-        except (UnpicklingError, Exception):
+        except Exception:
             logger.info("Cannot load networks for {}".format(filename))
             network = True
             segment = True
@@ -90,7 +90,7 @@ class ImageAnalyser:
             load_fibre_networks(filename)
             if self.pl_analysis:
                 load_cells(filename)
-        except (UnpicklingError, Exception):
+        except Exception:
             logger.info("Cannot load segments for {}".format(filename))
             segment = True
             metric = True
@@ -209,15 +209,15 @@ class ImageAnalyser:
         cells = load_cells(
             filename, image=multi_image.pl_image)
 
-        global_dataframe, dataframes = metric_analysis(
+        global_dataframe, local_dataframes = generate_metrics(
             multi_image, filename, fibre_networks, cells,
             self.sigma, self.shg_analysis, self.pl_analysis)
 
         if self.shg_analysis:
             save_database(global_dataframe, filename, 'global_metric')
-            save_database(dataframes[0], filename, 'fibre_metric')
+            save_database(local_dataframes[0], filename, 'fibre_metric')
         if self.pl_analysis:
-            save_database(dataframes[1], filename, 'cell_metric')
+            save_database(local_dataframes[1], filename, 'cell_metric')
 
         end_time = time.time()
 

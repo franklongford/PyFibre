@@ -19,7 +19,8 @@ class TestObjectIO(TestCase):
     def setUp(self):
 
         self.graph = generate_probe_graph()
-        self.graph_segment = BaseGraphSegment(graph=self.graph)
+        self.graph_segment = BaseGraphSegment(
+            graph=self.graph, shape=(10, 10))
 
     def test_get_networkx_graph(self):
 

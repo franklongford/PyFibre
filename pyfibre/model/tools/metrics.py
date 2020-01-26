@@ -62,10 +62,7 @@ def segment_texture_metrics(segment, image=None, tag=''):
         indices = np.mgrid[minr:maxr, minc:maxc]
         segment_image = image[(indices[0], indices[1])]
     else:
-        try:
-            segment_image = segment.intensity_image
-        except AttributeError:
-            return database
+        segment_image = segment.intensity_image
 
     _, _, database[f"{tag} Fourier SDI"] = (0, 0, 0)#fourier_transform_analysis(segment_image)
 
@@ -81,20 +78,22 @@ def segment_texture_metrics(segment, image=None, tag=''):
     glcm[0, :, :, :] = 0
     glcm[:, 0, :, :] = 0
 
-    database[f"{tag} GLCM Contrast"] = greycoprops_edit(glcm, 'contrast').mean()
-    database[f"{tag} GLCM Homogeneity"] = greycoprops_edit(glcm, 'homogeneity').mean()
-    database[f"{tag} GLCM Energy"] = greycoprops_edit(glcm, 'energy').mean()
-    database[f"{tag} GLCM Entropy"] = greycoprops_edit(glcm, 'entropy').mean()
-    database[f"{tag} GLCM Autocorrelation"] = greycoprops_edit(glcm, 'autocorrelation').mean()
-    database[f"{tag} GLCM Clustering"] = greycoprops_edit(glcm, 'cluster').mean()
-    database[f"{tag} GLCM Mean"] = greycoprops_edit(glcm, 'mean').mean()
-    database[f"{tag} GLCM Covariance"] = greycoprops_edit(glcm, 'covariance').mean()
-    database[f"{tag} GLCM Correlation"] = greycoprops_edit(glcm, 'correlation').mean()
+    greycoprops = greycoprops_edit(glcm)
+
+    database[f"{tag} GLCM Contrast"] = greycoprops['contrast'].mean()
+    database[f"{tag} GLCM Homogeneity"] = greycoprops['homogeneity'].mean()
+    database[f"{tag} GLCM Energy"] = greycoprops['energy'].mean()
+    database[f"{tag} GLCM Entropy"] = greycoprops['entropy'].mean()
+    database[f"{tag} GLCM Autocorrelation"] = greycoprops['autocorrelation'].mean()
+    database[f"{tag} GLCM Clustering"] = greycoprops['cluster'].mean()
+    database[f"{tag} GLCM Mean"] = greycoprops['mean'].mean()
+    database[f"{tag} GLCM Covariance"] = greycoprops['covariance'].mean()
+    database[f"{tag} GLCM Correlation"] = greycoprops['correlation'].mean()
 
     return database
 
 
-def network_metrics(network, network_red, tag):
+def network_metrics(network, network_red, tag=''):
     """Analyse networkx Graph object"""
 
     database = pd.Series()
@@ -120,7 +119,7 @@ def network_metrics(network, network_red, tag):
     return database
 
 
-def fibre_metrics(tot_fibres, nematic_tensor=None):
+def fibre_metrics(tot_fibres):
     """Analysis of list of `Fibre` objects
 
     Parameters
@@ -139,12 +138,6 @@ def fibre_metrics(tot_fibres, nematic_tensor=None):
 
     for fibre in tot_fibres:
         fibre_series = fibre.generate_database()
-
-        if nematic_tensor is not None:
-            nematic_metrics = nematic_tensor_metrics(
-                fibre.segment, nematic_tensor, 'Fibre')
-            fibre_series = pd.concat((fibre_series, nematic_metrics))
-
         database = database.append(fibre_series, ignore_index=True)
 
     return database
@@ -179,9 +172,14 @@ def fibre_network_metrics(fibre_networks, image=None, sigma=0.0001):
         fibre_network_series = pd.Series(name=i)
 
         metrics = fibre_network.generate_database()
-        fibre_network_series = pd.concat((fibre_network_series, metrics))
 
-        metrics = fibre_metrics(fibre_network.fibres, nematic_tensor)
+        nematic_metrics = nematic_tensor_metrics(
+            fibre_network.segment, nematic_tensor, 'Fibre Network')
+
+        fibre_network_series = pd.concat(
+            (fibre_network_series, metrics, nematic_metrics))
+
+        metrics = fibre_metrics(fibre_network.fibres)
         mean_metrics = metrics.mean()
 
         fibre_network_series['Mean Fibre Waviness'] = mean_metrics['Fibre Waviness']

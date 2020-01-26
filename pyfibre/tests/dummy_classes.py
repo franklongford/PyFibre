@@ -1,6 +1,6 @@
 import numpy as np
 
-from pyfibre.model.tools.fibre_assignment import Fibre
+from pyfibre.model.tools.fibre_assigner import Fibre
 
 
 class DummyFibre(Fibre):

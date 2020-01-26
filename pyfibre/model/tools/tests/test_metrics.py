@@ -8,9 +8,6 @@ from pyfibre.tests.probe_classes import (
 
 class TestAnalysis(TestCase):
 
-    def setUp(self):
-        pass
-
     def test_fibre_analysis(self):
 
         tot_fibres = [ProbeFibre(), ProbeFibre(), ProbeFibre()]
@@ -23,10 +20,10 @@ class TestAnalysis(TestCase):
 
         fibre_network = ProbeFibreNetwork()
         fibre_network.fibres = fibre_network.generate_fibres()
-        image = np.ones((5, 5))
+        image = np.ones((10, 10))
         image[2:, 2:] = 2
 
         metrics = fibre_network_metrics(
             [fibre_network], image)
 
-        self.assertEqual(15, len(metrics.columns))
+        self.assertEqual(18, len(metrics.columns))
