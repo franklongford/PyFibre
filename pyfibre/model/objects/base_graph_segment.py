@@ -1,9 +1,10 @@
 import copy
 
 from networkx import Graph
-from networkx.readwrite.json_graph import node_link_data
 
-from pyfibre.io.utils import pop_under_recursive, get_networkx_graph
+from pyfibre.io.utils import (
+    pop_under_recursive, deserialize_networkx_graph,
+    serialize_networkx_graph)
 from pyfibre.model.tools.convertors import networks_to_segments
 from pyfibre.model.tools.fibre_utilities import get_node_coord_array
 
@@ -20,7 +21,7 @@ class BaseGraphSegment:
                 'either image or shape argument must be declared')
 
         if isinstance(graph, dict):
-            graph = get_networkx_graph(graph)
+            graph = deserialize_networkx_graph(graph)
         elif graph is None:
             graph = Graph()
 
@@ -35,27 +36,13 @@ class BaseGraphSegment:
     def __getstate__(self):
         """Return the object state in a form that can be
         serialised as a JSON file"""
-        status = pop_under_recursive(copy.copy(self.__dict__))
+        state = pop_under_recursive(copy.copy(self.__dict__))
 
-        status.pop('image', None)
-        status['shape'] = self.shape
+        state.pop('image', None)
+        state['shape'] = self.shape
+        state['graph'] = serialize_networkx_graph(state['graph'])
 
-        graph = node_link_data(status['graph'])
-
-        for coord in graph['nodes']:
-            coord['xy'] = coord['xy'].tolist()
-            coord['id'] = int(coord['id'])
-            if 'direction' in coord:
-                coord['direction'] = coord['direction'].tolist()
-
-        if "links" in graph:
-            for link in graph["links"]:
-                link['source'] = int(link['source'])
-                link['target'] = int(link['target'])
-
-        status['graph'] = graph
-
-        return status
+        return state
 
     @property
     def node_list(self):

@@ -16,11 +16,38 @@ class TestFibreNetwork(TestCase):
 
     def test__getstate__(self):
 
-        status = self.network.__getstate__()
+        state = self.network.__getstate__()
 
-        self.assertIn('fibres', status)
+        self.assertIn('fibres', state)
+        self.assertIn('red_graph', state)
+
         self.assertListEqual(
-            [], status['fibres']
+            [], state['fibres']
+        )
+
+        self.assertDictEqual(
+            state['red_graph'],
+            {'directed': False,
+             'multigraph': False,
+             'graph': {},
+             'nodes': [{'xy': [0, 0], 'id': 0},
+                       {'xy': [2, 3], 'id': 1}],
+             'links': [{'r': 3.605551275463989, 'source': 0, 'target': 1}]}
+        )
+
+    def test_deserialise(self):
+        status = self.network.__getstate__()
+        new_network = FibreNetwork(**status)
+        status = new_network.__getstate__()
+
+        self.assertDictEqual(
+            status['red_graph'],
+            {'directed': False,
+             'multigraph': False,
+             'graph': {},
+             'nodes': [{'xy': [0, 0], 'id': 0},
+                       {'xy': [2, 3], 'id': 1}],
+             'links': [{'r': 3.605551275463989, 'source': 0, 'target': 1}]}
         )
 
     def test_fibres(self):

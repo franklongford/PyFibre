@@ -7,7 +7,10 @@ import networkx as nx
 from pyfibre.io.object_io import (
     save_base_graph_segment, load_base_graph_segment,
     save_base_graph_segments, load_base_graph_segments)
-from pyfibre.io.utils import get_networkx_graph
+from pyfibre.io.utils import (
+    serialize_networkx_graph,
+    deserialize_networkx_graph
+)
 from pyfibre.model.objects.base_graph_segment import (
     BaseGraphSegment
 )
@@ -22,12 +25,33 @@ class TestObjectIO(TestCase):
         self.graph_segment = BaseGraphSegment(
             graph=self.graph, shape=(10, 10))
 
-    def test_get_networkx_graph(self):
+    def test_serialize_networkx_graph(self):
+
+        data = serialize_networkx_graph(self.graph)
+
+        self.assertDictEqual(
+            data,
+            {'directed': False,
+             'graph': {},
+             'links': [{'r': 1.4142135623730951, 'source': 2, 'target': 3},
+                       {'r': 1.4142135623730951, 'source': 3, 'target': 4},
+                       {'r': 1, 'source': 4, 'target': 5}],
+             'multigraph': False,
+             'nodes': [{'xy': [0, 0], 'id': 2},
+                       {'xy': [1, 1], 'id': 3},
+                       {'xy': [2, 2], 'id': 4},
+                       {'xy': [2, 3], 'id': 5}]
+             }
+        )
+
+    def test_deserialize_networkx_graph(self):
 
         data = {
             'directed': False,
             'graph': {},
-            'links': [],
+            'links': [{'r': 1.4142135623730951, 'source': 2, 'target': 3},
+                      {'r': 1.4142135623730951, 'source': 3, 'target': 4},
+                      {'r': 1, 'source': 4, 'target': 5}],
             'multigraph': False,
             'nodes': [{'xy': [0, 0], 'id': 2},
                       {'xy': [1, 1], 'id': 3},
@@ -35,7 +59,7 @@ class TestObjectIO(TestCase):
                       {'xy': [2, 3], 'id': 5}]
         }
 
-        graph = get_networkx_graph(data)
+        graph = deserialize_networkx_graph(data)
 
         self.assertIsInstance(graph, nx.Graph)
         self.assertEqual(4, graph.number_of_nodes())

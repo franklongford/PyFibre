@@ -1,9 +1,12 @@
 from unittest import mock, TestCase
 import os
 
+import numpy as np
+
 from .. utils import (
     parse_files, parse_file_path, pop_under_recursive,
-    pop_dunder_recursive)
+    pop_dunder_recursive, numpy_to_python_recursive,
+    python_to_numpy_recursive)
 
 source_dir = os.path.dirname(os.path.realpath(__file__))
 pyfibre_dir = os.path.dirname(os.path.dirname(source_dir))
@@ -73,3 +76,59 @@ class TestUtils(TestCase):
                                       {'also_good_key': 'good'}]
                     }
         self.assertEqual(pop_dunder_recursive(self.test_dict), expected)
+
+    def test_numpy_to_python_recursive(self):
+
+        test_dict = {
+            'int64': np.int64(0),
+            'array': np.array([0, 1, 2]),
+            'nested dict': {
+                'id': np.int64(0),
+                'list': [2, 3, 4]
+            },
+            'list dictionary': [
+                {'array': np.array([0, 1, 2])},
+                {'id': np.int(0)}
+            ]
+        }
+
+        serialized_dict = numpy_to_python_recursive(test_dict)
+
+        self.assertDictEqual(
+            {
+                'int64': 0,
+                'array': [0, 1, 2],
+                'nested dict': {
+                    'id': 0,
+                    'list': [2, 3, 4]
+                },
+                'list dictionary': [
+                    {'array': [0, 1, 2]},
+                    {'id': 0}
+                ]
+            },
+            serialized_dict
+        )
+
+    def test_python_to_numpy_recursive(self):
+
+        test_dict = {
+            'int64': 0,
+            'xy': [0, 1, 2],
+            'nested dict': {
+                'id': 0,
+                'list': [2, 3, 4]
+            },
+            'list dictionary': [
+                {'direction': [0, 1, 2]},
+                {'id': 0}
+            ]
+        }
+
+        deserialized_dict = python_to_numpy_recursive(test_dict)
+
+        self.assertIsInstance(
+            deserialized_dict['xy'], np.ndarray)
+        self.assertIsInstance(
+            deserialized_dict['list dictionary'][0]['direction'],
+            np.ndarray)

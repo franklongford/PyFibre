@@ -81,14 +81,9 @@ class MetricAnalyser:
 
     def analyse_shg(self):
 
-        start = time.time()
-
         # Analyse fibre network and individual regions
         local_metrics = self._get_local_metrics(
             fibre_network_metrics, 'fibre_networks.json')
-
-        end = time.time()
-        print(f'local fibre analysis: {end-start} s')
 
         # Perform non-linear analysis on global region
         global_metrics, global_binary = self._get_global_metrics('SHG Fibre')

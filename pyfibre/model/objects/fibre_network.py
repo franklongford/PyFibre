@@ -1,3 +1,10 @@
+from networkx import Graph
+
+from pyfibre.io.utils import (
+    pop_recursive, remove_contraction,
+    deserialize_networkx_graph,
+    serialize_networkx_graph
+)
 from pyfibre.model.tools.metrics import (
     segment_shape_metrics, network_metrics, segment_texture_metrics)
 from pyfibre.model.tools.fibre_assigner import FibreAssigner
@@ -11,7 +18,7 @@ class FibreNetwork(BaseGraphSegment):
     """Container for a Networkx Graph and scikit-image region
     representing a connected fibrous region"""
 
-    def __init__(self, *args, fibres=None, **kwargs):
+    def __init__(self, *args, fibres=None, red_graph=None, **kwargs):
         super().__init__(*args, **kwargs)
 
         if fibres is None:
@@ -24,6 +31,15 @@ class FibreNetwork(BaseGraphSegment):
                 for element in fibres
             ]
 
+        if isinstance(red_graph, dict):
+            self.red_graph = deserialize_networkx_graph(red_graph)
+        elif isinstance(red_graph, Graph):
+            self.red_graph = red_graph
+        elif self.graph is not None:
+            self.red_graph = self.generate_red_graph()
+        else:
+            self.red_graph = None
+
         self._area_threshold = 200
         self._iterations = 5
 
@@ -31,6 +47,9 @@ class FibreNetwork(BaseGraphSegment):
         """Return the object state in a form that can be
         serialised as a JSON file"""
         state = super().__getstate__()
+        state['red_graph'] = serialize_networkx_graph(state['red_graph'])
+        state['red_graph'] = pop_recursive(
+            state['red_graph'], remove_contraction)
         state["fibres"] = [
             fibre.__getstate__()
             for fibre in self.fibres]
@@ -42,8 +61,7 @@ class FibreNetwork(BaseGraphSegment):
         return FibreAssigner(
             image=self.image, shape=self.shape)
 
-    @property
-    def red_graph(self):
+    def generate_red_graph(self):
         return simplify_network(self.graph)
 
     def generate_fibres(self):
