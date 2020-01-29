@@ -35,8 +35,6 @@ class FibreNetwork(BaseGraphSegment):
             self.red_graph = deserialize_networkx_graph(red_graph)
         elif isinstance(red_graph, Graph):
             self.red_graph = red_graph
-        elif self.graph is not None:
-            self.red_graph = self.generate_red_graph()
         else:
             self.red_graph = None
 

@@ -251,7 +251,7 @@ class ViewerPane(TraitsTaskPane):
         if self.selected_row is not None:
             image_name = os.path.basename(self.selected_row.name)
             image_path = os.path.dirname(self.selected_row.name)
-            data_dir = f"{image_path}/{image_name}-analysis/data/"
+            data_dir = f"{image_path}/{image_name}-pyfibre-analysis/data/"
             filename = data_dir + image_name
 
             self.shg_image_tab.image = self.selected_image.shg_image

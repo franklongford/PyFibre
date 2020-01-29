@@ -135,12 +135,16 @@ def fibre_network_assignment(network, image=None, shape=None):
     fibre_networks = []
 
     for i, component in enumerate(nx.connected_components(network)):
+
         subgraph = network.subgraph(component)
+
         fibre_network = FibreNetwork(
             graph=subgraph, image=image, shape=shape)
+
         fibre_network.fibres = fibre_network.generate_fibres()
 
         if len(fibre_network.fibres) > 0:
+            fibre_network.red_graph = fibre_network.generate_red_graph()
             fibre_networks.append(fibre_network)
 
     # Sort segments ranked by graph size
