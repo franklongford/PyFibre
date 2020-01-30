@@ -35,7 +35,8 @@ class TestExtraction(TestCase):
 
     def test_fibre_network_assignment(self):
 
-        fibre_networks = fibre_network_assignment(self.network)
+        fibre_networks = fibre_network_assignment(
+            self.network, shape=(10, 10))
         fibres = fibre_networks[0].fibres
 
         self.assertEqual(1, len(fibre_networks))

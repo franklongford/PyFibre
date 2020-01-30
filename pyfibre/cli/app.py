@@ -93,6 +93,16 @@ def pyfibre(file_path, key, sigma, alpha, log_name,
             shg_analysis, pl_analysis, ow_metric, ow_segment,
             ow_network, save_figures, test):
 
+    if test:
+        file_path = os.path.dirname(
+            os.path.dirname(__file__)) + '/tests/fixtures'
+        debug = True
+        profile = True
+        shg_analysis = True
+        pl_analysis = True
+        ow_network = True
+        save_figures = True
+
     if debug:
         level = logging.DEBUG
     else:
@@ -108,14 +118,6 @@ def pyfibre(file_path, key, sigma, alpha, log_name,
         import pstats
         profiler = cProfile.Profile()
         profiler.enable()
-
-    if test:
-        file_path = os.path.dirname(
-            os.path.dirname(__file__)) + '/tests/fixtures'
-        shg_analysis = True
-        pl_analysis = True
-        ow_network = True,
-        save_figures = True
 
     file_name, directory = parse_file_path(file_path)
 

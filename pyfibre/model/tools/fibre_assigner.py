@@ -14,9 +14,14 @@ from .fibre_utilities import (
 logger = logging.getLogger(__name__)
 
 
-class FibreAssignment:
+class FibreAssigner:
 
-    def __init__(self, image=None, angle_thresh=70, min_n=4):
+    def __init__(self, image=None, shape=None, angle_thresh=70, min_n=4):
+
+        if image is None and shape is None:
+            raise RuntimeError(
+                'Cannot instantiate FibreAssigner class'
+                ' with both image and shape argument unassigned')
 
         self.image = image
         self.angle_thresh = angle_thresh
@@ -27,6 +32,14 @@ class FibreAssignment:
         self.edge_count = None
         self.d_coord = None
         self.r2_coord = None
+
+        self._shape = shape
+
+    @property
+    def shape(self):
+        if self.image is not None:
+            return self.image.shape
+        return self._shape
 
     @property
     def theta_thresh(self):
@@ -55,7 +68,9 @@ class FibreAssignment:
         new_node = new_nodes[np.argsort(edge_list)][-1]
         coord_r = self.graph[node][new_node]['r']
 
-        fibre = Fibre(nodes=[node, new_node], image=self.image)
+        fibre = Fibre(nodes=[node, new_node],
+                      image=self.image,
+                      shape=self.shape)
 
         fibre.graph.nodes[node]['xy'] = self.graph.nodes[node]['xy']
         fibre.graph.nodes[new_node]['xy'] = self.graph.nodes[new_node]['xy']

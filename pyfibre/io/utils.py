@@ -1,7 +1,7 @@
 import os
 
 import numpy as np
-from networkx import node_link_graph
+from networkx import node_link_graph, node_link_data
 
 
 def parse_files(name=None, directory=None, key=None):
@@ -56,10 +56,16 @@ def remove_under(dictionary):
 
 
 def remove_dunder(dictionary):
-
     keys = [key for key in dictionary.keys()]
     for key in keys:
         if key.startswith('__') and key.endswith('__'):
+            dictionary.pop(key)
+
+
+def remove_contraction(dictionary):
+    keys = [key for key in dictionary.keys()]
+    for key in keys:
+        if isinstance(key, str) and key.startswith('contraction'):
             dictionary.pop(key)
 
 
@@ -99,13 +105,67 @@ def pop_dunder_recursive(dictionary):
     return dictionary
 
 
-def get_networkx_graph(data):
+def deserialize_networkx_graph(data):
     """Transform JSON serialised data into a
     networkx Graph object"""
 
-    for coord in data['nodes']:
-        coord['xy'] = np.asarray(coord['xy'])
-        if 'direction' in coord:
-            coord['direction'] = np.asarray(coord['direction'])
+    data = python_to_numpy_recursive(data)
+    graph = node_link_graph(data)
 
-    return node_link_graph(data)
+    return graph
+
+
+def serialize_networkx_graph(graph):
+    """Transform a networkx Graph object into
+    a JSON serialised dictionary"""
+
+    data = node_link_data(graph)
+    data = numpy_to_python_recursive(data)
+
+    return data
+
+
+def numpy_to_python_recursive(dictionary):
+    """Convert all numpy values in nested dictionary
+    to pure python values"""
+
+    for key, value in dictionary.items():
+
+        if isinstance(value, dict):
+            numpy_to_python_recursive(value)
+
+        elif isinstance(value, np.ndarray):
+            dictionary[key] = value.tolist()
+
+        elif isinstance(value, np.int64):
+            dictionary[key] = int(value)
+
+        elif isinstance(value, np.float):
+            dictionary[key] = float(value)
+
+        elif isinstance(value, (list, tuple)):
+            for element in value:
+                if isinstance(element, dict):
+                    numpy_to_python_recursive(element)
+
+    return dictionary
+
+
+def python_to_numpy_recursive(dictionary):
+    """Convert all numpy values in nested dictionary
+    to pure python values"""
+
+    for key, value in dictionary.items():
+
+        if isinstance(value, dict):
+            python_to_numpy_recursive(value)
+
+        elif isinstance(value, list):
+            if key in ['xy', 'direction']:
+                dictionary[key] = np.array(value)
+            else:
+                for element in value:
+                    if isinstance(element, dict):
+                        python_to_numpy_recursive(element)
+
+    return dictionary

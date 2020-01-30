@@ -13,11 +13,14 @@ class TestBaseGraphSegment(TestCase):
     def setUp(self):
 
         self.graph = generate_probe_graph()
-        self.graph_segment = BaseGraphSegment(graph=self.graph)
+        self.graph_segment = BaseGraphSegment(
+            graph=self.graph, shape=(3, 4))
 
     def test__getstate__(self):
+
         status = self.graph_segment.__getstate__()
 
+        self.assertIn('shape', status)
         self.assertDictEqual(
             status['graph'],
             {'directed': False,

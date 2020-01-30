@@ -2,8 +2,8 @@ from unittest import TestCase
 
 import numpy as np
 
-from pyfibre.model.tools.fibre_assignment import (
-    Fibre, FibreAssignment
+from pyfibre.model.tools.fibre_assigner import (
+    Fibre, FibreAssigner
 )
 from pyfibre.tests.probe_classes import generate_probe_graph
 
@@ -12,7 +12,9 @@ class TestFibreAssignment(TestCase):
 
     def setUp(self):
 
-        self.fibre_assignment = FibreAssignment()
+        self.fibre_assignment = FibreAssigner(
+            shape=(10, 10)
+        )
         self.graph = generate_probe_graph()
 
     def test___init__(self):

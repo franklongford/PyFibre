@@ -57,14 +57,16 @@ class ProbeFibre(Fibre):
 
     def __init__(self, *args, **kwargs):
         super(ProbeFibre, self).__init__(
-            graph=generate_probe_graph())
+            graph=generate_probe_graph(),
+            shape=(10, 10))
 
 
 class ProbeFibreNetwork(FibreNetwork):
 
     def __init__(self, *args, **kwargs):
         super(ProbeFibreNetwork, self).__init__(
-            graph=generate_probe_graph())
+            graph=generate_probe_graph(),
+            shape=(10, 10))
 
 
 class ProbeSHGPLTransImage(SHGPLTransImage):

@@ -247,9 +247,8 @@ def simplify_network(network):
         edge_list = get_edge_list(new_network, max_degree=2)
 
     new_network = nx.convert_node_labels_to_integers(new_network)
+    node_coord = get_node_coord_array(new_network)
 
-    node_coord = [new_network.nodes[i]['xy'] for i in new_network.nodes()]
-    node_coord = np.stack(node_coord)
     d_coord, r2_coord = distance_matrix(node_coord)
     r_coord = np.sqrt(r2_coord)
 

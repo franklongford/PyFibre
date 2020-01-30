@@ -1,8 +1,7 @@
 import pandas as pd
-import networkx as nx
 import numpy as np
 
-from pyfibre.model.tools.analysis import segment_analysis
+from pyfibre.model.tools.metrics import segment_shape_metrics
 from pyfibre.model.tools.fibre_utilities import branch_angles
 
 from .base_graph_segment import BaseGraphSegment
@@ -12,9 +11,9 @@ class Fibre(BaseGraphSegment):
     """Container for a Networkx Graph and scikit-image region
     representing a single, un-branched fibre"""
 
-    def __init__(self, *args, graph=None, nodes=None, edges=None, growing=True, **kwargs):
+    def __init__(self, *args, nodes=None, edges=None, growing=True, **kwargs):
 
-        super().__init__(*args, graph=graph, **kwargs)
+        super().__init__(*args, **kwargs)
 
         if nodes is not None:
             self.graph.add_nodes_from(nodes)
@@ -79,14 +78,9 @@ class Fibre(BaseGraphSegment):
         database['Fibre Length'] = self.fibre_l
         database['Fibre Angle'] = self.angle
 
-        if image is not None:
-            segment_metrics = segment_analysis(
-                self.segment, image=image, tag='Fibre')
+        metrics = segment_shape_metrics(
+            self.segment, tag='Fibre')
 
-        else:
-            segment_metrics = segment_analysis(
-                self.segment, tag='Fibre')
-
-        database = database.append(segment_metrics, ignore_index=False)
+        database = database.append(metrics, ignore_index=False)
 
         return database

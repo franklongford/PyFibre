@@ -5,27 +5,49 @@ import numpy as np
 from pyfibre.model.objects.fibre_network import (
     FibreNetwork
 )
-from pyfibre.tests.probe_classes import generate_probe_graph
+from pyfibre.tests.probe_classes import ProbeFibreNetwork
 
 
 class TestFibreNetwork(TestCase):
 
     def setUp(self):
 
-        self.graph = generate_probe_graph()
-        self.network = FibreNetwork(graph=self.graph)
+        self.network = ProbeFibreNetwork()
 
     def test__getstate__(self):
 
-        status = self.network.__getstate__()
+        state = self.network.__getstate__()
+
+        self.assertIn('fibres', state)
+        self.assertIn('red_graph', state)
 
         self.assertListEqual(
-            ['graph', 'fibres'],
-            list(status.keys())
+            [], state['fibres']
         )
 
-        self.assertListEqual(
-            [], status['fibres']
+        self.assertDictEqual(
+            state['red_graph'],
+            {'directed': False,
+             'multigraph': False,
+             'graph': {},
+             'nodes': [{'xy': [0, 0], 'id': 0},
+                       {'xy': [2, 3], 'id': 1}],
+             'links': [{'r': 3.605551275463989, 'source': 0, 'target': 1}]}
+        )
+
+    def test_deserialise(self):
+        status = self.network.__getstate__()
+        new_network = FibreNetwork(**status)
+        status = new_network.__getstate__()
+
+        self.assertDictEqual(
+            status['red_graph'],
+            {'directed': False,
+             'multigraph': False,
+             'graph': {},
+             'nodes': [{'xy': [0, 0], 'id': 0},
+                       {'xy': [2, 3], 'id': 1}],
+             'links': [{'r': 3.605551275463989, 'source': 0, 'target': 1}]}
         )
 
     def test_fibres(self):
@@ -53,7 +75,7 @@ class TestFibreNetwork(TestCase):
         database = self.network.generate_database()
         self.assertEqual(12, len(database))
 
-        image = np.ones((5, 5))
+        image = np.ones((10, 10))
         image[2:, 2:] = 2
 
         database = self.network.generate_database(image)

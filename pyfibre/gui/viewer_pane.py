@@ -18,7 +18,7 @@ from traitsui.api import (
 )
 
 from pyfibre.io.object_io import (
-    load_objects, load_fibre_networks, load_fibres)
+    load_cells, load_fibre_networks, load_fibres)
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 from pyfibre.gui.file_display_pane import TableRow
 from pyfibre.model.objects.multi_image import MultiImage
@@ -251,7 +251,7 @@ class ViewerPane(TraitsTaskPane):
         if self.selected_row is not None:
             image_name = os.path.basename(self.selected_row.name)
             image_path = os.path.dirname(self.selected_row.name)
-            data_dir = f"{image_path}/{image_name}-analysis/data/"
+            data_dir = f"{image_path}/{image_name}-pyfibre-analysis/data/"
             filename = data_dir + image_name
 
             self.shg_image_tab.image = self.selected_image.shg_image
@@ -275,7 +275,8 @@ class ViewerPane(TraitsTaskPane):
                 self.fibre_segment_tab.image = self.selected_image.shg_image
 
                 try:
-                    fibres = load_fibres(filename)
+                    fibres = load_fibres(
+                        filename, image=self.selected_image.shg_image)
                 except (IOError, EOFError):
                     fibres = flatten_list([
                         fibre_network.fibres
@@ -290,7 +291,8 @@ class ViewerPane(TraitsTaskPane):
             self.trans_image_tab.image = self.selected_image.trans_image
 
             try:
-                cells = load_objects(filename, "cells")
+                cells = load_cells(
+                    filename, image=self.selected_image.pl_image)
             except (AttributeError, IOError, EOFError):
                 logger.debug("Unable to display cell segments for {}".format(image_name))
             else:

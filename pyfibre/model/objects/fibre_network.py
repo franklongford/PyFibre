@@ -1,5 +1,13 @@
-from pyfibre.model.tools.analysis import network_analysis, segment_analysis
-from pyfibre.model.tools.fibre_assignment import FibreAssignment
+from networkx import Graph
+
+from pyfibre.io.utils import (
+    pop_recursive, remove_contraction,
+    deserialize_networkx_graph,
+    serialize_networkx_graph
+)
+from pyfibre.model.tools.metrics import (
+    segment_shape_metrics, network_metrics, segment_texture_metrics)
+from pyfibre.model.tools.fibre_assigner import FibreAssigner
 from pyfibre.model.tools.fibre_utilities import simplify_network
 
 from .base_graph_segment import BaseGraphSegment
@@ -10,18 +18,25 @@ class FibreNetwork(BaseGraphSegment):
     """Container for a Networkx Graph and scikit-image region
     representing a connected fibrous region"""
 
-    def __init__(self, *args, fibres=None, **kwargs):
+    def __init__(self, *args, fibres=None, red_graph=None, **kwargs):
         super().__init__(*args, **kwargs)
 
         if fibres is None:
             self.fibres = []
-        elif isinstance(fibres, list):
+        else:
             self.fibres = [
                 Fibre(image=self.image, **element)
                 if isinstance(element, dict)
                 else element
                 for element in fibres
             ]
+
+        if isinstance(red_graph, dict):
+            self.red_graph = deserialize_networkx_graph(red_graph)
+        elif isinstance(red_graph, Graph):
+            self.red_graph = red_graph
+        else:
+            self.red_graph = None
 
         self._area_threshold = 200
         self._iterations = 5
@@ -30,6 +45,9 @@ class FibreNetwork(BaseGraphSegment):
         """Return the object state in a form that can be
         serialised as a JSON file"""
         state = super().__getstate__()
+        state['red_graph'] = serialize_networkx_graph(state['red_graph'])
+        state['red_graph'] = pop_recursive(
+            state['red_graph'], remove_contraction)
         state["fibres"] = [
             fibre.__getstate__()
             for fibre in self.fibres]
@@ -38,10 +56,10 @@ class FibreNetwork(BaseGraphSegment):
 
     @property
     def fibre_assigner(self):
-        return FibreAssignment(image=self.image)
+        return FibreAssigner(
+            image=self.image, shape=self.shape)
 
-    @property
-    def red_graph(self):
+    def generate_red_graph(self):
         return simplify_network(self.graph)
 
     def generate_fibres(self):
@@ -51,16 +69,20 @@ class FibreNetwork(BaseGraphSegment):
         """Generates a Pandas database with all graph and segment metrics
         for assigned image"""
 
-        database = network_analysis(self.graph, self.red_graph, 'SHG')
+        if image is None:
+            image = self.image
 
-        if image is not None:
-            segment_metrics = segment_analysis(
+        database = network_metrics(self.graph, self.red_graph, 'SHG')
+
+        shape_metrics = segment_shape_metrics(
+            self.segment, tag='Network')
+        database = database.append(shape_metrics, ignore_index=False)
+
+        try:
+            texture_metrics = segment_texture_metrics(
                 self.segment, image=image, tag='Network')
-
-        else:
-            segment_metrics = segment_analysis(
-                self.segment, tag='Network')
-
-        database = database.append(segment_metrics, ignore_index=False)
+            database = database.append(texture_metrics, ignore_index=False)
+        except AttributeError:
+            pass
 
         return database
