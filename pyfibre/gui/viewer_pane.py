@@ -275,7 +275,8 @@ class ViewerPane(TraitsTaskPane):
                 self.fibre_segment_tab.image = self.selected_image.shg_image
 
                 try:
-                    fibres = load_fibres(filename)
+                    fibres = load_fibres(
+                        filename, image=self.selected_image.shg_image)
                 except (IOError, EOFError):
                     fibres = flatten_list([
                         fibre_network.fibres
