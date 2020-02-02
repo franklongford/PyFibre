@@ -17,7 +17,7 @@ Once installed, simply create a default environment using the command line:
     edm install --version 3.6 -y click setuptools
     edm shell
 
-Then build the `PyFibre` environment using the following command:
+Then build the deployment `PyFibre-py36` environment using the following command:
 
     python -m ci build-env
 
@@ -36,7 +36,11 @@ And create the documentation
 
 ## Running the PyFibre GUI
 
-Once installed, calling the executable `PyFibre_GUI` from the command line will initiate a graphical user interface.
+Once installed, enter the deployment environment using
+
+    edm shell -e PyFibre-py36
+
+and call the executable `PyFibre_GUI` from the command line to initiate the graphical user interface.
 
 ![GUI](docs/main_view.png)
 
