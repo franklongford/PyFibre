@@ -1,23 +1,23 @@
 import logging
 import os
-from queue import Empty
-from multiprocessing import (
-    Pool, Process, JoinableQueue, Queue, current_process
-)
 
 import numpy as np
 import pandas as pd
 
 from pyface.api import ImageResource
+from pyface.qt import QtCore, QtGui
 from pyface.tasks.action.api import (
     SMenu, SMenuBar, SToolBar, TaskAction, TaskToggleGroup
 )
 from pyface.tasks.api import (
     PaneItem, Task, TaskLayout, VSplitter, Tabbed
 )
-from pyface.timer.api import do_after
 from traits.api import (
-    Bool, Int, List, Float, Instance, Event, on_trait_change
+    Bool, Int, List, Property, Instance, Event, Any,
+    on_trait_change
+)
+from traits_futures.api import (
+    TraitsExecutor, CallFuture, CANCELLED, COMPLETED,
 )
 
 from pyfibre.gui.options_pane import OptionsPane
@@ -47,7 +47,15 @@ class PyFibreMainTask(Task):
     file_display_pane = Instance(FileDisplayPane)
 
     # Multiprocessor list
-    n_proc = Int(1)
+
+    #: The Traits executor for the background jobs.
+    traits_executor = Instance(TraitsExecutor, ())
+
+    #: List of the submitted jobs, for display purposes.
+    current_futures = List(Instance(CallFuture))
+
+    #: Maximum number of workers
+    n_proc = Int(2)
 
     processes = List()
 
@@ -58,9 +66,21 @@ class PyFibreMainTask(Task):
 
     tool_bars = List(SToolBar)
 
-    run_enabled = Bool(True)
+    #: Is the run button enabled?
+    run_enabled = Property(
+        Bool(), depends_on='current_futures.state')
+
+    #: Is the cancel button enabled?
+    cancel_enabled = Property(
+        Bool(), depends_on='current_futures.state')
 
     change_options = Event()
+
+    # ------------------
+    #   Private Traits
+    # ------------------
+
+    _progress_bar = Any()
 
     def __init__(self, *args, **kwargs):
         super(PyFibreMainTask, self).__init__(*args, **kwargs)
@@ -68,8 +88,6 @@ class PyFibreMainTask(Task):
         self.global_database = None
         self.fibre_database = None
         self.cell_database = None
-
-        self.queue = Queue()
 
     # ------------------
     #     Defaults
@@ -113,6 +131,15 @@ class PyFibreMainTask(Task):
                         enabled_name='run_enabled'
                     ),
                     TaskAction(
+                        name="Cancel",
+                        tooltip="Cancel PyFibre",
+                        image=ImageResource(
+                            "baseline_pause_black_18dp"),
+                        method="stop_run",
+                        image_size=(64, 64),
+                        enabled_name='cancel_enabled'
+                    ),
+                    TaskAction(
                         name="Save Database",
                         tooltip="Save database containing "
                                 "image metrics",
@@ -125,12 +152,39 @@ class PyFibreMainTask(Task):
         return tool_bars
 
     # ------------------
+    #  Listener Methods
+    # ------------------
+
+    def _get_run_enabled(self):
+        if self.current_futures:
+            return all([
+                future.done
+                for future in self.current_futures
+            ])
+        return True
+
+    def _get_cancel_enabled(self):
+        if self.current_futures:
+            return any([
+                future.cancellable
+                for future in self.current_futures
+            ])
+        return False
+
+    # ------------------
     #   Private Methods
     # ------------------
 
-    def _run_pyfibre(self):
+    def _create_progress_bar(self, dialog):
+        self._progress_bar = QtGui.QProgressBar(dialog)
+        return self._progress_bar
 
-        self.run_enabled = False
+    def _cancel_all_fired(self):
+        for future in self.current_futures:
+            if future.cancellable:
+                future.cancel()
+
+    def _run_pyfibre(self):
 
         if self.file_display_pane.n_images == 0:
             self.stop_run()
@@ -161,39 +215,19 @@ class PyFibreMainTask(Task):
                 ow_metric=self.options_pane.ow_metric,
                 save_figures=False)
 
-            process = Process(
-                target=process_run,
-                args=(batch_dict,
-                      image_analyser,
-                      self.queue))
-            process.daemon = True
-            self.processes.append(process)
+            future = self.traits_executor.submit_call(
+                process_run, batch_dict, image_analyser
+            )
+            self.current_futures.append(future)
 
-        for process in self.processes:
-            process.start()
-
-        self._process_check()
-
-    def _process_check(self):
-        """
-        Check if there is something in the queue
-        """
-
-        self._queue_check()
-
-        if np.any([process.is_alive() for process in self.processes]):
-            do_after(1000, self._process_check)
-        else:
-            self.stop_run()
-            self.create_databases()
-            if self.options_pane.save_database:
-                self.save_database()
-
-    def _queue_check(self):
-
-        while not self.queue.empty():
-            msg = self.queue.get(0)
-            logger.info(msg)
+    @on_trait_change('current_futures:done')
+    def _report_result(self, future, name, new):
+        if future.state == COMPLETED:
+            print("Run complete")
+            self.current_futures.remove(future)
+        elif future.state == CANCELLED:
+            print("Run cancelled")
+            self.current_futures.remove(future)
 
     # ------------------
     #   Public Methods
@@ -278,10 +312,4 @@ class PyFibreMainTask(Task):
         save_database(self.cell_database, filename, 'cell')
 
     def stop_run(self):
-
-        for process in self.processes:
-            process.terminate()
-
-        self.create_figures()
-        self.file_display_pane.trait_set(progress=0)
-        self.run_enabled = True
+        self.traits_executor.stop()

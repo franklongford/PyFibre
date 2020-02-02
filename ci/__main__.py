@@ -34,6 +34,12 @@ EDM_DOCS_DEPS = [
     "docutils==0.16-2"
 ]
 
+# We pin to a version of Traits Futures with updated GuiTestAssistant
+PIP_DEPS = [
+    "git+https://github.com/enthought/traits-futures.git"
+    "@9f5973f330bcf5bf7d813439bb817c3e7eadd6ad"
+]
+
 
 def remove_dot(python_version):
     return "".join(python_version.split("."))
@@ -93,6 +99,8 @@ def build_env(python_version):
 def install(python_version):
 
     env_name = get_env_name(python_version)
+
+    edm_run(env_name, ['pip', 'install'] + PIP_DEPS)
 
     print('Installing PyFibre to edm environment')
     edm_run(env_name, ['pip', 'install', '-e', '.'])
