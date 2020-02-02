@@ -1,6 +1,9 @@
 import click
 import os
+import subprocess
 from subprocess import check_call
+import shutil
+
 
 DEFAULT_PYTHON_VERSION = "3.6"
 PYTHON_VERSIONS = ["3.6"]
@@ -26,7 +29,10 @@ EDM_CORE_DEPS = [
 EDM_DEV_DEPS = ["flake8==3.7.7-1",
                 "mock==2.0.0-3"]
 
-DOCS_DEPS = []
+EDM_DOCS_DEPS = [
+    "sphinx==2.3.1-2",
+    "docutils==0.16-2"
+]
 
 
 def remove_dot(python_version):
@@ -38,10 +44,8 @@ def get_env_name(python_version):
 
 
 def edm_run(env_name, command, cwd=None):
-    check_call(
-        ['edm', 'run', '-e', env_name, '--'] + command,
-        cwd=cwd
-    )
+    return subprocess.call(
+        ["edm", "run", "-e", env_name, "--"] + command, cwd=cwd)
 
 
 @click.group()
@@ -75,9 +79,9 @@ def build_env(python_version):
          python_version, env_name]
     )
 
-    check_call([
-        "edm", "install", "-e", env_name,
-        "--yes"] + EDM_CORE_DEPS + EDM_DEV_DEPS + DOCS_DEPS
+    check_call(
+        ["edm", "install", "-e", env_name, "--yes"]
+        + EDM_CORE_DEPS + EDM_DEV_DEPS + EDM_DOCS_DEPS
     )
 
 
@@ -94,21 +98,95 @@ def install(python_version):
     edm_run(env_name, ['pip', 'install', '-e', '.'])
 
 
-@cli.command(help="Run flake (dev)")
+@cli.command(help="Run flake")
 @python_version_option
 def flake8(python_version):
+    env_name = get_env_name(python_version)
+
+    returncode = edm_run(env_name, ["flake8", "."])
+    if returncode:
+        raise click.ClickException(
+            "Flake8 exited with exit status {}".format(returncode)
+        )
+
+
+@cli.command(help="Runs the coverage")
+@python_version_option
+def coverage(python_version):
+    env_name = get_env_name(python_version)
+
+    returncode = edm_run(
+        env_name, ["coverage", "run", "-m", "unittest", "discover"]
+    )
+    if returncode:
+        raise click.ClickException("There were test failures.")
+
+    returncode = edm_run(env_name, ["pip", "install", "codecov"])
+    if not returncode:
+        returncode = edm_run(env_name, ["codecov"])
+
+    if returncode:
+        raise click.ClickException(
+            "There were errors while installing and running codecov."
+        )
+
+
+@cli.command(help="Builds the documentation")
+@python_version_option
+@click.option("--apidoc-only", is_flag=True, help="Only generate API docs.")
+@click.option(
+    "--html-only",
+    is_flag=True,
+    help="Only generate HTML documentation (requires API docs in source/api).",
+)
+def docs(python_version, apidoc_only, html_only):
+    if apidoc_only and html_only:
+        raise click.ClickException("Conflicting request in the invocation.")
 
     env_name = get_env_name(python_version)
-    edm_run(env_name, ["flake8", "."])
+    doc_api = os.path.abspath(os.path.join("docs", "source", "api"))
+    package = os.path.abspath("pyfibre")
+
+    if not html_only:
+        click.echo("Generating API doc")
+        if os.path.exists(doc_api):
+            shutil.rmtree(doc_api)
+        returncode = edm_run(
+            env_name, ["sphinx-apidoc", "-o", doc_api, package, "*tests*"]
+        )
+        if returncode:
+            raise click.ClickException(
+                "There were errors while building the API docs."
+            )
+
+    if not apidoc_only:
+        click.echo("Generating HTML")
+        returncode = edm_run(env_name, ["make", "html"], cwd="docs")
+        if returncode:
+            raise click.ClickException(
+                "There were errors while building HTML documentation."
+            )
 
 
 @cli.command(help="Run the unit tests")
+@click.option(
+    "--verbose/--quiet",
+    default=True,
+    help="Run tests in verbose mode? [default: --verbose]",
+)
 @python_version_option
-def test(python_version):
+def test(python_version, verbose):
 
     env_name = get_env_name(python_version)
-    edm_run(env_name,
-            ["python", "-m", "unittest", "discover", "-v"])
+
+    verbosity_args = ["--verbose"] if verbose else []
+
+    returncode = edm_run(
+        env_name, ["python", "-m", "unittest", "discover"] + verbosity_args
+    )
+
+    if returncode:
+        raise click.ClickException("There were test failures.")
 
 
 if __name__ == "__main__":
