@@ -17,10 +17,10 @@ def process_run(image_dictionary, image_analyser):
             image_analyser.image_analysis(
                 multi_image, prefix)
 
-            print('image_analysis done')
+            yield prefix
             # queue.put("Analysis of {} complete".format(prefix))
 
         except Exception as err:
-            print('something went wrong')
+            yield prefix
             # queue.put("Error occurred in analysis of {}".format(prefix))
             raise err

@@ -14,7 +14,7 @@ from pyface.tasks.api import (
 )
 from traits.api import (
     Bool, Int, List, Property, Instance, Event, Any,
-    on_trait_change
+    on_trait_change, HasStrictTraits
 )
 from traits_futures.api import (
     TraitsExecutor, CallFuture, CANCELLED, COMPLETED,
@@ -52,7 +52,7 @@ class PyFibreMainTask(Task):
     traits_executor = Instance(TraitsExecutor, ())
 
     #: List of the submitted jobs, for display purposes.
-    current_futures = List(Instance(CallFuture))
+    current_futures = List(Instance(HasStrictTraits))
 
     #: Maximum number of workers
     n_proc = Int(2)
@@ -171,6 +171,19 @@ class PyFibreMainTask(Task):
             ])
         return False
 
+    @on_trait_change('current_futures:result_event')
+    def _report_result(self, result):
+        logger.info("Image analysis complete for {}".format(result))
+
+    @on_trait_change('current_futures:done')
+    def _future_done(self, future, name, new):
+        if future.state == COMPLETED:
+            print("Run complete")
+            self.current_futures.remove(future)
+        elif future.state == CANCELLED:
+            print("Run cancelled")
+            self.current_futures.remove(future)
+
     # ------------------
     #   Private Methods
     # ------------------
@@ -215,19 +228,10 @@ class PyFibreMainTask(Task):
                 ow_metric=self.options_pane.ow_metric,
                 save_figures=False)
 
-            future = self.traits_executor.submit_call(
+            future = self.traits_executor.submit_iteration(
                 process_run, batch_dict, image_analyser
             )
             self.current_futures.append(future)
-
-    @on_trait_change('current_futures:done')
-    def _report_result(self, future, name, new):
-        if future.state == COMPLETED:
-            print("Run complete")
-            self.current_futures.remove(future)
-        elif future.state == CANCELLED:
-            print("Run cancelled")
-            self.current_futures.remove(future)
 
     # ------------------
     #   Public Methods
@@ -312,4 +316,4 @@ class PyFibreMainTask(Task):
         save_database(self.cell_database, filename, 'cell')
 
     def stop_run(self):
-        self.traits_executor.stop()
+        self._cancel_all_fired()
