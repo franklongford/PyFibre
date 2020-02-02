@@ -12,7 +12,7 @@ from pyfibre.model.tools.filters import form_structure_tensor
 def nematic_tensor_metrics(segment, nematic_tensor, tag=''):
     """Analysis of the nematic tensor"""
 
-    database = pd.Series()
+    database = pd.Series(dtype=object)
 
     minr, minc, maxr, maxc = segment.bbox
     indices = np.mgrid[minr:maxr, minc:maxc]
@@ -34,7 +34,7 @@ def nematic_tensor_metrics(segment, nematic_tensor, tag=''):
 def segment_shape_metrics(segment, tag=''):
     """Analysis for a scikit-image region"""
 
-    database = pd.Series()
+    database = pd.Series(dtype=object)
 
     # Perform all non-intensity image relevant metrics
     database[f"{tag} Area"] = segment.area
@@ -53,7 +53,7 @@ def segment_shape_metrics(segment, tag=''):
 
 def segment_texture_metrics(segment, image=None, tag=''):
 
-    database = pd.Series()
+    database = pd.Series(dtype=object)
 
     # Check to see whether intensity_image is present or image argument
     # has been supplied
@@ -96,7 +96,7 @@ def segment_texture_metrics(segment, image=None, tag=''):
 def network_metrics(network, network_red, tag=''):
     """Analyse networkx Graph object"""
 
-    database = pd.Series()
+    database = pd.Series(dtype=object)
 
     cross_links = np.array([degree[1] for degree in network.degree], dtype=int)
     database[f"{tag} Network Cross-Links"] = (cross_links > 2).sum()
@@ -169,7 +169,7 @@ def fibre_network_metrics(fibre_networks, image=None, sigma=0.0001):
     for i, fibre_network in enumerate(fibre_networks):
         # if segment.filled_area >= 1E-2 * image_shg.size:
 
-        fibre_network_series = pd.Series(name=i)
+        fibre_network_series = pd.Series(name=i, dtype=object)
 
         metrics = fibre_network.generate_database()
 

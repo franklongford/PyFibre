@@ -123,29 +123,37 @@ Log | System log
 
 Calling the executable `PyFibre` from the command line will initiate the terminal based version of PyFibre.
 
-	PyFibre [-h] [--name [NAME]] [--dir [DIR]] [--key [KEY]] 
-			[--ow_network] [--ow_segment] [--ow_metric] 
-			[--ow_figure] [--save_db [SAVE_DB]] 
-			[--threads [THREADS]]
+	Usage: PyFibre [OPTIONS] [FILE_PATH]
 
-	--name [NAME]        Tif file names to load
-	--dir [DIR]          Directories to load tif files
-	--key [KEY]          Keywords to filter file names
-	--ow_network         Toggles overwrite network extraction
-	--ow_segment         Toggles overwrite segmentation
-	--ow_metric          Toggles overwrite analytic metrics
-	--ow_figure          Toggles overwrite figures
-	--save_db [SAVE_DB]  Output database filename
-	--threads [THREADS]  Number of threads per processor
-	
+    Options:
+      --version             Show the version and exit.
+      --debug               Prints extra debug information in
+                            pyfibre.log
+      --profile             Run GUI under cProfile, creating .prof and
+                            .pstats files in the current directory.
+      --shg_analysis        Toggles analysis of SHG images
+      --pl_analysis         Toggles analysis of PL images
+      --ow_metric           Toggles overwrite analytic metrics
+      --ow_segment          Toggles overwrite image segmentation
+      --ow_network          Toggles overwrite network extraction
+      --save_figures        Toggles saving of figures
+      --test                Perform run on test image
+      --key TEXT            Keywords to filter file names
+      --sigma FLOAT         Gaussian smoothing standard deviation
+      --alpha FLOAT         Alpha network coefficient
+      --database_name TEXT  Output database filename
+      --log_name TEXT       Pyfibre log filename
+      --help                Show this message and exit.
+    
+        
 
 ## Metrics
 
 PyFibre calculates properties for the global images and each segmentd region. The resultant databases for each section are then labelled:
 
-	{directory}/data/{prefix}_global_metric.pkl = global image output (also in .xls format)
-	{directory}/data/{prefix}_fibre_metric.pkl = fibre segmented image output (also in .xls format)
-	{directory}/data/{prefix}_cell_metric.pkl = cell segmented image output (also in .xls format)
+	{directory}/data/{prefix}_global_metric.h5 = global image output (also in .xls format)
+	{directory}/data/{prefix}_fibre_metric.h5 = fibre segmented image output (also in .xls format)
+	{directory}/data/{prefix}_cell_metric.h5 = cell segmented image output (also in .xls format)
 
 Each database has the following columns:
 

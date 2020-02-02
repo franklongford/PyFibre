@@ -72,7 +72,7 @@ class Fibre(BaseGraphSegment):
         """Generates a Pandas database with all graph and segment metrics
         for assigned image"""
 
-        database = pd.Series()
+        database = pd.Series(dtype=object)
 
         database['Fibre Waviness'] = self.waviness
         database['Fibre Length'] = self.fibre_l

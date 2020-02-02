@@ -112,8 +112,9 @@ class MetricAnalyser:
 def generate_metrics(multi_image, filename, fibre_networks, cells, sigma,
                      shg_analysis=False, pl_analysis=False):
 
-    global_dataframe = pd.Series()
+    global_dataframe = pd.Series(dtype=object)
     global_dataframe['File'] = '{}_global_segment.npy'.format(filename)
+
     local_dataframes = [None, None]
 
     logger.debug(" Performing Image analysis")
@@ -131,8 +132,8 @@ def generate_metrics(multi_image, filename, fibre_networks, cells, sigma,
         local_metrics, global_metrics = metric_analyser.analyse_shg()
 
         local_dataframes[0] = local_metrics
-        global_dataframe = pd.concat(
-            (global_dataframe, global_metrics), axis=0)
+        global_dataframe = global_dataframe.append(
+            global_metrics, ignore_index=False)
 
         end = time.time()
         logger.debug(f" Fibre segment analysis: {end-start} s")
@@ -146,8 +147,8 @@ def generate_metrics(multi_image, filename, fibre_networks, cells, sigma,
         local_metrics, global_metrics = metric_analyser.analyse_pl()
 
         local_dataframes[1] = local_metrics
-        global_dataframe = pd.concat(
-            (global_dataframe, global_metrics), axis=0)
+        global_dataframe = global_dataframe.append(
+            global_metrics, ignore_index=False)
 
         end = time.time()
         logger.debug(f" Cell segment analysis: {end - start} s")
