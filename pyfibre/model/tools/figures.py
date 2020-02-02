@@ -50,17 +50,17 @@ def set_HSB(image, hue, saturation=1, brightness=1):
 
 def create_tensor_image(image, min_N=50, max_N=120):
 
-    "Form nematic and structure tensors for each pixel"
+    # Form nematic and structure tensors for each pixel
     j_tensor = form_structure_tensor(image, sigma=1.0)
 
-    "Perform anisotropy analysis on each pixel"
+    # Perform anisotropy analysis on each pixel
     pix_j_anis, pix_j_angle, pix_j_energy = tensor_analysis(j_tensor)
 
     hue = (pix_j_angle + 90) / 180
     saturation = pix_j_anis / pix_j_anis.max()
     brightness = image / image.max()
 
-    "Make circular test image"
+    # Make circular test image
     N = np.max(np.asarray([min_N, 0.2 * np.sqrt(image.size)], dtype=int))
     N = np.min(np.asarray([N, max_N], dtype=int))
     if np.mod(N, 2) != 0:
@@ -85,28 +85,21 @@ def create_tensor_image(image, min_N=50, max_N=120):
     saturation[- N // 2 : image.shape[0], : N] = pix_j_anis / pix_j_anis.max()
     brightness[- N // 2 : image.shape[0], : N] = pix_j_energy / pix_j_energy.max()
 
-    "Form structure tensor image"
+    # Form structure tensor image
     rgb_image = set_HSB(image, hue, saturation, brightness)
 
     return rgb_image
 
 
 def create_region_image(image, regions):
-    """
-    Plots a figure showing identified regions
+    """Plots a figure showing identified regions
 
-    Parameter
-    ---------
-
+    Parameters
+    ----------
     image:  array_like (float); shape=(n_x, n_y)
         Image under analysis of pos_x and pos_y
-
-    label_image:  array_like (int); shape=(n_x, n_y)
-        Labelled array with identified anisotropic regions
-
     regions:  list (skimage.region)
         List of segmented regions
-
     """
 
     image /= image.max()
