@@ -45,9 +45,12 @@ class FibreNetwork(BaseGraphSegment):
         """Return the object state in a form that can be
         serialised as a JSON file"""
         state = super().__getstate__()
-        state['red_graph'] = serialize_networkx_graph(state['red_graph'])
-        state['red_graph'] = pop_recursive(
-            state['red_graph'], remove_contraction)
+
+        if self.red_graph:
+            state['red_graph'] = serialize_networkx_graph(state['red_graph'])
+            state['red_graph'] = pop_recursive(
+                state['red_graph'], remove_contraction)
+
         state["fibres"] = [
             fibre.__getstate__()
             for fibre in self.fibres]
