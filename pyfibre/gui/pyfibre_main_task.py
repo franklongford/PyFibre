@@ -317,3 +317,7 @@ class PyFibreMainTask(Task):
 
     def stop_run(self):
         self._cancel_all_fired()
+
+    def exit_task(self):
+        self.stop_run()
+        self.traits_executor.stop()

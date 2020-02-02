@@ -26,7 +26,7 @@ class NoiseError(Exception):
         self.message = "Image too noisy ({} > {})".format(noise, thresh)
 
 
-def logo():
+def logo(version):
 
     logo_text  = "           ___       ___                  " + '\n'
     logo_text += "           |  \\     |   . |              " + '\n'
@@ -34,7 +34,7 @@ def logo():
     logo_text += "           |   |  | |   | |  | |   |__| " + '\n'
     logo_text += "           |   \\__| |   | |__/ |   |__  " + '\n'
     logo_text += "                __/                       " + '\n'
-    logo_text += "\n    Fibrous Tissue Image Toolkit  v1.5.1a\n"
+    logo_text += f"\n    Fibrous Tissue Image Toolkit  v{version}\n"
 
     return logo_text
 

@@ -11,6 +11,8 @@ from traits.api import (
     Either, Tuple, Int, List, Property, Bool, Supports
 )
 
+from pyfibre.gui.pyfibre_main_task import PyFibreMainTask
+
 BACKGROUND_COLOUR = '#d8baa9'
 logger = logging.getLogger(__name__)
 
@@ -51,6 +53,8 @@ class PyFibreGUI(TasksApplication):
         for window in self.windows:
             tasks = window.tasks
             for task in tasks:
+                if isinstance(task, PyFibreMainTask):
+                    task.exit_task()
                 window.remove_task(task)
 
     # FIXME: If the underlying envisage TasksApplication function is fixed to

@@ -54,7 +54,7 @@ def run(debug, profile):
 
     n_proc = 1#os.cpu_count() - 1
 
-    logger.info(logo())
+    logger.info(logo(__version__))
 
     plugins = [CorePlugin(), TasksPlugin(),
                PyFibrePlugin()]
