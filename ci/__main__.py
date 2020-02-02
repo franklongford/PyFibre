@@ -1,6 +1,5 @@
 import click
 import os
-import sys
 from subprocess import check_call
 
 DEFAULT_PYTHON_VERSION = "3.6"
@@ -21,40 +20,21 @@ EDM_CORE_DEPS = [
     "qt>=4.8.7-10",
     "sip>=4.18.1-1",
     "pyzmq==16.0.0-7",
-    "swig==3.0.11-2"]
+    "swig==3.0.11-2",
+    "traits_futures==0.1.0-16"]
 
 EDM_DEV_DEPS = ["flake8==3.7.7-1",
                 "mock==2.0.0-3"]
 
-CONDA_CORE_DEPS = [
-    'Click',
-    'pytables',
-    'traits==5.2.0',
-    'traitsui==6.1.3',
-    "pyface==6.1.2",
-    "pygments",
-    "pyqt",
-    "qt",
-    "sip",
-    "pyzmq",
-    'wxpython',
-    'swig',
-    'Cython']
-
-CONDA_PIP_DEPS = [
-    "chaco==4.8.0",
-    "enable==4.8.1",
-    'envisage==4.9.0'
-    ]
-
-CONDA_DEV_DEPS = ["flake8==3.7.7",
-                  "mock==2.0.0"]
-
 DOCS_DEPS = []
 
 
-def get_env_name():
-    return "PyFibre"
+def remove_dot(python_version):
+    return "".join(python_version.split("."))
+
+
+def get_env_name(python_version):
+    return f"PyFibre-py{remove_dot(python_version)}"
 
 
 def edm_run(env_name, command, cwd=None):
@@ -82,128 +62,53 @@ python_version_option = click.option(
     name="build-env",
     help="Creates the edm execution environment"
 )
-@click.option(
-    '--edm', is_flag=True, default=False,
-    help='Toggles EDM build'
-)
-@click.option(
-    '--conda', is_flag=True, default=False,
-    help='Toggles Conda build'
-)
 @python_version_option
-def build_env(python_version, edm, conda):
-    env_name = get_env_name()
+def build_env(python_version):
+    env_name = get_env_name(python_version)
 
-    if edm:
-        check_call([
-            "edm", "env", "remove", "--purge", "--force",
-            "--yes", env_name]
-        )
-        check_call(
-            ["edm", "env", "create", "--version",
-             python_version, env_name]
-        )
+    check_call([
+        "edm", "env", "remove", "--purge", "--force",
+        "--yes", env_name]
+    )
+    check_call(
+        ["edm", "env", "create", "--version",
+         python_version, env_name]
+    )
 
-        check_call([
-            "edm", "install", "-e", env_name,
-            "--yes"] + EDM_CORE_DEPS + EDM_DEV_DEPS + DOCS_DEPS
-        )
-
-    elif conda:
-        check_call([
-            "conda", "remove", "--all", "--force",
-            "--yes", '-n', env_name]
-        )
-
-        check_call(
-            ["conda", "create", f"python={python_version}",
-             "-n", env_name, '-y']
-        )
-
-        check_call([
-           "conda", "install", "-n", env_name,
-           "--yes"] + CONDA_CORE_DEPS + CONDA_DEV_DEPS + DOCS_DEPS
-                   )
-    else:
-        print('Include flag to specify environment package manager,'
-              ' either EDM (--edm) or Conda (--conda)')
+    check_call([
+        "edm", "install", "-e", env_name,
+        "--yes"] + EDM_CORE_DEPS + EDM_DEV_DEPS + DOCS_DEPS
+    )
 
 
 @cli.command(
     name="install",
     help='Creates the execution binary inside the PyFibre environment'
 )
-@click.option(
-    '--edm', is_flag=True, default=False,
-    help='Toggles EDM installation'
-)
-@click.option(
-    '--conda', is_flag=True, default=False,
-    help='Toggles Conda installation'
-)
 @python_version_option
-def install(python_version, edm, conda):
+def install(python_version):
 
-    env_name = get_env_name()
+    env_name = get_env_name(python_version)
 
-    if edm:
-        print('Installing PyFibre to edm environment')
-        edm_run(env_name, ['pip', 'install', '-e', '.'])
-    elif conda:
-        print('Installing additional pip packages')
-        check_call(['pip', 'install'] + CONDA_PIP_DEPS)
-
-        print('Installing PyFibre to conda environment')
-        check_call(['pip', 'install', '-e', '.'])
-    else:
-        print('Installing PyFibre to local environment')
-        native_python_version = sys.version_info
-
-        for i in range(2):
-            try:
-                target_version = int(python_version.split('.')[i])
-                native_version = int(native_python_version[i])
-                assert native_version >= target_version
-            except AssertionError:
-                print('native python version does not meet requirements'
-                      f'({python_version})')
-
-        command = input('Enter the installation command for your local '
-                        'package manager: ')
-        check_call(command.split()
-                   + CONDA_CORE_DEPS + CONDA_DEV_DEPS + DOCS_DEPS
-        )
-        check_call(['pip', 'install', '-e', '.'])
+    print('Installing PyFibre to edm environment')
+    edm_run(env_name, ['pip', 'install', '-e', '.'])
 
 
 @cli.command(help="Run flake (dev)")
-@click.option(
-    '--edm', is_flag=True, default=False,
-    help='Toggles EDM call'
-)
-def flake8(edm):
+@python_version_option
+def flake8(python_version):
 
-    env_name = get_env_name()
-    if edm:
-        edm_run(env_name, ["flake8", "."])
-    else:
-        check_call(["flake8", "."])
+    env_name = get_env_name(python_version)
+    edm_run(env_name, ["flake8", "."])
 
 
 @cli.command(help="Run the unit tests")
-@click.option(
-    '--edm', is_flag=True, default=False,
-    help='Toggles EDM call'
-)
-def test(edm):
+@python_version_option
+def test(python_version):
 
-    env_name = get_env_name()
-    if edm:
-        edm_run(env_name,
-                ["python", "-m", "unittest", "discover", "-v"])
-    else:
-        check_call(
-                ["python", "-m", "unittest", "discover", "-v"])
+    env_name = get_env_name(python_version)
+    edm_run(env_name,
+            ["python", "-m", "unittest", "discover", "-v"])
 
 
 if __name__ == "__main__":
