@@ -3,6 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.pkl
+*.h5
+*.xls
+*.DS_Store
+*.prof
+*.pstats
 
 # C extensions
 *.so
@@ -10,6 +15,7 @@ __pycache__/
 # Distribution / packaging
 .DS_Store/
 .Python
+pyfibre/tests/fixtures/*/
 build/
 develop-eggs/
 dist/
@@ -66,7 +72,8 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+docs/build/
+docs/source/api
 
 # PyBuilder
 target/
@@ -104,3 +111,9 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# git
+.idea/
+
+# installation
+version.py

@@ -9,9 +9,10 @@ python_version_patch := $(word 3,${python_version_full})
 BIN=$(firstword $(subst :, " ", $(PATH)))
 NAME=PyFibre
 DESKTOP=$(HOME)/Desktop/
+CURRENT_DIR = $(shell pwd)
 
 
-init: check install #test
+init: check install test
 
 
 check:	
@@ -31,6 +32,7 @@ install:
 	@echo
 	@echo "Installing ${NAME}"
 	@echo
+	@conda install pytables==3.5.1
 	@$(PIP) install -r requirements.txt
 	@$(PYTHON) make.py install $(NAME) $(BIN) $(DESKTOP) || (echo "Installation failed"; exit 1)
 
@@ -39,7 +41,7 @@ test:
 	@echo
 	@echo "Running unit tests"
 	@echo
-	@pytest tests/test* -v -l
+	@python -m unittest discover -v
 
 
 uninstall:
@@ -48,11 +50,13 @@ uninstall:
 
 clean:
 	@rm -f -r bin
-	@rm -f -r tests/__pycache__
-	@rm -f -r tests/stubs/data/
-	@rm -f -r tests/stubs/fig/
-	@rm -f -r src/__pycache__
-	@rm -f src/*.pyc
+	@rm -f -r pyfibre/tests/stubs/data/
+	@rm -f -r pyfibre/tests/stubs/fig/
+	@rm -f  pyfibre/tests/stubs/.DS_Store
 	@rm -f -r .cache/
-	@rm -f  .DS_Store
 	@rm -f -r .pytest_cache/
+	@rm -f -r *.h5
+	@rm -f -r *.xls
+	@rm -f -r *.log
+	@rm -f -r *.prof
+	@rm -f -r *.pstats
