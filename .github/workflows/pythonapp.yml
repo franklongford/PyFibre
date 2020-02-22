@@ -19,6 +19,10 @@ jobs:
         echo "::set-env name=EDM_OS::rh6_x86_64"
         echo "::set-env name=EDM_INSTALLER_PREFIX::edm_cli_"
         echo "::set-env name=EDM_INSTALLER_SUFFIX::_linux_x86_64.sh"
+    - name: Install X-Server
+      run: |
+        sudo apt-get update
+        sudo apt-get install --yes xserver-xorg
     - name: Install EDM
       run: |
         export EDM_INSTALLER=${EDM_INSTALLER_PREFIX}${EDM_FULL}${EDM_INSTALLER_SUFFIX}
@@ -26,7 +30,6 @@ jobs:
         bash ./${EDM_INSTALLER} -b -f -p $HOME
         echo "::add-path::/home/runner/bin"
         echo "::set-env name=ETS_TOOLKIT::qt4"
-        sudo apt-get install --yes xserver-xorg
     - name: Build EDM environment
       run: |
         edm install --version 3.6 -y click setuptools
