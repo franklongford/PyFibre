@@ -34,9 +34,12 @@ jobs:
         edm run -- python -m ci install
     - name: Test with unittest
       run: |
+        echo ::set-env name=ETS_TOOLKIT::qt4"
+        export DISPLAY=:99.0
         edm run -- python -m ci test
     - name: Run coverage
       run: |
+        export DISPLAY=:99.0
         edm run -- python -m ci coverage
     - name: Lint with flake8
       run: |
