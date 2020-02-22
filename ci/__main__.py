@@ -23,8 +23,7 @@ EDM_CORE_DEPS = [
     "qt>=4.8.7-10",
     "sip>=4.18.1-1",
     "pyzmq==16.0.0-7",
-    "swig==3.0.11-2",
-    "traits_futures==0.1.0-16"]
+    "swig==3.0.11-2"]
 
 EDM_DEV_DEPS = ["flake8==3.7.7-1",
                 "coverage==4.3.4-1",
