@@ -7,74 +7,40 @@ PyFibre is an open source image analysis toolkit for fibrous tissue that can be 
 
 ## Installation
 
-PyFibre requires a local distributions of `python >= 3.6` and `pip >= 9.0` in order to run. 
-Either [Enthought](https://www.enthought.com/product/enthought-python-distribution/), 
-[anaconda](https://www.anaconda.com/download/) or [miniconda](https://conda.io/miniconda.html) distributions are recommended.
+PyFibre is deployed using Enthought Deployment Manager, 
+[EDM](https://www.enthought.com/product/enthought-deployment-manager/). 
+Please download and install
+the latest version prior to continuing further. 
 
-The use of a package manager, such as [edm](https://www.enthought.com/product/enthought-deployment-manager/) or 
-[conda](https://conda.io/docs/), is optional, but also recommended.
-
-#### Native Installation
-
-If you wish to install PyFibre to run in your native machine environment, you will first need to install both `click`
-and `setuptools` python packages. Afterwards, run the command
-
-    python -m ci install
-    
-and enter the installation command for your local package manager when prompted. Please run
-the unit tests after installation is complete using the command
-
-    python -m ci test
-
-Be advised that if you are not using `edm` or `conda` package managers, there is no guarantee that all required 
-libraries will be available to install. In which case you may need to follow the steps below for installation in 
-a virtual environment. 
-
-#### EDM Installation (recommended)
-
-A light-weight installation can be performed using the Enthought Deployment Manager (EDM). After downloading 
-[edm](https://www.enthought.com/product/enthought-deployment-manager/), simply create a default environment using:
+Once installed, simply create a default environment using the command line:
 
     edm install --version 3.6 -y click setuptools
     edm shell
 
-Then build the `PyFibre` environment using the following command:
+Then build the deployment `PyFibre-py36` environment using the following command:
 
-    python -m ci build-env --edm
+    python -m ci build-env
 
 Afterwards, install a package egg with all binaries using:
 
-    python -m ci install --edm
-
-This will install all required libraries and create the local `PyFibre` and `PyFibre_GUI` binaries.
-To make sure the installation has been successful, please run the unittests
-
-    python -m ci test --edm
-
-#### Conda Installation
-
-If using anaconda or miniconda python distribution, this can be easily initiated by creating a default environment:
-
-    conda create -n setup python=3.6 click setuptools -y
-    source activate setup
-
-Then build the `PyFibre` environment using same command as before but with the `--conda` flag:
-
-    python -m ci build-env --conda
-
-Afterwards, activate the PyFibre environment and install a package egg with all binaries using:
-
-    source activate PyFibre
-    python -m ci install --conda
+    python -m ci install
 
 This will install all required libraries and create the local `PyFibre` and `PyFibre_GUI` binaries.
 To make sure the installation has been successful, please run the unittests
 
     python -m ci test
 
+And create the documentation
+
+    python -m ci docs
+
 ## Running the PyFibre GUI
 
-Once installed, calling the executable `PyFibre_GUI` from the command line will initiate a graphical user interface.
+Once installed, enter the deployment environment using
+
+    edm shell -e PyFibre-py36
+
+and call the executable `PyFibre_GUI` from the command line to initiate the graphical user interface.
 
 ![GUI](docs/main_view.png)
 
@@ -96,11 +62,13 @@ The files will then appear as:
 	
 #### File Management
 
-Once loaded, the files are visible in a scrollable list on the left hand side. They can be removed from here at any time by highlighting and clicking the `Delete` button, or automatically filtered for keywords using the `Filter` entry form. 
+Once loaded, the files are visible in a scrollable list on the left hand side. They can be removed from here at any 
+time by highlighting and clicking the `Delete` button, or automatically filtered for keywords using the `Filter` entry form. 
 
 #### Running Analysis
 
-Clicking the `GO` button at the bottom will begin a batch analysis of all the files listed within the box at the time of execution. This can be interrupted at any point using the `STOP` button.
+Clicking the `Run` button at the bottom will begin a batch analysis of all the files listed within the box at the 
+time of execution. This can be interrupted at any point using the `Stop` button.
 
 ### Image Viewer
 
@@ -110,13 +78,13 @@ Tab | Description
 --- | ---
 SHG Image | Greyscale SHG image
 PL Image | Greyscale PL image
+Trans Image | Greyscale Transmission image
 Tensor Image | RGB image, using hue, saturation and brightness based on pixel structure tensor
 Network | Greyscale SHG image with overlayed FIRE networks
 Network Segment | Greyscale SHG image with overlayed segmented regions base on position of FIRE networks
 Fibre | Greyscale SHG image with overlayed individual fibres extracted from FIRE networks
 Cell Segment| Greyscale PL image with overlayed segmented regions base on position of cellular regions
 Metrics | List of measured properties for SHG and PL images
-Log | System log
 
 ## Running in the Terminal
 
@@ -160,51 +128,32 @@ Each database has the following columns:
 Metric | Description | Category
 --- | --- | ---
 No. Fibres | Number of extracted fibres | Network
-SHG Angle SDI | Angle spectrum SDI (mean / max) for all SHG image pixels| Texture
-SHG Anisotropy | Anisotropy of structure tensor for SHG total image/segment | Texture
-SHG Pixel Anisotropy | Mean anisotropy of structure tensor for all SHG image pixels | Texture
-SHG Intensity Mean | Mean pixel intensity of SHG total image/segment | Texture
-SHG Intensity STD | Standard deviation of pixel intensity of SHG total image/segment | Texture
-SHG Intensity Entropy | Average Shannon entropy of pixel intensities of SHG total image/segment | Texture
-Fibre GLCM Contrast | GLCM angle-averaged contrast of fibre segment| Texture
-Fibre GLCM Homogeneity | GLCM angle-averaged homogeneity of fibre segment| Texture
-Fibre GLCM Dissimilarity | GLCM angle-averaged dissimilarity of fibre segment| Texture
-Fibre GLCM Correlation | GLCM angle-averaged correlation of fibre segment| Texture
-Fibre GLCM Energy | GLCM angle-averaged energy of fibre segment| Texture
-Fibre GLCM IDM | GLCM angle-averaged inverse difference moment of fibre segment| Texture
-Fibre GLCM Variance | GLCM angle-averaged variance of fibre segment | Texture
-Fibre GLCM Cluster | GLCM angle-averaged clustering tendency of fibre segment | Texture
-Fibre GLCM Entropy | GLCM angle-averaged entropy of fibre segment | Texture
-Fibre Area | Average number of pixels covered by fibres in segment | Content
-Fibre Coverage | Ratio of fibre segment covered by fibres  | Content
-Fibre Linearity | Average fibre segment linearity | Shape
-Fibre Eccentricity | Average fibre segment eccentricity | Shape
-Fibre Density | Average image fibre segment density | Texture
-Fibre Hu Moment 1 | Average fibre segment Hu moment 1 | Shape
-Fibre Hu Moment 2 | Average fibre segment Hu moment 2 | Shape
+No. Cells | Number of cell segments | Content
+Angle SDI | Angle spectrum SDI (mean / max) for all image pixels| Texture
+Anisotropy | Anisotropy of structure tensor for total image/segment | Texture
+Pixel Anisotropy | Mean anisotropy of structure tensor for all image pixels | Texture
+Intensity Mean | Mean pixel intensity of total image/segment | Texture
+Intensity STD | Standard deviation of pixel intensity of total image/segment | Texture
+Intensity Entropy | Average Shannon entropy of pixel intensities of total image/segment | Texture
+GLCM Contrast | GLCM angle-averaged contrast of segment| Texture
+GLCM Homogeneity | GLCM angle-averaged homogeneity of segment| Texture
+GLCM Dissimilarity | GLCM angle-averaged dissimilarity of segment| Texture
+GLCM Correlation | GLCM angle-averaged correlation of segment| Texture
+GLCM Energy | GLCM angle-averaged energy of segment| Texture
+GLCM IDM | GLCM angle-averaged inverse difference moment of segment| Texture
+GLCM Variance | GLCM angle-averaged variance of segment | Texture
+GLCM Cluster | GLCM angle-averaged clustering tendency of segment | Texture
+GLCM Entropy | GLCM angle-averaged entropy of segment | Texture
+Area | Average number of pixels covered by segment | Content
+Coverage | Ratio of segment covered by fibres or cells  | Content
+Linearity | Average segment linearity | Shape
+Eccentricity | Average segment eccentricity | Shape
+Density | Average image segment density | Texture
+Hu Moment 1 | Average segment Hu moment 1 | Shape
+Hu Moment 2 | Average segment Hu moment 2 | Shape
 Network Degree | Average fibre network number of edges per node | Network
 Network Eigenvalue | Max eigenvalue of network adjacency matrix| Network
 Network Connectivity | Average fibre network connectivity | Network
 Fibre Waviness | Average fibre waviness (length / displacement) | Content
 Fibre Lengths | Average fibre pixel length | Content
 Fibre Cross-Link Density | Average cross-links per fibre | Content
-No. Cells | Number of cell segments | Content
-Cell Area | Average number of pixels covered by cells | Content
-Cell Linearity | Average cell segment linearity | Shape 
-Cell Coverage | Ratio of image covered by cell segments | Content
-Cell Eccentricity | Average cell segment eccentricity | Shape
-Cell Density | Average image cell density | Texture
-PL Intensity Mean | Mean pixel intensity of PL total image/segment | Texture
-PL Intensity STD | Standard deviation of pixel intensity of PL total image/segment | Texture
-PL Intensity Entropy | Average Shannon entropy of pixel intensities of PL total image/segment | Texture
-Cell GLCM Contrast | GLCM angle-averaged contrast of cell segment | Texture
-Cell GLCM Homogeneity | GLCM angle-averaged homogeneity of cell segment | Texture
-Cell GLCM Dissimilarity | GLCM angle-averaged dissimilarity of cell segment | Texture
-Cell GLCM Correlation | GLCM angle-averaged correlation of cell segment | Texture
-Cell GLCM Energy | GLCM angle-averaged energy of cell segment | Texture
-Cell GLCM IDM | GLCM angle-averaged inverse difference moment of cell segment | Texture
-Cell GLCM Variance | GLCM angle-averaged variance of cell segment | Texture
-Cell GLCM Cluster | GLCM angle-averaged clustering tendency of cell segment | Texture
-Cell GLCM Entropy | GLCM angle-averaged entropy  of cell segment | Texture
-Cell Hu Moment 1 | Average cell segment Hu moment 1 | Shape
-Cell Hu Moment 2 | Average cell segment Hu moment 2 | Shape
