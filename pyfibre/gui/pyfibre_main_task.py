@@ -113,6 +113,15 @@ class PyFibreMainTask(Task):
                         enabled_name='run_enabled'
                     ),
                     TaskAction(
+                        name="Cancel",
+                        tooltip="Cancel PyFibre",
+                        image=ImageResource(
+                            "baseline_pause_black_18dp"),
+                        method="_stop_run",
+                        image_size=(64, 64),
+                        enabled_name='cancel_enabled'
+                    ),
+                    TaskAction(
                         name="Save Database",
                         tooltip="Save database containing "
                                 "image metrics",
@@ -133,7 +142,7 @@ class PyFibreMainTask(Task):
         self.run_enabled = False
 
         if self.file_display_pane.n_images == 0:
-            self.stop_run()
+            self._stop_run()
             return
 
         file_table = self.file_display_pane.file_table
@@ -184,7 +193,7 @@ class PyFibreMainTask(Task):
         if np.any([process.is_alive() for process in self.processes]):
             do_after(1000, self._process_check)
         else:
-            self.stop_run()
+            self._stop_run()
             self.create_databases()
             if self.options_pane.save_database:
                 self.save_database()
@@ -194,6 +203,17 @@ class PyFibreMainTask(Task):
         while not self.queue.empty():
             msg = self.queue.get(0)
             logger.info(msg)
+
+    def _stop_run(self):
+
+        logger.info("Stopping Analysis")
+
+        for process in self.processes:
+            process.terminate()
+
+        self.create_figures()
+        self.file_display_pane.trait_set(progress=0)
+        self.run_enabled = True
 
     # ------------------
     #   Public Methods
@@ -276,12 +296,3 @@ class PyFibreMainTask(Task):
         save_database(self.global_database, filename)
         save_database(self.fibre_database, filename, 'fibre')
         save_database(self.cell_database, filename, 'cell')
-
-    def stop_run(self):
-
-        for process in self.processes:
-            process.terminate()
-
-        self.create_figures()
-        self.file_display_pane.trait_set(progress=0)
-        self.run_enabled = True
