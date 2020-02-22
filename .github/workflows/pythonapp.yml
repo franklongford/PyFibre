@@ -24,7 +24,9 @@ jobs:
         export EDM_INSTALLER=${EDM_INSTALLER_PREFIX}${EDM_FULL}${EDM_INSTALLER_SUFFIX}
         wget https://package-data.enthought.com/edm/${EDM_OS}/${EDM_X_Y}/${EDM_INSTALLER}
         bash ./${EDM_INSTALLER} -b -f -p $HOME
+        sudo apt-get install --yes libglu1-mesa-dev mesa-common-dev
         echo "::add-path::/home/runner/bin"
+        echo "::set-env name=ETS_TOOLKIT::qt4"
     - name: Build EDM environment
       run: |
         edm install --version 3.6 -y click setuptools
@@ -34,12 +36,11 @@ jobs:
         edm run -- python -m ci install
     - name: Test with unittest
       run: |
-        echo "::set-env name=ETS_TOOLKIT::qt4"
-        export DISPLAY=:99.0
+        export DISPLAY=:0
         edm run -- python -m ci test
     - name: Run coverage
       run: |
-        export DISPLAY=:99.0
+        export DISPLAY=:0
         edm run -- python -m ci coverage
     - name: Lint with flake8
       run: |
