@@ -19,10 +19,10 @@ jobs:
         echo "::set-env name=EDM_OS::rh6_x86_64"
         echo "::set-env name=EDM_INSTALLER_PREFIX::edm_cli_"
         echo "::set-env name=EDM_INSTALLER_SUFFIX::_linux_x86_64.sh"
-    - name: Install X-Server
+    - name: Install X-Server and LibGLU
       run: |
         sudo apt-get update
-        sudo apt-get install --yes xserver-xorg
+        sudo apt-get install --yes xserver-xorg libglu1-mesa-dev mesa-common-dev
     - name: Install EDM
       run: |
         export EDM_INSTALLER=${EDM_INSTALLER_PREFIX}${EDM_FULL}${EDM_INSTALLER_SUFFIX}
