@@ -36,8 +36,8 @@ jobs:
       run: |
         edm run -- python -m ci test
     - name: Run coverage
-        run: |
-          edm run -- python -m ci coverage
+      run: |
+        edm run -- python -m ci coverage
     - name: Lint with flake8
       run: |
         edm run -- python -m ci flake8
