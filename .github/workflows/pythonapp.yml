@@ -32,9 +32,12 @@ jobs:
     - name: Install dependencies and package
       run: |
         edm run -- python -m ci install
-    - name: Lint with flake8
-      run: |
-        edm run -- python -m ci flake8
     - name: Test with unittest
       run: |
         edm run -- python -m ci test
+    - name: Run coverage
+        run: |
+          edm run -- python -m ci coverage
+    - name: Lint with flake8
+      run: |
+        edm run -- python -m ci flake8

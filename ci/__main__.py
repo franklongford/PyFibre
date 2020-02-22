@@ -27,6 +27,7 @@ EDM_CORE_DEPS = [
     "traits_futures==0.1.0-16"]
 
 EDM_DEV_DEPS = ["flake8==3.7.7-1",
+                "coverage==4.3.4-1",
                 "mock==2.0.0-3"]
 
 EDM_DOCS_DEPS = [
@@ -121,14 +122,12 @@ def coverage(python_version):
     if returncode:
         raise click.ClickException("There were test failures.")
 
-    returncode = edm_run(env_name, ["pip", "install", "codecov"])
-    if not returncode:
-        returncode = edm_run(env_name, ["codecov"])
+    edm_run(
+        env_name, ["coverage", "report", "-m"]
+    )
 
-    if returncode:
-        raise click.ClickException(
-            "There were errors while installing and running codecov."
-        )
+    if os.path.exists('.coverage'):
+        os.remove('.coverage')
 
 
 @cli.command(help="Builds the documentation")
