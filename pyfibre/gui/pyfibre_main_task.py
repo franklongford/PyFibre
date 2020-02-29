@@ -70,8 +70,8 @@ class PyFibreMainTask(Task):
     run_enabled = Property(
         Bool(), depends_on='current_futures.state')
 
-    #: Is the cancel button enabled?
-    cancel_enabled = Property(
+    #: Is the stop button enabled?
+    stop_enabled = Property(
         Bool(), depends_on='current_futures.state')
 
     change_options = Event()
@@ -131,13 +131,13 @@ class PyFibreMainTask(Task):
                         enabled_name='run_enabled'
                     ),
                     TaskAction(
-                        name="Cancel",
-                        tooltip="Cancel PyFibre",
+                        name="Stop",
+                        tooltip="Stop PyFibre run",
                         image=ImageResource(
-                            "baseline_pause_black_18dp"),
+                            "baseline_stop_black_18dp"),
                         method="stop_run",
                         image_size=(64, 64),
-                        enabled_name='cancel_enabled'
+                        enabled_name='stop_enabled'
                     ),
                     TaskAction(
                         name="Save Database",
@@ -163,7 +163,7 @@ class PyFibreMainTask(Task):
             ])
         return True
 
-    def _get_cancel_enabled(self):
+    def _get_stop_enabled(self):
         if self.current_futures:
             return any([
                 future.cancellable

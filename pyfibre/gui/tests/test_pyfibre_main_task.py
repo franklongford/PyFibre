@@ -92,14 +92,14 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
     def test_run_cancel_enabled(self):
 
         self.assertTrue(self.main_task.run_enabled)
-        self.assertFalse(self.main_task.cancel_enabled)
+        self.assertFalse(self.main_task.stop_enabled)
 
         with self.long_running_task(
                 self.main_task.traits_executor) as future:
 
             self.main_task.current_futures.append(future)
             self.assertFalse(self.main_task.run_enabled)
-            self.assertTrue(self.main_task.cancel_enabled)
+            self.assertTrue(self.main_task.stop_enabled)
 
             self.main_task.traits_executor.stop()
 
@@ -107,7 +107,7 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
 
         self.assertEqual([], self.main_task.current_futures)
         self.assertTrue(self.main_task.run_enabled)
-        self.assertFalse(self.main_task.cancel_enabled)
+        self.assertFalse(self.main_task.stop_enabled)
 
     def test__run_pyfibre(self):
         test_file_path = (
@@ -122,7 +122,7 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
             mock_create_databases.side_effect = mock_run
 
             self.assertTrue(self.main_task.run_enabled)
-            self.assertFalse(self.main_task.cancel_enabled)
+            self.assertFalse(self.main_task.stop_enabled)
 
             self.main_task._run_pyfibre()
 
@@ -131,5 +131,5 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
         self.wait_until_done(future)
 
         self.assertTrue(self.main_task.run_enabled)
-        self.assertFalse(self.main_task.cancel_enabled)
+        self.assertFalse(self.main_task.stop_enabled)
         self.assertEqual([], self.main_task.current_futures)
