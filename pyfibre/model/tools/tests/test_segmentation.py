@@ -1,14 +1,10 @@
 from unittest import TestCase
 
-import networkx as nx
-import numpy as np
-from skimage.measure import regionprops
 from skimage.io import imread
 
 from pyfibre.model.tools.segmentation import (
     rgb_segmentation
 )
-from pyfibre.model.tools.convertors import networks_to_segments
 from pyfibre.tests.probe_classes import (
     generate_image, generate_probe_graph
 )

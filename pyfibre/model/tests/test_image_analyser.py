@@ -51,7 +51,7 @@ class TestImageAnalyser(TestCase):
         with mock.patch(SAVE_NETWORK_PATH,
                         mock.mock_open()):
             network = self.image_analyser.network_analysis(
-                self.multi_image,"test_filename")
+                self.multi_image, "test_filename")
 
         self.assertEqual(403, network.number_of_nodes())
         self.assertEqual(411, network.number_of_edges())

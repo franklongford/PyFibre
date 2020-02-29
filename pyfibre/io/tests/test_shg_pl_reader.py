@@ -7,7 +7,8 @@ from pyfibre.io.shg_pl_reader import (
     get_files_prefixes, filter_input_files,
     populate_image_dictionary,
     collate_image_dictionary, SHGPLReader,
-    SHGPLTransReader)
+    SHGPLTransReader
+)
 
 
 class TestImageReader(TestCase):
@@ -42,12 +43,18 @@ class TestImageReader(TestCase):
             get_image_data(test_image)
 
     def test_extract_prefix(self):
-        self.assertEqual('/directory/prefix',
-                         extract_prefix('/directory/prefix-pl-shg-test.tif', '-pl-shg'))
-        self.assertEqual('/directory/prefix',
-                         extract_prefix('/directory/prefix-pl-test.tif', '-pl'))
-        self.assertEqual('/directory/prefix',
-                         extract_prefix('/directory/prefix-shg-test.tif', '-shg'))
+        self.assertEqual(
+            '/directory/prefix',
+            extract_prefix(
+                '/directory/prefix-pl-shg-test.tif', '-pl-shg'))
+        self.assertEqual(
+            '/directory/prefix',
+            extract_prefix(
+                '/directory/prefix-pl-test.tif', '-pl'))
+        self.assertEqual(
+            '/directory/prefix',
+            extract_prefix(
+                '/directory/prefix-shg-test.tif', '-shg'))
 
     def test_get_files_prefixes(self):
         input_files = ['/directory/prefix1-pl-shg-test.tif',
@@ -95,7 +102,8 @@ class TestImageReader(TestCase):
         self.assertDictEqual(
             {'/directory/prefix': {
                 'PL-SHG': '/directory/prefix-pl-shg-test.tif',
-                'PL': '/directory/prefix-pl-test.tif'}},
+                'PL': '/directory/prefix-pl-test.tif'}
+            },
             image_dict)
         self.assertListEqual(
             ['/directory/prefix-shg-test.tif'],
@@ -182,22 +190,26 @@ class TestSHGPLReader(TestCase):
     def test_format_image(self):
 
         test_image = np.zeros((2, 100, 100, 3))
-        formatted_image = self.reader._format_image(test_image, 2, 3)
+        formatted_image = self.reader._format_image(
+            test_image, 2, 3)
         self.assertEqual(2, len(formatted_image))
         self.assertEqual((100, 100), formatted_image[0].shape)
 
         test_image = np.zeros((100, 100, 3))
-        formatted_image = self.reader._format_image(test_image, 1, 2)
+        formatted_image = self.reader._format_image(
+            test_image, 1, 2)
         self.assertEqual(1, len(formatted_image))
         self.assertEqual((100, 100), formatted_image[0].shape)
 
         test_image = np.zeros((3, 100, 100))
-        formatted_image = self.reader._format_image(test_image, 3, None)
+        formatted_image = self.reader._format_image(
+            test_image, 3, None)
         self.assertEqual(3, len(formatted_image))
         self.assertEqual((100, 100), formatted_image[0].shape)
 
         test_image = np.zeros((100, 100))
-        formatted_image = self.reader._format_image(test_image, 1, None)
+        formatted_image = self.reader._format_image(
+            test_image, 1, None)
         self.assertEqual(1, len(formatted_image))
         self.assertEqual((100, 100), formatted_image[0].shape)
 

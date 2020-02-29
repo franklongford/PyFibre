@@ -4,9 +4,9 @@ import os
 
 import numpy as np
 from skimage import img_as_float
+
 from traits.api import (
-    File, Type, Unicode,
-    List, Enum, Property)
+    File, Unicode, List, Enum, Property)
 from traitsui.api import View, Item
 
 from pyfibre.io.multi_image_reader import MultiImageReader
@@ -34,8 +34,8 @@ def get_image_type(image_path):
 
 
 def get_image_data(image):
-    """Return the number of different modes, xy dimensions and index of
-    image that contains stacks of repeats"""
+    """Return the number of different modes, xy dimensions
+    and index of image that contains stacks of repeats"""
 
     minor_axis = None
 
@@ -58,7 +58,8 @@ def get_image_data(image):
         minor_axis = image.shape[3]
 
     else:
-        raise IndexError(f"Image shape {image.shape} not supported")
+        raise IndexError(
+            f"Image shape {image.shape} not supported")
 
     logger.info("Number of image modes = {}".format(n_modes))
     logger.debug("Size of image = {}".format(xy_dim))
@@ -238,13 +239,16 @@ class SHGPLReader(MultiImageReader):
 
             if not image_check:
                 raise ImportError(
-                    f"Image shape ({image.shape}) not suitable for type {image_type}"
+                    f"Image shape ({image.shape}) not suitable "
+                    f"for type {image_type}"
                 )
 
             if image_type == 'PL-SHG':
-                image_stack += self._format_image(image, n_modes, minor_axis)
+                image_stack += self._format_image(
+                    image, n_modes, minor_axis)
             else:
-                image_stack += self._format_image(image, 1, minor_axis)
+                image_stack += self._format_image(
+                    image, 1, minor_axis)
 
         return image_stack
 
@@ -278,13 +282,16 @@ class SHGPLTransReader(SHGPLReader):
 
             if not image_check:
                 raise ImportError(
-                    f"Image shape ({image.shape}) not suitable for type {image_type}"
+                    f"Image shape ({image.shape}) not suitable "
+                    f"for type {image_type}"
                 )
 
             if image_type == 'SHG':
-                image_stack += self._format_image(image, 1, minor_axis)
+                image_stack += self._format_image(
+                    image, 1, minor_axis)
             else:
-                image_stack += self._format_image(image, n_modes, minor_axis)
+                image_stack += self._format_image(
+                    image, n_modes, minor_axis)
 
         return image_stack
 
@@ -328,7 +335,8 @@ def load_multi_images(self):
                     if self.shg:
                         remove_image.append(prefix)
             else:
-                logger.debug('SHG Image file not appropriately labelled')
+                logger.debug(
+                    'SHG Image file not appropriately labelled')
                 multi_image.shg_analysis = False
                 if self.shg:
                     remove_image.append(prefix)
@@ -347,7 +355,8 @@ def load_multi_images(self):
                     if self.pl:
                         remove_image.append(prefix)
             else:
-                logger.debug('PL Image file not appropriately labelled')
+                logger.debug(
+                    'PL Image file not appropriately labelled')
                 multi_image.pl_analysis = False
                 if self.pl:
                     remove_image.append(prefix)

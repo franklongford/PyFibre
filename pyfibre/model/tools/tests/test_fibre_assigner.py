@@ -42,7 +42,7 @@ class TestFibreAssignment(TestCase):
                       [-1, 0, 1, 1],
                       [-2, -1, 0, 0],
                       [-2, -1, 0, 0]]),
-            self.fibre_assignment.d_coord[...,0]
+            self.fibre_assignment.d_coord[..., 0]
         ))
 
         self.assertTrue(np.allclose(
@@ -50,7 +50,7 @@ class TestFibreAssignment(TestCase):
                       [-1, 0, 1, 2],
                       [-2, -1, 0, 1],
                       [-3, -2, -1, 0]]),
-            self.fibre_assignment.d_coord[...,1]
+            self.fibre_assignment.d_coord[..., 1]
         ))
         self.assertTrue(np.allclose(
             np.array([[0, 2, 8, 13],

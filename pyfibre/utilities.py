@@ -1,6 +1,6 @@
 """
 ColECM: Collagen ExtraCellular Matrix Simulation
-UTILITIES ROUTINE 
+UTILITIES ROUTINE
 
 Created by: Frank Longford
 Created on: 01/11/2015
@@ -11,6 +11,7 @@ import pickle
 import json
 
 import numpy as np
+
 
 SQRT3 = np.sqrt(3)
 SQRT2 = np.sqrt(2)
@@ -28,7 +29,7 @@ class NoiseError(Exception):
 
 def logo(version):
 
-    logo_text  = "           ___       ___                  " + '\n'
+    logo_text = "           ___       ___                  " + '\n'
     logo_text += "           |  \\     |   . |              " + '\n'
     logo_text += "           |__/     |__   |__   __  __  " + '\n'
     logo_text += "           |   |  | |   | |  | |   |__| " + '\n'
@@ -58,7 +59,7 @@ def unit_vector(vector, axis=-1):
 
     vector = np.array(vector)
     magnitude_2 = np.resize(
-    np.sum(vector**2, axis=axis), vector.shape)
+        np.sum(vector**2, axis=axis), vector.shape)
     u_vector = np.sqrt(vector**2 / magnitude_2) * np.sign(vector)
 
     return u_vector
@@ -97,17 +98,24 @@ def ring(image, index, sizes, value):
         indices = np.concatenate((index - size, index + size))
 
         if indices[0] >= 0:
-            image[indices[0],
-            max([indices[1], 0]): min([indices[3], image.shape[1]])+1] = value
+            start = max([indices[1], 0])
+            end = min([indices[3], image.shape[1]]) + 1
+            image[indices[0], start: end] = value
+
         if indices[2] < image.shape[0]:
-            image[indices[2],
-            max([indices[1], 0]): min([indices[3], image.shape[1]])+1] = value
+            start = max([indices[1], 0])
+            end = min([indices[3], image.shape[1]]) + 1
+            image[indices[2], start: end] = value
+
         if indices[1] >= 0:
-            image[max([indices[0], 0]): min([indices[2], image.shape[0]])+1,
-            indices[1]] = value
+            start = max([indices[0], 0])
+            end = min([indices[2], image.shape[0]]) + 1
+            image[start: end, indices[1]] = value
+
         if indices[3] < image.shape[1]:
-            image[max([indices[0], 0]): min([indices[2], image.shape[0]])+1,
-            indices[3]] = value
+            start = max([indices[0], 0])
+            end = min([indices[2], image.shape[0]]) + 1
+            image[start: end, indices[3]] = value
 
     return image
 
@@ -191,5 +199,4 @@ def load_json(file_name):
 
 def dict_extract(dictionary, keys):
 
-    return {key : dictionary[key] for key in keys}
-
+    return {key: dictionary[key] for key in keys}

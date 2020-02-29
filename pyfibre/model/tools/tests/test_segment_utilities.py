@@ -36,7 +36,9 @@ class TestSegmentUtilities(TestCase):
         self.assertEqual(12, np.sum(mask_1.astype(int)))
         self.assertEqual(0, np.sum(mask_2.astype(int)))
 
-        segment_swap([mask_1, mask_2], [self.image, self.image], [4, 0], [0, 0])
+        segment_swap(
+            [mask_1, mask_2], [self.image, self.image],
+            [4, 0], [0, 0])
 
         self.assertEqual(9, np.sum(mask_1.astype(int)))
         self.assertEqual(3, np.sum(mask_2.astype(int)))

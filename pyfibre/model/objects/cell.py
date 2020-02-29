@@ -26,4 +26,3 @@ class Cell:
         database = database.append(texture_metrics, ignore_index=False)
 
         return database
-
