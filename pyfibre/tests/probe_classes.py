@@ -8,6 +8,7 @@ from skimage.io import imread
 from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
 from pyfibre.model.objects.multi_image import SHGPLTransImage
+from pyfibre.tests.fixtures import test_image_path
 
 
 def generate_image():
@@ -74,8 +75,7 @@ class ProbeSHGPLTransImage(SHGPLTransImage):
     def __init__(self, *args, **kwargs):
         kwargs.pop('image_stack', None)
 
-        directory = os.path.dirname(os.path.abspath(__file__))
-        images = imread(directory + '/fixtures/test-pyfibre-pl-shg-Stack.tif')
+        images = imread(test_image_path)
 
         image_stack = []
         for image in images:

@@ -35,7 +35,18 @@ class TestAnalysis(PyFibreTestCase):
         angles = np.array([45, 90, 100,
                            180, 45, 45,
                            45, 90, 180])
-        weights = np.ones(angles.shape)
-        angle_sdi, _ = angle_analysis(angles, weights, n_bin=10)
+        angle_sdi, angle_x = angle_analysis(angles)
+
+        self.assertAlmostEqual(angle_sdi, 0.01125)
+        self.assertEqual((201,), angle_x.shape)
+
+        angle_sdi, angle_x = angle_analysis(angles, n_bin=10)
 
         self.assertEqual(angle_sdi, 0.225)
+        self.assertEqual((11,), angle_x.shape)
+
+        weights = np.arange(angles.size)
+        angle_sdi, angle_x = angle_analysis(angles, weights=weights)
+
+        self.assertAlmostEqual(angle_sdi, 0.012)
+        self.assertEqual((201,), angle_x.shape)

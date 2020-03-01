@@ -11,7 +11,8 @@ Last Modified: 18/02/2019
 import logging
 
 import numpy as np
-from scipy.ndimage import gaussian_filter, binary_dilation, binary_closing
+from scipy.ndimage import (
+    gaussian_filter, binary_dilation, binary_closing)
 from skimage.transform import rescale, resize
 from skimage.morphology import remove_small_holes
 from skimage.exposure import equalize_adapthist

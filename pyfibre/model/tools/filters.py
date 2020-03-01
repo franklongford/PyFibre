@@ -3,11 +3,14 @@ import numpy as np
 from scipy.ndimage.filters import gaussian_filter
 
 from skimage.feature import structure_tensor, hessian_matrix
-from skimage.filters import apply_hysteresis_threshold, sato
-from skimage.filters import threshold_li, threshold_isodata, threshold_mean
+from skimage.filters import (
+    threshold_li, threshold_isodata, threshold_mean,
+    apply_hysteresis_threshold, sato)
 
 
 def gaussian(image, sigma=None):
+    """Perform gaussian smoothing on image using sigma
+    standard deviation"""
 
     if sigma is None:
         return image
@@ -17,7 +20,11 @@ def gaussian(image, sigma=None):
 def tubeness(image, sigma_max=3):
     """Wrapper around the scikit-image sato tubeness filter"""
 
-    tube = sato(image, sigmas=range(1, sigma_max+1), black_ridges=False)
+    tube = sato(
+        image,
+        sigmas=range(1, sigma_max+1),
+        black_ridges=False
+    )
 
     return tube
 
@@ -26,7 +33,8 @@ def hysteresis(image, alpha=1.0):
     """Hystersis thresholding with low and high clipped values
     determined by the mean, li and isodata threshold"""
 
-    low = np.min([alpha * threshold_mean(image), threshold_li(image)])
+    low = np.min([
+        alpha * threshold_mean(image), threshold_li(image)])
     high = threshold_isodata(image)
 
     threshold = apply_hysteresis_threshold(image, low, high)
@@ -76,7 +84,7 @@ def derivatives(image, rank=1):
     return derivative
 
 
-def form_nematic_tensor(image, sigma=None, size=None):
+def form_nematic_tensor(image, sigma=None):
     """
     form_nematic_tensor(dx_shg, dy_shg)
 
