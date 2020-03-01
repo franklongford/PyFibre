@@ -2,7 +2,7 @@ import copy
 
 from networkx import Graph
 
-from pyfibre.io.utils import (
+from pyfibre.io.utilities import (
     pop_under_recursive, deserialize_networkx_graph,
     serialize_networkx_graph)
 from pyfibre.model.tools.convertors import networks_to_segments

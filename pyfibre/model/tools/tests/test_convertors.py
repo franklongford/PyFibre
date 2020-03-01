@@ -1,17 +1,16 @@
-from unittest import TestCase
-
 import numpy as np
 
 from pyfibre.model.tools.convertors import (
     binary_to_stack, segments_to_binary, binary_to_segments,
     networks_to_binary, stack_to_binary, stack_to_segments,
     segments_to_stack)
+from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 from pyfibre.tests.probe_classes import (
     generate_image, generate_probe_graph
 )
 
 
-class TestConvertors(TestCase):
+class TestConvertors(PyFibreTestCase):
 
     def setUp(self):
         (self.image, self.labels,
@@ -67,13 +66,11 @@ class TestConvertors(TestCase):
                                     iterations=1, sigma=None,
                                     area_threshold=50)
         self.assertEqual((10, 10), binary.shape)
-        self.assertTrue(
-            np.allclose(
-                np.array([[0, 0], [0, 1], [1, 0], [1, 1],
-                          [1, 2], [1, 3], [2, 1], [2, 2],
-                          [2, 3], [2, 4], [3, 2], [3, 3]]),
-                np.argwhere(binary)
-            )
+        self.assertArrayAlmostEqual(
+            np.array([[0, 0], [0, 1], [1, 0], [1, 1],
+                      [1, 2], [1, 3], [2, 1], [2, 2],
+                      [2, 3], [2, 4], [3, 2], [3, 3]]),
+            np.argwhere(binary)
         )
 
     def test_networks_to_segments(self):
@@ -82,9 +79,7 @@ class TestConvertors(TestCase):
     def test_segments_to_stack(self):
         segments = stack_to_segments(self.stack)
         stack = segments_to_stack(segments, (10, 10))
-        self.assertTrue(
-            np.allclose(self.stack, stack)
-        )
+        self.assertArrayAlmostEqual(self.stack, stack)
 
     def test_stack_to_segments(self):
         segments = stack_to_segments(self.stack)

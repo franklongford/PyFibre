@@ -1,14 +1,13 @@
-import unittest
-
 import numpy as np
 import networkx as nx
 
 from pyfibre.model.tools.network_extraction import (
     NetworkExtraction
 )
+from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 
-class TestNetworkExtraction(unittest.TestCase):
+class TestNetworkExtraction(PyFibreTestCase):
 
     def setUp(self):
 
@@ -53,10 +52,10 @@ class TestNetworkExtraction(unittest.TestCase):
     def test__get_connected_nodes(self):
 
         self.network.graph = nx.grid_2d_graph(2, 3)
-        self.assertTrue(np.allclose(
+        self.assertArrayAlmostEqual(
             np.array([[1, 0], [0, 1]]),
             self.network._get_connected_nodes((0, 0))
-        ))
+        )
 
     def test__get_nucleation_points(self):
 
@@ -173,7 +172,7 @@ class TestNetworkExtraction(unittest.TestCase):
         adjacency = nx.adjacency_matrix(self.network.graph).todense()
 
         self.assertEqual(8, self.network.graph.number_of_nodes())
-        self.assertTrue(np.allclose(
+        self.assertArrayAlmostEqual(
             np.array([[0, 1, 1, 1, 1, 0, 0, 0],
                       [1, 0, 0, 0, 0, 0, 0, 0],
                       [1, 0, 0, 0, 0, 0, 0, 0],
@@ -183,4 +182,4 @@ class TestNetworkExtraction(unittest.TestCase):
                       [0, 0, 0, 0, 1, 0, 0, 0],
                       [0, 0, 0, 0, 0, 1, 0, 0]]),
             adjacency
-        ))
+        )

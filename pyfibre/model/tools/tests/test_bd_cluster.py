@@ -10,7 +10,7 @@ from pyfibre.model.tools.bd_cluster import (
 from pyfibre.tests.probe_classes import (
     generate_image, generate_probe_graph
 )
-from pyfibre.tests.test_utilities import test_image_path
+from pyfibre.tests.fixtures import test_image_path
 
 
 class TestBDCluster(TestCase):

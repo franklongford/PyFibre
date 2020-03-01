@@ -1,6 +1,6 @@
 from networkx import Graph
 
-from pyfibre.io.utils import (
+from pyfibre.io.utilities import (
     pop_recursive, remove_contraction,
     deserialize_networkx_graph,
     serialize_networkx_graph

@@ -15,7 +15,16 @@ class Cell:
         """Generates a Pandas database with all graph and segment metrics
         for assigned image"""
 
-        database = pd.Series()
+        if image is None:
+            image = self.image
+
+        if self.segment is None:
+            raise AttributeError(
+                'Cell.segment attribute must be assigned'
+                'first'
+            )
+
+        database = pd.Series(dtype=object)
 
         shape_metrics = segment_shape_metrics(
             self.segment, tag='Cell')

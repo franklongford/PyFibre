@@ -1,12 +1,13 @@
-from unittest import TestCase
 import numpy as np
+
 from pyfibre.model.tools.filters import (
     gaussian, tubeness, hysteresis, derivatives,
-    form_structure_tensor
+    form_structure_tensor, form_nematic_tensor
 )
+from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 
-class TestFilters(TestCase):
+class TestFilters(PyFibreTestCase):
 
     def setUp(self):
         self.image = np.ones((5, 5))
@@ -16,6 +17,10 @@ class TestFilters(TestCase):
         self.sigma = 1.0
 
     def test_gaussian(self):
+        smoothed_image = gaussian(self.image)
+
+        self.assertArrayAlmostEqual(smoothed_image, smoothed_image)
+
         smoothed_image = gaussian(self.image, self.sigma)
 
         self.assertAlmostEqual(smoothed_image.mean(), 1.80, 6)
@@ -29,12 +34,27 @@ class TestFilters(TestCase):
         self.assertAlmostEqual(tubeness_image.max(), 1.1045664, 6)
         self.assertAlmostEqual(tubeness_image.min(), 0.3038492, 6)
 
+        tubeness_image = tubeness(self.image, sigma_max=1)
+
+        self.assertAlmostEqual(tubeness_image.mean(), 0.52744720, 6)
+        self.assertAlmostEqual(tubeness_image.max(), 1.1045664, 6)
+        self.assertAlmostEqual(tubeness_image.min(), 0.1719257, 6)
+
     def test_hysteresis(self):
         hysteresis_image = hysteresis(self.image, alpha=2.0)
+        answer = np.array(
+            [[0, 0, 0, 0, 0],
+             [0, 1, 0, 0, 0],
+             [0, 0, 1, 0, 0],
+             [0, 0, 0, 1, 0],
+             [0, 0, 0, 0, 0]]
+        )
+        self.assertArrayAlmostEqual(answer, hysteresis_image)
 
-        self.assertTrue(hysteresis_image[1, 1])
-        self.assertTrue(hysteresis_image[2, 2])
-        self.assertTrue(hysteresis_image[3, 3])
+        hysteresis_image = hysteresis(self.image, alpha=0.1)
+
+        self.assertArrayAlmostEqual(
+            np.ones((5, 5)), hysteresis_image)
 
     def test_derivatives(self):
         first_derivatives = derivatives(self.image)
@@ -50,10 +70,14 @@ class TestFilters(TestCase):
                        [0., 0., 3.5, 0., -7.],
                        [0., 0., 0., 0., 0.]])
 
-        self.assertAlmostEqual(
-            abs(dx - first_derivatives[0]).sum(), 0, 7)
-        self.assertAlmostEqual(
-            abs(dy - first_derivatives[1]).sum(), 0, 7)
+        self.assertArrayAlmostEqual(dx, first_derivatives[0])
+        self.assertArrayAlmostEqual(dy, first_derivatives[1])
+
+    def test_form_nematic_tensor(self):
+        n_tensor = form_nematic_tensor(
+            self.image, sigma=self.sigma)
+
+        self.assertEqual(n_tensor.shape, (5, 5, 2, 2))
 
     def test_form_structure_tensor(self):
         j_tensor = form_structure_tensor(

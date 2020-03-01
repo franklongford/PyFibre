@@ -17,7 +17,7 @@ from traitsui.api import (
 
 from pyfibre.io.shg_pl_reader import (
     collate_image_dictionary)
-from pyfibre.io.utils import parse_files, parse_file_path
+from pyfibre.io.utilities import parse_files, parse_file_path
 
 
 def horizontal_centre(item_or_group):

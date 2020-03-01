@@ -23,9 +23,9 @@ from traits_futures.api import (
 from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
-from pyfibre.gui.process_run import process_run
 from pyfibre.io.database_io import save_database, load_database
 from pyfibre.model.image_analyser import ImageAnalyser
+from pyfibre.model.iterator import iterate_images
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 
 
@@ -211,6 +211,7 @@ class PyFibreMainTask(Task):
             batch_dict = {row.name: row._dictionary
                           for row in batch_rows}
 
+            reader = SHGPLTransReader()
             image_analyser = ImageAnalyser(
                 p_denoise=(self.options_pane.n_denoise,
                            self.options_pane.m_denoise),
@@ -223,7 +224,7 @@ class PyFibreMainTask(Task):
             )
 
             future = self.traits_executor.submit_iteration(
-                process_run, batch_dict, image_analyser
+                iterate_images, batch_dict, image_analyser, reader
             )
             self.current_futures.append(future)
 

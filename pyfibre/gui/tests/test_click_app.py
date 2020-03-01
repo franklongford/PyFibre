@@ -7,7 +7,7 @@ from click.testing import CliRunner
 
 import pyfibre.gui.app
 from pyfibre.version import __version__
-from pyfibre.gui.tests.utils import DummyPyFibreGUI
+from pyfibre.tests.dummy_classes import DummyPyFibreGUI
 
 
 def mock_run_constructor(*args, **kwargs):
@@ -41,7 +41,9 @@ class TestClickRun(TestCase):
             self.log = pyfibre.gui.app.logging.getLogger(__name__)
             # This test seems to be broken at the moment
             # self.assertEqual(10, self.log.getEffectiveLevel())
-            # os.remove('pyfibre.log')
+
+        if os.path.exists('pyfibre.log'):
+            os.remove('pyfibre.log')
 
     def test_run_with_profile(self):
         with mock.patch('pyfibre.gui.app.PyFibreGUI') as mock_pyfibre:

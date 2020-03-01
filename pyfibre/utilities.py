@@ -7,11 +7,7 @@ Created on: 01/11/2015
 
 Last Modified: 12/04/2018
 """
-import pickle
-import json
-
 import numpy as np
-
 
 SQRT3 = np.sqrt(3)
 SQRT2 = np.sqrt(2)
@@ -67,10 +63,13 @@ def unit_vector(vector, axis=-1):
 
 def label_set(labels, background=0):
     """Return a unique set of non-background values in labels"""
-    label_set = np.unique(labels)
-    label_set = label_set[np.where(label_set != background)]
+    unique_labels = np.unique(labels)
 
-    return label_set
+    # Remove any labels corresponding to the background
+    indices = np.where(unique_labels != background)
+    unique_labels = unique_labels[indices]
+
+    return unique_labels
 
 
 def nanmean(array_like, weights=None):
@@ -120,10 +119,6 @@ def ring(image, index, sizes, value):
     return image
 
 
-def conv_coord(array):
-    return array[:,0], array[:,1]
-
-
 def clear_border(image, thickness=1):
 
     for i in range(thickness):
@@ -136,8 +131,12 @@ def clear_border(image, thickness=1):
 
 
 def flatten_list(list_of_lists):
-
-    flat_list = [val for sublist in list_of_lists for val in sublist]
+    """Returned a flattened version of a list of lists"""
+    flat_list = [
+        val
+        for sublist in list_of_lists
+        for val in sublist
+    ]
 
     return flat_list
 
@@ -153,50 +152,3 @@ def matrix_split(matrix, nrows, ncols):
         grid += np.array_split(item, nrows, axis=-1)
 
     return grid
-
-
-def save_pickle(object_, file_name):
-    """Saves object as pickled file"""
-
-    with open(file_name, 'wb') as outfile:
-        pickle.dump(object_, outfile, pickle.HIGHEST_PROTOCOL)
-
-
-def load_pickle(file_name):
-    """Loads pickled object"""
-
-    with open(file_name, 'rb') as infile:
-        object_ = pickle.load(infile)
-
-    return object_
-
-
-def save_json(data, file_name):
-    """Saves data as JSON file"""
-
-    try:
-        with open(f"{file_name}.json", 'w') as outfile:
-            json.dump(data, outfile, indent=4)
-    except IOError as e:
-        raise IOError(
-            f"Cannot save to file {file_name}.json"
-        ) from e
-
-
-def load_json(file_name):
-    """Loads JSON file as data"""
-
-    try:
-        with open(f"{file_name}.json", 'r') as infile:
-            data = json.load(infile)
-    except IOError as e:
-        raise IOError(
-            f"Cannot read file {file_name}.json"
-        ) from e
-
-    return data
-
-
-def dict_extract(dictionary, keys):
-
-    return {key: dictionary[key] for key in keys}

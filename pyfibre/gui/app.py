@@ -29,10 +29,9 @@ push_exception_handler(lambda *args: None,
          "files in the current directory."
 )
 def pyfibre(debug, profile):
-    """Launches the FORCE workflow manager application"""
+    """Launches the PyFibre graphical UI application"""
 
-    run(debug=debug,
-        profile=profile)
+    run(debug, profile)
 
 
 def run(debug, profile):

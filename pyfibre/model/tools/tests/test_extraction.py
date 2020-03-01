@@ -6,7 +6,7 @@ from skimage.io import imread
 from pyfibre.model.tools.extraction import (
     build_network, clean_network, fibre_network_assignment
 )
-from pyfibre.tests.test_utilities import test_image_path
+from pyfibre.tests.fixtures import test_image_path
 from pyfibre.tests.probe_classes import (
     generate_probe_graph
 )
