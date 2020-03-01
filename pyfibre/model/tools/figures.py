@@ -18,22 +18,35 @@ from pyfibre.model.tools.filters import form_structure_tensor
 from pyfibre.model.tools.analysis import tensor_analysis
 
 
-def create_figure(image, filename, figsize=(10, 10), ext='png', cmap='viridis'):
+BASE_COLOURS = {
+    'b': (0, 0, 1),
+    'g': (0, 0.5, 0),
+    'r': (1, 0, 0),
+    'c': (0, 0.75, 0.75),
+    'm': (0.75, 0, 0.75),
+    'y': (0.75, 0.75, 0),
+    'k': (0, 0, 0)}
+
+
+def create_figure(
+        image, filename, figsize=(10, 10), ext='png', cmap='viridis'):
 
     import matplotlib.pyplot as plt
 
     plt.figure(figsize=figsize)
+
     if image.ndim == 2:
         plt.imshow(image, cmap=cmap)
     else:
         plt.imshow(image)
+
     plt.axis('off')
     plt.tight_layout()
     plt.savefig(filename + '.' + ext)
     plt.close()
 
 
-def set_HSB(image, hue, saturation=1, brightness=1):
+def create_hsb_image(image, hue, saturation=1, brightness=1):
     """ Add color of the given hue to an greyscale image.
 
     By default, set the saturation to 1 so that the colors pop!
@@ -48,6 +61,38 @@ def set_HSB(image, hue, saturation=1, brightness=1):
     return hsv2rgb(hsv)
 
 
+def create_angle_reference(size, min_n=50, max_n=120):
+
+    # Make circular test image
+    size = np.max(np.asarray([min_n, size], dtype=int))
+    size = np.min(np.asarray([size, max_n], dtype=int))
+
+    if np.mod(size, 2) != 0:
+        size += 1
+
+    image_grid = np.mgrid[: size, : size]
+
+    for i in range(2):
+        image_grid[i] -= size * np.array(
+            2 * image_grid[i] / size, dtype=int)
+        image_grid[i] = np.fft.fftshift(image_grid[i])
+
+    image_radius = np.sqrt(np.sum(image_grid ** 2, axis=0))
+    image_sine = np.sin(4 * np.pi * image_radius / size)
+    image_cos = np.cos(4 * np.pi * image_radius / size)
+    image_rings = image_sine * image_cos
+
+    j_tensor = form_structure_tensor(image_rings, sigma=1.0)
+    pix_j_anis, pix_j_angle, pix_j_energy = tensor_analysis(j_tensor)
+
+    pix_j_angle = rotate(pix_j_angle, 90)[: size // 2]
+    pix_j_anis = pix_j_anis[: size // 2]
+    pix_j_energy = np.where(
+        image_radius < (size / 2), pix_j_energy, 0)[: size // 2]
+
+    return pix_j_angle, pix_j_anis, pix_j_energy
+
+
 def create_tensor_image(image, min_N=50, max_N=120):
 
     # Form nematic and structure tensors for each pixel
@@ -60,45 +105,32 @@ def create_tensor_image(image, min_N=50, max_N=120):
     saturation = pix_j_anis / pix_j_anis.max()
     brightness = image / image.max()
 
-    # Make circular test image
-    N = np.max(np.asarray([min_N, 0.2 * np.sqrt(image.size)], dtype=int))
-    N = np.min(np.asarray([N, max_N], dtype=int))
-    if np.mod(N, 2) != 0:
-        N += 1
+    size = 0.2 * np.sqrt(image.size)
 
-    image_grid = np.mgrid[:N, :N]
-    for i in range(2):
-        image_grid[i] -= N * np.array(2 * image_grid[i] / N, dtype=int)
-        image_grid[i] = np.fft.fftshift(image_grid[i])
+    if size >= 50:
+        ref_angle, ref_anis, ref_energy = create_angle_reference(
+            size)
+        start = - size // 2
+        end = image.shape[0]
 
-    image_radius = np.sqrt(np.sum(image_grid**2, axis=0))
-    image_rings = np.sin(4 * np.pi * image_radius / N ) * np.cos(4 * np.pi * image_radius / N)
-
-    j_tensor = form_structure_tensor(image_rings, sigma=1.0)
-    pix_j_anis, pix_j_angle, pix_j_energy = tensor_analysis(j_tensor)
-
-    pix_j_angle = rotate(pix_j_angle, 90)[ : N // 2  ]
-    pix_j_anis = pix_j_anis[ : N // 2 ]
-    pix_j_energy = np.where(image_radius < (N / 2), pix_j_energy, 0)[ : N // 2 ]
-
-    hue[- N // 2 : image.shape[0], : N] = (pix_j_angle + 90) / 180
-    saturation[- N // 2 : image.shape[0], : N] = pix_j_anis / pix_j_anis.max()
-    brightness[- N // 2 : image.shape[0], : N] = pix_j_energy / pix_j_energy.max()
+        hue[start: end, : size] = (ref_angle + 90) / 180
+        saturation[start: end, : size] = ref_anis / ref_anis.max()
+        brightness[start: end, : size] = ref_energy / ref_energy.max()
 
     # Form structure tensor image
-    rgb_image = set_HSB(image, hue, saturation, brightness)
+    rgb_image = create_hsb_image(image, hue, saturation, brightness)
 
     return rgb_image
 
 
-def create_region_image(image, regions):
+def create_segment_image(image, segments):
     """Plots a figure showing identified regions
 
     Parameters
     ----------
     image:  array_like (float); shape=(n_x, n_y)
         Image under analysis of pos_x and pos_y
-    regions:  list (skimage.region)
+    segments:  list (skimage.region)
         List of segmented regions
     """
 
@@ -106,29 +138,21 @@ def create_region_image(image, regions):
     label_image = np.zeros(image.shape, dtype=int)
     label = 1
 
-    for region in regions:
-        minr, minc, maxr, maxc = region.bbox
+    for segment in segments:
+        minr, minc, maxr, maxc = segment.bbox
         indices = np.mgrid[minr:maxr, minc:maxc]
 
-        label_image[(indices[0], indices[1])] += region.image * label
+        label_image[(indices[0], indices[1])] += segment.image * label
         label += 1
 
-    image_label_overlay = label2rgb(label_image, image=image, bg_label=0,
-                                    image_alpha=0.99, alpha=0.25, bg_color=(0, 0, 0))
+    image_label_overlay = label2rgb(
+        label_image, image=image, bg_label=0,
+        image_alpha=0.99, alpha=0.25, bg_color=(0, 0, 0))
 
     return image_label_overlay
 
 
 def create_network_image(image, networks, c_mode=0):
-
-    BASE_COLOURS = {
-        'b': (0, 0, 1),
-        'g': (0, 0.5, 0),
-        'r': (1, 0, 0),
-        'c': (0, 0.75, 0.75),
-        'm': (0.75, 0, 0.75),
-        'y': (0.75, 0.75, 0),
-        'k': (0, 0, 0)}
 
     colours = list(BASE_COLOURS.keys())
 

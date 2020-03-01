@@ -23,7 +23,7 @@ from pyfibre.io.shg_pl_reader import SHGPLTransReader
 from pyfibre.gui.file_display_pane import TableRow
 from pyfibre.model.objects.multi_image import MultiImage
 from pyfibre.model.tools.figures import (
-    create_tensor_image, create_region_image, create_network_image
+    create_tensor_image, create_segment_image, create_network_image
 )
 from pyfibre.utilities import flatten_list
 
@@ -112,7 +112,7 @@ class SegmentImageTab(ImageTab):
 
     def _get_plot(self):
         if self.image is not None:
-            segment_image = create_region_image(
+            segment_image = create_segment_image(
                 self.image,
                 self.segments) * 255.999
 
