@@ -18,8 +18,11 @@ import pyfibre.utilities as ut
 from pyfibre.version import __version__
 from pyfibre.model.image_analyser import ImageAnalyser
 from pyfibre.io.database_io import save_database
-from pyfibre.io.shg_pl_reader import collate_image_dictionary, SHGPLTransReader
-from pyfibre.io.utils import parse_files, parse_file_path
+from pyfibre.io.shg_pl_reader import (
+    collate_image_dictionary,
+    SHGPLTransReader
+)
+from pyfibre.io.utilities import parse_files, parse_file_path
 
 import matplotlib
 matplotlib.use("Agg")

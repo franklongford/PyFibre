@@ -7,7 +7,7 @@ import networkx as nx
 from pyfibre.io.object_io import (
     save_base_graph_segment, load_base_graph_segment,
     save_base_graph_segments, load_base_graph_segments)
-from pyfibre.io.utils import (
+from pyfibre.io.utilities import (
     serialize_networkx_graph,
     deserialize_networkx_graph
 )

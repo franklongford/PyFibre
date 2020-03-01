@@ -1,23 +1,22 @@
-from unittest import mock, TestCase
+from unittest import TestCase
 import os
+from tempfile import NamedTemporaryFile
 
 import numpy as np
 
-from .. utils import (
+from pyfibre.tests.fixtures import test_image_path
+
+from .. utilities import (
     parse_files, parse_file_path, pop_under_recursive,
     pop_dunder_recursive, numpy_to_python_recursive,
-    python_to_numpy_recursive)
-
-source_dir = os.path.dirname(os.path.realpath(__file__))
-pyfibre_dir = os.path.dirname(os.path.dirname(source_dir))
+    python_to_numpy_recursive, replace_ext, save_json,
+    load_json)
 
 
-class TestUtils(TestCase):
+class TestUtilities(TestCase):
 
     def setUp(self):
-        self.file_name = (
-            pyfibre_dir + '/tests/fixtures/test-pyfibre-pl-shg-Stack.tif'
-        )
+        self.file_name = test_image_path
         self.directory = os.path.dirname(self.file_name)
         self.key = 'shg'
         self.test_dict = {
@@ -132,3 +131,34 @@ class TestUtils(TestCase):
         self.assertIsInstance(
             deserialized_dict['list dictionary'][0]['direction'],
             np.ndarray)
+
+    def test_replace_ext(self):
+
+        file_name = 'some/path/to/file'
+
+        self.assertEqual(
+            'some/path/to/file.json',
+            replace_ext(file_name, 'json')
+        )
+        self.assertEqual(
+            'some/path/to/file.json',
+            replace_ext(file_name + '.csv', 'json')
+        )
+
+    def test_save_load_json(self):
+        data = {
+            'an integer': 0,
+            'a list': [0, 1, 2],
+            'a dictionary': {'some key': 'some value'}
+        }
+
+        with NamedTemporaryFile() as temp_file:
+
+            save_json(data, temp_file.name)
+
+            self.assertTrue(os.path.exists(
+                temp_file.name + '.json'))
+
+            test_data = load_json(temp_file.name)
+
+        self.assertDictEqual(data, test_data)

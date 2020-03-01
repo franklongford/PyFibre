@@ -1,38 +1,24 @@
 import logging
-from unittest import TestCase
 
-import sys, os
 import numpy as np
-
 from skimage import data
 from scipy.ndimage.filters import gaussian_filter
 
 from pyfibre.io.shg_pl_reader import SHGPLReader
 from pyfibre.utilities import (
     unit_vector, numpy_remove, nanmean, ring, matrix_split,
-    label_set
+    label_set, clear_border, flatten_list
 )
 
 from .probe_classes import generate_image
+from .pyfibre_test_case import PyFibreTestCase
 
-source_dir = os.path.dirname(os.path.realpath(__file__))
-pyfibre_dir = source_dir[:source_dir.rfind(os.path.sep)]
-sys.path.append(pyfibre_dir + '/pyfibre/')
 logger = logging.getLogger(__name__)
 
 THRESH = 1E-7
 
-test_image_path = pyfibre_dir + '/tests/fixtures/test-pyfibre-pl-shg-Stack.tif'
 
-
-class TestLogging(TestCase):
-
-    def test_logger(self):
-
-        logger.info('This is a test')
-
-
-class TestImages(TestCase):
+class TestImages:
 
     def setUp(self):
 
@@ -69,14 +55,8 @@ class TestImages(TestCase):
         "Make checkered test image"
         self.test_images['test_image_checker'] = data.checkerboard()
 
-    def test_image(self):
 
-        reader = SHGPLReader()
-        reader.shg_pl_filename = test_image_path
-        multi_image = reader.load_multi_image()
-
-
-class TestUtilities(TestCase):
+class TestUtilities(PyFibreTestCase):
 
     def setUp(self):
         (self.image, self.labels,
@@ -88,13 +68,16 @@ class TestUtilities(TestCase):
         answer = np.array([-0.42857143,  0.28571429,  0.85714286])
         u_vector = unit_vector(vector)
 
-        self.assertAlmostEqual(abs(u_vector - answer).sum(), 0, 7)
+        self.assertArrayAlmostEqual(u_vector, answer, THRESH)
 
-        vector_array = np.array([[3, 2, 6], [1, 2, 5], [4, 2, 5], [-7, -1, 2]])
+        vector_array = np.array(
+            [[3, 2, 6], [1, 2, 5], [4, 2, 5], [-7, -1, 2]]
+        )
 
         u_vector_array = unit_vector(vector_array)
 
-        self.assertEqual(np.array(vector_array).shape, u_vector_array.shape)
+        self.assertEqual(
+            np.array(vector_array).shape, u_vector_array.shape)
 
     def test_numpy_remove(self):
 
@@ -104,7 +87,7 @@ class TestUtilities(TestCase):
 
         edit_array = numpy_remove(array_1, array_2)
 
-        self.assertAlmostEqual(abs(answer - edit_array).sum(), 0, 8)
+        self.assertArrayAlmostEqual(answer, edit_array)
 
         array_nan = np.array([2, 3, 1, np.nan])
 
@@ -113,14 +96,10 @@ class TestUtilities(TestCase):
     def test_label_set(self):
 
         labels = label_set(self.labels)
-        self.assertTrue(np.allclose(
-            labels, np.array([1, 2]))
-        )
+        self.assertArrayAlmostEqual(labels, np.array([1, 2]))
 
         labels = label_set(self.labels, background=-1)
-        self.assertTrue(np.allclose(
-            labels, np.array([0, 1, 2]))
-        )
+        self.assertArrayAlmostEqual(labels, np.array([0, 1, 2]))
 
     def test_ring(self):
 
@@ -133,15 +112,56 @@ class TestUtilities(TestCase):
 
         ring_filter = ring(np.zeros((6, 6)), [2, 2], [1], 1)
 
-        self.assertAlmostEqual(abs(ring_answer - ring_filter).sum(), 0, 8)
+        self.assertArrayAlmostEqual(ring_answer, ring_filter)
 
         split_filter = matrix_split(ring_answer, 2, 2)
 
-        self.assertAlmostEqual(abs(
-            split_filter[0] - np.array([[0, 0, 0], [0, 1, 1], [0, 1, 0]])).sum(), 0, 8)
-        self.assertAlmostEqual(abs(
-            split_filter[1] - np.array([[0, 0, 0], [1, 0, 0], [1, 0, 0]])).sum(), 0, 8)
-        self.assertAlmostEqual(abs(
-            split_filter[2] - np.array([[0, 1, 1], [0, 0, 0], [0, 0, 0]])).sum(), 0, 8)
-        self.assertAlmostEqual(abs(
-            split_filter[3] - np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]])).sum(), 0, 8)
+        self.assertArrayAlmostEqual(
+            split_filter[0],
+            np.array([[0, 0, 0], [0, 1, 1], [0, 1, 0]]))
+        self.assertArrayAlmostEqual(
+            split_filter[1],
+            np.array([[0, 0, 0], [1, 0, 0], [1, 0, 0]]))
+        self.assertArrayAlmostEqual(
+            split_filter[2],
+            np.array([[0, 1, 1], [0, 0, 0], [0, 0, 0]]))
+        self.assertArrayAlmostEqual(
+            split_filter[3],
+            np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]]))
+
+    def test_clear_border(self):
+
+        clear_answer = np.array([[0, 0, 0, 0, 0, 0],
+                                 [0, 1, 1, 1, 1, 0],
+                                 [0, 1, 1, 1, 1, 0],
+                                 [0, 1, 1, 1, 1, 0],
+                                 [0, 1, 1, 1, 1, 0],
+                                 [0, 0, 0, 0, 0, 0]])
+
+        clear_filter = clear_border(np.ones((6, 6)))
+        self.assertArrayAlmostEqual(clear_answer, clear_filter)
+
+        clear_answer = np.array([[0, 0, 0, 0, 0, 0],
+                                 [0, 0, 0, 0, 0, 0],
+                                 [0, 0, 1, 1, 0, 0],
+                                 [0, 0, 1, 1, 0, 0],
+                                 [0, 0, 0, 0, 0, 0],
+                                 [0, 0, 0, 0, 0, 0]])
+
+        clear_filter = clear_border(np.ones((6, 6)), thickness=2)
+        self.assertArrayAlmostEqual(clear_answer, clear_filter)
+
+    def test_flatten_list(self):
+
+        list_of_lists = [['0:0', '0:1', '0:2'],
+                         ['1:0', '1:1', '1:2'],
+                         ['2:0', '2:1', '2:2']]
+
+        flattened_list = flatten_list(list_of_lists)
+
+        self.assertListEqual(
+            ['0:0', '0:1', '0:2',
+             '1:0', '1:1', '1:2',
+             '2:0', '2:1', '2:2'],
+            flattened_list
+        )

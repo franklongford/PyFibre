@@ -2,7 +2,7 @@ from pyfibre.model.objects.base_graph_segment import BaseGraphSegment
 from pyfibre.model.objects.cell import Cell
 from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
-from pyfibre.utilities import save_json, load_json
+from pyfibre.io.utilities import save_json, load_json
 
 from .segment_io import save_segments, load_segments
 

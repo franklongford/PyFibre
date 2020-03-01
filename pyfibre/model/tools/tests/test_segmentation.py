@@ -8,7 +8,7 @@ from pyfibre.model.tools.segmentation import (
 from pyfibre.tests.probe_classes import (
     generate_image, generate_probe_graph
 )
-from pyfibre.tests.test_utilities import test_image_path
+from pyfibre.tests.fixtures import test_image_path
 
 
 class TestSegmentation(TestCase):

@@ -1,3 +1,4 @@
+import json
 import os
 
 import numpy as np
@@ -70,8 +71,8 @@ def remove_contraction(dictionary):
 
 
 def pop_recursive(dictionary, pop_func):
-    """Recursively remove a named key from dictionary and any contained
-    dictionaries."""
+    """Recursively remove a named key from dictionary
+    and any contained dictionaries."""
 
     pop_func(dictionary)
 
@@ -169,3 +170,45 @@ def python_to_numpy_recursive(dictionary):
                         python_to_numpy_recursive(element)
 
     return dictionary
+
+
+def replace_ext(file_name, extension):
+    """If an extension exists on file_name,
+    replace it with new extension. Otherwise
+    add new extension"""
+
+    path, ext = os.path.splitext(file_name)
+    if ext != f'.{extension}':
+        file_name = path + f'.{extension}'
+
+    return file_name
+
+
+def save_json(data, file_name):
+    """Saves data as JSON file"""
+
+    file_name = replace_ext(file_name, 'json')
+
+    try:
+        with open(f"{file_name}", 'w') as outfile:
+            json.dump(data, outfile, indent=4)
+    except IOError as e:
+        raise IOError(
+            f"Cannot save to file {file_name}.json"
+        ) from e
+
+
+def load_json(file_name):
+    """Loads JSON file as data"""
+
+    file_name = replace_ext(file_name, 'json')
+
+    try:
+        with open(f"{file_name}", 'r') as infile:
+            data = json.load(infile)
+    except IOError as e:
+        raise IOError(
+            f"Cannot read file {file_name}.json"
+        ) from e
+
+    return data
