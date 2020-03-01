@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 import numpy as np
 from skimage.measure import regionprops
 
@@ -10,9 +8,10 @@ from pyfibre.model.tools.segment_utilities import (
 from pyfibre.tests.probe_classes import (
     generate_image, generate_probe_graph
 )
+from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 
-class TestSegmentUtilities(TestCase):
+class TestSegmentUtilities(PyFibreTestCase):
 
     def setUp(self):
         (self.image, self.labels,
@@ -48,12 +47,10 @@ class TestSegmentUtilities(TestCase):
         label_image = np.zeros(self.image.shape, dtype=int)
         draw_network(self.network, label_image, 1)
 
-        self.assertTrue(
-            np.allclose(
-                np.array([[0, 0], [1, 1], [2, 2],
-                          [2, 3]]),
-                np.argwhere(label_image)
-            )
+        self.assertArrayAlmostEqual(
+            np.array([[0, 0], [1, 1], [2, 2],
+                      [2, 3]]),
+            np.argwhere(label_image)
         )
 
     def test_mean_binary(self):

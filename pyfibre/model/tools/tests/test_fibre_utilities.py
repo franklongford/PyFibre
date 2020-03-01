@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 import numpy as np
 
 from pyfibre.model.tools.fibre_utilities import (
@@ -10,9 +8,10 @@ from pyfibre.model.tools.fibre_utilities import (
 from pyfibre.tests.probe_classes import (
     generate_probe_graph
 )
+from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 
-class TestFibreUtilities(TestCase):
+class TestFibreUtilities(PyFibreTestCase):
 
     def setUp(self):
 
@@ -36,18 +35,14 @@ class TestFibreUtilities(TestCase):
     def test_distance_matrix(self):
         d_2D, r2_2D = distance_matrix(self.pos_2D)
 
-        self.assertAlmostEqual(
-            abs(self.answer_d_2D - d_2D).sum(), 0, 7)
-        self.assertAlmostEqual(
-            abs(self.answer_r2_2D - r2_2D).sum(), 0, 7)
+        self.assertArrayAlmostEqual(self.answer_d_2D, d_2D)
+        self.assertArrayAlmostEqual(self.answer_r2_2D, r2_2D)
 
     def test_get_edge_list(self):
 
         edge_list = get_edge_list(self.network)
-        self.assertTrue(
-            np.allclose(
-                np.array([[2, 3], [3, 4], [5, 4]]), edge_list
-            )
+        self.assertArrayAlmostEqual(
+            np.array([[2, 3], [3, 4], [5, 4]]), edge_list
         )
 
     def test_branch_angles(self):
@@ -57,8 +52,9 @@ class TestFibreUtilities(TestCase):
         r = np.sqrt(self.answer_r2_2D[([2, 0], [0, 1])])
 
         cos_the = branch_angles(direction, vectors, r)
-        self.assertAlmostEqual(
-            abs(self.answer_cos_the - cos_the).sum(), 0, 7)
+        self.assertArrayAlmostEqual(
+            self.answer_cos_the, cos_the
+        )
 
     def test_transfer_edges(self):
 
