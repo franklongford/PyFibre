@@ -84,6 +84,18 @@ def pyfibre(file_path, key, sigma, alpha, log_name,
             database_name, debug, profile,
             shg_analysis, pl_analysis, ow_metric, ow_segment,
             ow_network, save_figures, test):
+    """Launches the PyFibre command line app"""
+
+    run(file_path, key, sigma, alpha, log_name,
+        database_name, debug, profile,
+        shg_analysis, pl_analysis, ow_metric, ow_segment,
+        ow_network, save_figures, test)
+
+
+def run(file_path, key, sigma, alpha, log_name,
+        database_name, debug, profile,
+        shg_analysis, pl_analysis, ow_metric, ow_segment,
+        ow_network, save_figures, test):
 
     if test:
         file_path = test_image_path

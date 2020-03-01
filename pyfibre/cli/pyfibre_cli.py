@@ -18,6 +18,7 @@ from pyfibre.io.shg_pl_reader import (
 )
 from pyfibre.io.utilities import parse_files, parse_file_path
 from pyfibre.model.image_analyser import ImageAnalyser
+from pyfibre.model.iterator import iterate_images
 
 logger = logging.getLogger(__name__)
 
@@ -59,34 +60,18 @@ class PyFibreCLI:
         fibre_database = pd.DataFrame()
         cell_database = pd.DataFrame()
 
-        for prefix, data in image_dictionary.items():
+        generator = iterate_images(
+            image_dictionary, self.image_analyser, self.reader)
 
-            logger.info(f"Processing image data for {data}")
-
-            self.reader.assign_images(data)
-
-            if 'PL-SHG' in data:
-                self.reader.load_mode = 'PL-SHG File'
-            elif 'PL' in data and 'SHG' in data:
-                self.reader.load_mode = 'Separate Files'
-            else:
-                continue
-
-            multi_image = self.reader.load_multi_image()
-
-            databases = self.image_analyser.image_analysis(
-                multi_image, prefix)
+        for databases in generator:
 
             global_database = global_database.append(
                 databases[0], ignore_index=True)
+
             if self.shg_analysis:
                 fibre_database = pd.concat([fibre_database, databases[1]])
             if self.pl_analysis:
                 cell_database = pd.concat([cell_database, databases[2]])
-
-            logger.debug(prefix)
-            logger.debug("Global Image Analysis Metrics:")
-            logger.debug(databases[0].iloc[0])
 
         if self.database_name:
             save_database(global_database, self.database_name)

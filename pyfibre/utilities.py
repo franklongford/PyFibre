@@ -7,7 +7,6 @@ Created on: 01/11/2015
 
 Last Modified: 12/04/2018
 """
-
 import numpy as np
 
 SQRT3 = np.sqrt(3)

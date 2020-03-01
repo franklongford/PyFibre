@@ -1,14 +1,19 @@
-import os
-
 import networkx as nx
 import numpy as np
-
 from skimage.io import imread
+
+from envisage.core_plugin import CorePlugin
+from envisage.ui.tasks.tasks_plugin import TasksPlugin
+
+from pyfibre.gui.pyfibre_gui import PyFibreGUI
+from pyfibre.gui.pyfibre_main_task import PyFibreMainTask
+from pyfibre.gui.pyfibre_plugin import PyFibrePlugin
 
 from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
 from pyfibre.model.objects.multi_image import SHGPLTransImage
-from pyfibre.tests.fixtures import test_image_path
+
+from .fixtures import test_image_path
 
 
 def generate_image():
@@ -86,3 +91,23 @@ class ProbeSHGPLTransImage(SHGPLTransImage):
         super(ProbeSHGPLTransImage, self).__init__(
             *args, image_stack=image_stack, **kwargs
         )
+
+
+class ProbePyFibrePlugin(PyFibrePlugin):
+
+    def _create_main_task(self):
+        pyfibre_task = PyFibreMainTask()
+        return pyfibre_task
+
+
+class ProbePyFibreGUI(PyFibreGUI):
+
+    def __init__(self):
+
+        plugins = [CorePlugin(), TasksPlugin(),
+                   ProbePyFibrePlugin()]
+
+        super(ProbePyFibreGUI, self).__init__(plugins=plugins)
+
+        # 'Run' the application by creating windows without an event loop
+        self.run = self._create_windows
