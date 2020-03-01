@@ -31,7 +31,7 @@ class TestClickRun(TestCase):
 
             self.assertTrue(mock_run.pyfibre.called)
 
-    def test_run_with_debug(self):
+    def test_run(self):
         with mock.patch('pyfibre.cli.app.PyFibreCLI') as mock_pyfibre:
             mock_pyfibre.return_value = DummyPyFibreCLI()
             pyfibre.cli.app.run(

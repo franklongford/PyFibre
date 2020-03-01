@@ -1,9 +1,10 @@
 import os
 import subprocess
-from unittest import mock, TestCase
+from unittest import TestCase
 from contextlib import contextmanager
 
 from pyfibre.tests import fixtures
+
 
 @contextmanager
 def cd(dir):

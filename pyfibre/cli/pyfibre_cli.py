@@ -29,7 +29,7 @@ class PyFibreCLI:
 
     name = 'PyFibre CLI'
 
-    def __init__(self, sigma=None, alpha=None, key=None,
+    def __init__(self, sigma=0.5, alpha=0.5, key=None,
                  database_name=None, shg_analysis=True,
                  pl_analysis=False, ow_metric=False,
                  ow_segment=False, ow_network=False,
@@ -53,7 +53,6 @@ class PyFibreCLI:
 
         file_name, directory = parse_file_path(file_path)
         input_files = parse_files(file_name, directory, self.key)
-
         image_dictionary = collate_image_dictionary(input_files)
 
         global_database = pd.DataFrame()

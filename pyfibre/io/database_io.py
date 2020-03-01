@@ -8,7 +8,8 @@ def check_string(string, pos, sep, word):
 
     if sep in string:
         temp_string = string.split(sep)
-        if temp_string[pos] == word: temp_string.pop(pos)
+        if temp_string[pos] == word:
+            temp_string.pop(pos)
         string = sep.join(temp_string)
 
     return string
