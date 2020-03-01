@@ -121,7 +121,7 @@ def pyfibre(file_path, key, sigma, alpha, log_name,
 
     file_name, directory = parse_file_path(file_path)
 
-    logger.info(ut.logo())
+    logger.info(ut.logo(__version__))
     logger.debug(f"{file_name} {directory}")
 
     input_files = parse_files(file_name, directory, key)

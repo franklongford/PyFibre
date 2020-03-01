@@ -1,13 +1,8 @@
 from unittest import TestCase
 
-import networkx as nx
 import numpy as np
-from skimage.measure import regionprops
 from skimage.io import imread
 
-from pyfibre.model.tools.bd_cluster import (
-    prepare_composite_image
-)
 from pyfibre.model.tools.bd_cluster import (
     prepare_composite_image, cluster_colours,
     BD_filter

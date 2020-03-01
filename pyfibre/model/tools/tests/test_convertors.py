@@ -1,6 +1,5 @@
 from unittest import TestCase
 
-import networkx as nx
 import numpy as np
 
 from pyfibre.model.tools.convertors import (
@@ -40,11 +39,13 @@ class TestConvertors(TestCase):
         self.assertEqual(9, segments[0].filled_area)
         self.assertEqual(3, segments[1].filled_area)
 
-        segments = binary_to_segments(self.binary, self.image, min_size=4)
+        segments = binary_to_segments(
+            self.binary, self.image, min_size=4)
         self.assertEqual(1, len(segments))
         self.assertEqual(9, segments[0].filled_area)
 
-        segments = binary_to_segments(self.binary, self.image, min_frac=3.6)
+        segments = binary_to_segments(
+            self.binary, self.image, min_frac=3.6)
         self.assertEqual(1, len(segments))
         self.assertEqual(3, segments[0].filled_area)
 

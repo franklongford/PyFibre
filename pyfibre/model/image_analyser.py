@@ -39,7 +39,8 @@ class ImageAnalyser:
         scale: float (optional)
             Unit of scale to resize image
         p_denoise: tuple (float); shape=(2,) (optional)
-            Parameters for non-linear means denoise algorithm (used to remove noise)
+            Parameters for non-linear means denoise algorithm
+            (used to remove noise)
         sigma: float (optional)
             Standard deviation of Gaussian smoothing
         alpha: float (optional)
@@ -153,7 +154,8 @@ class ImageAnalyser:
         end_time = time.time()
 
         logger.info(
-            f"TOTAL NETWORK EXTRACTION TIME = {round(end_time - start_time, 3)} s")
+            f"TOTAL NETWORK EXTRACTION TIME = "
+            f"{round(end_time - start_time, 3)} s")
 
         return network
 
@@ -186,7 +188,8 @@ class ImageAnalyser:
 
         end_time = time.time()
 
-        logger.info(f"TOTAL SEGMENTATION TIME = {round(end_time - start_time, 3)} s")
+        logger.info(f"TOTAL SEGMENTATION TIME = "
+                    f"{round(end_time - start_time, 3)} s")
 
         return fibre_networks, cells
 
@@ -221,7 +224,8 @@ class ImageAnalyser:
 
         end_time = time.time()
 
-        logger.info(f"TOTAL METRIC TIME = {round(end_time - start_time, 3)} s")
+        logger.info(f"TOTAL METRIC TIME = "
+                    f"{round(end_time - start_time, 3)} s")
 
     def create_figures(self, multi_image, filename, figname):
         """Create and save figures"""
@@ -283,7 +287,8 @@ class ImageAnalyser:
 
     def image_analysis(self, multi_image, prefix):
         """
-        Analyse input image by calculating metrics and segmenting via FIRE algorithm
+        Analyse input image by calculating metrics and
+        segmenting via FIRE algorithm
 
         Parameters
         ----------

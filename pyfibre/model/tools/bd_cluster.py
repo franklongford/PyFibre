@@ -34,7 +34,8 @@ def prepare_composite_image(image, p_intensity=(2, 98), sm_size=7):
 
     # Mimic contrast stretching decorrstrech routine in MatLab
     for i in range(image_channels):
-        image_scaled[:, :, i] = 255 * clip_intensities(image[:, :, i], p_intensity=p_intensity)
+        image_scaled[:, :, i] = 255 * clip_intensities(
+            image[:, :, i], p_intensity=p_intensity)
 
     # Pad each channel, equalise and smooth to remove salt and pepper noise
     for i in range(image_channels):

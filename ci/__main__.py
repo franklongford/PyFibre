@@ -23,7 +23,8 @@ EDM_CORE_DEPS = [
     "qt>=4.8.7-10",
     "sip>=4.18.1-1",
     "pyzmq==16.0.0-7",
-    "swig==3.0.11-2"]
+    "swig==3.0.11-2",
+    "traits_futures==0.1.0-16"]
 
 EDM_DEV_DEPS = ["flake8==3.7.7-1",
                 "coverage==4.3.4-1",
@@ -32,6 +33,12 @@ EDM_DEV_DEPS = ["flake8==3.7.7-1",
 EDM_DOCS_DEPS = [
     "sphinx==2.3.1-2",
     "docutils==0.16-2"
+]
+
+# We pin to a version of Traits Futures with updated GuiTestAssistant
+PIP_DEPS = [
+    "git+https://github.com/enthought/traits-futures.git"
+    "@9f5973f330bcf5bf7d813439bb817c3e7eadd6ad"
 ]
 
 
@@ -93,6 +100,8 @@ def build_env(python_version):
 def install(python_version):
 
     env_name = get_env_name(python_version)
+
+    edm_run(env_name, ['pip', 'install'] + PIP_DEPS)
 
     print('Installing PyFibre to edm environment')
     edm_run(env_name, ['pip', 'install', '-e', '.'])

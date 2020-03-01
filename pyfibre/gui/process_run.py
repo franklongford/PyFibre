@@ -1,7 +1,7 @@
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 
 
-def process_run(image_dictionary, image_analyser, queue):
+def process_run(image_dictionary, image_analyser):
 
     print('process_run')
     print('entering for loop')
@@ -17,10 +17,10 @@ def process_run(image_dictionary, image_analyser, queue):
             image_analyser.image_analysis(
                 multi_image, prefix)
 
-            print('image_analysis done')
-            queue.put("Analysis of {} complete".format(prefix))
+            yield prefix
+            # queue.put("Analysis of {} complete".format(prefix))
 
         except Exception as err:
-            print('something went wrong')
-            queue.put("Error occurred in analysis of {}".format(prefix))
+            yield prefix
+            # queue.put("Error occurred in analysis of {}".format(prefix))
             raise err

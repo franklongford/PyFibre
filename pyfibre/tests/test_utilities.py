@@ -9,8 +9,8 @@ from scipy.ndimage.filters import gaussian_filter
 
 from pyfibre.io.shg_pl_reader import SHGPLReader
 from pyfibre.utilities import (
-	unit_vector, numpy_remove, nanmean, ring, matrix_split,
-	label_set
+    unit_vector, numpy_remove, nanmean, ring, matrix_split,
+    label_set
 )
 
 from .probe_classes import generate_image
@@ -74,7 +74,6 @@ class TestImages(TestCase):
         reader = SHGPLReader()
         reader.shg_pl_filename = test_image_path
         multi_image = reader.load_multi_image()
-
 
 
 class TestUtilities(TestCase):
