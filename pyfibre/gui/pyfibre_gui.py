@@ -8,7 +8,7 @@ from envisage.ui.tasks.api import (
 from pyface.tasks.api import TaskWindowLayout
 
 from traits.api import (
-    Either, Tuple, Int, List, Property, Bool, Supports
+    Tuple, Int, List, Bool
 )
 
 from pyfibre.gui.pyfibre_main_task import PyFibreMainTask
@@ -32,7 +32,7 @@ class PyFibreGUI(TasksApplication):
     # when the application is started.
     always_use_default_layout = Bool(True)
 
-    n_proc = Int(2)
+    n_proc = Int(1)
 
     def _default_layout_default(self):
         tasks = [factory.id for factory in self.task_factories]

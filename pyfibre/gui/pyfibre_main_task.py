@@ -5,19 +5,19 @@ import numpy as np
 import pandas as pd
 
 from pyface.api import ImageResource
-from pyface.qt import QtCore, QtGui
+from pyface.qt import QtGui
 from pyface.tasks.action.api import (
     SMenu, SMenuBar, SToolBar, TaskAction, TaskToggleGroup
 )
 from pyface.tasks.api import (
-    PaneItem, Task, TaskLayout, VSplitter, Tabbed
+    PaneItem, Task, TaskLayout, Tabbed
 )
 from traits.api import (
     Bool, Int, List, Property, Instance, Event, Any,
     on_trait_change, HasStrictTraits
 )
 from traits_futures.api import (
-    TraitsExecutor, CallFuture, CANCELLED, COMPLETED,
+    TraitsExecutor, CANCELLED, COMPLETED,
 )
 
 from pyfibre.gui.options_pane import OptionsPane
@@ -46,8 +46,6 @@ class PyFibreMainTask(Task):
 
     file_display_pane = Instance(FileDisplayPane)
 
-    # Multiprocessor list
-
     #: The Traits executor for the background jobs.
     traits_executor = Instance(TraitsExecutor, ())
 
@@ -57,13 +55,10 @@ class PyFibreMainTask(Task):
     #: Maximum number of workers
     n_proc = Int(2)
 
-    processes = List()
-
-    progress_int = Int()
-
     #: The menu bar for this task.
     menu_bar = Instance(SMenuBar)
 
+    #: The tool bar for this task.
     tool_bars = List(SToolBar)
 
     #: Is the run button enabled?
@@ -211,8 +206,6 @@ class PyFibreMainTask(Task):
             np.arange(self.file_display_pane.n_images),
             proc_count)
 
-        self.processes = []
-
         for indices in index_split:
             batch_rows = [file_table[index] for index in indices]
             batch_dict = {row.name: row._dictionary
@@ -226,7 +219,8 @@ class PyFibreMainTask(Task):
                 ow_network=self.options_pane.ow_network,
                 ow_segment=self.options_pane.ow_segment,
                 ow_metric=self.options_pane.ow_metric,
-                save_figures=False)
+                save_figures=False
+            )
 
             future = self.traits_executor.submit_iteration(
                 process_run, batch_dict, image_analyser
@@ -263,8 +257,9 @@ class PyFibreMainTask(Task):
             reader.assign_images(row._dictionary)
             multi_image = reader.load_multi_image()
 
+            filenames = image_analyser.get_filenames(row.name)
             (working_dir, data_dir, fig_dir,
-             filename, figname) = image_analyser.get_filenames(row.name)
+             filename, figname) = filenames
 
             if not os.path.exists(fig_dir):
                 os.mkdir(fig_dir)
@@ -296,12 +291,17 @@ class PyFibreMainTask(Task):
                 data_fibre = load_database(metric_name, 'fibre_metric')
                 data_cell = load_database(metric_name, 'cell_metric')
 
-                global_database = global_database.append(data_global, ignore_index=True)
-                fibre_database = pd.concat([fibre_database, data_fibre], sort=True)
-                cell_database = pd.concat([cell_database, data_cell], sort=True)
+                global_database = global_database.append(
+                    data_global, ignore_index=True)
+                fibre_database = pd.concat(
+                    [fibre_database, data_fibre], sort=True)
+                cell_database = pd.concat(
+                    [cell_database, data_cell], sort=True)
 
             except (ValueError, IOError):
-                logger.info(f"{input_file_name} databases not imported - skipping")
+                logger.info(
+                    f"{input_file_name} databases not imported"
+                    f" - skipping")
 
         self.global_database = global_database
         self.fibre_database = fibre_database
