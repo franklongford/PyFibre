@@ -32,7 +32,7 @@ def rgb_segmentation(
         sigma=0.8, alpha=1.0, min_size=400, edges=False):
     """Return binary filter for cellular identification"""
 
-    min_size *= scale**2
+    min_size *= scale ** 2
 
     # image_shg = np.sqrt(image_shg * image_tran)
     image_pl = np.sqrt(image_pl * image_tran)
@@ -80,9 +80,9 @@ def rgb_segmentation(
     # Generate lists of scikit-image segments from fibre and
     # cell binaries
     sorted_fibres = binary_to_segments(
-        image_shg, fibre_mask.astype(int), 150, 0.1)
+        fibre_mask, image_shg, 100, 0.1)
     sorted_cells = binary_to_segments(
-        image_pl, cell_mask.astype(int), 250, 0.01)
+        cell_mask, image_pl, 200, 0.001)
 
     return sorted_cells, sorted_fibres
 

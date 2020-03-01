@@ -28,8 +28,8 @@ BASE_COLOURS = {
     'k': (0, 0, 0)}
 
 
-def create_figure(
-        image, filename, figsize=(10, 10), ext='png', cmap='viridis'):
+def create_figure(image, filename, figsize=(10, 10),
+                  ext='png', cmap='viridis'):
 
     import matplotlib.pyplot as plt
 

@@ -25,6 +25,17 @@ from .segment_utilities import segment_check, draw_network
 logger = logging.getLogger(__name__)
 
 
+def sort_by_area(segments):
+    """Sort a list of skimage regionprops segments by
+    thier filled_area attribute"""
+
+    areas = [segment.filled_area for segment in segments]
+    indices = np.argsort(areas)[::-1]
+    sorted_segments = [segments[i] for i in indices]
+
+    return sorted_segments
+
+
 def binary_to_stack(binary):
     """Create a segment stack from a global binary"""
     label_image = measure.label(binary.astype(int))
@@ -78,9 +89,7 @@ def stack_to_segments(stack, intensity_image=None, min_size=0, min_frac=0):
             if segment_check(segment, min_size, min_frac)
         ]
 
-    areas = [segment.filled_area for segment in segments]
-    indices = np.argsort(areas)[::-1]
-    segments = [segments[i] for i in indices]
+    segments = sort_by_area(segments)
 
     return segments
 
@@ -99,8 +108,10 @@ def segments_to_binary(segments, shape):
     return binary_image
 
 
-def binary_to_segments(binary, intensity_image=None, min_size=0, min_frac=0):
-    """Convert a binary mask image to a set of scikit-image segment objects"""
+def binary_to_segments(binary, intensity_image=None,
+                       min_size=0, min_frac=0):
+    """Convert a binary mask image to a set of scikit-image
+    segment objects"""
 
     if binary.ndim > 2:
         binary = binary.sum(axis=0)
@@ -114,15 +125,15 @@ def binary_to_segments(binary, intensity_image=None, min_size=0, min_frac=0):
         if segment_check(segment, min_size, min_frac)
     ]
 
-    areas = [segment.filled_area for segment in segments]
-    indices = np.argsort(areas)[::-1]
-    segments = [segments[i] for i in indices]
+    segments = sort_by_area(segments)
 
     return segments
 
 
-def networks_to_binary(networks, shape, area_threshold=200, iterations=9, sigma=None):
-    """Return a global binary representing areas of an image containing networks"""
+def networks_to_binary(networks, shape, area_threshold=200,
+                       iterations=9, sigma=None):
+    """Return a global binary representing areas of an image
+     containing networks"""
 
     binary = np.zeros(shape, dtype=int)
 

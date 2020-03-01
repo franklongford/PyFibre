@@ -36,7 +36,8 @@ def smooth_binary(binary, sigma=None):
     return binary
 
 
-def segment_check(segment, min_size=0, min_frac=0, edges=False, max_x=0, max_y=0):
+def segment_check(segment, min_size=0, min_frac=0,
+                  edges=False, max_x=0, max_y=0):
     """Return whether input segment passes minimum area and average
     intensity checks"""
 
@@ -85,17 +86,17 @@ def segment_swap(masks, images, min_sizes, min_fracs):
 
 def mean_binary(binaries, image, iterations=1, min_intensity=0,
                 area_threshold=0, sigma=None):
-    "Compares two binary of image and produces a filter based on the overlap"
+    """Compares two binary of image and produces a
+    filter based on the overlap"""
 
     intensity_map = image * np.mean(binaries, axis=0)
-
     intensity_mask = np.where(intensity_map > min_intensity, True, False)
 
     # Remove small holes and objects from masks
-    intensity_mask = remove_small_holes(intensity_mask,
-                                        area_threshold=area_threshold)
-    intensity_mask = remove_small_objects(intensity_mask,
-                                          min_size=area_threshold)
+    intensity_mask = remove_small_holes(
+        intensity_mask, area_threshold=area_threshold)
+    intensity_mask = remove_small_objects(
+        intensity_mask, min_size=area_threshold)
 
     # Dilate image
     binary = binary_dilation(intensity_mask, iterations=iterations)
