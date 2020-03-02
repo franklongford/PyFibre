@@ -108,8 +108,8 @@ def create_tensor_image(image, min_N=50, max_N=120):
     size = 0.2 * np.sqrt(image.size)
 
     if size >= 50:
-        ref_angle, ref_anis, ref_energy = create_angle_reference(
-            size)
+        ref_angle, ref_anis, ref_energy = create_angle_reference(size)
+        size = ref_angle.shape[1]
         start = - size // 2
         end = image.shape[0]
 
