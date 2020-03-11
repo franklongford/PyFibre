@@ -22,7 +22,7 @@ from pyfibre.io.network_io import save_network, load_network
 from pyfibre.io.database_io import save_database, load_database
 
 from pyfibre.model.metric_analyser import generate_metrics
-from pyfibre.model.pyfibre_segmentation import cell_segmentation
+from pyfibre.model.tools.segmentation import cell_segmentation
 
 logger = logging.getLogger(__name__)
 

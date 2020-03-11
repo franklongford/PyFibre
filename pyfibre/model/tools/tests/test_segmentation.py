@@ -32,3 +32,6 @@ class TestSegmentation(TestCase):
 
     def test_fibre_segmentation(self):
         pass
+
+    def test_cell_segmentation(self):
+        pass
