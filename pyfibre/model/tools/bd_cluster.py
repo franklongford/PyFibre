@@ -26,8 +26,10 @@ from .preprocessing import clip_intensities
 logger = logging.getLogger(__name__)
 
 
-def prepare_composite_image(image, p_intensity=(2, 98), sm_size=7):
-    """Create a composite image from 3 channels"""
+def create_scaled_image(image, p_intensity=(2, 98), sm_size=7):
+    """Create a scaled image with enhanced and smoothed RGB
+    balance"""
+
     image_channels = image.shape[-1]
     image_scaled = np.zeros(image.shape, dtype=int)
     pad_size = 10 * sm_size
@@ -73,7 +75,7 @@ def cluster_colours(image, n_clusters=8, n_init=10):
 
 
 def BD_filter(image, n_runs=2, n_clusters=10, p_intensity=(2, 98),
-              sm_size=5, param=[0.65, 1.1, 1.40, 0.92]):
+              sm_size=5, param=(0.65, 1.1, 1.40, 0.92)):
     """Segmentation filtering using k-means clustering on RGB colour channels.
     Adapted from CurveAlign BDcreationHE routine"""
 
@@ -83,9 +85,9 @@ def BD_filter(image, n_runs=2, n_clusters=10, p_intensity=(2, 98),
     image_shape = (image.shape[0], image.shape[1])
     image_channels = image.shape[-1]
 
-    image_scaled = prepare_composite_image(image, p_intensity, sm_size)
+    image_scaled = create_scaled_image(image, p_intensity, sm_size)
 
-    logger.debug("Making greyscale")
+    # Generate greyscale image of RGB
     greyscale = rgb2grey(image_scaled.astype(np.float64))
     greyscale /= greyscale.max()
 
@@ -103,7 +105,8 @@ def BD_filter(image, n_runs=2, n_clusters=10, p_intensity=(2, 98),
         intensities = np.zeros(n_clusters)
 
         for i in range(n_clusters):
-            intensities[i] = greyscale[np.where(labels == i)].sum() / np.where(labels == i, 1, 0).sum()
+            cluster_values = greyscale[np.where(labels == i)]
+            intensities[i] = cluster_values.sum() / np.count_nonzero(cluster_values)
 
         magnitudes = np.sqrt(np.sum(centres**2, axis=-1))
         norm_centres = centres / np.repeat(magnitudes, image_channels).reshape(centres.shape)

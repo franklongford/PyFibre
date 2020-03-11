@@ -27,6 +27,28 @@ from .segment_utilities import segment_swap
 logger = logging.getLogger(__name__)
 
 
+def create_composite_rgb_image(image_shg, image_pl, image_tran):
+    """Return a composite RGB image, generated from SHG, PL and
+    transmission components"""
+
+    # Modify each filter
+    # image_shg = np.sqrt(image_shg * image_tran)
+    image_pl = np.sqrt(image_pl * image_tran)
+    image_tran = equalize_adapthist(image_tran)
+
+    # Form 3D image stack
+    image_stack = np.stack(
+        (image_shg, image_pl, image_tran), axis=-1)
+
+    # Normalise vectors of non-zero magnitude
+    magnitudes = np.sqrt(np.sum(image_stack ** 2, axis=-1))
+    indices = np.nonzero(magnitudes)
+    image_stack[indices] /= np.repeat(
+        magnitudes[indices], 3).reshape(indices[0].shape + (3,))
+
+    return image_stack
+
+
 def rgb_segmentation(
         image_shg, image_pl, image_tran, scale=1.0,
         sigma=0.8, alpha=1.0, min_size=400, edges=False):
@@ -34,16 +56,9 @@ def rgb_segmentation(
 
     min_size *= scale ** 2
 
-    # image_shg = np.sqrt(image_shg * image_tran)
-    image_pl = np.sqrt(image_pl * image_tran)
-    image_tran = equalize_adapthist(image_tran)
-
     # Create composite RGB image from SHG, PL and transmission
-    image_stack = np.stack((image_shg, image_pl, image_tran), axis=-1)
-    magnitudes = np.sqrt(np.sum(image_stack**2, axis=-1))
-    indices = np.nonzero(magnitudes)
-    image_stack[indices] /= np.repeat(
-        magnitudes[indices], 3).reshape(indices[0].shape + (3,))
+    image_stack = create_composite_rgb_image(
+        image_shg, image_pl, image_tran)
 
     # Up-scale image to improve accuracy of clustering
     logger.debug(f"Rescaling by {scale}")
@@ -70,7 +85,8 @@ def rgb_segmentation(
     # Obtain segments from masks and swap over any incorrectly
     # assigned segments
     segment_swap(
-        [cell_mask, fibre_mask], [image_pl, image_shg],
+        [cell_mask, fibre_mask],
+        [image_pl, image_shg],
         [250, 150], [0.01, 0.1])
 
     logger.debug("Removing small holes")

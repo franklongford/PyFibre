@@ -4,7 +4,7 @@ import numpy as np
 from skimage.io import imread
 
 from pyfibre.model.tools.bd_cluster import (
-    prepare_composite_image, cluster_colours,
+    create_scaled_image, cluster_colours,
     BD_filter
 )
 from pyfibre.tests.probe_classes import (
@@ -26,8 +26,8 @@ class TestBDCluster(TestCase):
         for index, image in enumerate(self.image_stack):
             self.image[..., index] = image / image.max()
 
-    def test_prepare_composite_image(self):
-        image_scaled = prepare_composite_image(self.image)
+    def test_create_scaled_image(self):
+        image_scaled = create_scaled_image(self.image)
 
         self.assertEqual(image_scaled.shape, self.image.shape)
         self.assertAlmostEqual(131.05258333, image_scaled.mean())
