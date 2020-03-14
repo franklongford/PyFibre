@@ -4,7 +4,7 @@ import numpy as np
 from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.morphology import binary_dilation, binary_closing
 
-from pyfibre.model.objects.cell import Cell
+from pyfibre.model.objects.segments import CellSegment
 from pyfibre.model.tools.segmentation import (
     rgb_segmentation
 )
@@ -75,7 +75,7 @@ def cell_segmentation(multi_image, fibre_networks,
         cell_binary, image, 200, 0.001
     )
 
-    cells = [Cell(segment=cell_segment, image=image)
+    cells = [CellSegment(segment=cell_segment, image=image)
              for cell_segment in cell_segments]
 
     return cells

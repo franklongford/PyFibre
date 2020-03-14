@@ -5,7 +5,7 @@ from skimage.measure import regionprops
 
 from pyfibre.tests.probe_classes import generate_image
 
-from .. cell import Cell
+from .. segments import CellSegment
 
 
 class TestCell(TestCase):
@@ -14,7 +14,7 @@ class TestCell(TestCase):
         (image, labels,
          binary, stack) = generate_image()
         segment = regionprops(labels)[0]
-        self.cell = Cell(
+        self.cell = CellSegment(
             image=image, segment=segment)
 
     def test_generate_database(self):

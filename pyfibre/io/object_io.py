@@ -1,5 +1,5 @@
 from pyfibre.model.objects.base_graph_segment import BaseGraphSegment
-from pyfibre.model.objects.cell import Cell
+from pyfibre.model.objects.segments import CellSegment
 from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
 from pyfibre.io.utilities import save_json, load_json
@@ -85,7 +85,7 @@ def load_cells(file_name, image=None):
     """Load a list of Cell instances"""
     segments = load_segments(
         file_name, 'cells', image=image)
-    return [Cell(segment=segment)
+    return [CellSegment(segment=segment)
             for segment in segments]
 
 

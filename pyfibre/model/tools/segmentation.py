@@ -17,7 +17,7 @@ from skimage.transform import rescale, resize
 from skimage.morphology import remove_small_holes
 from skimage.exposure import equalize_adapthist
 
-from pyfibre.model.objects.cell import Cell
+from pyfibre.model.objects.segments import CellSegment
 from pyfibre.model.tools.segment_utilities import mean_binary
 
 from .bd_cluster import BD_filter
@@ -131,8 +131,8 @@ def cell_segmentation(
         cell_segments = binary_to_segments(
             ~fibre_binary, multi_image.pl_image, 250, 0.01)
 
-        cells = [Cell(segment=cell_segment,
-                      image=multi_image.pl_image)
+        cells = [CellSegment(segment=cell_segment,
+                             image=multi_image.pl_image)
                  for cell_segment in cell_segments]
 
     else:
@@ -149,8 +149,8 @@ def cell_segmentation(
             cell_binary, multi_image.shg_image, 250, 0.01
         )
 
-        cells = [Cell(segment=cell_segment,
-                      image=multi_image.shg_image)
+        cells = [CellSegment(segment=cell_segment,
+                             image=multi_image.shg_image)
                  for cell_segment in cell_segments]
 
     return cells

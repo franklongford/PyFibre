@@ -4,7 +4,9 @@ from pyfibre.model.tools.metrics import (
     segment_shape_metrics, segment_texture_metrics)
 
 
-class Cell:
+class BaseSegment:
+
+    _tag = None
 
     def __init__(self, segment=None, image=None):
 
@@ -20,16 +22,16 @@ class Cell:
 
         if self.segment is None:
             raise AttributeError(
-                'Cell.segment attribute must be assigned'
+                'BaseSegment.segment attribute must be assigned'
                 'first'
             )
 
         database = pd.Series(dtype=object)
 
         shape_metrics = segment_shape_metrics(
-            self.segment, tag='Cell')
+            self.segment, tag=self._tag)
         texture_metrics = segment_texture_metrics(
-            self.segment, image=image, tag='Cell')
+            self.segment, image=image, tag=self._tag)
 
         database = database.append(shape_metrics, ignore_index=False)
         database = database.append(texture_metrics, ignore_index=False)
