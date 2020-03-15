@@ -94,9 +94,9 @@ class TestFibreNetwork(TestCase):
         image[2:, 2:] = 2
 
         database = self.network.generate_database(image)
-        self.assertEqual(26, len(database))
+        self.assertEqual(12, len(database))
 
         self.network.image = image
 
         database = self.network.generate_database()
-        self.assertEqual(26, len(database))
+        self.assertEqual(12, len(database))

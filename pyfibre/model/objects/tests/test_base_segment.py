@@ -17,18 +17,18 @@ class TestBaseSegment(TestCase):
     def test_generate_database(self):
 
         database = self.segment.generate_database()
-        self.assertEqual(22, len(database))
+        self.assertEqual(13, len(database))
 
         image = np.ones((10, 10))
         image[2:, 2:] = 2
 
         database = self.segment.generate_database(image)
-        self.assertEqual(22, len(database))
+        self.assertEqual(13, len(database))
 
         self.segment.image = image
 
         database = self.segment.generate_database()
-        self.assertEqual(22, len(database))
+        self.assertEqual(13, len(database))
 
         self.segment.region = None
         with self.assertRaises(AttributeError):

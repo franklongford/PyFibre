@@ -25,8 +25,10 @@ class TestBaseGraphSegment(TestCase):
             status['graph'],
             {'directed': False,
              'graph': {},
-             'links': [{'r': 1.4142135623730951, 'source': 2, 'target': 3},
-                       {'r': 1.4142135623730951, 'source': 3, 'target': 4},
+             'links': [{'r': 1.4142135623730951,
+                        'source': 2, 'target': 3},
+                       {'r': 1.4142135623730951,
+                        'source': 3, 'target': 4},
                        {'r': 1, 'source': 4, 'target': 5}],
              'multigraph': False,
              'nodes': [{'xy': [0, 0], 'id': 2},
@@ -45,8 +47,10 @@ class TestBaseGraphSegment(TestCase):
             status['graph'],
             {'directed': False,
              'graph': {},
-             'links': [{'r': 1.4142135623730951, 'source': 2, 'target': 3},
-                       {'r': 1.4142135623730951, 'source': 3, 'target': 4},
+             'links': [{'r': 1.4142135623730951,
+                        'source': 2, 'target': 3},
+                       {'r': 1.4142135623730951,
+                        'source': 3, 'target': 4},
                        {'r': 1, 'source': 4, 'target': 5}],
              'multigraph': False,
              'nodes': [{'xy': [0, 0], 'id': 2},
@@ -59,7 +63,8 @@ class TestBaseGraphSegment(TestCase):
     def test_network_init(self):
 
         self.assertEqual(4, self.graph_segment.number_of_nodes)
-        self.assertListEqual([2, 3, 4, 5], self.graph_segment.node_list)
+        self.assertListEqual(
+            [2, 3, 4, 5], self.graph_segment.node_list)
         self.assertEqual(3, self.graph_segment.graph.size())
 
         self.assertTrue(
@@ -78,7 +83,8 @@ class TestBaseGraphSegment(TestCase):
     def test_network_segment(self):
 
         segment = self.graph_segment.region
-        self.assertEqual((3, 4), self.graph_segment.region.image.shape)
+        self.assertEqual(
+            (3, 4), self.graph_segment.region.image.shape)
         self.assertEqual(12, segment.area)
 
         with self.assertRaises(AttributeError):

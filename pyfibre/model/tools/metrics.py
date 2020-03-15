@@ -13,12 +13,12 @@ from pyfibre.model.tools.filters import form_structure_tensor
 logger = logging.getLogger(__name__)
 
 
-def nematic_tensor_metrics(segment, nematic_tensor, tag=''):
+def nematic_tensor_metrics(region, nematic_tensor, tag=''):
     """Analysis of the nematic tensor"""
 
     database = pd.Series(dtype=object)
 
-    minr, minc, maxr, maxc = segment.bbox
+    minr, minc, maxr, maxc = region.bbox
     indices = np.mgrid[minr:maxr, minc:maxc]
     segment_n_tensor = nematic_tensor[(indices[0], indices[1])]
 
@@ -55,7 +55,7 @@ def region_shape_metrics(region, tag=''):
     return database
 
 
-def region_texture_metrics(region, image=None, tag=''):
+def region_texture_metrics(region, image=None, tag='', glcm=False):
 
     database = pd.Series(dtype=object)
 
@@ -75,24 +75,26 @@ def region_texture_metrics(region, image=None, tag=''):
     database[f"{tag} Entropy"] = shannon_entropy(region_image)
     database[f"{tag} Density"] = np.sum(region_image * region.image) / region.area
 
-    glcm = greycomatrix(
-        (region_image * region.image * 255.999).astype('uint8'),
-        [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256,
-        symmetric=True, normed=True)
-    glcm[0, :, :, :] = 0
-    glcm[:, 0, :, :] = 0
+    if glcm:
 
-    greycoprops = greycoprops_edit(glcm)
+        glcm = greycomatrix(
+            (region_image * region.image * 255.999).astype('uint8'),
+            [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256,
+            symmetric=True, normed=True)
+        glcm[0, :, :, :] = 0
+        glcm[:, 0, :, :] = 0
 
-    database[f"{tag} GLCM Contrast"] = greycoprops['contrast'].mean()
-    database[f"{tag} GLCM Homogeneity"] = greycoprops['homogeneity'].mean()
-    database[f"{tag} GLCM Energy"] = greycoprops['energy'].mean()
-    database[f"{tag} GLCM Entropy"] = greycoprops['entropy'].mean()
-    database[f"{tag} GLCM Autocorrelation"] = greycoprops['autocorrelation'].mean()
-    database[f"{tag} GLCM Clustering"] = greycoprops['cluster'].mean()
-    database[f"{tag} GLCM Mean"] = greycoprops['mean'].mean()
-    database[f"{tag} GLCM Covariance"] = greycoprops['covariance'].mean()
-    database[f"{tag} GLCM Correlation"] = greycoprops['correlation'].mean()
+        greycoprops = greycoprops_edit(glcm)
+
+        database[f"{tag} GLCM Contrast"] = greycoprops['contrast'].mean()
+        database[f"{tag} GLCM Homogeneity"] = greycoprops['homogeneity'].mean()
+        database[f"{tag} GLCM Energy"] = greycoprops['energy'].mean()
+        database[f"{tag} GLCM Entropy"] = greycoprops['entropy'].mean()
+        database[f"{tag} GLCM Autocorrelation"] = greycoprops['autocorrelation'].mean()
+        database[f"{tag} GLCM Clustering"] = greycoprops['cluster'].mean()
+        database[f"{tag} GLCM Mean"] = greycoprops['mean'].mean()
+        database[f"{tag} GLCM Covariance"] = greycoprops['covariance'].mean()
+        database[f"{tag} GLCM Correlation"] = greycoprops['correlation'].mean()
 
     return database
 

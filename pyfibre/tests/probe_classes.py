@@ -13,6 +13,7 @@ from pyfibre.gui.pyfibre_plugin import PyFibrePlugin
 from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
 from pyfibre.model.objects.multi_image import SHGImage, SHGPLTransImage
+from pyfibre.model.objects.segments import FibreSegment
 
 from .fixtures import test_shg_image_path, test_shg_pl_trans_image_path
 
