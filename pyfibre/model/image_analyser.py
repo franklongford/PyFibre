@@ -21,6 +21,7 @@ from pyfibre.io.object_io import (
 from pyfibre.io.network_io import save_network, load_network
 from pyfibre.io.database_io import save_database, load_database
 
+from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
 from pyfibre.model.metric_analyser import generate_metrics
 from pyfibre.model.pyfibre_segmentation import cell_segmentation
 
@@ -29,55 +30,29 @@ logger = logging.getLogger(__name__)
 
 class ImageAnalyser:
 
-    def __init__(self, scale=1.25, p_denoise=(5, 35), sigma=0.5, alpha=0.5,
-                 shg_analysis=True, pl_analysis=False, ow_metric=False,
-                 ow_segment=False, ow_network=False, save_figures=False):
+    def __init__(self, workflow=None):
         """ Set parameters for ImageAnalyser routines
 
         Parameters
         ----------
-        scale: float (optional)
-            Unit of scale to resize image
-        p_denoise: tuple (float); shape=(2,) (optional)
-            Parameters for non-linear means denoise algorithm
-            (used to remove noise)
-        sigma: float (optional)
-            Standard deviation of Gaussian smoothing
-        alpha: float (optional)
-            Metric for hysterisis segmentation
-        shg_analysis: bool (optional)
-            Toggles analysis of SHG image data
-        pl_analysis: bool (optional)
-            Toggles analysis of PL image data
-        ow_metric: bool (optional)
-            Toggles force overwrite of existing metric analysis
-        ow_segment: bool (optional)
-            Toggles force overwrite of existing segmentation
-        ow_network: bool (optional)
-            Toggles force overwrite of existing fibre network
-        save_figures: bool (optional)
-            Toggles creation of figures
+        workflow: PyFibreWorkflow
+            Instance containing information regarding PyFibre's
+            Workflow
         """
-        self.shg_analysis = shg_analysis
-        self.pl_analysis = pl_analysis
 
-        self.scale = scale
-        self.p_denoise = p_denoise
-        self.sigma = sigma
-        self.alpha = alpha
-
-        self.ow_metric = ow_metric
-        self.ow_segment = ow_segment
-        self.ow_network = ow_network
+        if workflow is not None:
+            self.workflow = workflow
+        else:
+            self.workflow = PyFibreWorkflow()
 
         self.save_figures = save_figures
 
     def get_analysis_options(self, filename):
         """Get image-specific options"""
 
-        network = self.ow_network
-        segment = network or self.ow_segment
-        metric = segment or self.ow_metric
+        network = self.workflow.ow_network and isinstance(multi_image, SHGPLImage)
+        segment = network or self.workflow.ow_segment
+        metric = segment or self.workflow.ow_metric
 
         try:
             load_network(filename, "network")
@@ -89,7 +64,7 @@ class ImageAnalyser:
 
         try:
             load_fibre_networks(filename)
-            if self.pl_analysis:
+            if self.workflow.pl_analysis:
                 load_cells(filename)
         except Exception:
             logger.info("Cannot load segments for {}".format(filename))
@@ -137,17 +112,22 @@ class ImageAnalyser:
         logger.debug("Applying AHE to SHG image")
         image_equal = equalize_adapthist(multi_image.shg_image)
         logger.debug(
-            "Performing NL Denoise using local windows {} {}".format(*self.p_denoise)
+            "Performing NL Denoise using local windows {} {}".format(
+                *self.workflow.p_denoise)
         )
 
-        image_nl = nl_means(image_equal, p_denoise=self.p_denoise)
+        image_nl = nl_means(image_equal, p_denoise=self.workflow.p_denoise)
 
         # Call FIRE algorithm to extract full image network
         logger.debug(
-            f"Calling FIRE algorithm using image scale {self.scale}  alpha  {self.alpha}"
+            f"Calling FIRE algorithm using image scale "
+            f"{self.workflow.scale}  alpha  {self.workflow.alpha}"
         )
-        network = build_network(image_nl, scale=self.scale,
-                                sigma=self.sigma, alpha=self.alpha)
+        network = build_network(
+            image_nl,
+            scale=self.workflow.scale,
+            sigma=self.workflow.sigma,
+            alpha=self.workflow.alpha)
 
         save_network(network, filename, "network")
 
@@ -180,8 +160,8 @@ class ImageAnalyser:
 
         cells = cell_segmentation(
             multi_image, fibre_networks,
-            scale=self.scale,
-            pl_analysis=self.pl_analysis)
+            scale=self.workflow.scale
+        )
 
         save_fibre_networks(fibre_networks, filename)
         save_cells(cells, filename, multi_image.shape)
@@ -214,12 +194,14 @@ class ImageAnalyser:
 
         global_dataframe, local_dataframes = generate_metrics(
             multi_image, filename, fibre_networks, cells,
-            self.sigma, self.shg_analysis, self.pl_analysis)
+            self.workflow.sigma,
+            self.workflow.shg_analysis,
+            self.workflow.pl_analysis)
 
-        if self.shg_analysis:
+        if self.workflow.shg_analysis:
             save_database(global_dataframe, filename, 'global_metric')
             save_database(local_dataframes[0], filename, 'fibre_metric')
-        if self.pl_analysis:
+        if self.workflow.pl_analysis:
             save_database(local_dataframes[1], filename, 'cell_metric')
 
         end_time = time.time()
@@ -307,12 +289,12 @@ class ImageAnalyser:
         network, segment, metric = self.get_analysis_options(filename)
 
         logger.debug(f"Analysis options:\n "
-                     f"shg_analysis = {self.shg_analysis}\n "
-                     f"pl_analysis = {self.pl_analysis}\n "
+                     f"shg_analysis = {self.workflow.shg_analysis}\n "
+                     f"pl_analysis = {self.workflow.pl_analysis}\n "
                      f"network_metrics = {network}\n "
                      f"segment_metrics = {segment}\n "
                      f"metric_analysis = {metric}\n "
-                     f"save_figures = {self.save_figures}")
+                     f"save_figures = {self.workflow.save_figures}")
 
         start = time.time()
 
@@ -334,12 +316,12 @@ class ImageAnalyser:
 
         databases = ()
 
-        if self.shg_analysis:
+        if self.workflow.shg_analysis:
             global_dataframe = load_database(filename, 'global_metric')
             fibre_dataframe = load_database(filename, 'fibre_metric')
             databases += (global_dataframe, fibre_dataframe)
 
-        if self.pl_analysis:
+        if self.workflow.pl_analysis:
             cell_dataframe = load_database(filename, 'cell_metric')
             databases += (cell_dataframe,)
 

@@ -37,24 +37,16 @@ class TestPyFibreCLI(TestCase):
         self.assertIsInstance(
             self.pyfibre_cli.reader, SHGPLTransReader)
 
-    def test_init_image_analyser(self):
+    def test_init_pyfibre_workflow(self):
 
-        self.assertEqual(
-            0.5, self.pyfibre_cli.image_analyser.sigma)
-        self.assertEqual(
-            0.5, self.pyfibre_cli.image_analyser.alpha)
-        self.assertTrue(
-            self.pyfibre_cli.image_analyser.shg_analysis)
-        self.assertFalse(
-            self.pyfibre_cli.image_analyser.pl_analysis)
-        self.assertFalse(
-            self.pyfibre_cli.image_analyser.ow_network)
-        self.assertFalse(
-            self.pyfibre_cli.image_analyser.ow_segment)
-        self.assertFalse(
-            self.pyfibre_cli.image_analyser.ow_metric)
-        self.assertFalse(
-            self.pyfibre_cli.image_analyser.save_figures)
+        workflow = self.pyfibre_cli.image_analyser.workflow
+
+        self.assertEqual(0.5, workflow.sigma)
+        self.assertEqual(0.5, workflow.alpha)
+        self.assertFalse(workflow.ow_network)
+        self.assertFalse(workflow.ow_segment)
+        self.assertFalse(workflow.ow_metric)
+        self.assertFalse(workflow.save_figures)
 
     def test_save_database(self):
 
