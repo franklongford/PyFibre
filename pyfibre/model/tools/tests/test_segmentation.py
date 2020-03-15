@@ -8,7 +8,7 @@ from pyfibre.model.tools.segmentation import (
 from pyfibre.tests.probe_classes import (
     generate_image, generate_probe_graph
 )
-from pyfibre.tests.fixtures import test_image_path
+from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 
@@ -19,7 +19,7 @@ class TestSegmentation(PyFibreTestCase):
          self.binary, self.stack) = generate_image()
         self.network = generate_probe_graph()
 
-        self.image_stack = imread(test_image_path).mean(axis=-1)
+        self.image_stack = imread(test_shg_pl_trans_image_path).mean(axis=-1)
         for image in self.image_stack:
             image /= image.max()
 

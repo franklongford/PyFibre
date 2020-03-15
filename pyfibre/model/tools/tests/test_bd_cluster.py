@@ -10,7 +10,7 @@ from pyfibre.model.tools.bd_cluster import (
 from pyfibre.tests.probe_classes import (
     generate_image, generate_probe_graph
 )
-from pyfibre.tests.fixtures import test_image_path
+from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 
 
 class TestBDCluster(TestCase):
@@ -20,7 +20,7 @@ class TestBDCluster(TestCase):
          self.binary, self.stack) = generate_image()
         self.network = generate_probe_graph()
 
-        self.image_stack = imread(test_image_path).mean(axis=-1)
+        self.image_stack = imread(test_shg_pl_trans_image_path).mean(axis=-1)
 
         self.image = np.zeros(self.image_stack[0].shape + (3,))
         for index, image in enumerate(self.image_stack):

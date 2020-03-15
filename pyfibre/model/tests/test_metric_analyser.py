@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from pyfibre.tests.probe_classes import (
     ProbeFibreNetwork,
-    ProbeSHGPLTransImage
+    ProbeSHGImage
 )
 from pyfibre.model.objects.segments import FibreSegment
 
@@ -13,7 +13,7 @@ class TestMetricAnalyser(TestCase):
 
     def setUp(self):
 
-        self.multi_image = ProbeSHGPLTransImage()
+        self.multi_image = ProbeSHGImage()
         self.metric_analyser = MetricAnalyser(
             filename='test', sigma=0.5
         )
