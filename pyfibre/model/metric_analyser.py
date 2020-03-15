@@ -6,7 +6,7 @@ import pandas as pd
 
 from pyfibre.model.tools.metrics import (
     region_shape_metrics, fibre_network_metrics,
-    cell_metrics, region_texture_metrics
+    segment_metrics, region_texture_metrics
 )
 from pyfibre.model.tools.convertors import (
     regions_to_binary, binary_to_regions)
@@ -55,6 +55,8 @@ class MetricAnalyser:
 
     def _get_local_metrics(self, metric_function, tag):
 
+        logger.debug(f'Performing local metrics for {tag}')
+
         # Analyse fibre network and individual regions
         local_metrics = metric_function(
             self.objects, self.image, self.sigma)
@@ -67,6 +69,8 @@ class MetricAnalyser:
         return local_metrics
 
     def _get_global_metrics(self, label):
+
+        logger.debug(f'Performing global metrics for {label}')
 
         # Perform non-linear analysis on global region
         segments = [object.region for object in self.objects]
@@ -83,9 +87,13 @@ class MetricAnalyser:
 
     def analyse_shg(self):
 
-        # Analyse fibre network and individual regions
-        local_metrics = self._get_local_metrics(
+        # Analyse fibre networks
+        network_metrics = self._get_local_metrics(
             fibre_network_metrics, 'fibre_networks.json')
+
+        # Analyse fibre segments
+        local_metrics = self._get_local_metrics(
+            segment_metrics, 'fibre_segments.npy')
 
         # Perform non-linear analysis on global region
         global_metrics, global_binary = self._get_global_metrics('SHG Fibre')
@@ -99,7 +107,7 @@ class MetricAnalyser:
 
         # Analyse individual cell regions
         local_metrics = self._get_local_metrics(
-            cell_metrics, 'cell_segment.npy')
+            segment_metrics, 'cell_segment.npy')
 
         # Perform non-linear analysis on global region
         global_metrics, _ = self._get_global_metrics('PL Cell')
@@ -120,7 +128,7 @@ def generate_metrics(
 
     local_dataframes = [None, None]
 
-    logger.debug(" Performing Image analysis")
+    logger.debug(" Performing SHG Image analysis")
 
     metric_analyser = MetricAnalyser(
         filename=filename, sigma=sigma
@@ -140,6 +148,9 @@ def generate_metrics(
     logger.debug(f" Fibre segment analysis: {end-start} s")
 
     if isinstance(multi_image, SHGPLImage):
+
+        logger.debug(" Performing PL Image analysis")
+
         start = time.time()
 
         metric_analyser.image = multi_image.pl_image

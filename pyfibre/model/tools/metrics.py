@@ -1,3 +1,5 @@
+import logging
+
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -7,6 +9,8 @@ from skimage.measure import shannon_entropy
 from pyfibre.model.tools.analysis import tensor_analysis, angle_analysis
 from pyfibre.model.tools.feature import greycoprops_edit
 from pyfibre.model.tools.filters import form_structure_tensor
+
+logger = logging.getLogger(__name__)
 
 
 def nematic_tensor_metrics(segment, nematic_tensor, tag=''):
@@ -194,18 +198,19 @@ def fibre_network_metrics(fibre_networks, image=None, sigma=0.0001):
     return database
 
 
-def cell_metrics(cells, image=None, sigma=0.0001):
-    """Analysis of a list of `Cell` objects
+def segment_metrics(segments, image=None, sigma=0.0001):
+    """Analysis of a list of `BaseSegment` objects
 
     Parameters
     ----------
-    cells : list of `<class: Cell>`
+    segments : list of `<class: BaseSegment>`
         List of cells to analyse
 
     Returns
     -------
     database : DataFrame
-        Metrics calculated from scikit-image regionprops objects
+        Metrics calculated from scikit-image
+        regionprops objects
     """
     database = pd.DataFrame()
 
@@ -213,14 +218,14 @@ def cell_metrics(cells, image=None, sigma=0.0001):
         nematic_tensor = form_structure_tensor(image, sigma)
     else:
         nematic_tensor = form_structure_tensor(
-            cells[0].image, sigma)
+            segments[0].image, sigma)
 
-    for i, cell in enumerate(cells):
+    for index, segment in enumerate(segments):
 
-        cell_series = cell.generate_database()
+        cell_series = segment.generate_database()
 
         nematic_metrics = nematic_tensor_metrics(
-            cell.region, nematic_tensor, 'Cell')
+            segment.region, nematic_tensor, segment._tag)
         cell_series = pd.concat((cell_series, nematic_metrics))
 
         database = database.append(cell_series, ignore_index=True)

@@ -98,6 +98,8 @@ def BD_filter(image, n_runs=2, n_clusters=10, p_intensity=(2, 98),
 
     for run in range(n_runs):
 
+        logger.debug(f'BD Filter: Run {run+1} of {n_runs}')
+
         labels, centres = cluster_colours(image_scaled, n_clusters)
         tot_labels.append(labels)
 
