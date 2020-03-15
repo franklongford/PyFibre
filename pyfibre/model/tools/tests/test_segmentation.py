@@ -24,11 +24,11 @@ class TestSegmentation(TestCase):
 
     def test_cell_segmentation(self):
 
-        cell_segments, fibre_segments = rgb_segmentation(
-            self.image_stack[0],
-            self.image_stack[1],
-            self.image_stack[2]
-        )
+        stack = (self.image_stack[0],
+                 self.image_stack[1],
+                 self.image_stack[2])
+
+        fibre_mask, cell_mask = rgb_segmentation(stack)
 
     def test_fibre_segmentation(self):
         pass

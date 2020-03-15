@@ -15,6 +15,8 @@ from pyfibre.model.tools.figures import (
     create_network_image
 )
 from pyfibre.model.tools.preprocessing import nl_means
+from pyfibre.model.objects.multi_image import (
+    MultiImage, SHGImage, SHGPLImage)
 from pyfibre.io.object_io import (
     save_fibre_networks, load_fibre_networks,
     save_cells, load_cells)
@@ -23,7 +25,6 @@ from pyfibre.io.database_io import save_database, load_database
 
 from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
 from pyfibre.model.metric_analyser import generate_metrics
-from pyfibre.model.pyfibre_segmentation import cell_segmentation
 
 logger = logging.getLogger(__name__)
 
@@ -45,9 +46,7 @@ class ImageAnalyser:
         else:
             self.workflow = PyFibreWorkflow()
 
-        self.save_figures = save_figures
-
-    def get_analysis_options(self, filename):
+    def get_analysis_options(self, multi_image, filename):
         """Get image-specific options"""
 
         network = self.workflow.ow_network and isinstance(multi_image, SHGPLImage)
@@ -158,7 +157,7 @@ class ImageAnalyser:
         fibre_networks = fibre_network_assignment(
             network, image=multi_image.shg_image)
 
-        cells = cell_segmentation(
+        cells = multi_image.segmentation_algorithm(
             multi_image, fibre_networks,
             scale=self.workflow.scale
         )
@@ -286,7 +285,7 @@ class ImageAnalyser:
         """
 
         filename, figname = self._create_directory(prefix)
-        network, segment, metric = self.get_analysis_options(filename)
+        network, segment, metric = self.get_analysis_options(multi_image, filename)
 
         logger.debug(f"Analysis options:\n "
                      f"shg_analysis = {self.workflow.shg_analysis}\n "
@@ -307,7 +306,7 @@ class ImageAnalyser:
         if metric:
             self.metric_analysis(multi_image, filename)
 
-        if self.save_figures:
+        if self.workflow.save_figures:
             self.create_figures(multi_image, filename, figname)
 
         end = time.time()
