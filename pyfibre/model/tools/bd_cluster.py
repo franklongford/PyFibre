@@ -73,7 +73,7 @@ def cluster_colours(image, n_clusters=8, n_init=10):
 
 
 def BD_filter(image, n_runs=2, n_clusters=10, p_intensity=(2, 98),
-              sm_size=5, param=[0.65, 1.1, 1.40, 0.92]):
+              sm_size=5, param=(0.65, 1.1, 1.40, 0.92)):
     """Segmentation filtering using k-means clustering on RGB colour channels.
     Adapted from CurveAlign BDcreationHE routine"""
 

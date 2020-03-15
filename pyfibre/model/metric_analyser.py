@@ -8,7 +8,9 @@ from pyfibre.model.tools.metrics import (
     region_shape_metrics, fibre_network_metrics,
     cell_metrics, region_texture_metrics
 )
-from pyfibre.model.tools.convertors import regions_to_binary, binary_to_regions
+from pyfibre.model.tools.convertors import (
+    regions_to_binary, binary_to_regions)
+from pyfibre.model.objects.multi_image import SHGPLImage
 
 
 logger = logging.getLogger(__name__)
@@ -109,8 +111,9 @@ class MetricAnalyser:
         return local_metrics, global_metrics
 
 
-def generate_metrics(multi_image, filename, fibre_networks, cells, sigma,
-                     shg_analysis=False, pl_analysis=False):
+def generate_metrics(
+        multi_image, filename, fibre_networks,
+        fibre_segments, cells, sigma):
 
     global_dataframe = pd.Series(dtype=object)
     global_dataframe['File'] = '{}_global_segment.npy'.format(filename)
@@ -123,23 +126,20 @@ def generate_metrics(multi_image, filename, fibre_networks, cells, sigma,
         filename=filename, sigma=sigma
     )
 
-    if shg_analysis:
+    start = time.time()
 
-        start = time.time()
+    metric_analyser.image = multi_image.shg_image
+    metric_analyser.objects = fibre_networks
+    local_metrics, global_metrics = metric_analyser.analyse_shg()
 
-        metric_analyser.image = multi_image.shg_image
-        metric_analyser.objects = fibre_networks
-        local_metrics, global_metrics = metric_analyser.analyse_shg()
+    local_dataframes[0] = local_metrics
+    global_dataframe = global_dataframe.append(
+        global_metrics, ignore_index=False)
 
-        local_dataframes[0] = local_metrics
-        global_dataframe = global_dataframe.append(
-            global_metrics, ignore_index=False)
+    end = time.time()
+    logger.debug(f" Fibre segment analysis: {end-start} s")
 
-        end = time.time()
-        logger.debug(f" Fibre segment analysis: {end-start} s")
-
-    if pl_analysis:
-
+    if isinstance(multi_image, SHGPLImage):
         start = time.time()
 
         metric_analyser.image = multi_image.pl_image

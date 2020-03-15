@@ -144,7 +144,7 @@ class ImageAnalyser:
 
         return network, fibre_networks
 
-    def segment_analysis(self, multi_image, filename, fibre_networks):
+    def segment_analysis(self, multi_image, filename):
         """Segment image into fiborous and cellular regions based on
         fibre network
 
@@ -161,6 +161,7 @@ class ImageAnalyser:
         fibre_networks = load_fibre_networks(
             filename, image=multi_image.shg_image)
 
+        logger.debug("Segmenting Fibre and Cell regions")
         fibre_segments, cell_segments = multi_image.segmentation_algorithm(
             multi_image, fibre_networks,
             scale=self.workflow.scale
@@ -315,6 +316,7 @@ class ImageAnalyser:
             self.network_analysis(multi_image, filename)
 
         if segment:
+            print('segment analysis')
             self.segment_analysis(multi_image, filename)
 
         if metric:
