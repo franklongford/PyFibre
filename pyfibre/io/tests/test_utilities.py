@@ -162,3 +162,10 @@ class TestUtilities(TestCase):
             test_data = load_json(temp_file.name)
 
         self.assertDictEqual(data, test_data)
+
+        # Test non-duplicated extensions
+        with NamedTemporaryFile() as temp_file:
+
+            save_json(data, temp_file.name + '.json')
+            self.assertTrue(os.path.exists(
+                temp_file.name + '.json'))

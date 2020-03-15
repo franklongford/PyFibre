@@ -1,7 +1,10 @@
+import copy
+
 import pandas as pd
 
 from pyfibre.model.tools.metrics import (
     region_shape_metrics, region_texture_metrics)
+from pyfibre.io.utilities import pop_under_recursive
 
 
 class BaseSegment:
@@ -19,6 +22,14 @@ class BaseSegment:
                 image = region.intensity_image
 
         self.image = image
+
+    def __getstate__(self):
+        """Return the object state in a form that can be
+        serialised as a JSON file"""
+        state = pop_under_recursive(copy.copy(self.__dict__))
+        state.pop('image', None)
+
+        return state
 
     def generate_database(self, image=None):
         """Generates a Pandas database with all graph and segment metrics

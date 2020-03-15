@@ -19,7 +19,8 @@ from pyfibre.model.objects.multi_image import (
     MultiImage, SHGImage, SHGPLImage)
 from pyfibre.io.object_io import (
     save_fibre_networks, load_fibre_networks,
-    save_cells, load_cells)
+    save_fibre_segments, load_fibre_segments,
+    save_cell_segments, load_cell_segments)
 from pyfibre.io.network_io import save_network, load_network
 from pyfibre.io.database_io import save_database, load_database
 
@@ -49,12 +50,13 @@ class ImageAnalyser:
     def get_analysis_options(self, multi_image, filename):
         """Get image-specific options"""
 
-        network = self.workflow.ow_network and isinstance(multi_image, SHGPLImage)
+        network = self.workflow.ow_network and isinstance(multi_image, SHGImage)
         segment = network or self.workflow.ow_segment
         metric = segment or self.workflow.ow_metric
 
         try:
             load_network(filename, "network")
+            load_fibre_networks(filename)
         except Exception:
             logger.info("Cannot load networks for {}".format(filename))
             network = True
@@ -62,9 +64,8 @@ class ImageAnalyser:
             metric = True
 
         try:
-            load_fibre_networks(filename)
-            if self.workflow.pl_analysis:
-                load_cells(filename)
+            load_fibre_segments(filename)
+            load_cell_segments(filename)
         except Exception:
             logger.info("Cannot load segments for {}".format(filename))
             segment = True
@@ -130,15 +131,20 @@ class ImageAnalyser:
 
         save_network(network, filename, "network")
 
+        fibre_networks = fibre_network_assignment(
+            network, image=multi_image.shg_image)
+
+        save_fibre_networks(fibre_networks, filename)
+
         end_time = time.time()
 
         logger.info(
             f"TOTAL NETWORK EXTRACTION TIME = "
             f"{round(end_time - start_time, 3)} s")
 
-        return network
+        return network, fibre_networks
 
-    def segment_analysis(self, multi_image, filename):
+    def segment_analysis(self, multi_image, filename, fibre_networks):
         """Segment image into fiborous and cellular regions based on
         fibre network
 
@@ -152,25 +158,23 @@ class ImageAnalyser:
 
         start_time = time.time()
 
-        network = load_network(filename, "network")
+        fibre_networks = load_fibre_networks(
+            filename, image=multi_image.shg_image)
 
-        fibre_networks = fibre_network_assignment(
-            network, image=multi_image.shg_image)
-
-        cells = multi_image.segmentation_algorithm(
+        fibre_segments, cell_segments = multi_image.segmentation_algorithm(
             multi_image, fibre_networks,
             scale=self.workflow.scale
         )
 
-        save_fibre_networks(fibre_networks, filename)
-        save_cells(cells, filename, multi_image.shape)
+        save_fibre_segments(fibre_segments, filename, multi_image.shape)
+        save_cell_segments(cell_segments, filename, multi_image.shape)
 
         end_time = time.time()
 
         logger.info(f"TOTAL SEGMENTATION TIME = "
                     f"{round(end_time - start_time, 3)} s")
 
-        return fibre_networks, cells
+        return fibre_segments, cell_segments
 
     def metric_analysis(self, multi_image, filename):
         """Perform metric analysis on segmented image
@@ -188,20 +192,19 @@ class ImageAnalyser:
         # Load networks and segments"
         fibre_networks = load_fibre_networks(
             filename, image=multi_image.shg_image)
-        cells = load_cells(
+        fibre_segments = load_fibre_segments(
+            filename, image=multi_image.shg_image)
+        cell_segments = load_cell_segments(
             filename, image=multi_image.pl_image)
 
         global_dataframe, local_dataframes = generate_metrics(
-            multi_image, filename, fibre_networks, cells,
-            self.workflow.sigma,
-            self.workflow.shg_analysis,
-            self.workflow.pl_analysis)
+            multi_image, filename, fibre_networks,
+            fibre_segments, cell_segments,
+            self.workflow.sigma)
 
-        if self.workflow.shg_analysis:
-            save_database(global_dataframe, filename, 'global_metric')
-            save_database(local_dataframes[0], filename, 'fibre_metric')
-        if self.workflow.pl_analysis:
-            save_database(local_dataframes[1], filename, 'cell_metric')
+        save_database(global_dataframe, filename, 'global_metric')
+        save_database(local_dataframes[0], filename, 'fibre_metric')
+        save_database(local_dataframes[1], filename, 'cell_metric')
 
         end_time = time.time()
 
@@ -215,23 +218,28 @@ class ImageAnalyser:
 
         fibre_networks = load_fibre_networks(
             filename, image=multi_image.shg_image)
+        fibre_segments = load_fibre_segments(
+            filename, image=multi_image.shg_image)
 
-        regions = [fibre_network.region
-                    for fibre_network in fibre_networks]
-        fibres = [fibre_network.fibres
-                  for fibre_network in fibre_networks]
-
-        segment_graphs = [fibre_network.graph
-                          for fibre_network in fibre_networks]
-        fibre_graphs = [fibre.graph
-                        for fibre in flatten_list(fibres)]
+        fibres = [
+            fibre_network.fibres for fibre_network in fibre_networks]
+        network_graphs = [
+            fibre_network.graph for fibre_network in fibre_networks]
+        fibre_graphs = [
+            fibre.graph for fibre in flatten_list(fibres)]
+        fibre_regions = [
+            fibre_segment.region for fibre_segment in fibre_segments]
 
         if isinstance(multi_image, SHGImage):
 
-            tensor_image = create_tensor_image(multi_image.shg_image)
-            network_image = create_network_image(multi_image.shg_image, segment_graphs)
-            fibre_image = create_network_image(multi_image.shg_image, fibre_graphs, 1)
-            fibre_region_image = create_region_image(multi_image.shg_image, regions)
+            tensor_image = create_tensor_image(
+                multi_image.shg_image)
+            network_image = create_network_image(
+                multi_image.shg_image, network_graphs)
+            fibre_image = create_network_image(
+                multi_image.shg_image, fibre_graphs, 1)
+            fibre_region_image = create_region_image(
+                multi_image.shg_image, fibre_regions)
 
             create_figure(multi_image.shg_image, figname + '_SHG', cmap='binary_r')
             create_figure(tensor_image, figname + '_tensor')
@@ -241,15 +249,19 @@ class ImageAnalyser:
 
         if isinstance(multi_image, SHGPLImage):
 
-            cells = load_cells(filename, image=multi_image.pl_image)
+            cell_segments = load_cell_segments(
+                filename, image=multi_image.pl_image)
 
-            cell_regions = [cell.region for cell in cells]
-            cell_region_image = create_region_image(multi_image.pl_image, cell_regions)
+            cell_regions = [cell.region for cell in cell_segments]
+            cell_region_image = create_region_image(
+                multi_image.pl_image, cell_regions)
             create_figure(cell_region_image, figname + '_cell_seg')
 
             if self.workflow.pl_analysis:
-                create_figure(multi_image.pl_image, figname + '_PL', cmap='binary_r')
-                create_figure(multi_image.trans_image, figname + '_trans', cmap='binary_r')
+                create_figure(
+                    multi_image.pl_image, figname + '_PL', cmap='binary_r')
+                create_figure(
+                    multi_image.trans_image, figname + '_trans', cmap='binary_r')
 
         end_fig = time.time()
 
@@ -292,12 +304,10 @@ class ImageAnalyser:
         network, segment, metric = self.get_analysis_options(multi_image, filename)
 
         logger.debug(f"Analysis options:\n "
-                     f"shg_analysis = {self.workflow.shg_analysis}\n "
-                     f"pl_analysis = {self.workflow.pl_analysis}\n "
-                     f"network_metrics = {network}\n "
-                     f"segment_metrics = {segment}\n "
-                     f"metric_analysis = {metric}\n "
-                     f"save_figures = {self.workflow.save_figures}")
+                     f"Extract Network = {network}\n "
+                     f"Segment Image = {segment}\n "
+                     f"Generate Metrics = {metric}\n "
+                     f"Save Figures = {self.workflow.save_figures}")
 
         start = time.time()
 
@@ -319,13 +329,11 @@ class ImageAnalyser:
 
         databases = ()
 
-        if self.workflow.shg_analysis:
-            global_dataframe = load_database(filename, 'global_metric')
-            fibre_dataframe = load_database(filename, 'fibre_metric')
-            databases += (global_dataframe, fibre_dataframe)
+        global_dataframe = load_database(filename, 'global_metric')
+        fibre_dataframe = load_database(filename, 'fibre_metric')
+        databases += (global_dataframe, fibre_dataframe)
 
-        if self.workflow.pl_analysis:
-            cell_dataframe = load_database(filename, 'cell_metric')
-            databases += (cell_dataframe,)
+        cell_dataframe = load_database(filename, 'cell_metric')
+        databases += (cell_dataframe,)
 
         return databases

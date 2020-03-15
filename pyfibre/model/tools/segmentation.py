@@ -71,7 +71,7 @@ def fibre_cell_region_swap(multi_image, fibre_mask, cell_mask):
     # assigned segments
     region_swap(
         [cell_mask, fibre_mask],
-        [multi_image.image_pl, multi_image.image_shg],
+        [multi_image.pl_image, multi_image.shg_image],
         [250, 150], [0.01, 0.1])
 
     fibre_mask = remove_small_holes(fibre_mask)
@@ -199,8 +199,8 @@ def shg_pl_trans_segmentation(multi_image, fibre_networks, scale=1.0):
 
     original_binary = np.where(fibre_filter > 0.1, 1, 0)
     stack = (multi_image.shg_image * fibre_filter,
-             np.sqrt(multi_image.image_pl * multi_image.image_tran),
-             equalize_adapthist(multi_image.image_tran))
+             np.sqrt(multi_image.pl_image * multi_image.trans_image),
+             equalize_adapthist(multi_image.trans_image))
 
     # Segment the PL image using k-means clustering
     fibre_mask, cell_mask = rgb_segmentation(stack, scale=scale)
