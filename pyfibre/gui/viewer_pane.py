@@ -18,12 +18,13 @@ from traitsui.api import (
 )
 
 from pyfibre.io.object_io import (
-    load_cells, load_fibre_networks, load_fibres)
+    load_fibre_segments, load_cell_segments,
+    load_fibre_networks, load_fibres)
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 from pyfibre.gui.file_display_pane import TableRow
 from pyfibre.model.objects.multi_image import MultiImage
 from pyfibre.model.tools.figures import (
-    create_tensor_image, create_segment_image, create_network_image
+    create_tensor_image, create_region_image, create_network_image
 )
 from pyfibre.utilities import flatten_list
 
@@ -112,7 +113,7 @@ class SegmentImageTab(ImageTab):
 
     def _get_plot(self):
         if self.image is not None:
-            segment_image = create_segment_image(
+            segment_image = create_region_image(
                 self.image,
                 self.segments) * 255.999
 
@@ -262,10 +263,11 @@ class ViewerPane(TraitsTaskPane):
 
             try:
                 fibre_networks = load_fibre_networks(filename)
+                fibre_segments = load_fibre_segments(
+                    filename, image=self.selected_image.shg_image)
             except (IOError, EOFError):
                 logger.info("Unable to display network for {}".format(image_name))
             else:
-                fibre_segments = [fibre_network.segment for fibre_network in fibre_networks]
                 networks = [fibre_network.graph for fibre_network in fibre_networks]
 
                 self.network_tab.networks = networks
@@ -291,12 +293,12 @@ class ViewerPane(TraitsTaskPane):
             self.trans_image_tab.image = self.selected_image.trans_image
 
             try:
-                cells = load_cells(
+                cell_segments = load_cell_segments(
                     filename, image=self.selected_image.pl_image)
             except (AttributeError, IOError, EOFError):
                 logger.debug("Unable to display cell segments for {}".format(image_name))
             else:
-                cell_segments = [cell.segment for cell in cells]
+                cell_segments = [cell.region for cell in cell_segments]
 
                 self.cell_segment_tab.segments = cell_segments
                 self.cell_segment_tab.image = self.selected_image.pl_image

@@ -5,19 +5,18 @@ from networkx import Graph
 from pyfibre.io.utilities import (
     pop_under_recursive, deserialize_networkx_graph,
     serialize_networkx_graph)
-from pyfibre.model.tools.convertors import networks_to_regions
 from pyfibre.model.tools.fibre_utilities import get_node_coord_array
 
 
-class BaseGraphSegment:
-    """Container for a Networkx Graph and scikit-image segment
-    representing a connected fibrous region"""
+class BaseGraph:
+    """Container for a Networkx Graph representing a connected
+     fibrous region on an image"""
 
     def __init__(self, graph=None, image=None, shape=None):
 
         if image is None and shape is None:
             raise AttributeError(
-                'Cannot instantiate BaseGraphSegment class: '
+                'Cannot instantiate BaseGraph class: '
                 'either image or shape argument must be declared')
 
         if isinstance(graph, dict):
@@ -29,9 +28,6 @@ class BaseGraphSegment:
         self.image = image
 
         self._shape = shape
-        self._area_threshold = 64
-        self._iterations = 2
-        self._sigma = 0.5
 
     def __getstate__(self):
         """Return the object state in a form that can be
@@ -69,22 +65,6 @@ class BaseGraphSegment:
     def add_edge(self, *args, **kwargs):
         """Add edge to Networkx graph attribute"""
         self.graph.add_edge(*args, **kwargs)
-
-    @property
-    def region(self):
-        """Scikit-image segment"""
-        if self.image is None:
-            regions = networks_to_regions(
-                [self.graph], shape=self.shape,
-                area_threshold=self._area_threshold,
-                iterations=self._iterations, sigma=self._sigma)
-        else:
-            regions = networks_to_regions(
-                [self.graph], image=self.image,
-                area_threshold=self._area_threshold,
-                iterations=self._iterations, sigma=self._sigma)
-
-        return regions[0]
 
     def generate_database(self, image=None):
         """Generates a Pandas database with all graph and segment metrics

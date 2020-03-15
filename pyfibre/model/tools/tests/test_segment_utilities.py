@@ -1,8 +1,8 @@
 import numpy as np
 from skimage.measure import regionprops
 
-from pyfibre.model.tools.segment_utilities import (
-    draw_network, segment_check, segment_swap,
+from pyfibre.model.tools.utilities import (
+    draw_network, region_check, region_swap,
     mean_binary
 )
 from pyfibre.tests.probe_classes import (
@@ -22,10 +22,10 @@ class TestSegmentUtilities(PyFibreTestCase):
         segment = regionprops(
             self.labels, intensity_image=self.image)[0]
 
-        self.assertTrue(segment_check(segment))
-        self.assertFalse(segment_check(segment, min_size=10))
-        self.assertFalse(segment_check(segment, min_frac=3.6))
-        self.assertFalse(segment_check(segment, edges=True))
+        self.assertTrue(region_check(segment))
+        self.assertFalse(region_check(segment, min_size=10))
+        self.assertFalse(region_check(segment, min_frac=3.6))
+        self.assertFalse(region_check(segment, edges=True))
 
     def test_segment_swap(self):
 
@@ -35,7 +35,7 @@ class TestSegmentUtilities(PyFibreTestCase):
         self.assertEqual(12, np.sum(mask_1.astype(int)))
         self.assertEqual(0, np.sum(mask_2.astype(int)))
 
-        segment_swap(
+        region_swap(
             [mask_1, mask_2], [self.image, self.image],
             [4, 0], [0, 0])
 

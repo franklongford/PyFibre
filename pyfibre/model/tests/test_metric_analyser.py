@@ -4,6 +4,7 @@ from pyfibre.tests.probe_classes import (
     ProbeFibreNetwork,
     ProbeSHGPLTransImage
 )
+from pyfibre.model.objects.segments import FibreSegment
 
 from .. metric_analyser import MetricAnalyser, generate_metrics
 
@@ -21,6 +22,8 @@ class TestMetricAnalyser(TestCase):
         self.fibre_network.red_graph = self.fibre_network.generate_red_graph()
 
         self.fibre_networks = [self.fibre_network]
+        self.fibre_segments = []
+        self.cell_segments = []
 
     def test_generate_metrics(self):
 
@@ -28,9 +31,9 @@ class TestMetricAnalyser(TestCase):
             self.multi_image,
             'test_python',
             self.fibre_networks,
-            None,
-            1.0,
-            shg_analysis=True
+            self.fibre_segments,
+            self.cell_segments,
+            1.0
         )
 
         self.assertEqual(2, len(local_dataframes))

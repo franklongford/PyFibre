@@ -36,52 +36,55 @@ def smooth_binary(binary, sigma=None):
     return binary
 
 
-def segment_check(segment, min_size=0, min_frac=0,
-                  edges=False, max_x=0, max_y=0):
-    """Return whether input segment passes minimum area and average
+def region_check(region, min_size=0, min_frac=0,
+                 edges=False, max_x=0, max_y=0):
+    """Return whether input region passes minimum area and average
     intensity checks"""
 
-    segment_check = True
-    minr, minc, maxr, maxc = segment.bbox
+    check = True
+    minr, minc, maxr, maxc = region.bbox
 
     if edges:
         edge_check = (minr != 0) * (minc != 0)
         edge_check *= (maxr != max_x)
         edge_check *= (maxc != max_y)
 
-        segment_check *= edge_check
+        check *= edge_check
 
-    segment_check *= segment.filled_area >= min_size
+    check *= region.filled_area >= min_size
 
-    if segment._intensity_image is not None:
-        segment_frac = (segment.image * segment.intensity_image).sum() / segment.filled_area
-        segment_check *= (segment_frac >= min_frac)
+    if region._intensity_image is not None:
+        region_filter = (region.image * region.intensity_image)
+        region_frac = region_filter.sum() / region.filled_area
+        check *= (region_frac >= min_frac)
 
-    return segment_check
+    return check
 
 
-def segment_swap(masks, images, min_sizes, min_fracs):
-    """Performs a segment_check on each segment present in masks using images as
-    intensity image. If check fails, removes segment region from mask and performs
-    another segment_check using segment of same region with other image as
+def region_swap(masks, images, min_sizes, min_fracs):
+    """Performs a region_check on each region present in masks using images as
+    intensity image. If check fails, removes region from mask and performs
+    another region_check using same region with other image as
     intensity image. If this check passes, assigns region onto other mask."""
 
     for i, j in [[0, 1], [1, 0]]:
+
         labels = measure.label(masks[i].astype(np.int))
-        for segment_1 in measure.regionprops(
+
+        for region_1 in measure.regionprops(
                 labels, intensity_image=images[i]):
 
-            if not segment_check(segment_1, min_sizes[i], min_fracs[i]):
-                minr, minc, maxr, maxc = segment_1.bbox
+            if not region_check(region_1, min_sizes[i], min_fracs[i]):
+                minr, minc, maxr, maxc = region_1.bbox
                 indices = np.mgrid[minr:maxr, minc:maxc]
-                masks[i][np.where(labels == segment_1.label)] = False
+                masks[i][np.where(labels == region_1.label)] = False
 
-                segment_2 = measure.regionprops(
-                    np.array(segment_1.image, dtype=int),
+                region_2 = measure.regionprops(
+                    np.array(region_1.image, dtype=int),
                     intensity_image=images[j][(indices[0], indices[1])])[0]
 
-                if segment_check(segment_2, 0, min_fracs[j]):
-                    masks[j][np.where(labels == segment_1.label)] = True
+                if region_check(region_2, 0, min_fracs[j]):
+                    masks[j][np.where(labels == region_1.label)] = True
 
 
 def mean_binary(binaries, image, iterations=1, min_intensity=0,

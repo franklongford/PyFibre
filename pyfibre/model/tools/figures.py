@@ -123,14 +123,14 @@ def create_tensor_image(image, min_N=50, max_N=120):
     return rgb_image
 
 
-def create_segment_image(image, segments):
+def create_region_image(image, regions):
     """Plots a figure showing identified regions
 
     Parameters
     ----------
     image:  array_like (float); shape=(n_x, n_y)
         Image under analysis of pos_x and pos_y
-    segments:  list (skimage.region)
+    regions:  list (skimage.region)
         List of segmented regions
     """
 
@@ -138,11 +138,11 @@ def create_segment_image(image, segments):
     label_image = np.zeros(image.shape, dtype=int)
     label = 1
 
-    for segment in segments:
-        minr, minc, maxr, maxc = segment.bbox
+    for region in regions:
+        minr, minc, maxr, maxc = region.bbox
         indices = np.mgrid[minr:maxr, minc:maxc]
 
-        label_image[(indices[0], indices[1])] += segment.image * label
+        label_image[(indices[0], indices[1])] += region.image * label
         label += 1
 
     image_label_overlay = label2rgb(

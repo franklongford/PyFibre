@@ -8,7 +8,7 @@ from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 from ..figures import (
     create_hsb_image,
     create_tensor_image,
-    create_segment_image,
+    create_region_image,
     create_network_image
 )
 
@@ -42,7 +42,7 @@ class TestFigures(PyFibreTestCase):
             (10, 10, 3), tensor_image.shape)
 
     def test_create_segment_image(self):
-        segment_image = create_segment_image(
+        segment_image = create_region_image(
             self.image, self.segments
         )
 

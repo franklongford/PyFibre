@@ -178,6 +178,7 @@ def replace_ext(file_name, extension):
     add new extension"""
 
     path, ext = os.path.splitext(file_name)
+
     if ext != f'.{extension}':
         file_name = path + f'.{extension}'
 
@@ -194,7 +195,7 @@ def save_json(data, file_name):
             json.dump(data, outfile, indent=4)
     except IOError as e:
         raise IOError(
-            f"Cannot save to file {file_name}.json"
+            f"Cannot save to file {file_name}"
         ) from e
 
 
@@ -208,7 +209,7 @@ def load_json(file_name):
             data = json.load(infile)
     except IOError as e:
         raise IOError(
-            f"Cannot read file {file_name}.json"
+            f"Cannot read file {file_name}"
         ) from e
 
     return data

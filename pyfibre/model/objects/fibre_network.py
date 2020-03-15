@@ -6,7 +6,7 @@ from pyfibre.io.utilities import (
     serialize_networkx_graph
 )
 from pyfibre.model.tools.metrics import (
-    segment_shape_metrics, network_metrics, segment_texture_metrics)
+    region_shape_metrics, network_metrics, region_texture_metrics)
 from pyfibre.model.tools.fibre_assigner import FibreAssigner
 from pyfibre.model.tools.fibre_utilities import simplify_network
 
@@ -77,13 +77,13 @@ class FibreNetwork(BaseGraphSegment):
 
         database = network_metrics(self.graph, self.red_graph, 'SHG')
 
-        shape_metrics = segment_shape_metrics(
-            self.segment, tag='Network')
+        shape_metrics = region_shape_metrics(
+            self.region, tag='Network')
         database = database.append(shape_metrics, ignore_index=False)
 
         try:
-            texture_metrics = segment_texture_metrics(
-                self.segment, image=image, tag='Network')
+            texture_metrics = region_texture_metrics(
+                self.region, image=image, tag='Network')
             database = database.append(texture_metrics, ignore_index=False)
         except AttributeError:
             pass

@@ -3,7 +3,7 @@ import numpy as np
 from skimage.io import imread
 
 from pyfibre.model.tools.segmentation import (
-    rgb_segmentation, create_composite_rgb_image
+    rgb_segmentation
 )
 from pyfibre.tests.probe_classes import (
     generate_image, generate_probe_graph
@@ -25,25 +25,11 @@ class TestSegmentation(PyFibreTestCase):
 
     def test_cell_segmentation(self):
 
-        cell_segments, fibre_segments = rgb_segmentation(
-            self.image_stack[0],
-            self.image_stack[1],
-            self.image_stack[2]
-        )
+        stack = (self.image_stack[0],
+                 self.image_stack[1],
+                 self.image_stack[2])
+
+        fibre_mask, cell_mask = rgb_segmentation(stack)
 
     def test_fibre_segmentation(self):
         pass
-
-    def test_create_composite_rgb_image(self):
-
-        composite_image_stack = create_composite_rgb_image(
-            *self.image_stack
-        )
-
-        self.assertEqual(
-            (200, 200, 3),
-            composite_image_stack.shape)
-        self.assertArrayAlmostEqual(
-            np.ones((200, 200)),
-            (composite_image_stack ** 2).sum(axis=-1)
-        )
