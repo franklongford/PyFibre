@@ -1,10 +1,12 @@
 from unittest import TestCase
+
 import numpy as np
+import pandas as pd
 
 from pyfibre.model.tools.metrics import (
     fibre_metrics, fibre_network_metrics)
 from pyfibre.tests.probe_classes import (
-    ProbeFibre, ProbeFibreNetwork)
+    ProbeFibre, ProbeFibreNetwork, generate_regions)
 
 
 class TestAnalysis(TestCase):

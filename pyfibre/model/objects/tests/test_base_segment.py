@@ -1,9 +1,8 @@
 from unittest import TestCase
 
 import numpy as np
-from skimage.measure import regionprops
 
-from pyfibre.tests.probe_classes import generate_image
+from pyfibre.tests.probe_classes import generate_regions
 
 from .. segments import BaseSegment
 
@@ -11,11 +10,9 @@ from .. segments import BaseSegment
 class TestBaseSegment(TestCase):
 
     def setUp(self):
-        (image, labels,
-         binary, stack) = generate_image()
-        region = regionprops(labels)[0]
+        regions = generate_regions()
         self.segment = BaseSegment(
-            image=image, region=region)
+            region=regions[0])
 
     def test_generate_database(self):
 

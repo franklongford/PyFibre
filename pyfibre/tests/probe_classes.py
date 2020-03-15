@@ -1,6 +1,7 @@
 import networkx as nx
 import numpy as np
 from skimage.io import imread
+from skimage.measure import regionprops
 
 from envisage.core_plugin import CorePlugin
 from envisage.ui.tasks.tasks_plugin import TasksPlugin
@@ -57,6 +58,15 @@ def generate_probe_graph():
     graph.edges[5, 4]['r'] = 1
 
     return graph
+
+
+def generate_regions():
+
+    image, labels, _, _ = generate_image()
+
+    regions = regionprops(labels, intensity_image=image)
+
+    return regions
 
 
 class ProbeFibre(Fibre):
