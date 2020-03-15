@@ -31,7 +31,7 @@ def rgb_segmentation(stack, scale=1.0, min_size=400):
     """Return binary filter for cellular identification"""
 
     n_channels = len(stack)
-    shape = stack[0].shape[1:]
+    shape = stack[0].shape
     min_size *= scale ** 2
 
     # Create composite RGB image from SHG, PL and transmission
@@ -152,7 +152,8 @@ def shg_pl_segmentation(multi_image, fibre_networks, scale=1.0):
 
     original_binary = np.where(fibre_filter > 0.1, 1, 0)
     stack = (multi_image.shg_image * fibre_filter,
-             multi_image.pl_image)
+             multi_image.pl_image,
+             np.ones(multi_image.shape))
 
     # Segment the PL image using k-means clustering
     fibre_mask, cell_mask = rgb_segmentation(stack, scale=scale)

@@ -53,9 +53,7 @@ def load_base_graph_segments(
     else:
         file_type = 'graph_segment'
 
-    print(file_name)
     data = load_json(file_name)
-    print(data)
 
     graph_segments = [
         klass(image=image, **kwargs)
@@ -105,25 +103,29 @@ def load_fibres(file_name, image=None):
 def save_cell_segments(cell_segments, file_name, shape=None):
     """Save a list of CellSegment instances"""
     save_base_segments(
-        cell_segments, file_name, shape=shape, tag='cells')
+        cell_segments, file_name,
+        shape=shape, tag='cell_segments')
 
 
 def load_cell_segments(file_name, image=None):
     """Load a list of CellSegment instances"""
     return load_base_segments(
-        file_name, klass=CellSegment, tag='cells', image=image)
+        file_name, klass=CellSegment,
+        tag='cell_segments', image=image)
 
 
 def save_fibre_segments(fibre_segments, file_name, shape=None):
     """Save a list of FibreSegment instances"""
     save_base_segments(
-        fibre_segments, file_name, shape=shape, tag='fibres')
+        fibre_segments, file_name,
+        shape=shape, tag='fibre_segments')
 
 
 def load_fibre_segments(file_name, image=None):
     """Load a list of FibreSegment instances"""
     return load_base_segments(
-        file_name, klass=FibreSegment, tag='fibres', image=image)
+        file_name, klass=FibreSegment,
+        tag='fibre_segments', image=image)
 
 
 def save_fibre_networks(fibre_networks, file_name):
