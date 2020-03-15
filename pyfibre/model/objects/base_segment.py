@@ -5,6 +5,8 @@ from pyfibre.model.tools.metrics import (
 
 
 class BaseSegment:
+    """Container for a scikit-image regionprops object
+    representing a segmented area of an image"""
 
     _tag = None
 

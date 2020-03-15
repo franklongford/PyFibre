@@ -226,26 +226,30 @@ class ImageAnalyser:
         fibre_graphs = [fibre.graph
                         for fibre in flatten_list(fibres)]
 
-        tensor_image = create_tensor_image(multi_image.shg_image)
-        network_image = create_network_image(multi_image.shg_image, segment_graphs)
-        fibre_image = create_network_image(multi_image.shg_image, fibre_graphs, 1)
-        fibre_region_image = create_segment_image(multi_image.shg_image, segments)
+        if isinstance(multi_image, SHGImage):
 
-        create_figure(multi_image.shg_image, figname + '_SHG', cmap='binary_r')
-        create_figure(tensor_image, figname + '_tensor')
-        create_figure(network_image, figname + '_network')
-        create_figure(fibre_image, figname + '_fibre')
-        create_figure(fibre_region_image, figname + '_fibre_seg')
+            tensor_image = create_tensor_image(multi_image.shg_image)
+            network_image = create_network_image(multi_image.shg_image, segment_graphs)
+            fibre_image = create_network_image(multi_image.shg_image, fibre_graphs, 1)
+            fibre_region_image = create_region_image(multi_image.shg_image, regions)
 
-        cells = load_cells(filename, image=multi_image.pl_image)
+            create_figure(multi_image.shg_image, figname + '_SHG', cmap='binary_r')
+            create_figure(tensor_image, figname + '_tensor')
+            create_figure(network_image, figname + '_network')
+            create_figure(fibre_image, figname + '_fibre')
+            create_figure(fibre_region_image, figname + '_fibre_seg')
+
+        if isinstance(multi_image, SHGPLImage):
+
+            cells = load_cells(filename, image=multi_image.pl_image)
 
             cell_regions = [cell.region for cell in cells]
             cell_region_image = create_region_image(multi_image.pl_image, cell_regions)
             create_figure(cell_region_image, figname + '_cell_seg')
 
-        if self.pl_analysis:
-            create_figure(multi_image.pl_image, figname + '_PL', cmap='binary_r')
-            create_figure(multi_image.trans_image, figname + '_trans', cmap='binary_r')
+            if self.workflow.pl_analysis:
+                create_figure(multi_image.pl_image, figname + '_PL', cmap='binary_r')
+                create_figure(multi_image.trans_image, figname + '_trans', cmap='binary_r')
 
         end_fig = time.time()
 
