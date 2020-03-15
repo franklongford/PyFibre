@@ -21,8 +21,8 @@ from pyfibre.model.objects.segments import CellSegment
 from pyfibre.model.tools.segment_utilities import mean_binary
 
 from .bd_cluster import BD_filter
-from .convertors import binary_to_segments, segments_to_binary
-from .segment_utilities import segment_swap
+from .convertors import binary_to_regions, regions_to_binary
+from .utilities import region_swap
 
 logger = logging.getLogger(__name__)
 

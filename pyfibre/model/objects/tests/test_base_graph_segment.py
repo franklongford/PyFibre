@@ -77,8 +77,8 @@ class TestBaseGraphSegment(TestCase):
 
     def test_network_segment(self):
 
-        segment = self.graph_segment.segment
-        self.assertEqual((3, 4), self.graph_segment.segment.image.shape)
+        segment = self.graph_segment.region
+        self.assertEqual((3, 4), self.graph_segment.region.image.shape)
         self.assertEqual(12, segment.area)
 
         with self.assertRaises(AttributeError):
@@ -87,13 +87,13 @@ class TestBaseGraphSegment(TestCase):
         self.graph_segment._iterations = 0
         self.graph_segment._area_threshold = 0
         self.graph_segment._sigma = None
-        segment = self.graph_segment.segment
+        segment = self.graph_segment.region
 
         self.assertEqual((3, 4), segment.image.shape)
         self.assertEqual(4, segment.area)
 
         self.graph_segment.image = np.ones((5, 5)) * 2
-        segment = self.graph_segment.segment
+        segment = self.graph_segment.region
 
         self.assertEqual((3, 4), segment.image.shape)
         self.assertEqual((3, 4), segment.intensity_image.shape)

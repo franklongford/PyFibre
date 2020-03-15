@@ -5,10 +5,10 @@ import numpy as np
 import pandas as pd
 
 from pyfibre.model.tools.metrics import (
-    segment_shape_metrics, fibre_network_metrics,
-    cell_metrics, segment_texture_metrics
+    region_shape_metrics, fibre_network_metrics,
+    cell_metrics, region_texture_metrics
 )
-from pyfibre.model.tools.convertors import segments_to_binary, binary_to_segments
+from pyfibre.model.tools.convertors import regions_to_binary, binary_to_regions
 
 
 logger = logging.getLogger(__name__)
@@ -67,13 +67,13 @@ class MetricAnalyser:
     def _get_global_metrics(self, label):
 
         # Perform non-linear analysis on global region
-        segments = [object.segment for object in self.objects]
-        global_binary = segments_to_binary(segments, self.image.shape)
-        global_segment = binary_to_segments(global_binary, self.image)[0]
+        segments = [object.region for object in self.objects]
+        global_binary = regions_to_binary(segments, self.image.shape)
+        global_segment = binary_to_regions(global_binary, self.image)[0]
 
-        global_metrics = segment_shape_metrics(global_segment, label)
+        global_metrics = region_shape_metrics(global_segment, label)
         global_metrics.append(
-            segment_texture_metrics(global_segment, self.image, label),
+            region_texture_metrics(global_segment, self.image, label),
             ignore_index=False
         )
 

@@ -11,7 +11,7 @@ from pyfibre.model.tools.extraction import (
     build_network, fibre_network_assignment
 )
 from pyfibre.model.tools.figures import (
-    create_figure, create_tensor_image, create_segment_image,
+    create_figure, create_tensor_image, create_region_image,
     create_network_image
 )
 from pyfibre.model.tools.preprocessing import nl_means
@@ -217,7 +217,7 @@ class ImageAnalyser:
         fibre_networks = load_fibre_networks(
             filename, image=multi_image.shg_image)
 
-        segments = [fibre_network.segment
+        regions = [fibre_network.region
                     for fibre_network in fibre_networks]
         fibres = [fibre_network.fibres
                   for fibre_network in fibre_networks]
@@ -240,9 +240,9 @@ class ImageAnalyser:
 
         cells = load_cells(filename, image=multi_image.pl_image)
 
-        cell_segments = [cell.segment for cell in cells]
-        cell_region_image = create_segment_image(multi_image.pl_image, cell_segments)
-        create_figure(cell_region_image, figname + '_cell_seg')
+            cell_regions = [cell.region for cell in cells]
+            cell_region_image = create_region_image(multi_image.pl_image, cell_regions)
+            create_figure(cell_region_image, figname + '_cell_seg')
 
         if self.pl_analysis:
             create_figure(multi_image.pl_image, figname + '_PL', cmap='binary_r')

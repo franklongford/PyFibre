@@ -5,7 +5,7 @@ from networkx import Graph
 from pyfibre.io.utilities import (
     pop_under_recursive, deserialize_networkx_graph,
     serialize_networkx_graph)
-from pyfibre.model.tools.convertors import networks_to_segments
+from pyfibre.model.tools.convertors import networks_to_regions
 from pyfibre.model.tools.fibre_utilities import get_node_coord_array
 
 
@@ -71,22 +71,20 @@ class BaseGraphSegment:
         self.graph.add_edge(*args, **kwargs)
 
     @property
-    def segment(self):
+    def region(self):
         """Scikit-image segment"""
         if self.image is None:
-            segments = networks_to_segments(
+            regions = networks_to_regions(
                 [self.graph], shape=self.shape,
                 area_threshold=self._area_threshold,
-                iterations=self._iterations,
-                sigma=self._sigma)
+                iterations=self._iterations, sigma=self._sigma)
         else:
-            segments = networks_to_segments(
+            regions = networks_to_regions(
                 [self.graph], image=self.image,
                 area_threshold=self._area_threshold,
-                iterations=self._iterations,
-                sigma=self._sigma)
+                iterations=self._iterations, sigma=self._sigma)
 
-        return segments[0]
+        return regions[0]
 
     def generate_database(self, image=None):
         """Generates a Pandas database with all graph and segment metrics

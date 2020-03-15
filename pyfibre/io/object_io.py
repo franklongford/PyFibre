@@ -4,7 +4,7 @@ from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
 from pyfibre.io.utilities import save_json, load_json
 
-from .segment_io import save_segments, load_segments
+from .region_io import save_regions, load_regions
 
 
 def save_base_graph_segment(graph_segment, file_name, file_type=None):
@@ -75,26 +75,28 @@ def load_fibres(file_name, image=None):
 
 def save_cells(cells, file_name, shape=None):
     """Save a list of Cell instances"""
-    segments = [cell.segment for cell in cells]
+    regions = [cell.region for cell in cells]
     if shape is None:
-        shape = cells[0].segment.image.shape
-    save_segments(segments, file_name, shape, 'cells')
+        shape = cells[0].region.image.shape
+    save_regions(regions, file_name, shape, 'cells')
 
 
 def load_cells(file_name, image=None):
     """Load a list of Cell instances"""
-    segments = load_segments(
+    regions = load_regions(
         file_name, 'cells', image=image)
-    return [CellSegment(segment=segment)
-            for segment in segments]
+    return [CellSegment(region=region)
+            for region in regions]
 
 
 def save_fibre_networks(fibre_networks, file_name):
     """Save a list of FibreNetwork instances"""
-    save_base_graph_segments(fibre_networks, file_name, 'fibre_networks')
+    save_base_graph_segments(
+        fibre_networks, file_name, 'fibre_networks')
 
 
 def load_fibre_networks(file_name, image=None):
     """Load a list of FibreNetwork instances"""
     return load_base_graph_segments(
-        file_name, 'fibre_networks', FibreNetwork, image=image)
+        file_name, 'fibre_networks',
+        FibreNetwork, image=image)

@@ -31,18 +31,18 @@ def nematic_tensor_metrics(segment, nematic_tensor, tag=''):
     return database
 
 
-def segment_shape_metrics(segment, tag=''):
+def region_shape_metrics(region, tag=''):
     """Analysis for a scikit-image region"""
 
     database = pd.Series(dtype=object)
 
     # Perform all non-intensity image relevant metrics
-    database[f"{tag} Area"] = segment.area
-    database[f"{tag} Linearity"] = 1 - np.pi * segment.equivalent_diameter / segment.perimeter
-    database[f"{tag} Eccentricity"] = segment.eccentricity
-    database[f"{tag} Coverage"] = segment.extent
+    database[f"{tag} Area"] = region.area
+    database[f"{tag} Linearity"] = 1 - np.pi * region.equivalent_diameter / region.perimeter
+    database[f"{tag} Eccentricity"] = region.eccentricity
+    database[f"{tag} Coverage"] = region.extent
 
-    segment_hu = segment.moments_hu
+    segment_hu = region.moments_hu
     database[f"{tag} Hu Moment 1"] = segment_hu[0]
     database[f"{tag} Hu Moment 2"] = segment_hu[1]
     database[f"{tag} Hu Moment 3"] = segment_hu[2]
@@ -51,28 +51,28 @@ def segment_shape_metrics(segment, tag=''):
     return database
 
 
-def segment_texture_metrics(segment, image=None, tag=''):
+def region_texture_metrics(region, image=None, tag=''):
 
     database = pd.Series(dtype=object)
 
     # Check to see whether intensity_image is present or image argument
     # has been supplied
     if image is not None:
-        minr, minc, maxr, maxc = segment.bbox
+        minr, minc, maxr, maxc = region.bbox
         indices = np.mgrid[minr:maxr, minc:maxc]
-        segment_image = image[(indices[0], indices[1])]
+        region_image = image[(indices[0], indices[1])]
     else:
-        segment_image = segment.intensity_image
+        region_image = region.intensity_image
 
     _, _, database[f"{tag} Fourier SDI"] = (0, 0, 0)#fourier_transform_analysis(segment_image)
 
-    database[f"{tag} Mean"] = np.mean(segment_image)
-    database[f"{tag} STD"] = np.std(segment_image)
-    database[f"{tag} Entropy"] = shannon_entropy(segment_image)
-    database[f"{tag} Density"] = np.sum(segment_image * segment.image) / segment.area
+    database[f"{tag} Mean"] = np.mean(region_image)
+    database[f"{tag} STD"] = np.std(region_image)
+    database[f"{tag} Entropy"] = shannon_entropy(region_image)
+    database[f"{tag} Density"] = np.sum(region_image * region.image) / region.area
 
     glcm = greycomatrix(
-        (segment_image * segment.image * 255.999).astype('uint8'),
+        (region_image * region.image * 255.999).astype('uint8'),
         [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256,
         symmetric=True, normed=True)
     glcm[0, :, :, :] = 0
@@ -174,7 +174,7 @@ def fibre_network_metrics(fibre_networks, image=None, sigma=0.0001):
         metrics = fibre_network.generate_database()
 
         nematic_metrics = nematic_tensor_metrics(
-            fibre_network.segment, nematic_tensor, 'Fibre Network')
+            fibre_network.region, nematic_tensor, 'Fibre Network')
 
         fibre_network_series = pd.concat(
             (fibre_network_series, metrics, nematic_metrics))
@@ -220,7 +220,7 @@ def cell_metrics(cells, image=None, sigma=0.0001):
         cell_series = cell.generate_database()
 
         nematic_metrics = nematic_tensor_metrics(
-            cell.segment, nematic_tensor, 'Cell')
+            cell.region, nematic_tensor, 'Cell')
         cell_series = pd.concat((cell_series, nematic_metrics))
 
         database = database.append(cell_series, ignore_index=True)

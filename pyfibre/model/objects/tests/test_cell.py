@@ -13,9 +13,9 @@ class TestCell(TestCase):
     def setUp(self):
         (image, labels,
          binary, stack) = generate_image()
-        segment = regionprops(labels)[0]
+        region = regionprops(labels)[0]
         self.cell = CellSegment(
-            image=image, segment=segment)
+            image=image, region=region)
 
     def test_generate_database(self):
 
@@ -33,6 +33,6 @@ class TestCell(TestCase):
         database = self.cell.generate_database()
         self.assertEqual(22, len(database))
 
-        self.cell.segment = None
+        self.cell.region = None
         with self.assertRaises(AttributeError):
             self.cell.generate_database()
