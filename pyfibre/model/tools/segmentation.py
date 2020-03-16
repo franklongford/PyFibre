@@ -142,6 +142,7 @@ def shg_segmentation(multi_image, fibre_networks):
         multi_image.shg_image,
         cell_binary,
         CellSegment,
+        min_size=200,
         min_frac=0.001
     )
 
@@ -193,6 +194,7 @@ def shg_pl_segmentation(multi_image, fibre_networks, scale=1.0):
         multi_image.pl_image,
         cell_binary,
         CellSegment,
+        min_size=200,
         min_frac=0.01
     )
 
@@ -244,6 +246,7 @@ def shg_pl_trans_segmentation(multi_image, fibre_networks, scale=1.0):
         multi_image.pl_image,
         cell_binary,
         CellSegment,
+        min_size=200,
         min_frac=0.01
     )
 
