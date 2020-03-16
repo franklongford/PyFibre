@@ -31,6 +31,13 @@ class TestMetricAnalyser(TestCase):
         self.fibre_segments = [self.fibre_segment]
         self.cell_segments = [self.cell_segment]
 
+    def test_analyse_shg(self):
+
+        self.metric_analyser.image = self.multi_image.shg_image
+        self.metric_analyser.segments = self.fibre_segments
+        self.metric_analyser.networks = self.fibre_networks
+        self.metric_analyser.analyse_shg()
+
     def test_generate_metrics(self):
 
         global_dataframe, local_dataframes = generate_metrics(
@@ -43,7 +50,7 @@ class TestMetricAnalyser(TestCase):
         )
 
         self.assertEqual(2, len(local_dataframes))
-        self.assertEqual((1, 36), local_dataframes[0].shape)
+        self.assertEqual((1, 35), local_dataframes[0].shape)
         self.assertIsNone(local_dataframes[1])
         self.assertEqual((11,), global_dataframe.shape)
 
@@ -57,6 +64,6 @@ class TestMetricAnalyser(TestCase):
         )
 
         self.assertEqual(2, len(local_dataframes))
-        self.assertEqual((1, 36), local_dataframes[0].shape)
+        self.assertEqual((1, 35), local_dataframes[0].shape)
         self.assertEqual((1, 17), local_dataframes[1].shape)
         self.assertEqual((18,), global_dataframe.shape)

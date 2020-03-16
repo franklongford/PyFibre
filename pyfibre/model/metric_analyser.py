@@ -104,6 +104,7 @@ class MetricAnalyser:
 
         # Analyse fibre segments
         local_metrics = self._get_segment_metrics('fibre_segments.npy')
+        local_metrics = local_metrics.drop(columns=['File'])
 
         local_metrics = pd.concat((network_metrics, local_metrics), axis=1)
 
