@@ -16,6 +16,7 @@ from scipy.ndimage import (
 from skimage.exposure import equalize_adapthist
 from skimage.transform import rescale, resize
 from skimage.morphology import remove_small_holes
+from skimage.filters import threshold_isodata
 
 from pyfibre.model.objects.segments import CellSegment, FibreSegment
 from pyfibre.model.tools.utilities import mean_binary
@@ -104,14 +105,15 @@ def create_fibre_filter(fibre_networks, shape):
     return fibre_filter
 
 
-def generate_segments(image, binary, segment_klass):
+def generate_segments(
+        image, binary, segment_klass, min_size=100, min_frac=0.1):
 
     # Create a new set of segments for each fibre region
     regions = binary_to_regions(
         binary,
         intensity_image=image,
-        min_size=100,
-        min_frac=0.1)
+        min_size=min_size,
+        min_frac=min_frac)
     segments = [
         segment_klass(region=region)
         for region in regions
@@ -137,9 +139,10 @@ def shg_segmentation(multi_image, fibre_networks):
 
     # Create a new set of segments for each cell region
     cell_segments = generate_segments(
-        multi_image.pl_image,
+        multi_image.shg_image,
         cell_binary,
-        CellSegment
+        CellSegment,
+        min_frac=0.001
     )
 
     return fibre_segments, cell_segments
@@ -152,7 +155,9 @@ def shg_pl_segmentation(multi_image, fibre_networks, scale=1.0):
     fibre_filter = create_fibre_filter(
         fibre_networks, multi_image.shape)
 
-    original_binary = np.where(fibre_filter > 0.1, 1, 0)
+    original_binary = np.where(
+        fibre_filter >= threshold_isodata(fibre_filter),
+        1, 0)
     stack = (multi_image.shg_image * fibre_filter,
              multi_image.pl_image,
              np.ones(multi_image.shape))
@@ -187,7 +192,8 @@ def shg_pl_segmentation(multi_image, fibre_networks, scale=1.0):
     cell_segments = generate_segments(
         multi_image.pl_image,
         cell_binary,
-        CellSegment
+        CellSegment,
+        min_frac=0.01
     )
 
     return fibre_segments, cell_segments
@@ -200,7 +206,9 @@ def shg_pl_trans_segmentation(multi_image, fibre_networks, scale=1.0):
     fibre_filter = create_fibre_filter(
         fibre_networks, multi_image.shape)
 
-    original_binary = np.where(fibre_filter > 0.1, 1, 0)
+    original_binary = np.where(
+        fibre_filter >= threshold_isodata(fibre_filter),
+        1, 0)
     stack = (multi_image.shg_image * fibre_filter,
              np.sqrt(multi_image.pl_image * multi_image.trans_image),
              equalize_adapthist(multi_image.trans_image))
@@ -212,9 +220,9 @@ def shg_pl_trans_segmentation(multi_image, fibre_networks, scale=1.0):
 
     # Create a binary for the fibrous regions based on information
     # obtained from the rgb segmentation
-    fibre_binary = fibre_mask.astype(int)
-    fibre_binary = binary_dilation(fibre_binary, iterations=2)
-    new_binary = binary_closing(fibre_binary)
+    fibre_mask = binary_dilation(fibre_mask, iterations=2)
+    fibre_mask = binary_closing(fibre_mask)
+    new_binary = fibre_mask.astype(int)
 
     # Generate a filter for the SHG image that combines information
     # from both FIRE and k-means algorithms
@@ -235,7 +243,8 @@ def shg_pl_trans_segmentation(multi_image, fibre_networks, scale=1.0):
     cell_segments = generate_segments(
         multi_image.pl_image,
         cell_binary,
-        CellSegment
+        CellSegment,
+        min_frac=0.01
     )
 
     return fibre_segments, cell_segments
