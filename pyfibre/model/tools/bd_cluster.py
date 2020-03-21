@@ -26,6 +26,38 @@ from .preprocessing import clip_intensities
 logger = logging.getLogger(__name__)
 
 
+def nonzero_mean(array):
+    """Return mean of non-zero values"""
+    return array.sum() / np.count_nonzero(array)
+
+
+def cluster_mask(centres, intensities, param):
+
+    # Convert RGB centroids to spherical coordinates
+    X = np.arcsin(centres[:, 0])
+    Y = np.arcsin(centres[:, 1])
+    Z = np.arccos(centres[:, 2])
+    I = intensities
+
+    # Define the plane of division between cellular and fibrous clusters
+    # data = np.stack((X, Y, Z, I), axis=1)
+    # clusterer = KMeans(n_clusters=2)
+    # clusterer.fit(data)
+    # cell_clusters = clusterer.labels_
+
+    mask = (X <= param[0]) * (Y <= param[1])
+    mask *= (Z <= param[2]) * (I <= param[3])
+
+    chosen_clusters = np.argwhere(mask).flatten()
+
+    cost = (
+        X[chosen_clusters].mean() + Y[chosen_clusters].mean()
+        + Z[chosen_clusters].mean() + I[chosen_clusters].mean()
+    )
+
+    return chosen_clusters, cost
+
+
 def create_scaled_image(image, p_intensity=(2, 98), sm_size=7):
     """Create a scaled image with enhanced and smoothed RGB
     balance"""
@@ -74,133 +106,92 @@ def cluster_colours(image, n_clusters=8, n_init=10):
     return labels, centres
 
 
-def BD_filter(image, n_runs=2, n_clusters=10, p_intensity=(2, 98),
-              sm_size=5, param=(0.65, 1.1, 1.40, 0.92)):
-    """Segmentation filtering using k-means clustering on RGB colour channels.
+class BDFilter:
+    """Performs segmentation filtering using k-means clustering
+    on RGB colour channels.
     Adapted from CurveAlign BDcreationHE routine"""
 
-    assert image.ndim == 3
+    def __init__(self, n_runs=2, n_clusters=10, p_intensity=(2, 98),
+                 sm_size=5, param=(0.65, 1.1, 1.40, 0.92)):
 
-    image_size = image.shape[0] * image.shape[1]
-    image_shape = (image.shape[0], image.shape[1])
-    image_channels = image.shape[-1]
+        self.n_runs = n_runs
+        self.n_clusters = n_clusters
+        self.p_intensity = p_intensity
+        self.sm_size = sm_size
+        self.param = param
 
-    image_scaled = create_scaled_image(image, p_intensity, sm_size)
+    def _cluster(self, rgb_image, greyscale):
 
-    # Generate greyscale image of RGB
-    greyscale = rgb2grey(image_scaled.astype(np.float64))
-    greyscale /= greyscale.max()
+        image_channels = rgb_image.shape[-1]
 
-    tot_labels = []
-    tot_centres = []
-    tot_cell_clusters = []
-    cost_func = np.zeros(n_runs)
-
-    for run in range(n_runs):
-
-        logger.debug(f'BD Filter: Run {run+1} of {n_runs}')
-
-        labels, centres = cluster_colours(image_scaled, n_clusters)
-        tot_labels.append(labels)
+        labels, centres = cluster_colours(
+            rgb_image, self.n_clusters)
 
         "Reorder labels to represent average intensity"
-        intensities = np.zeros(n_clusters)
+        intensities = np.zeros(self.n_clusters)
 
-        for i in range(n_clusters):
-            cluster_values = greyscale[np.where(labels == i)]
-            intensities[i] = cluster_values.sum() / np.count_nonzero(cluster_values)
+        for index in range(self.n_clusters):
+            cluster_values = greyscale[np.where(labels == index)]
+            intensities[index] = nonzero_mean(cluster_values)
 
-        magnitudes = np.sqrt(np.sum(centres**2, axis=-1))
-        norm_centres = centres / np.repeat(magnitudes, image_channels).reshape(centres.shape)
-        tot_centres.append(norm_centres)
+        magnitudes = np.sqrt(np.sum(centres ** 2, axis=-1))
+        magnitudes = np.repeat(magnitudes, image_channels)
+        centres = centres / magnitudes.reshape(centres.shape)
 
-        # Convert RGB centroids to spherical coordinates
-        X = np.arcsin(norm_centres[:, 0])
-        Y = np.arcsin(norm_centres[:, 1])
-        Z = np.arccos(norm_centres[:, 2])
-        I = intensities
+        clusters, cost = cluster_mask(
+            centres, intensities, self.param)
 
-        # Define the plane of division between cellular and fibrous clusters
-        #data = np.stack((X, Y, Z, I), axis=1)
-        #clusterer = KMeans(n_clusters=2)
-        #clusterer.fit(data)
-        #cell_clusters = clusterer.labels_
+        return labels, centres, clusters, cost
 
-        cell_clusters = (X <= param[0]) * (Y <= param[1]) * (Z <= param[2]) * (I <= param[3])
-        chosen_clusters = np.argwhere(cell_clusters).flatten()
-        cost_func[run] += (X[chosen_clusters].mean() +  Y[chosen_clusters].mean()
-                           + Z[chosen_clusters].mean() + I[chosen_clusters].mean())
-        tot_cell_clusters.append(chosen_clusters)
+    def filter_image(self, image):
 
-    labels = tot_labels[cost_func.argmin()]
-    norm_centres = tot_centres[cost_func.argmin()]
-    cell_clusters = tot_cell_clusters[cost_func.argmin()]
+        image_scaled = create_scaled_image(
+            image, self.p_intensity, self.sm_size)
 
-    intensities = np.zeros(n_clusters)
-    segmented_image = np.zeros((n_clusters,) + image.shape, dtype=int)
-    for i in range(n_clusters):
-        segmented_image[i][np.where(labels == i)] += image_scaled[np.where(labels == i)]
-        intensities[i] = greyscale[np.where(labels == i)].sum() / np.where(labels == i, 1, 0).sum()
+        # Generate greyscale image of RGB
+        greyscale = rgb2grey(image_scaled.astype(np.float64))
+        greyscale /= greyscale.max()
 
-    "Select blue regions to extract epithelial cells"
-    epith_cell = np.zeros(image.shape)
-    for i in cell_clusters:
-        epith_cell += segmented_image[i]
-    epith_grey = rgb2grey(epith_cell)
+        tot_labels = []
+        tot_centres = []
+        tot_clusters = []
+        cost_func = np.zeros(self.n_runs)
 
-    """
-    "Convert RGB centroids to spherical coordinates"
-    X = np.arcsin(norm_centres[:, 0])
-    Y = np.arcsin(norm_centres[:, 1])
-    Z = np.arccos(norm_centres[:, 2])
-    I = intensities
+        for run in range(self.n_runs):
+            labels, centres, clusters, cost = self._cluster(
+                image_scaled, greyscale)
 
-    print(X, Y, Z, I)
-    print((X <= param[0]) * (Y <= param[1]) * (Z <= param[2]) * (I <= param[3]))
+            tot_labels.append(labels)
+            tot_centres.append(centres)
+            tot_clusters.append(clusters)
+            cost_func[run] = cost
 
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
+        min_cost = cost_func.argmin()
+        labels = tot_labels[min_cost]
+        centres = tot_centres[min_cost]
+        clusters = tot_clusters[min_cost]
 
-    plt.figure(100, figsize=(10, 10))
-    plt.imshow(image)
-    plt.axis('off')
+        intensities = np.zeros(self.n_clusters)
+        segmented_image = np.zeros((self.n_clusters,) + image.shape, dtype=int)
+        for label in range(self.n_clusters):
+            indices = np.where(labels == label)
+            segmented_image[label][indices] += image_scaled[indices]
+            intensities[label] = greyscale[indices].sum() / indices[0].size
 
-    plt.figure(1000, figsize=(10, 10))
-    plt.imshow(image_scaled)
-    plt.axis('off')
+        "Select blue regions to extract epithelial cells"
+        epith_cell = np.zeros(image.shape)
+        for cluster in clusters:
+            epith_cell += segmented_image[cluster]
+        epith_grey = rgb2grey(epith_cell)
 
-    for i in range(n_clusters):
-        plt.figure(i)
-        plt.imshow(segmented_image[i])
+        # Dilate binary image to smooth regions and remove small holes / objects
+        epith_cell_BW = np.where(epith_grey, True, False)
+        epith_cell_BW_open = binary_opening(epith_cell_BW, iterations=2)
 
-    not_clusters = [i for i in range(n_clusters) if i not in cell_clusters]
+        BWx = binary_fill_holes(epith_cell_BW_open)
+        BWy = remove_small_objects(~BWx, min_size=20)
 
-    plt.figure(1001)
-    plt.scatter(X[cell_clusters], Y[cell_clusters])
-    plt.scatter(X[not_clusters], Y[not_clusters])
-    for i in range(n_clusters): plt.annotate(i, (X[i], Y[i]))
+        # Return binary mask for cell identification
+        mask_image = remove_small_objects(~BWy, min_size=20)
 
-    plt.figure(1002)
-    plt.scatter(X[cell_clusters], Z[cell_clusters])
-    plt.scatter(X[not_clusters], Z[not_clusters])
-    for i in range(n_clusters): plt.annotate(i, (X[i], Z[i]))
-
-    plt.figure(1003)
-    plt.scatter(X[cell_clusters], I[cell_clusters])
-    plt.scatter(X[not_clusters], I[not_clusters])
-    for i in range(n_clusters): plt.annotate(i, (X[i], I[i]))
-
-    plt.show()	
-    #"""
-
-    # Dilate binary image to smooth regions and remove small holes / objects
-    epith_cell_BW = np.where(epith_grey, True, False)
-    epith_cell_BW_open = binary_opening(epith_cell_BW, iterations=2)
-
-    BWx = binary_fill_holes(epith_cell_BW_open)
-    BWy = remove_small_objects(~BWx, min_size=20)
-
-    # Return binary mask for cell identification
-    mask_image = remove_small_objects(~BWy, min_size=20)
-
-    return mask_image
+        return mask_image

@@ -55,5 +55,8 @@ class TestSegmentation(PyFibreTestCase):
 
         fibre_mask, cell_mask = rgb_segmentation(stack)
 
+        self.assertEqual((200, 200), fibre_mask.shape)
+        self.assertEqual((200, 200), cell_mask.shape)
+
     def test_fibre_segmentation(self):
         pass

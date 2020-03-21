@@ -16,27 +16,28 @@ from scipy.ndimage import (
 from skimage.exposure import equalize_adapthist
 from skimage.transform import rescale, resize
 from skimage.morphology import remove_small_holes
-from skimage.filters import threshold_isodata
+from skimage.filters import threshold_mean
 
 from pyfibre.model.objects.segments import CellSegment, FibreSegment
 from pyfibre.model.tools.utilities import mean_binary
 
-from .bd_cluster import BD_filter
+from .bd_cluster import BDFilter
 from .convertors import binary_to_regions, regions_to_binary
 from .utilities import region_swap
 
 logger = logging.getLogger(__name__)
 
 
-def rgb_segmentation(stack, scale=1.0, min_size=400):
+def rgb_segmentation(image_stack, scale=1.0):
     """Return binary filter for cellular identification"""
 
-    n_channels = len(stack)
-    shape = stack[0].shape
-    min_size *= scale ** 2
+    if not isinstance(image_stack, np.ndarray):
+        image_stack = np.stack(image_stack, axis=-1)
+
+    n_channels = image_stack.shape[-1]
+    shape = image_stack.shape[:-1]
 
     # Create composite RGB image from SHG, PL and transmission
-    image_stack = np.stack(stack, axis=-1)
     magnitudes = np.sqrt(np.sum(image_stack**2, axis=-1))
     indices = np.nonzero(magnitudes)
     image_stack[indices] /= np.repeat(
@@ -52,7 +53,8 @@ def rgb_segmentation(stack, scale=1.0, min_size=400):
 
     # Form mask using Kmeans Background filter
     logger.debug(f"Performing BD Filter")
-    mask_image = BD_filter(image_stack)
+    bd_filter = BDFilter()
+    mask_image = bd_filter.filter_image(image_stack)
 
     # Reducing image to original size
     logger.debug(f"Rescaling image back to {shape}")
@@ -157,7 +159,7 @@ def shg_pl_segmentation(multi_image, fibre_networks, scale=1.0):
         fibre_networks, multi_image.shape)
 
     original_binary = np.where(
-        fibre_filter >= threshold_isodata(fibre_filter),
+        fibre_filter >= threshold_mean(fibre_filter),
         1, 0)
     stack = (multi_image.shg_image * fibre_filter,
              multi_image.pl_image,
@@ -209,7 +211,7 @@ def shg_pl_trans_segmentation(multi_image, fibre_networks, scale=1.0):
         fibre_networks, multi_image.shape)
 
     original_binary = np.where(
-        fibre_filter >= threshold_isodata(fibre_filter),
+        fibre_filter >= threshold_mean(fibre_filter),
         1, 0)
     stack = (multi_image.shg_image * fibre_filter,
              np.sqrt(multi_image.pl_image * multi_image.trans_image),
