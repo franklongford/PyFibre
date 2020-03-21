@@ -20,12 +20,15 @@ from traitsui.api import (
 from pyfibre.io.object_io import (
     load_fibre_segments, load_cell_segments,
     load_fibre_networks, load_fibres)
+from pyfibre.model.objects.multi_image import (
+    SHGImage, SHGPLImage, SHGPLTransImage)
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 from pyfibre.gui.file_display_pane import TableRow
 from pyfibre.model.objects.multi_image import MultiImage
 from pyfibre.model.tools.figures import (
     create_tensor_image, create_region_image, create_network_image
 )
+from pyfibre.model.objects.base_segment import BaseSegment
 from pyfibre.utilities import flatten_list
 
 logger = logging.getLogger(__name__)
@@ -109,13 +112,19 @@ class NetworkImageTab(ImageTab):
 
 class SegmentImageTab(ImageTab):
 
-    segments = List(RegionProperties)
+    segments = List(BaseSegment)
+
+    regions = Property(
+        List(RegionProperties), depends_on='segments')
+
+    def _get_regions(self):
+        return [segment.region for segment in self.segments]
 
     def _get_plot(self):
         if self.image is not None:
             segment_image = create_region_image(
                 self.image,
-                self.segments) * 255.999
+                self.regions) * 255.999
 
             plot_data = ArrayPlotData(
                 image_data=segment_image.astype('uint8'))
@@ -255,50 +264,59 @@ class ViewerPane(TraitsTaskPane):
             data_dir = f"{image_path}/{image_name}-pyfibre-analysis/data/"
             filename = data_dir + image_name
 
-            self.shg_image_tab.image = self.selected_image.shg_image
-            tensor_image = create_tensor_image(
-                self.selected_image.shg_image
-            ) * 255.999
-            self.tensor_tab.image = tensor_image.astype('uint8')
+            if isinstance(self.selected_image, SHGImage):
 
-            try:
-                fibre_networks = load_fibre_networks(filename)
-                fibre_segments = load_fibre_segments(
-                    filename, image=self.selected_image.shg_image)
-            except (IOError, EOFError):
-                logger.info("Unable to display network for {}".format(image_name))
-            else:
-                networks = [fibre_network.graph for fibre_network in fibre_networks]
-
-                self.network_tab.networks = networks
-                self.network_tab.image = self.selected_image.shg_image
-
-                self.fibre_segment_tab.segments = fibre_segments
-                self.fibre_segment_tab.image = self.selected_image.shg_image
+                self.shg_image_tab.image = self.selected_image.shg_image
+                tensor_image = create_tensor_image(
+                    self.selected_image.shg_image
+                ) * 255.999
+                self.tensor_tab.image = tensor_image.astype('uint8')
 
                 try:
-                    fibres = load_fibres(
+                    fibre_networks = load_fibre_networks(filename)
+                except (IOError, EOFError):
+                    logger.info("Unable to display network for {}".format(image_name))
+                else:
+                    networks = [fibre_network.graph for fibre_network in fibre_networks]
+
+                    self.network_tab.networks = networks
+                    self.network_tab.image = self.selected_image.shg_image
+
+                    try:
+                        fibres = load_fibres(
+                            filename, image=self.selected_image.shg_image)
+                    except (IOError, EOFError):
+                        fibres = flatten_list([
+                            fibre_network.fibres
+                            for fibre_network in fibre_networks])
+
+                    networks = [fibre.graph for fibre in fibres]
+
+                    self.fibre_tab.networks = networks
+                    self.fibre_tab.image = self.selected_image.shg_image
+
+                try:
+                    fibre_segments = load_fibre_segments(
                         filename, image=self.selected_image.shg_image)
                 except (IOError, EOFError):
-                    fibres = flatten_list([
-                        fibre_network.fibres
-                        for fibre_network in fibre_networks])
+                    logger.info(
+                        "Unable to display fibre segments for {}".format(image_name))
+                else:
+                    self.fibre_segment_tab.segments = fibre_segments
+                    self.fibre_segment_tab.image = self.selected_image.shg_image
 
-                networks = [fibre.graph for fibre in fibres]
+                if isinstance(self.selected_image, SHGPLImage):
 
-                self.fibre_tab.networks = networks
-                self.fibre_tab.image = self.selected_image.shg_image
+                    self.pl_image_tab.image = self.selected_image.pl_image
 
-            self.pl_image_tab.image = self.selected_image.pl_image
-            self.trans_image_tab.image = self.selected_image.trans_image
+                    try:
+                        cell_segments = load_cell_segments(
+                            filename, image=self.selected_image.pl_image)
+                    except (AttributeError, IOError, EOFError):
+                        logger.debug("Unable to display cell segments for {}".format(image_name))
+                    else:
+                        self.cell_segment_tab.segments = cell_segments
+                        self.cell_segment_tab.image = self.selected_image.pl_image
 
-            try:
-                cell_segments = load_cell_segments(
-                    filename, image=self.selected_image.pl_image)
-            except (AttributeError, IOError, EOFError):
-                logger.debug("Unable to display cell segments for {}".format(image_name))
-            else:
-                cell_segments = [cell.region for cell in cell_segments]
-
-                self.cell_segment_tab.segments = cell_segments
-                self.cell_segment_tab.image = self.selected_image.pl_image
+                    if isinstance(self.selected_image, SHGPLTransImage):
+                        self.trans_image_tab.image = self.selected_image.trans_image

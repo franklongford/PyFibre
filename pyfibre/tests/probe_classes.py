@@ -1,6 +1,7 @@
 import networkx as nx
 import numpy as np
 from skimage.io import imread
+from skimage.measure import regionprops
 
 from envisage.core_plugin import CorePlugin
 from envisage.ui.tasks.tasks_plugin import TasksPlugin
@@ -11,9 +12,10 @@ from pyfibre.gui.pyfibre_plugin import PyFibrePlugin
 
 from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
-from pyfibre.model.objects.multi_image import SHGPLTransImage
+from pyfibre.model.objects.multi_image import SHGImage, SHGPLTransImage
+from pyfibre.model.objects.segments import FibreSegment
 
-from .fixtures import test_image_path
+from .fixtures import test_shg_image_path, test_shg_pl_trans_image_path
 
 
 def generate_image():
@@ -59,6 +61,15 @@ def generate_probe_graph():
     return graph
 
 
+def generate_regions():
+
+    image, labels, _, _ = generate_image()
+
+    regions = regionprops(labels, intensity_image=image)
+
+    return regions
+
+
 class ProbeFibre(Fibre):
 
     def __init__(self, *args, **kwargs):
@@ -75,12 +86,28 @@ class ProbeFibreNetwork(FibreNetwork):
             shape=(10, 10))
 
 
+class ProbeSHGImage(SHGImage):
+
+    def __init__(self, *args, **kwargs):
+        kwargs.pop('image_stack', None)
+
+        image = imread(test_shg_image_path)
+
+        image = np.mean(image, axis=-1)
+        image = image / image.max()
+        image_stack = [image]
+
+        super(ProbeSHGImage, self).__init__(
+            *args, image_stack=image_stack, **kwargs
+        )
+
+
 class ProbeSHGPLTransImage(SHGPLTransImage):
 
     def __init__(self, *args, **kwargs):
         kwargs.pop('image_stack', None)
 
-        images = imread(test_image_path)
+        images = imread(test_shg_pl_trans_image_path)
 
         image_stack = []
         for image in images:

@@ -12,7 +12,7 @@ import logging
 import click
 
 from pyfibre.version import __version__
-from pyfibre.tests.fixtures import test_image_path
+from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 
 from .pyfibre_cli import PyFibreCLI
 
@@ -98,7 +98,7 @@ def run(file_path, key, sigma, alpha, log_name,
         ow_network, save_figures, test):
 
     if test:
-        file_path = test_image_path
+        file_path = test_shg_pl_trans_image_path
         debug = True
         profile = True
         shg_analysis = True

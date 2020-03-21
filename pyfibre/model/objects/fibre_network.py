@@ -72,20 +72,11 @@ class FibreNetwork(BaseGraphSegment):
         """Generates a Pandas database with all graph and segment metrics
         for assigned image"""
 
-        if image is None:
-            image = self.image
-
         database = network_metrics(self.graph, self.red_graph, 'SHG')
 
         shape_metrics = region_shape_metrics(
             self.region, tag='Network')
-        database = database.append(shape_metrics, ignore_index=False)
-
-        try:
-            texture_metrics = region_texture_metrics(
-                self.region, image=image, tag='Network')
-            database = database.append(texture_metrics, ignore_index=False)
-        except AttributeError:
-            pass
+        database = database.append(
+            shape_metrics, ignore_index=False)
 
         return database

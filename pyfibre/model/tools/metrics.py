@@ -1,3 +1,5 @@
+import logging
+
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -8,13 +10,15 @@ from pyfibre.model.tools.analysis import tensor_analysis, angle_analysis
 from pyfibre.model.tools.feature import greycoprops_edit
 from pyfibre.model.tools.filters import form_structure_tensor
 
+logger = logging.getLogger(__name__)
 
-def nematic_tensor_metrics(segment, nematic_tensor, tag=''):
+
+def nematic_tensor_metrics(region, nematic_tensor, tag=''):
     """Analysis of the nematic tensor"""
 
     database = pd.Series(dtype=object)
 
-    minr, minc, maxr, maxc = segment.bbox
+    minr, minc, maxr, maxc = region.bbox
     indices = np.mgrid[minr:maxr, minc:maxc]
     segment_n_tensor = nematic_tensor[(indices[0], indices[1])]
 
@@ -51,7 +55,7 @@ def region_shape_metrics(region, tag=''):
     return database
 
 
-def region_texture_metrics(region, image=None, tag=''):
+def region_texture_metrics(region, image=None, tag='', glcm=False):
 
     database = pd.Series(dtype=object)
 
@@ -71,24 +75,26 @@ def region_texture_metrics(region, image=None, tag=''):
     database[f"{tag} Entropy"] = shannon_entropy(region_image)
     database[f"{tag} Density"] = np.sum(region_image * region.image) / region.area
 
-    glcm = greycomatrix(
-        (region_image * region.image * 255.999).astype('uint8'),
-        [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256,
-        symmetric=True, normed=True)
-    glcm[0, :, :, :] = 0
-    glcm[:, 0, :, :] = 0
+    if glcm:
 
-    greycoprops = greycoprops_edit(glcm)
+        glcm = greycomatrix(
+            (region_image * region.image * 255.999).astype('uint8'),
+            [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256,
+            symmetric=True, normed=True)
+        glcm[0, :, :, :] = 0
+        glcm[:, 0, :, :] = 0
 
-    database[f"{tag} GLCM Contrast"] = greycoprops['contrast'].mean()
-    database[f"{tag} GLCM Homogeneity"] = greycoprops['homogeneity'].mean()
-    database[f"{tag} GLCM Energy"] = greycoprops['energy'].mean()
-    database[f"{tag} GLCM Entropy"] = greycoprops['entropy'].mean()
-    database[f"{tag} GLCM Autocorrelation"] = greycoprops['autocorrelation'].mean()
-    database[f"{tag} GLCM Clustering"] = greycoprops['cluster'].mean()
-    database[f"{tag} GLCM Mean"] = greycoprops['mean'].mean()
-    database[f"{tag} GLCM Covariance"] = greycoprops['covariance'].mean()
-    database[f"{tag} GLCM Correlation"] = greycoprops['correlation'].mean()
+        greycoprops = greycoprops_edit(glcm)
+
+        database[f"{tag} GLCM Contrast"] = greycoprops['contrast'].mean()
+        database[f"{tag} GLCM Homogeneity"] = greycoprops['homogeneity'].mean()
+        database[f"{tag} GLCM Energy"] = greycoprops['energy'].mean()
+        database[f"{tag} GLCM Entropy"] = greycoprops['entropy'].mean()
+        database[f"{tag} GLCM Autocorrelation"] = greycoprops['autocorrelation'].mean()
+        database[f"{tag} GLCM Clustering"] = greycoprops['cluster'].mean()
+        database[f"{tag} GLCM Mean"] = greycoprops['mean'].mean()
+        database[f"{tag} GLCM Covariance"] = greycoprops['covariance'].mean()
+        database[f"{tag} GLCM Correlation"] = greycoprops['correlation'].mean()
 
     return database
 
@@ -194,18 +200,19 @@ def fibre_network_metrics(fibre_networks, image=None, sigma=0.0001):
     return database
 
 
-def cell_metrics(cells, image=None, sigma=0.0001):
-    """Analysis of a list of `Cell` objects
+def segment_metrics(segments, image=None, sigma=0.0001):
+    """Analysis of a list of `BaseSegment` objects
 
     Parameters
     ----------
-    cells : list of `<class: Cell>`
+    segments : list of `<class: BaseSegment>`
         List of cells to analyse
 
     Returns
     -------
     database : DataFrame
-        Metrics calculated from scikit-image regionprops objects
+        Metrics calculated from scikit-image
+        regionprops objects
     """
     database = pd.DataFrame()
 
@@ -213,14 +220,14 @@ def cell_metrics(cells, image=None, sigma=0.0001):
         nematic_tensor = form_structure_tensor(image, sigma)
     else:
         nematic_tensor = form_structure_tensor(
-            cells[0].image, sigma)
+            segments[0].image, sigma)
 
-    for i, cell in enumerate(cells):
+    for index, segment in enumerate(segments):
 
-        cell_series = cell.generate_database()
+        cell_series = segment.generate_database()
 
         nematic_metrics = nematic_tensor_metrics(
-            cell.region, nematic_tensor, 'Cell')
+            segment.region, nematic_tensor, segment._tag)
         cell_series = pd.concat((cell_series, nematic_metrics))
 
         database = database.append(cell_series, ignore_index=True)

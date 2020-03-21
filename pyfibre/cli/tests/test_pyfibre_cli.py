@@ -6,7 +6,7 @@ import pandas as pd
 
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 from pyfibre.model.image_analyser import ImageAnalyser
-from pyfibre.tests.fixtures import test_image_path
+from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 
 from ..pyfibre_cli import PyFibreCLI
 
@@ -56,7 +56,7 @@ class TestPyFibreCLI(TestCase):
             with mock.patch(ITERATOR_PATH) as mock_iterate:
                 mock_iterate.side_effect = dummy_iterate_images
 
-                self.pyfibre_cli.run(test_image_path)
+                self.pyfibre_cli.run(test_shg_pl_trans_image_path)
                 self.assertTrue(mock_iterate.called)
 
             self.assertTrue(
@@ -70,7 +70,7 @@ class TestPyFibreCLI(TestCase):
             with mock.patch(ITERATOR_PATH) as mock_iterate:
                 mock_iterate.side_effect = dummy_iterate_images
 
-                self.pyfibre_cli.run(test_image_path)
+                self.pyfibre_cli.run(test_shg_pl_trans_image_path)
                 self.assertTrue(mock_iterate.called)
 
             self.assertTrue(

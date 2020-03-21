@@ -16,7 +16,7 @@ from pyfibre.model.tools.figures import (
 )
 from pyfibre.model.tools.preprocessing import nl_means
 from pyfibre.model.objects.multi_image import (
-    MultiImage, SHGImage, SHGPLImage)
+    MultiImage, SHGImage, SHGPLImage, SHGPLTransImage)
 from pyfibre.io.object_io import (
     save_fibre_networks, load_fibre_networks,
     save_fibre_segments, load_fibre_segments,
@@ -257,10 +257,10 @@ class ImageAnalyser:
             cell_region_image = create_region_image(
                 multi_image.pl_image, cell_regions)
             create_figure(cell_region_image, figname + '_cell_seg')
+            create_figure(
+                multi_image.pl_image, figname + '_PL', cmap='binary_r')
 
-            if self.workflow.pl_analysis:
-                create_figure(
-                    multi_image.pl_image, figname + '_PL', cmap='binary_r')
+            if isinstance(multi_image, SHGPLTransImage):
                 create_figure(
                     multi_image.trans_image, figname + '_trans', cmap='binary_r')
 
@@ -316,7 +316,6 @@ class ImageAnalyser:
             self.network_analysis(multi_image, filename)
 
         if segment:
-            print('segment analysis')
             self.segment_analysis(multi_image, filename)
 
         if metric:

@@ -1,9 +1,6 @@
 import os
 from tempfile import NamedTemporaryFile
-from unittest import TestCase, mock
-
-import networkx as nx
-import numpy as np
+from unittest import TestCase
 
 from pyfibre.tests.probe_classes import ProbeSHGPLTransImage
 
@@ -35,7 +32,6 @@ class TestImageAnalyser(TestCase):
     def test_get_ow_options(self):
 
         filename = "test_filename"
-        return_json = [{'fibre_networks': []}]
 
         ow_network, ow_segment, ow_metric = (
             self.image_analyser.get_analysis_options(
@@ -44,38 +40,6 @@ class TestImageAnalyser(TestCase):
         self.assertTrue(ow_network)
         self.assertTrue(ow_segment)
         self.assertTrue(ow_metric)
-
-        with mock.patch(
-                LOAD_NETWORK_PATH,
-                mock.mock_open(read_data=nx.Graph())), \
-                mock.patch(
-                    LOAD_JSON_PATH,
-                    mock.MagicMock(side_effect=return_json)):
-
-            ow_network, ow_segment, ow_metric = (
-                self.image_analyser.get_analysis_options(
-                    self.multi_image, filename))
-
-            self.assertFalse(ow_network)
-            self.assertTrue(ow_segment)
-            self.assertTrue(ow_metric)
-
-        with mock.patch(
-                LOAD_NETWORK_PATH,
-                mock.mock_open(read_data=nx.Graph())), \
-                mock.patch(
-                    LOAD_JSON_PATH,
-                    mock.MagicMock(side_effect=return_json)), \
-                mock.patch(
-                    LOAD_REGION_PATH,
-                    mock.mock_open(read_data=np.ones((10, 10)))):
-            ow_network, ow_segment, ow_metric = (
-                self.image_analyser.get_analysis_options(
-                    self.multi_image, filename))
-
-            self.assertFalse(ow_network)
-            self.assertFalse(ow_segment)
-            self.assertTrue(ow_metric)
 
     def test_network_analysis(self):
 
