@@ -108,7 +108,9 @@ def network_metrics(network, network_red, tag=''):
 
     database = pd.Series(dtype=object)
 
-    cross_links = np.array([degree[1] for degree in network.degree], dtype=int)
+    cross_links = np.array(
+        [degree[1] for degree in network.degree],
+        dtype=int)
     database[f"{tag} Network Cross-Links"] = (cross_links > 2).sum()
 
     try:

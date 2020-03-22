@@ -1,5 +1,6 @@
 import logging
 import time
+from functools import partial
 
 import numpy as np
 import pandas as pd
@@ -33,42 +34,43 @@ class MetricAnalyser:
 
     def _global_averaging(self, global_metrics, local_metrics, global_binary):
 
+        global_metrics = global_metrics.drop(
+            ['SHG Fibre Hu Moment 3', 'SHG Fibre Hu Moment 4'])
         global_metrics['No. Fibres'] = sum(
             [len(fibre_network.fibres)
              for fibre_network in self.networks])
+        global_metrics['SHG Fibre Density'] = np.mean(
+            self.image[np.where(global_binary)])
+        global_metrics['SHG Fibre Cross-Link Density'] = np.nanmean(
+            local_metrics['SHG Fibre Cross-Link Density'])
 
-        shape_metrics = ['Area', 'Eccentricity', 'Linearity', 'Coverage',
-                         'Hu Moment 1', 'Hu Moment 2']
+        shape_metrics = ['Area', 'Eccentricity', 'Linearity',
+                         'Coverage', 'Hu Moment 1', 'Hu Moment 2']
         for metric in shape_metrics:
             global_metrics[f'SHG Fibre {metric}'] = np.mean(
-                local_metrics[f'Network {metric}'])
+                local_metrics[f'Segment {metric}'])
 
-        texture_metrics = ['']
+        texture_metrics = ['Mean', 'STD', 'Entropy', 'Density']
+        for metric in texture_metrics:
+            global_metrics[f'SHG Fibre {metric}'] = np.mean(
+                local_metrics[f'Fibre {metric}'])
 
-        global_metrics['SHG Fibre Density'] = np.mean(self.image[np.where(global_binary)])
-        global_metrics = global_metrics.drop(['SHG Fibre Hu Moment 3', 'SHG Fibre Hu Moment 4'])
-
-        for metric in ['Waviness', 'Length']:
+        fibre_metrics = ['Waviness', 'Length']
+        for metric in fibre_metrics:
             global_metrics[f'SHG Fibre {metric}'] = np.nanmean(
                 local_metrics[f'Mean Fibre {metric}'])
 
-        global_metrics['SHG Fibre Length'] = np.nanmean(local_metrics['Mean Fibre Length'])
-        global_metrics['SHG Fibre Cross-Link Density'] = np.nanmean(local_metrics['SHG Fibre Cross-Link Density'])
-
-        logger.debug(local_metrics['SHG Network Degree'].values)
-
-        global_metrics['SHG Fibre Network Degree'] = np.nanmean(local_metrics['SHG Network Degree'].values)
-        global_metrics['SHG Fibre Network Eigenvalue'] = np.nanmean(local_metrics['SHG Network Eigenvalue'])
-        global_metrics['SHG Fibre Network Connectivity'] = np.nanmean(
-            local_metrics['SHG Network Connectivity'])
+        network_metrics = ['Degree', 'Eigenvalue', 'Connectivity']
+        for metric in network_metrics:
+            global_metrics[f'SHG Fibre Network {metric}'] = np.nanmean(
+                local_metrics[f'SHG Network {metric}'])
 
     def _get_metrics(self, attr, metric_function, tag):
 
         logger.debug(f'Performing metrics for {tag}')
 
         # Analyse individual segments
-        metrics = metric_function(
-            attr, self.image, self.sigma)
+        metrics = metric_function(attr)
 
         filenames = pd.Series(
             ['{}_{}'.format(self.filename, tag)] * len(attr),
@@ -82,8 +84,10 @@ class MetricAnalyser:
             self.networks, fibre_network_metrics, 'fibre_networks.json')
 
     def _get_segment_metrics(self, tag):
+        metric_func = partial(
+            segment_metrics, image=self.image, sigma=self.sigma)
         return self._get_metrics(
-            self.segments, segment_metrics, tag)
+            self.segments, metric_func, tag)
 
     def _get_global_metrics(self, label):
 

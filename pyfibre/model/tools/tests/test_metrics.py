@@ -77,11 +77,9 @@ class TestAnalysis(TestCase):
     def test_fibre_network_analysis(self):
 
         self.fibre_network.fibres = self.fibre_network.generate_fibres()
-        image = np.ones((10, 10))
-        image[2:, 2:] = 2
 
         metrics = fibre_network_metrics(
-            [self.fibre_network], image)
+            [self.fibre_network])
 
         self.assertIsInstance(metrics, pd.DataFrame)
         self.assertEqual(18, len(metrics.columns))
