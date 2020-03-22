@@ -3,7 +3,9 @@ from traits.api import (
 )
 
 from pyfibre.model.tools.preprocessing import clip_intensities
-from pyfibre.model.tools.segmentation import shg_segmentation, shg_pl_segmentation, shg_pl_trans_segmentation
+from pyfibre.model.tools.segmentation import (
+    shg_segmentation, shg_pl_segmentation,
+    shg_pl_trans_segmentation)
 
 
 class MultiImage(HasTraits):

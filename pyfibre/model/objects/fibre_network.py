@@ -6,7 +6,7 @@ from pyfibre.io.utilities import (
     serialize_networkx_graph
 )
 from pyfibre.model.tools.metrics import (
-    region_shape_metrics, network_metrics, region_texture_metrics)
+    region_shape_metrics, network_metrics)
 from pyfibre.model.tools.fibre_assigner import FibreAssigner
 from pyfibre.model.tools.fibre_utilities import simplify_network
 

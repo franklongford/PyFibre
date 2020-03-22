@@ -1,11 +1,10 @@
 import networkx as nx
 from skimage.measure._regionprops import RegionProperties
 
-from chaco.api import (
-    ArrayPlotData, reverse, binary, Plot
-)
+from chaco.api import ArrayPlotData, Plot
 from chaco.tools.zoom_tool import ZoomTool
 from chaco.tools.pan_tool import PanTool
+from chaco.default_colormaps import binary, reverse
 from enable.component_editor import ComponentEditor
 from traits.api import (
     HasTraits, ArrayOrNone, Unicode, Instance, Function,
