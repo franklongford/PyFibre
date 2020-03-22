@@ -6,7 +6,8 @@ import pandas as pd
 from skimage.feature import greycomatrix
 from skimage.measure import shannon_entropy
 
-from pyfibre.model.tools.analysis import tensor_analysis, angle_analysis
+from pyfibre.model.tools.analysis import (
+    tensor_analysis, angle_analysis)
 from pyfibre.model.tools.feature import greycoprops_edit
 from pyfibre.model.tools.filters import form_structure_tensor
 
@@ -26,9 +27,11 @@ def nematic_tensor_metrics(region, nematic_tensor, tag=''):
      segment_angle_map,
      segment_angle_map) = tensor_analysis(segment_n_tensor)
 
-    segment_anis, _, _ = tensor_analysis(np.mean(segment_n_tensor, axis=(0, 1)))
+    segment_anis, _, _ = tensor_analysis(
+        np.mean(segment_n_tensor, axis=(0, 1)))
 
-    database[f"{tag} Angle SDI"], _ = angle_analysis(segment_angle_map, segment_anis_map)
+    database[f"{tag} Angle SDI"], _ = angle_analysis(
+        segment_angle_map, segment_anis_map)
     database[f"{tag} Anisotropy"] = segment_anis[0]
     database[f"{tag} Pixel Anisotropy"] = np.mean(segment_anis_map)
 
@@ -42,7 +45,8 @@ def region_shape_metrics(region, tag=''):
 
     # Perform all non-intensity image relevant metrics
     database[f"{tag} Area"] = region.area
-    database[f"{tag} Linearity"] = 1 - np.pi * region.equivalent_diameter / region.perimeter
+    ratio = region.equivalent_diameter / region.perimeter
+    database[f"{tag} Linearity"] = 1 - np.pi * ratio
     database[f"{tag} Eccentricity"] = region.eccentricity
     database[f"{tag} Coverage"] = region.extent
 
@@ -68,12 +72,14 @@ def region_texture_metrics(region, image=None, tag='', glcm=False):
     else:
         region_image = region.intensity_image
 
-    _, _, database[f"{tag} Fourier SDI"] = (0, 0, 0)#fourier_transform_analysis(segment_image)
+    _, _, database[f"{tag} Fourier SDI"] = (0, 0, 0)
+    # fourier_transform_analysis(segment_image)
 
     database[f"{tag} Mean"] = np.mean(region_image)
     database[f"{tag} STD"] = np.std(region_image)
     database[f"{tag} Entropy"] = shannon_entropy(region_image)
-    database[f"{tag} Density"] = np.sum(region_image * region.image) / region.area
+    database[f"{tag} Density"] = np.sum(
+        region_image * region.image) / region.area
 
     if glcm:
 
@@ -86,15 +92,13 @@ def region_texture_metrics(region, image=None, tag='', glcm=False):
 
         greycoprops = greycoprops_edit(glcm)
 
-        database[f"{tag} GLCM Contrast"] = greycoprops['contrast'].mean()
-        database[f"{tag} GLCM Homogeneity"] = greycoprops['homogeneity'].mean()
-        database[f"{tag} GLCM Energy"] = greycoprops['energy'].mean()
-        database[f"{tag} GLCM Entropy"] = greycoprops['entropy'].mean()
-        database[f"{tag} GLCM Autocorrelation"] = greycoprops['autocorrelation'].mean()
-        database[f"{tag} GLCM Clustering"] = greycoprops['cluster'].mean()
-        database[f"{tag} GLCM Mean"] = greycoprops['mean'].mean()
-        database[f"{tag} GLCM Covariance"] = greycoprops['covariance'].mean()
-        database[f"{tag} GLCM Correlation"] = greycoprops['correlation'].mean()
+        metrics = ["Contrast", "Homogeneity", "Energy",
+                   "Entropy", "Autocorrelation", "Clustering",
+                   "Mean", "Covariance", "Correlation"]
+
+        for metric in metrics:
+            value = greycoprops[metric.lower()].mean()
+            database[f"{tag} GLCM {metric}"] = value
 
     return database
 
@@ -108,19 +112,23 @@ def network_metrics(network, network_red, tag=''):
     database[f"{tag} Network Cross-Links"] = (cross_links > 2).sum()
 
     try:
-        database[f"{tag} Network Degree"] = nx.degree_pearson_correlation_coefficient(network, weight='r')**2
-    except:
-        database[f"{tag} Network Degree"] = None
+        value = nx.degree_pearson_correlation_coefficient(
+            network, weight='r') ** 2
+    except Exception:
+        value = None
+    database[f"{tag} Network Degree"] = value
 
     try:
-        database[f"{tag} Network Eigenvalue"] = np.real(nx.adjacency_spectrum(network_red).max())
-    except:
-        database[f"{tag} Network Eigenvalue"] = None
+        value = np.real(nx.adjacency_spectrum(network_red).max())
+    except Exception:
+        value = None
+    database[f"{tag} Network Eigenvalue"] = value
 
     try:
-        database[f"{tag} Network Connectivity"] = nx.algebraic_connectivity(network_red, weight='r')
-    except:
-        database[f"{tag} Network Connectivity"] = None
+        value = nx.algebraic_connectivity(network_red, weight='r')
+    except Exception:
+        value = None
+    database[f"{tag} Network Connectivity"] = value
 
     return database
 
@@ -144,12 +152,13 @@ def fibre_metrics(tot_fibres):
 
     for fibre in tot_fibres:
         fibre_series = fibre.generate_database()
-        database = database.append(fibre_series, ignore_index=True)
+        database = database.append(
+            fibre_series, ignore_index=True)
 
     return database
 
 
-def fibre_network_metrics(fibre_networks, image=None, sigma=0.0001):
+def fibre_network_metrics(fibre_networks):
     """Analysis of list of `FibreNetwork` objects
 
     Parameters
@@ -166,12 +175,6 @@ def fibre_network_metrics(fibre_networks, image=None, sigma=0.0001):
 
     database = pd.DataFrame()
 
-    if image is not None:
-        nematic_tensor = form_structure_tensor(image, sigma)
-    else:
-        nematic_tensor = form_structure_tensor(
-            fibre_networks[0].image, sigma)
-
     for i, fibre_network in enumerate(fibre_networks):
         # if segment.filled_area >= 1E-2 * image_shg.size:
 
@@ -179,17 +182,14 @@ def fibre_network_metrics(fibre_networks, image=None, sigma=0.0001):
 
         metrics = fibre_network.generate_database()
 
-        nematic_metrics = nematic_tensor_metrics(
-            fibre_network.region, nematic_tensor, 'Fibre Network')
-
         fibre_network_series = pd.concat(
-            (fibre_network_series, metrics, nematic_metrics))
+            (fibre_network_series, metrics))
 
         metrics = fibre_metrics(fibre_network.fibres)
         mean_metrics = metrics.mean()
 
-        fibre_network_series['Mean Fibre Waviness'] = mean_metrics['Fibre Waviness']
-        fibre_network_series['Mean Fibre Length'] = mean_metrics['Fibre Length']
+        for metric in ['Fibre Waviness', 'Fibre Length']:
+            fibre_network_series[f'Mean {metric}'] = mean_metrics[metric]
         fibre_network_series['SHG Fibre Cross-Link Density'] = (
                 fibre_network_series['SHG Network Cross-Links'] / len(metrics))
 
@@ -224,12 +224,12 @@ def segment_metrics(segments, image=None, sigma=0.0001):
 
     for index, segment in enumerate(segments):
 
-        cell_series = segment.generate_database()
+        segment_series = segment.generate_database()
 
         nematic_metrics = nematic_tensor_metrics(
             segment.region, nematic_tensor, segment._tag)
-        cell_series = pd.concat((cell_series, nematic_metrics))
+        segment_series = pd.concat((segment_series, nematic_metrics))
 
-        database = database.append(cell_series, ignore_index=True)
+        database = database.append(segment_series, ignore_index=True)
 
     return database

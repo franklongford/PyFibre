@@ -16,7 +16,7 @@ from pyfibre.model.tools.figures import (
 )
 from pyfibre.model.tools.preprocessing import nl_means
 from pyfibre.model.objects.multi_image import (
-    MultiImage, SHGImage, SHGPLImage, SHGPLTransImage)
+    SHGImage, SHGPLImage, SHGPLTransImage)
 from pyfibre.io.object_io import (
     save_fibre_networks, load_fibre_networks,
     save_fibre_segments, load_fibre_segments,
@@ -50,7 +50,9 @@ class ImageAnalyser:
     def get_analysis_options(self, multi_image, filename):
         """Get image-specific options"""
 
-        network = self.workflow.ow_network and isinstance(multi_image, SHGImage)
+        type_check = isinstance(multi_image, SHGImage)
+
+        network = type_check and self.workflow.ow_network
         segment = network or self.workflow.ow_segment
         metric = segment or self.workflow.ow_metric
 
@@ -58,7 +60,8 @@ class ImageAnalyser:
             load_network(filename, "network")
             load_fibre_networks(filename)
         except Exception:
-            logger.info("Cannot load networks for {}".format(filename))
+            logger.info(
+                f"Cannot load networks for {filename}")
             network = True
             segment = True
             metric = True
@@ -67,7 +70,8 @@ class ImageAnalyser:
             load_fibre_segments(filename)
             load_cell_segments(filename)
         except Exception:
-            logger.info("Cannot load segments for {}".format(filename))
+            logger.info(
+                f"Cannot load segments for {filename}")
             segment = True
             metric = True
 
@@ -76,7 +80,8 @@ class ImageAnalyser:
             load_database(filename, 'fibre_metric')
             load_database(filename, 'cell_metric')
         except (UnpicklingError, Exception):
-            logger.info("Cannot load metrics for {}".format(filename))
+            logger.info(
+                f"Cannot load metrics for {filename}")
             metric = True
 
         return network, segment, metric
@@ -116,12 +121,14 @@ class ImageAnalyser:
                 *self.workflow.p_denoise)
         )
 
-        image_nl = nl_means(image_equal, p_denoise=self.workflow.p_denoise)
+        image_nl = nl_means(
+            image_equal, p_denoise=self.workflow.p_denoise)
 
         # Call FIRE algorithm to extract full image network
         logger.debug(
-            f"Calling FIRE algorithm using image scale "
-            f"{self.workflow.scale}  alpha  {self.workflow.alpha}"
+            f"Calling FIRE algorithm using "
+            f"image scale {self.workflow.scale}  "
+            f"alpha  {self.workflow.alpha}"
         )
         network = build_network(
             image_nl,
@@ -242,7 +249,8 @@ class ImageAnalyser:
             fibre_region_image = create_region_image(
                 multi_image.shg_image, fibre_regions)
 
-            create_figure(multi_image.shg_image, figname + '_SHG', cmap='binary_r')
+            create_figure(multi_image.shg_image, figname + '_SHG',
+                          cmap='binary_r')
             create_figure(tensor_image, figname + '_tensor')
             create_figure(network_image, figname + '_network')
             create_figure(fibre_image, figname + '_fibre')
@@ -258,15 +266,19 @@ class ImageAnalyser:
                 multi_image.pl_image, cell_regions)
             create_figure(cell_region_image, figname + '_cell_seg')
             create_figure(
-                multi_image.pl_image, figname + '_PL', cmap='binary_r')
+                multi_image.pl_image, figname + '_PL',
+                cmap='binary_r')
 
             if isinstance(multi_image, SHGPLTransImage):
                 create_figure(
-                    multi_image.trans_image, figname + '_trans', cmap='binary_r')
+                    multi_image.trans_image, figname + '_trans',
+                    cmap='binary_r')
 
         end_fig = time.time()
 
-        logger.info(f"TOTAL FIGURE TIME = {round(end_fig - start_fig, 3)} s")
+        logger.info(
+            f"TOTAL FIGURE TIME = "
+            f"{round(end_fig - start_fig, 3)} s")
 
     def get_filenames(self, prefix):
 
@@ -302,7 +314,8 @@ class ImageAnalyser:
         """
 
         filename, figname = self._create_directory(prefix)
-        network, segment, metric = self.get_analysis_options(multi_image, filename)
+        network, segment, metric = self.get_analysis_options(
+            multi_image, filename)
 
         logger.debug(f"Analysis options:\n "
                      f"Extract Network = {network}\n "

@@ -1,6 +1,6 @@
 """
 ColECM: Collagen ExtraCellular Matrix Simulation
-ANALYSIS ROUTINE 
+ANALYSIS ROUTINE
 
 Created by: Frank Longford
 Created on: 09/03/2018
@@ -166,19 +166,20 @@ def create_network_image(image, networks, c_mode=0):
             colour = BASE_COLOURS[colours[j % len(colours)]]
 
         node_coord = [network.nodes[i]['xy'] for i in network]
-        node_coord = np.stack((node_coord))
+        node_coord = np.stack(node_coord)
 
-        mapping = zip(network.nodes, np.arange(network.number_of_nodes()))
+        mapping = zip(network.nodes,
+                      np.arange(network.number_of_nodes()))
         mapping_dict = dict(mapping)
 
         for n, node1 in enumerate(network):
             for node2 in list(network.adj[node1]):
                 m = mapping_dict[node2]
-                rr, cc, val = draw.line_aa(node_coord[m][0], node_coord[m][1],
-                                           node_coord[n][0], node_coord[n][1])
+                rr, cc, val = draw.line_aa(
+                    node_coord[m][0], node_coord[m][1],
+                    node_coord[n][0], node_coord[n][1])
 
                 for i, c in enumerate(colour):
                     rgb_image[rr, cc, i] = c * val * 255.9999
 
     return rgb_image
-
