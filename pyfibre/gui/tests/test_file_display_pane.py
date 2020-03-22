@@ -2,7 +2,6 @@ import os
 from unittest import TestCase
 
 from pyfibre.gui.file_display_pane import FileDisplayPane
-from pyfibre.io.shg_pl_reader import SHGPLTransReader
 
 source_dir = os.path.dirname(os.path.realpath(__file__))
 pyfibre_dir = os.path.dirname(os.path.dirname(source_dir))
@@ -14,7 +13,8 @@ class TestFileDisplayPane(TestCase):
 
         self.file_display = FileDisplayPane()
         self.file_path = (
-            pyfibre_dir + '/tests/fixtures/test-pyfibre-pl-shg-Stack.tif'
+            f'{pyfibre_dir}/tests/fixtures/'
+            f'test-pyfibre-pl-shg-Stack.tif'
         )
 
     def test_add_file(self):
@@ -43,7 +43,8 @@ class TestFileDisplayPane(TestCase):
     def test_remove_file(self):
 
         self.file_display.add_files(self.file_path)
-        self.file_display.remove_file([self.file_display.file_table[0]])
+        self.file_display.remove_file(
+            [self.file_display.file_table[0]])
 
         self.assertEqual(0, len(self.file_display.file_table))
 

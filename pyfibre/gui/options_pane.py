@@ -1,11 +1,10 @@
 from pyface.tasks.api import TraitsDockPane
-from pyface.api import ImageResource
 
 from traits.api import (
-    Bool, Float, List, Instance, Int, Button, File
+    Bool, Float, Int, File
 )
 from traitsui.api import (
-    View, VGroup, Item, InstanceEditor, UItem,
+    View, VGroup, Item,
     ImageEditor, RangeEditor, Group
 )
 

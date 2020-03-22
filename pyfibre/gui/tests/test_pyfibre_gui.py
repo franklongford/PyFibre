@@ -1,11 +1,10 @@
 import contextlib
 
-from unittest import mock, TestCase
+from unittest import TestCase
 
 from pyface.ui.qt4.util.gui_test_assistant import GuiTestAssistant
 
 from pyfibre.tests.probe_classes import ProbePyFibreGUI
-from pyfibre.gui.pyfibre_main_task import PyFibreMainTask
 
 
 class TestPyFibreGUI(GuiTestAssistant, TestCase):

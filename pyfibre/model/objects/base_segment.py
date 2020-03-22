@@ -42,15 +42,11 @@ class BaseSegment:
             self.region, tag=self._tag)
 
         if image is None:
-            if self.image is None:
-                texture_metrics = region_texture_metrics(
-                    self.region, tag=self._tag)
-            else:
-                texture_metrics = region_texture_metrics(
-                    self.region, image=self.image, tag=self._tag)
-        else:
-            texture_metrics = region_texture_metrics(
-                self.region, image=image, tag=self._tag)
+            if self.image is not None:
+                image = self.image
+
+        texture_metrics = region_texture_metrics(
+            self.region, image=image, tag=self._tag)
 
         database = database.append(shape_metrics, ignore_index=False)
         database = database.append(texture_metrics, ignore_index=False)
