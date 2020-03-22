@@ -39,7 +39,7 @@ class BaseSegment:
         database = pd.Series(dtype=object)
 
         shape_metrics = region_shape_metrics(
-            self.region, tag=self._tag)
+            self.region, tag=f"{self._tag} Segment")
 
         if image is None:
             if self.image is not None:

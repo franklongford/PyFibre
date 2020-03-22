@@ -50,9 +50,9 @@ class TestMetricAnalyser(TestCase):
         )
 
         self.assertEqual(2, len(local_dataframes))
-        self.assertEqual((1, 35), local_dataframes[0].shape)
+        self.assertEqual((1, 32), local_dataframes[0].shape)
         self.assertIsNone(local_dataframes[1])
-        self.assertEqual((11,), global_dataframe.shape)
+        self.assertEqual((9,), global_dataframe.shape)
 
         global_dataframe, local_dataframes = generate_metrics(
             ProbeSHGPLTransImage(),
@@ -64,6 +64,6 @@ class TestMetricAnalyser(TestCase):
         )
 
         self.assertEqual(2, len(local_dataframes))
-        self.assertEqual((1, 35), local_dataframes[0].shape)
+        self.assertEqual((1, 32), local_dataframes[0].shape)
         self.assertEqual((1, 17), local_dataframes[1].shape)
-        self.assertEqual((18,), global_dataframe.shape)
+        self.assertEqual((16,), global_dataframe.shape)

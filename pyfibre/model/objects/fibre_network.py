@@ -72,10 +72,11 @@ class FibreNetwork(BaseGraphSegment):
         """Generates a Pandas database with all graph and segment metrics
         for assigned image"""
 
-        database = network_metrics(self.graph, self.red_graph, 'SHG')
+        database = network_metrics(
+            self.graph, self.red_graph, 'Fibre')
 
         shape_metrics = region_shape_metrics(
-            self.region, tag='Network')
+            self.region, tag='Fibre Network')
         database = database.append(
             shape_metrics, ignore_index=False)
 

@@ -192,8 +192,8 @@ def fibre_network_metrics(fibre_networks):
 
         for metric in ['Fibre Waviness', 'Fibre Length']:
             fibre_network_series[f'Mean {metric}'] = mean_metrics[metric]
-        fibre_network_series['SHG Fibre Cross-Link Density'] = (
-                fibre_network_series['SHG Network Cross-Links'] / len(metrics))
+        fibre_network_series['Fibre Network Cross-Link Density'] = (
+            fibre_network_series['Fibre Network Cross-Links'] / len(metrics))
 
         database = database.append(fibre_network_series, ignore_index=True)
 
@@ -229,7 +229,7 @@ def segment_metrics(segments, image=None, sigma=0.0001):
         segment_series = segment.generate_database()
 
         nematic_metrics = nematic_tensor_metrics(
-            segment.region, nematic_tensor, segment._tag)
+            segment.region, nematic_tensor, f"{segment._tag} Segment")
         segment_series = pd.concat((segment_series, nematic_metrics))
 
         database = database.append(segment_series, ignore_index=True)

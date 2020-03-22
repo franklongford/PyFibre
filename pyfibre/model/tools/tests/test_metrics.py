@@ -82,4 +82,4 @@ class TestAnalysis(TestCase):
             [self.fibre_network])
 
         self.assertIsInstance(metrics, pd.DataFrame)
-        self.assertEqual(18, len(metrics.columns))
+        self.assertEqual(15, len(metrics.columns))

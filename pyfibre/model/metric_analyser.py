@@ -35,20 +35,19 @@ class MetricAnalyser:
     def _global_averaging(self, global_metrics, local_metrics, global_binary):
 
         global_metrics = global_metrics.drop(
-            ['SHG Fibre Hu Moment 3', 'SHG Fibre Hu Moment 4'])
+            ['SHG Fibre Hu Moment 3',
+             'SHG Fibre Hu Moment 4'])
         global_metrics['No. Fibres'] = sum(
             [len(fibre_network.fibres)
              for fibre_network in self.networks])
         global_metrics['SHG Fibre Density'] = np.mean(
             self.image[np.where(global_binary)])
-        global_metrics['SHG Fibre Cross-Link Density'] = np.nanmean(
-            local_metrics['SHG Fibre Cross-Link Density'])
 
         shape_metrics = ['Area', 'Eccentricity', 'Linearity',
                          'Coverage', 'Hu Moment 1', 'Hu Moment 2']
         for metric in shape_metrics:
             global_metrics[f'SHG Fibre {metric}'] = np.mean(
-                local_metrics[f'Segment {metric}'])
+                local_metrics[f'Fibre Segment {metric}'])
 
         texture_metrics = ['Mean', 'STD', 'Entropy', 'Density']
         for metric in texture_metrics:
@@ -60,10 +59,11 @@ class MetricAnalyser:
             global_metrics[f'SHG Fibre {metric}'] = np.nanmean(
                 local_metrics[f'Mean Fibre {metric}'])
 
-        network_metrics = ['Degree', 'Eigenvalue', 'Connectivity']
+        network_metrics = ['Degree', 'Eigenvalue', 'Connectivity',
+                           'Cross-Link Density']
         for metric in network_metrics:
             global_metrics[f'SHG Fibre Network {metric}'] = np.nanmean(
-                local_metrics[f'SHG Network {metric}'])
+                local_metrics[f'Fibre Network {metric}'])
 
     def _get_metrics(self, attr, metric_function, tag):
 
