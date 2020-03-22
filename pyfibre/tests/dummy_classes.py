@@ -24,7 +24,7 @@ class DummyFibre(Fibre):
                          np.random.random_sample()]
 
         super(DummyFibre, self).__init__(
-            nodes=[], *args, **kwargs
+            nodes=[], direction=direction, fibre_l=fibre_l
         )
 
 

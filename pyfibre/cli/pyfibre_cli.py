@@ -1,11 +1,9 @@
 """
 PyFibre: Fiborous Image Analysis Program
-MAIN ROUTINE 
+MAIN ROUTINE
 
 Created by: Frank Longford
 Created on: 16/08/2018
-
-Last Modified: 18/02/2019
 """
 import logging
 

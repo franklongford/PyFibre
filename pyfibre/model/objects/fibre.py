@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 
-from pyfibre.model.tools.metrics import region_shape_metrics
 from pyfibre.model.tools.fibre_utilities import branch_angles
 
 from .base_graph import BaseGraph
