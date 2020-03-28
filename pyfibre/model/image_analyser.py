@@ -11,88 +11,67 @@ from pyfibre.model.tools.extraction import (
     build_network, fibre_network_assignment
 )
 from pyfibre.model.tools.figures import (
-    create_figure, create_tensor_image, create_segment_image,
+    create_figure, create_tensor_image, create_region_image,
     create_network_image
 )
 from pyfibre.model.tools.preprocessing import nl_means
+from pyfibre.model.objects.multi_image import (
+    SHGImage, SHGPLImage, SHGPLTransImage)
 from pyfibre.io.object_io import (
     save_fibre_networks, load_fibre_networks,
-    save_cells, load_cells)
+    save_fibre_segments, load_fibre_segments,
+    save_cell_segments, load_cell_segments)
 from pyfibre.io.network_io import save_network, load_network
 from pyfibre.io.database_io import save_database, load_database
 
+from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
 from pyfibre.model.metric_analyser import generate_metrics
-from pyfibre.model.pyfibre_segmentation import cell_segmentation
 
 logger = logging.getLogger(__name__)
 
 
 class ImageAnalyser:
 
-    def __init__(self, scale=1.25, p_denoise=(5, 35), sigma=0.5, alpha=0.5,
-                 shg_analysis=True, pl_analysis=False, ow_metric=False,
-                 ow_segment=False, ow_network=False, save_figures=False):
+    def __init__(self, workflow=None):
         """ Set parameters for ImageAnalyser routines
 
         Parameters
         ----------
-        scale: float (optional)
-            Unit of scale to resize image
-        p_denoise: tuple (float); shape=(2,) (optional)
-            Parameters for non-linear means denoise algorithm
-            (used to remove noise)
-        sigma: float (optional)
-            Standard deviation of Gaussian smoothing
-        alpha: float (optional)
-            Metric for hysterisis segmentation
-        shg_analysis: bool (optional)
-            Toggles analysis of SHG image data
-        pl_analysis: bool (optional)
-            Toggles analysis of PL image data
-        ow_metric: bool (optional)
-            Toggles force overwrite of existing metric analysis
-        ow_segment: bool (optional)
-            Toggles force overwrite of existing segmentation
-        ow_network: bool (optional)
-            Toggles force overwrite of existing fibre network
-        save_figures: bool (optional)
-            Toggles creation of figures
+        workflow: PyFibreWorkflow
+            Instance containing information regarding PyFibre's
+            Workflow
         """
-        self.shg_analysis = shg_analysis
-        self.pl_analysis = pl_analysis
 
-        self.scale = scale
-        self.p_denoise = p_denoise
-        self.sigma = sigma
-        self.alpha = alpha
+        if workflow is not None:
+            self.workflow = workflow
+        else:
+            self.workflow = PyFibreWorkflow()
 
-        self.ow_metric = ow_metric
-        self.ow_segment = ow_segment
-        self.ow_network = ow_network
-
-        self.save_figures = save_figures
-
-    def get_analysis_options(self, filename):
+    def get_analysis_options(self, multi_image, filename):
         """Get image-specific options"""
 
-        network = self.ow_network
-        segment = network or self.ow_segment
-        metric = segment or self.ow_metric
+        type_check = isinstance(multi_image, SHGImage)
+
+        network = type_check and self.workflow.ow_network
+        segment = network or self.workflow.ow_segment
+        metric = segment or self.workflow.ow_metric
 
         try:
             load_network(filename, "network")
+            load_fibre_networks(filename)
         except Exception:
-            logger.info("Cannot load networks for {}".format(filename))
+            logger.info(
+                f"Cannot load networks for {filename}")
             network = True
             segment = True
             metric = True
 
         try:
-            load_fibre_networks(filename)
-            if self.pl_analysis:
-                load_cells(filename)
+            load_fibre_segments(filename)
+            load_cell_segments(filename)
         except Exception:
-            logger.info("Cannot load segments for {}".format(filename))
+            logger.info(
+                f"Cannot load segments for {filename}")
             segment = True
             metric = True
 
@@ -101,7 +80,8 @@ class ImageAnalyser:
             load_database(filename, 'fibre_metric')
             load_database(filename, 'cell_metric')
         except (UnpicklingError, Exception):
-            logger.info("Cannot load metrics for {}".format(filename))
+            logger.info(
+                f"Cannot load metrics for {filename}")
             metric = True
 
         return network, segment, metric
@@ -137,19 +117,31 @@ class ImageAnalyser:
         logger.debug("Applying AHE to SHG image")
         image_equal = equalize_adapthist(multi_image.shg_image)
         logger.debug(
-            "Performing NL Denoise using local windows {} {}".format(*self.p_denoise)
+            "Performing NL Denoise using local windows {} {}".format(
+                *self.workflow.p_denoise)
         )
 
-        image_nl = nl_means(image_equal, p_denoise=self.p_denoise)
+        image_nl = nl_means(
+            image_equal, p_denoise=self.workflow.p_denoise)
 
         # Call FIRE algorithm to extract full image network
         logger.debug(
-            f"Calling FIRE algorithm using image scale {self.scale}  alpha  {self.alpha}"
+            f"Calling FIRE algorithm using "
+            f"image scale {self.workflow.scale}  "
+            f"alpha  {self.workflow.alpha}"
         )
-        network = build_network(image_nl, scale=self.scale,
-                                sigma=self.sigma, alpha=self.alpha)
+        network = build_network(
+            image_nl,
+            scale=self.workflow.scale,
+            sigma=self.workflow.sigma,
+            alpha=self.workflow.alpha)
 
         save_network(network, filename, "network")
+
+        fibre_networks = fibre_network_assignment(
+            network, image=multi_image.shg_image)
+
+        save_fibre_networks(fibre_networks, filename)
 
         end_time = time.time()
 
@@ -157,7 +149,7 @@ class ImageAnalyser:
             f"TOTAL NETWORK EXTRACTION TIME = "
             f"{round(end_time - start_time, 3)} s")
 
-        return network
+        return network, fibre_networks
 
     def segment_analysis(self, multi_image, filename):
         """Segment image into fiborous and cellular regions based on
@@ -173,25 +165,24 @@ class ImageAnalyser:
 
         start_time = time.time()
 
-        network = load_network(filename, "network")
+        fibre_networks = load_fibre_networks(
+            filename, image=multi_image.shg_image)
 
-        fibre_networks = fibre_network_assignment(
-            network, image=multi_image.shg_image)
-
-        cells = cell_segmentation(
+        logger.debug("Segmenting Fibre and Cell regions")
+        fibre_segments, cell_segments = multi_image.segmentation_algorithm(
             multi_image, fibre_networks,
-            scale=self.scale,
-            pl_analysis=self.pl_analysis)
+            scale=self.workflow.scale
+        )
 
-        save_fibre_networks(fibre_networks, filename)
-        save_cells(cells, filename, multi_image.shape)
+        save_fibre_segments(fibre_segments, filename, multi_image.shape)
+        save_cell_segments(cell_segments, filename, multi_image.shape)
 
         end_time = time.time()
 
         logger.info(f"TOTAL SEGMENTATION TIME = "
                     f"{round(end_time - start_time, 3)} s")
 
-        return fibre_networks, cells
+        return fibre_segments, cell_segments
 
     def metric_analysis(self, multi_image, filename):
         """Perform metric analysis on segmented image
@@ -209,18 +200,19 @@ class ImageAnalyser:
         # Load networks and segments"
         fibre_networks = load_fibre_networks(
             filename, image=multi_image.shg_image)
-        cells = load_cells(
+        fibre_segments = load_fibre_segments(
+            filename, image=multi_image.shg_image)
+        cell_segments = load_cell_segments(
             filename, image=multi_image.pl_image)
 
         global_dataframe, local_dataframes = generate_metrics(
-            multi_image, filename, fibre_networks, cells,
-            self.sigma, self.shg_analysis, self.pl_analysis)
+            multi_image, filename, fibre_networks,
+            fibre_segments, cell_segments,
+            self.workflow.sigma)
 
-        if self.shg_analysis:
-            save_database(global_dataframe, filename, 'global_metric')
-            save_database(local_dataframes[0], filename, 'fibre_metric')
-        if self.pl_analysis:
-            save_database(local_dataframes[1], filename, 'cell_metric')
+        save_database(global_dataframe, filename, 'global_metric')
+        save_database(local_dataframes[0], filename, 'fibre_metric')
+        save_database(local_dataframes[1], filename, 'cell_metric')
 
         end_time = time.time()
 
@@ -234,41 +226,59 @@ class ImageAnalyser:
 
         fibre_networks = load_fibre_networks(
             filename, image=multi_image.shg_image)
+        fibre_segments = load_fibre_segments(
+            filename, image=multi_image.shg_image)
 
-        segments = [fibre_network.segment
-                    for fibre_network in fibre_networks]
-        fibres = [fibre_network.fibres
-                  for fibre_network in fibre_networks]
+        fibres = [
+            fibre_network.fibres for fibre_network in fibre_networks]
+        network_graphs = [
+            fibre_network.graph for fibre_network in fibre_networks]
+        fibre_graphs = [
+            fibre.graph for fibre in flatten_list(fibres)]
+        fibre_regions = [
+            fibre_segment.region for fibre_segment in fibre_segments]
 
-        segment_graphs = [fibre_network.graph
-                          for fibre_network in fibre_networks]
-        fibre_graphs = [fibre.graph
-                        for fibre in flatten_list(fibres)]
+        if isinstance(multi_image, SHGImage):
 
-        tensor_image = create_tensor_image(multi_image.shg_image)
-        network_image = create_network_image(multi_image.shg_image, segment_graphs)
-        fibre_image = create_network_image(multi_image.shg_image, fibre_graphs, 1)
-        fibre_region_image = create_segment_image(multi_image.shg_image, segments)
+            tensor_image = create_tensor_image(
+                multi_image.shg_image)
+            network_image = create_network_image(
+                multi_image.shg_image, network_graphs)
+            fibre_image = create_network_image(
+                multi_image.shg_image, fibre_graphs, 1)
+            fibre_region_image = create_region_image(
+                multi_image.shg_image, fibre_regions)
 
-        create_figure(multi_image.shg_image, figname + '_SHG', cmap='binary_r')
-        create_figure(tensor_image, figname + '_tensor')
-        create_figure(network_image, figname + '_network')
-        create_figure(fibre_image, figname + '_fibre')
-        create_figure(fibre_region_image, figname + '_fibre_seg')
+            create_figure(multi_image.shg_image, figname + '_SHG',
+                          cmap='binary_r')
+            create_figure(tensor_image, figname + '_tensor')
+            create_figure(network_image, figname + '_network')
+            create_figure(fibre_image, figname + '_fibre')
+            create_figure(fibre_region_image, figname + '_fibre_seg')
 
-        cells = load_cells(filename, image=multi_image.pl_image)
+        if isinstance(multi_image, SHGPLImage):
 
-        cell_segments = [cell.segment for cell in cells]
-        cell_region_image = create_segment_image(multi_image.pl_image, cell_segments)
-        create_figure(cell_region_image, figname + '_cell_seg')
+            cell_segments = load_cell_segments(
+                filename, image=multi_image.pl_image)
 
-        if self.pl_analysis:
-            create_figure(multi_image.pl_image, figname + '_PL', cmap='binary_r')
-            create_figure(multi_image.trans_image, figname + '_trans', cmap='binary_r')
+            cell_regions = [cell.region for cell in cell_segments]
+            cell_region_image = create_region_image(
+                multi_image.pl_image, cell_regions)
+            create_figure(cell_region_image, figname + '_cell_seg')
+            create_figure(
+                multi_image.pl_image, figname + '_PL',
+                cmap='binary_r')
+
+            if isinstance(multi_image, SHGPLTransImage):
+                create_figure(
+                    multi_image.trans_image, figname + '_trans',
+                    cmap='binary_r')
 
         end_fig = time.time()
 
-        logger.info(f"TOTAL FIGURE TIME = {round(end_fig - start_fig, 3)} s")
+        logger.info(
+            f"TOTAL FIGURE TIME = "
+            f"{round(end_fig - start_fig, 3)} s")
 
     def get_filenames(self, prefix):
 
@@ -304,15 +314,14 @@ class ImageAnalyser:
         """
 
         filename, figname = self._create_directory(prefix)
-        network, segment, metric = self.get_analysis_options(filename)
+        network, segment, metric = self.get_analysis_options(
+            multi_image, filename)
 
         logger.debug(f"Analysis options:\n "
-                     f"shg_analysis = {self.shg_analysis}\n "
-                     f"pl_analysis = {self.pl_analysis}\n "
-                     f"network_metrics = {network}\n "
-                     f"segment_metrics = {segment}\n "
-                     f"metric_analysis = {metric}\n "
-                     f"save_figures = {self.save_figures}")
+                     f"Extract Network = {network}\n "
+                     f"Segment Image = {segment}\n "
+                     f"Generate Metrics = {metric}\n "
+                     f"Save Figures = {self.workflow.save_figures}")
 
         start = time.time()
 
@@ -325,7 +334,7 @@ class ImageAnalyser:
         if metric:
             self.metric_analysis(multi_image, filename)
 
-        if self.save_figures:
+        if self.workflow.save_figures:
             self.create_figures(multi_image, filename, figname)
 
         end = time.time()
@@ -334,13 +343,11 @@ class ImageAnalyser:
 
         databases = ()
 
-        if self.shg_analysis:
-            global_dataframe = load_database(filename, 'global_metric')
-            fibre_dataframe = load_database(filename, 'fibre_metric')
-            databases += (global_dataframe, fibre_dataframe)
+        global_dataframe = load_database(filename, 'global_metric')
+        fibre_dataframe = load_database(filename, 'fibre_metric')
+        databases += (global_dataframe, fibre_dataframe)
 
-        if self.pl_analysis:
-            cell_dataframe = load_database(filename, 'cell_metric')
-            databases += (cell_dataframe,)
+        cell_dataframe = load_database(filename, 'cell_metric')
+        databases += (cell_dataframe,)
 
         return databases

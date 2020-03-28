@@ -4,7 +4,7 @@ from tempfile import NamedTemporaryFile
 
 import numpy as np
 
-from pyfibre.tests.fixtures import test_image_path
+from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 
 from .. utilities import (
     parse_files, parse_file_path, pop_under_recursive,
@@ -16,7 +16,7 @@ from .. utilities import (
 class TestUtilities(TestCase):
 
     def setUp(self):
-        self.file_name = test_image_path
+        self.file_name = test_shg_pl_trans_image_path
         self.directory = os.path.dirname(self.file_name)
         self.key = 'shg'
         self.test_dict = {
@@ -162,3 +162,10 @@ class TestUtilities(TestCase):
             test_data = load_json(temp_file.name)
 
         self.assertDictEqual(data, test_data)
+
+        # Test non-duplicated extensions
+        with NamedTemporaryFile() as temp_file:
+
+            save_json(data, temp_file.name + '.json')
+            self.assertTrue(os.path.exists(
+                temp_file.name + '.json'))

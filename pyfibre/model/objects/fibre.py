@@ -1,13 +1,12 @@
 import pandas as pd
 import numpy as np
 
-from pyfibre.model.tools.metrics import segment_shape_metrics
 from pyfibre.model.tools.fibre_utilities import branch_angles
 
-from .base_graph_segment import BaseGraphSegment
+from .base_graph import BaseGraph
 
 
-class Fibre(BaseGraphSegment):
+class Fibre(BaseGraph):
     """Container for a Networkx Graph and scikit-image region
     representing a single, un-branched fibre"""
 
@@ -69,18 +68,12 @@ class Fibre(BaseGraphSegment):
         return np.nan
 
     def generate_database(self, image=None):
-        """Generates a Pandas database with all graph and segment metrics
-        for assigned image"""
+        """Generates a Pandas database with fibre metrics"""
 
         database = pd.Series(dtype=object)
 
         database['Fibre Waviness'] = self.waviness
         database['Fibre Length'] = self.fibre_l
         database['Fibre Angle'] = self.angle
-
-        metrics = segment_shape_metrics(
-            self.segment, tag='Fibre')
-
-        database = database.append(metrics, ignore_index=False)
 
         return database

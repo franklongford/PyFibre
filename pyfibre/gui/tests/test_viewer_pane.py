@@ -3,8 +3,9 @@ from unittest import TestCase
 import numpy as np
 
 from pyfibre.gui.viewer_pane import (
-    ViewerPane, ImageTab
+    ViewerPane
 )
+from pyfibre.gui.image_tab import ImageTab
 from pyfibre.model.objects.multi_image import SHGPLTransImage
 
 

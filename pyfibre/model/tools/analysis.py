@@ -1,11 +1,9 @@
 """
 PyFibre
-Image Tools Library 
+Image Tools Library
 
 Created by: Frank Longford
 Created on: 09/03/2018
-
-Last Modified: 18/02/2019
 """
 
 import logging
@@ -18,7 +16,7 @@ from pyfibre.utilities import matrix_split
 logger = logging.getLogger(__name__)
 
 
-def fourier_transform_analysis(image, n_split=1, sigma=None, n_bins=200):
+def fourier_transform_analysis(image, n_split=1, sigma=None):
     """
     Calculates fourier amplitude spectrum for image
 
@@ -39,29 +37,34 @@ def fourier_transform_analysis(image, n_split=1, sigma=None, n_bins=200):
     angles, fourier_spec:  array_like of floats
         Angles and average fourier amplitudes of FFT performed on
         image
+    sdi: float
+
     """
 
-    if sigma != None:
+    if sigma is not None:
         image = gaussian_filter(image, sigma)
 
     sampled_regions = matrix_split(image, n_split, n_split)
+    sdi = []
 
     for region in sampled_regions:
 
         image_fft = np.fft.fft2(region)
         image_fft[0][0] = 0
-        image_fft = np.fft.fftshift(image_fft)
+        # image_fft = np.fft.fftshift(image_fft)
 
-        real = np.real(image_fft)
-        imag = np.imag(image_fft)
+        # real = np.real(image_fft)
+        # imag = np.imag(image_fft)
 
-        magnitude = np.abs(image_fft)
-        phase = np.angle(image_fft, deg=True)
+        # magnitude = np.abs(image_fft)
+        # phase = np.angle(image_fft, deg=True)
 
-        image_grid = np.mgrid[:region.shape[0], :region.shape[1]]
+        image_grid = np.mgrid[: region.shape[0], : region.shape[1]]
         for i in range(2):
-            image_grid[i] -= region.shape[0] * np.array(2 * image_grid[i] / region.shape[0],
-                            dtype=int)
+            image_grid[i] -= region.shape[0] * np.array(
+                2 * image_grid[i] / region.shape[0],
+                dtype=int
+            )
         image_radius = np.sqrt(np.sum(image_grid**2, axis=0))
 
         angles = image_grid[0] / image_radius
@@ -69,22 +72,23 @@ def fourier_transform_analysis(image, n_split=1, sigma=None, n_bins=200):
         angles[0][0] = 0
         angles = np.fft.fftshift(angles)
 
-        sdi = np.mean(fourier_spec) / np.max(fourier_spec)
+        fourier_spec = np.ones(angles.shape)
+        sdi.append(np.mean(fourier_spec) / np.max(fourier_spec))
 
     return angles, fourier_spec, sdi
 
 
 def tensor_analysis(tensor):
     """
-    Calculates eigenvalues and eigenvectors of average tensor over area^2 pixels
-    for n_samples
+    Calculates eigenvalues and eigenvectors of average tensor over
+    area^2 pixels for n_samples
 
     Parameters
     ----------
     tensor :  array_like of floats
-        Average tensor over area under examination. Can either refer to a single image
-        or stack of images; in which case outer dimension must represent a different
-        image in the stack
+        Average tensor over area under examination. Can either
+        refer to a single image or stack of images; in which case outer
+        dimension must represent a different image in the stack
 
     Returns
     -------

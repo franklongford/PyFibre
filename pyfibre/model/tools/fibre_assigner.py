@@ -101,10 +101,12 @@ class FibreAssigner:
                 )
             )
 
-            cos_the = branch_angles(fibre.direction, new_coord_vec, new_coord_r)
+            cos_the = branch_angles(
+                fibre.direction, new_coord_vec, new_coord_r)
 
             try:
-                indices = np.argwhere(cos_the + 1 <= self.theta_thresh).flatten()
+                indices = np.argwhere(
+                    cos_the + 1 <= self.theta_thresh).flatten()
                 straight = (cos_the[indices] + 1).argmin()
                 index = indices[straight]
 

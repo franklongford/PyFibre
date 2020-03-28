@@ -1,8 +1,11 @@
 from traits.api import (
-    HasTraits, ArrayOrNone, Property, Tuple, List,
+    HasTraits, ArrayOrNone, Property, Tuple, List, Callable
 )
 
 from pyfibre.model.tools.preprocessing import clip_intensities
+from pyfibre.model.tools.segmentation import (
+    shg_segmentation, shg_pl_segmentation,
+    shg_pl_trans_segmentation)
 
 
 class MultiImage(HasTraits):
@@ -14,6 +17,8 @@ class MultiImage(HasTraits):
     shape = Property(Tuple, depends_on='image_stack')
 
     size = Property(Tuple, depends_on='image_stack')
+
+    segmentation_algorithm = Callable()
 
     def __len__(self):
         return len(self.image_stack)
@@ -48,23 +53,35 @@ class MultiImage(HasTraits):
                 image, p_intensity=self.p_intensity)
 
 
-class SHGPLImage(MultiImage):
+class SHGImage(MultiImage):
 
     shg_image = Property(ArrayOrNone, depends_on='image_stack')
+
+    def _image_stack_default(self):
+        return [None]
+
+    def _segmentation_algorithm_default(self):
+        return shg_segmentation
+
+    def _get_shg_image(self):
+        return self.image_stack[0]
+
+    def assign_shg_image(self, image):
+        self.image_stack[0] = image
+
+
+class SHGPLImage(SHGImage):
 
     pl_image = Property(ArrayOrNone, depends_on='image_stack')
 
     def _image_stack_default(self):
         return [None, None]
 
-    def _get_shg_image(self):
-        return self.image_stack[0]
+    def _segmentation_algorithm_default(self):
+        return shg_pl_segmentation
 
     def _get_pl_image(self):
         return self.image_stack[1]
-
-    def assign_shg_image(self, image):
-        self.image_stack[0] = image
 
     def assign_pl_image(self, image):
         self.image_stack[1] = image
@@ -76,6 +93,9 @@ class SHGPLTransImage(SHGPLImage):
 
     def _image_stack_default(self):
         return [None, None, None]
+
+    def _segmentation_algorithm_default(self):
+        return shg_pl_trans_segmentation
 
     def _get_trans_image(self):
         return self.image_stack[2]

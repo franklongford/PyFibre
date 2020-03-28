@@ -20,7 +20,7 @@ from skimage.measure import regionprops
 
 from pyfibre.utilities import label_set
 
-from .segment_utilities import segment_check, draw_network
+from .utilities import region_check, draw_network
 
 logger = logging.getLogger(__name__)
 
@@ -58,16 +58,16 @@ def stack_to_binary(stack):
     return binary
 
 
-def segments_to_stack(segments, shape):
+def regions_to_stack(regions, shape):
     """Convert a list of scikit-image segments to a single binary mask"""
     stack = np.zeros(
-        (len(segments),) + shape, dtype=int)
+        (len(regions),) + shape, dtype=int)
 
-    for index, segment in enumerate(segments):
-        minr, minc, maxr, maxc = segment.bbox
+    for index, region in enumerate(regions):
+        minr, minc, maxr, maxc = region.bbox
         indices = np.mgrid[minr:maxr, minc:maxc]
         binary_image = np.zeros(shape, dtype=int)
-        binary_image[(indices[0], indices[1])] += segment.image
+        binary_image[(indices[0], indices[1])] += region.image
         stack[index] += binary_image
 
     stack = np.where(stack, 1, 0)
@@ -75,41 +75,42 @@ def segments_to_stack(segments, shape):
     return stack
 
 
-def stack_to_segments(stack, intensity_image=None, min_size=0, min_frac=0):
-    """Convert a binary mask image to a set of scikit-image segment objects"""
+def stack_to_regions(stack, intensity_image=None, min_size=0, min_frac=0):
+    """Convert a binary mask image to a set of scikit-image
+    regionprops objects"""
 
-    segments = []
+    regions = []
 
     for binary in stack:
         labels = measure.label(binary.astype(np.int))
-        segments += [
-            segment
-            for segment in regionprops(
+        regions += [
+            region
+            for region in regionprops(
                 labels, intensity_image=intensity_image)
-            if segment_check(segment, min_size, min_frac)
+            if region_check(region, min_size, min_frac)
         ]
 
-    segments = sort_by_area(segments)
+    regions = sort_by_area(regions)
 
-    return segments
+    return regions
 
 
-def segments_to_binary(segments, shape):
+def regions_to_binary(regions, shape):
     """Convert a list of scikit-image segments to a single binary mask"""
     binary_image = np.zeros(shape, dtype=int)
 
-    for segment in segments:
-        minr, minc, maxr, maxc = segment.bbox
+    for region in regions:
+        minr, minc, maxr, maxc = region.bbox
         indices = np.mgrid[minr:maxr, minc:maxc]
-        binary_image[(indices[0], indices[1])] += segment.image
+        binary_image[(indices[0], indices[1])] += region.image
 
     binary_image = np.where(binary_image, 1, 0)
 
     return binary_image
 
 
-def binary_to_segments(binary, intensity_image=None,
-                       min_size=0, min_frac=0):
+def binary_to_regions(binary, intensity_image=None,
+                      min_size=0, min_frac=0):
     """Convert a binary mask image to a set of scikit-image
     segment objects"""
 
@@ -118,16 +119,16 @@ def binary_to_segments(binary, intensity_image=None,
 
     labels = measure.label(binary.astype(np.int))
 
-    segments = [
-        segment
-        for segment in regionprops(
+    regions = [
+        region
+        for region in regionprops(
             labels, intensity_image=intensity_image)
-        if segment_check(segment, min_size, min_frac)
+        if region_check(region, min_size, min_frac)
     ]
 
-    segments = sort_by_area(segments)
+    regions = sort_by_area(regions)
 
-    return segments
+    return regions
 
 
 def networks_to_binary(networks, shape, area_threshold=200,
@@ -160,9 +161,9 @@ def networks_to_binary(networks, shape, area_threshold=200,
     return binary.astype(int)
 
 
-def networks_to_segments(networks, image=None, shape=None,
-                         area_threshold=200, iterations=9,
-                         sigma=None):
+def networks_to_regions(networks, image=None, shape=None,
+                        area_threshold=200, iterations=9,
+                        sigma=None):
     """Transform fibre networks into a set of scikit-image segments"""
 
     # If no intensity image is provided, make sure binary
@@ -177,7 +178,7 @@ def networks_to_segments(networks, image=None, shape=None,
                                 iterations=iterations,
                                 sigma=sigma)
 
-    segments = binary_to_segments(binary,
-                                  intensity_image=image)
+    regions = binary_to_regions(binary,
+                                intensity_image=image)
 
-    return segments
+    return regions

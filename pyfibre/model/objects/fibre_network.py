@@ -6,7 +6,7 @@ from pyfibre.io.utilities import (
     serialize_networkx_graph
 )
 from pyfibre.model.tools.metrics import (
-    segment_shape_metrics, network_metrics, segment_texture_metrics)
+    region_shape_metrics, network_metrics)
 from pyfibre.model.tools.fibre_assigner import FibreAssigner
 from pyfibre.model.tools.fibre_utilities import simplify_network
 
@@ -72,20 +72,12 @@ class FibreNetwork(BaseGraphSegment):
         """Generates a Pandas database with all graph and segment metrics
         for assigned image"""
 
-        if image is None:
-            image = self.image
+        database = network_metrics(
+            self.graph, self.red_graph, 'Fibre')
 
-        database = network_metrics(self.graph, self.red_graph, 'SHG')
-
-        shape_metrics = segment_shape_metrics(
-            self.segment, tag='Network')
-        database = database.append(shape_metrics, ignore_index=False)
-
-        try:
-            texture_metrics = segment_texture_metrics(
-                self.segment, image=image, tag='Network')
-            database = database.append(texture_metrics, ignore_index=False)
-        except AttributeError:
-            pass
+        shape_metrics = region_shape_metrics(
+            self.region, tag='Fibre Network')
+        database = database.append(
+            shape_metrics, ignore_index=False)
 
         return database

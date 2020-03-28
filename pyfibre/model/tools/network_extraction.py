@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 class NetworkExtraction:
-    """Class that extracts a complete fibre network from a provided image
-    as a single nx.Graph object"""
+    """Class that extracts a complete fibre network from a
+    provided image as a single nx.Graph object"""
 
     def __init__(self, graph=None,
                  nuc_thresh=2, lmp_thresh=0.15, angle_thresh=70,
@@ -29,15 +29,15 @@ class NetworkExtraction:
         ---------
         graph : nx.Graph, optional
             Graph object representing full network
-        fibres : list of nx.Graph, optional
-            Fibre objects used to grow and represent single un-branched
-            chains in network
         nuc_thresh : float, optional
-            Minimum distance pixel threshold to be classed as nucleation point
+            Minimum distance pixel threshold to be classed as
+            nucleation point
         lmp_thresh : float, optional
-            Minimum distance pixel threshold to be classed as lmp point
+            Minimum distance pixel threshold to be classed as
+            lmp point
         angle_thresh : float, optional
-            Maximum radian deviation of new lmp from fibre trajectory
+            Maximum radian deviation of new lmp from fibre
+            trajectory
         r_thresh : float, optional
             Maximum length of edges between nodes
         nuc_radius : float, optional
@@ -58,13 +58,16 @@ class NetworkExtraction:
 
     @property
     def theta_thresh(self):
-        return np.cos((180 - self.angle_thresh) * np.pi / 180) + 1
+        """Conversion of angle_thresh to radians"""
+        return 1 + np.cos(
+            (180 - self.angle_thresh) * np.pi / 180)
 
     def _assign_graph(self, graph=None):
         """Assign graph to self.graph"""
 
         assert isinstance(graph, nx.Graph), (
-            f"Argument `graph` must be on object of type {nx.Graph}"
+            f"Argument `graph` must be on object "
+            f"of type {nx.Graph}"
         )
         self.graph = graph
 
@@ -113,7 +116,8 @@ class NetworkExtraction:
 
             self.graph.add_nodes_from(n_nodes + np.arange(n_lmp))
             self.graph.add_edges_from(
-                [*zip(nuc * np.ones(n_lmp, dtype=int), n_nodes + np.arange(n_lmp))]
+                [*zip(nuc * np.ones(n_lmp, dtype=int),
+                      n_nodes + np.arange(n_lmp))]
             )
 
             generator = zip(
@@ -213,7 +217,8 @@ class NetworkExtraction:
                 new_node['xy'] = new_end_coord
                 new_node['nuc'] = end_node['nuc']
 
-                new_edge['r'] = np.sqrt(((new_end_coord - end_node['xy'])**2).sum())
+                new_edge['r'] = np.sqrt(
+                    ((new_end_coord - end_node['xy'])**2).sum())
                 new_node['direction'] = (new_dir_vector / new_dir_r)
 
                 end_node['growing'] = False
@@ -271,7 +276,9 @@ class NetworkExtraction:
             end = time.time()
             total_time += end - start
 
-            logger.debug("Iteration {} time = {} s, {} nodes  {}/{} fibres left to grow".format(
-                it, round(end - start, 3), n_node, len(fibre_grow), n_fibres))
+            logger.debug(
+                f"Iteration {it} time = {round(end - start, 3)} s,"
+                f" {n_node} nodes  {len(fibre_grow)}/{n_fibres} "
+                f"fibres left to grow")
 
         return self.graph

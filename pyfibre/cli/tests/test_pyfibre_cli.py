@@ -6,7 +6,7 @@ import pandas as pd
 
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 from pyfibre.model.image_analyser import ImageAnalyser
-from pyfibre.tests.fixtures import test_image_path
+from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 
 from ..pyfibre_cli import PyFibreCLI
 
@@ -37,24 +37,16 @@ class TestPyFibreCLI(TestCase):
         self.assertIsInstance(
             self.pyfibre_cli.reader, SHGPLTransReader)
 
-    def test_init_image_analyser(self):
+    def test_init_pyfibre_workflow(self):
 
-        self.assertEqual(
-            0.5, self.pyfibre_cli.image_analyser.sigma)
-        self.assertEqual(
-            0.5, self.pyfibre_cli.image_analyser.alpha)
-        self.assertTrue(
-            self.pyfibre_cli.image_analyser.shg_analysis)
-        self.assertFalse(
-            self.pyfibre_cli.image_analyser.pl_analysis)
-        self.assertFalse(
-            self.pyfibre_cli.image_analyser.ow_network)
-        self.assertFalse(
-            self.pyfibre_cli.image_analyser.ow_segment)
-        self.assertFalse(
-            self.pyfibre_cli.image_analyser.ow_metric)
-        self.assertFalse(
-            self.pyfibre_cli.image_analyser.save_figures)
+        workflow = self.pyfibre_cli.image_analyser.workflow
+
+        self.assertEqual(0.5, workflow.sigma)
+        self.assertEqual(0.5, workflow.alpha)
+        self.assertFalse(workflow.ow_network)
+        self.assertFalse(workflow.ow_segment)
+        self.assertFalse(workflow.ow_metric)
+        self.assertFalse(workflow.save_figures)
 
     def test_save_database(self):
 
@@ -64,7 +56,7 @@ class TestPyFibreCLI(TestCase):
             with mock.patch(ITERATOR_PATH) as mock_iterate:
                 mock_iterate.side_effect = dummy_iterate_images
 
-                self.pyfibre_cli.run(test_image_path)
+                self.pyfibre_cli.run(test_shg_pl_trans_image_path)
                 self.assertTrue(mock_iterate.called)
 
             self.assertTrue(
@@ -78,7 +70,7 @@ class TestPyFibreCLI(TestCase):
             with mock.patch(ITERATOR_PATH) as mock_iterate:
                 mock_iterate.side_effect = dummy_iterate_images
 
-                self.pyfibre_cli.run(test_image_path)
+                self.pyfibre_cli.run(test_shg_pl_trans_image_path)
                 self.assertTrue(mock_iterate.called)
 
             self.assertTrue(

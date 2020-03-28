@@ -25,6 +25,7 @@ from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.io.database_io import save_database, load_database
 from pyfibre.model.image_analyser import ImageAnalyser
+from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
 from pyfibre.model.iterator import iterate_images
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 
@@ -212,7 +213,7 @@ class PyFibreMainTask(Task):
                           for row in batch_rows}
 
             reader = SHGPLTransReader()
-            image_analyser = ImageAnalyser(
+            workflow = PyFibreWorkflow(
                 p_denoise=(self.options_pane.n_denoise,
                            self.options_pane.m_denoise),
                 sigma=self.options_pane.sigma,
@@ -220,7 +221,9 @@ class PyFibreMainTask(Task):
                 ow_network=self.options_pane.ow_network,
                 ow_segment=self.options_pane.ow_segment,
                 ow_metric=self.options_pane.ow_metric,
-                save_figures=False
+                save_figures=False)
+            image_analyser = ImageAnalyser(
+                workflow=workflow
             )
 
             future = self.traits_executor.submit_iteration(
@@ -247,11 +250,14 @@ class PyFibreMainTask(Task):
 
         file_table = self.file_display_pane.file_table
         reader = SHGPLTransReader()
-        image_analyser = ImageAnalyser(
+        workflow = PyFibreWorkflow(
             p_denoise=(self.options_pane.n_denoise,
                        self.options_pane.m_denoise),
             sigma=self.options_pane.sigma,
             alpha=self.options_pane.alpha)
+        image_analyser = ImageAnalyser(
+            workflow=workflow
+        )
 
         for row in file_table:
 

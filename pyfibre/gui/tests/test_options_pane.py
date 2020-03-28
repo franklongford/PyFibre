@@ -1,4 +1,4 @@
-from unittest import mock, TestCase
+from unittest import TestCase
 
 from pyfibre.gui.options_pane import OptionsPane
 
@@ -21,4 +21,4 @@ class TestOptionsPane(TestCase):
         self.assertEqual(1, self.options_pane.low_intensity)
         self.assertEqual(99, self.options_pane.high_intensity)
 
-        #self.options_pane.configure_traits()
+        # self.options_pane.configure_traits()

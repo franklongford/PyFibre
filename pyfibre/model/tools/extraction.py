@@ -54,7 +54,8 @@ def build_network(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2,
 
     """
 
-    # Prepare input image to gain distance matrix of foreground from background"
+    # Prepare input image to gain distance matrix of foreground
+    # from background"
 
     image_scale = rescale(image, scale, multichannel=False,
                           mode='constant', anti_aliasing=None)
@@ -69,18 +70,30 @@ def build_network(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2,
     cleared = clear_border(smoothed)
 
     # Set distance thresholds for fibre iterator based on scale factor"
-    nuc_thresh = np.min([nuc_thresh * scale**2, 1E-1 * scale**2 * cleared.max()])
-    lmp_thresh = np.min([lmp_thresh * scale**2, 1E-1 * scale**2 * cleared[np.nonzero(cleared)].mean()])
+    nuc_thresh = np.min(
+        [nuc_thresh * scale**2,
+         1E-1 * scale**2 * cleared.max()])
+    lmp_thresh = np.min(
+        [lmp_thresh * scale**2,
+         1E-1 * scale**2 * cleared[np.nonzero(cleared)].mean()])
     r_thresh = int(r_thresh * scale)
     nuc_radius = int(nuc_radius * scale)
 
-    logger.debug("Maximum distance = {}".format(cleared.max()))
-    logger.debug("Mean distance = {}".format(cleared[np.nonzero(cleared)].mean()))
-    logger.debug("Using thresholds:\n nuc = {} pix\n lmp = {} pix\n angle = {} deg\n edge = {} pix".format(
+    logger.debug(
+        "Maximum distance = {}".format(cleared.max()))
+    logger.debug(
+        f"Mean distance = {cleared[np.nonzero(cleared)].mean()}")
+    logger.debug(
+        "Using thresholds:\n"
+        " nuc = {} pix\n "
+        "lmp = {} pix\n "
+        "angle = {} deg\n "
+        "edge = {} pix".format(
             nuc_thresh, lmp_thresh, angle_thresh, r_thresh))
 
     fibre_network = NetworkExtraction(
-        nuc_thresh=nuc_thresh, lmp_thresh=lmp_thresh, angle_thresh=angle_thresh,
+        nuc_thresh=nuc_thresh, lmp_thresh=lmp_thresh,
+        angle_thresh=angle_thresh,
         r_thresh=r_thresh, nuc_radius=nuc_radius)
     network = fibre_network.create_network(cleared)
 
@@ -114,7 +127,9 @@ def clean_network(network, r_thresh=2):
     node_remove_list = []
     for i, component in enumerate(nx.connected_components(network)):
         subgraph = network.subgraph(component)
-        edge_count = np.array([subgraph.degree[node] for node in subgraph], dtype=int)
+        edge_count = np.array(
+            [subgraph.degree[node] for node in subgraph],
+            dtype=int)
         graph_check = np.sum(edge_count > 1) > 1
         graph_check *= np.sum(edge_count == 1) > 1
         if not graph_check:

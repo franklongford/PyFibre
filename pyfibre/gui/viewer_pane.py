@@ -1,133 +1,30 @@
 import logging
 import os
 
-import networkx as nx
-from skimage.measure._regionprops import RegionProperties
-
-from chaco.api import ArrayPlotData, Plot
-from chaco.default_colormaps import binary, reverse
-from chaco.tools.api import PanTool, ZoomTool
-from enable.api import ComponentEditor
 from pyface.tasks.api import TraitsTaskPane
 from traits.api import (
-    HasTraits, Instance, Unicode, List, on_trait_change,
-    ArrayOrNone, Property, Function, Int
+    Instance, List, on_trait_change
 )
 from traitsui.api import (
     View, Group, Item, ListEditor
 )
 
+from pyfibre.gui.image_tab import (
+    ImageTab, NetworkImageTab, SegmentImageTab, MetricTab)
 from pyfibre.io.object_io import (
-    load_cells, load_fibre_networks, load_fibres)
+    load_fibre_segments, load_cell_segments,
+    load_fibre_networks, load_fibres)
+from pyfibre.model.objects.multi_image import (
+    SHGImage, SHGPLImage, SHGPLTransImage)
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 from pyfibre.gui.file_display_pane import TableRow
 from pyfibre.model.objects.multi_image import MultiImage
 from pyfibre.model.tools.figures import (
-    create_tensor_image, create_segment_image, create_network_image
+    create_tensor_image
 )
 from pyfibre.utilities import flatten_list
 
 logger = logging.getLogger(__name__)
-
-
-class ImageTab(HasTraits):
-
-    image = ArrayOrNone()
-
-    label = Unicode()
-
-    plot = Property(Instance(Plot),
-                    depends_on='image')
-
-    cmap = Function(reverse(binary))
-
-    traits_view = View(
-        Item('plot',
-             editor=ComponentEditor(),
-             show_label=False),
-        resizable=True
-    )
-
-    def _plot_image(self, plot):
-
-        if self.image.ndim == 2:
-            img_plot = plot.img_plot(
-                "image_data",
-                origin='top left',
-                colormap=self.cmap,
-                axis='off')[0]
-        elif self.image.ndim == 3:
-            img_plot = plot.img_plot(
-                "image_data",
-                origin='top left',
-                axis='off')[0]
-
-            # Attach some tools to the plot
-            plot.tools.append(PanTool(
-                plot, constrain_key="shift"))
-            plot.overlays.append(ZoomTool(
-                component=plot,
-                tool_mode="box",
-                always_on=False))
-
-    def _get_plot(self):
-        if self.image is not None:
-            plot_data = ArrayPlotData(
-                image_data=self.image)
-
-            plot = Plot(plot_data)
-
-            self._plot_image(plot)
-
-            return plot
-
-
-class NetworkImageTab(ImageTab):
-
-    networks = List(nx.Graph)
-
-    c_mode = Int(0)
-
-    def _get_plot(self):
-        if self.image is not None:
-
-            image_network_overlay = create_network_image(
-                self.image,
-                self.networks,
-                c_mode=self.c_mode) * 255.999
-
-            plot_data = ArrayPlotData(
-                image_data=image_network_overlay.astype('uint8'))
-
-            plot = Plot(plot_data)
-
-            self._plot_image(plot)
-
-            return plot
-
-
-class SegmentImageTab(ImageTab):
-
-    segments = List(RegionProperties)
-
-    def _get_plot(self):
-        if self.image is not None:
-            segment_image = create_segment_image(
-                self.image,
-                self.segments) * 255.999
-
-            plot_data = ArrayPlotData(
-                image_data=segment_image.astype('uint8'))
-
-            plot = Plot(plot_data)
-
-            self._plot_image(plot)
-
-            return plot
-
-
-class MetricTab(HasTraits):
-    pass
 
 
 class ViewerPane(TraitsTaskPane):
@@ -245,6 +142,67 @@ class ViewerPane(TraitsTaskPane):
         image_tab = SegmentImageTab(label='Cell Segments')
         return image_tab
 
+    def _update_shg_image_tabs(self, filename, image_name):
+
+        self.shg_image_tab.image = self.selected_image.shg_image
+        tensor_image = create_tensor_image(
+            self.selected_image.shg_image
+        ) * 255.999
+        self.tensor_tab.image = tensor_image.astype('uint8')
+
+        try:
+            fibre_networks = load_fibre_networks(filename)
+        except (IOError, EOFError):
+            logger.info(
+                f"Unable to display network for {image_name}")
+        else:
+            networks = [
+                fibre_network.graph
+                for fibre_network in fibre_networks]
+
+            self.network_tab.networks = networks
+            self.network_tab.image = self.selected_image.shg_image
+
+            try:
+                fibres = load_fibres(
+                    filename, image=self.selected_image.shg_image)
+            except (IOError, EOFError):
+                fibres = flatten_list([
+                    fibre_network.fibres
+                    for fibre_network in fibre_networks])
+
+            networks = [fibre.graph for fibre in fibres]
+
+            self.fibre_tab.networks = networks
+            self.fibre_tab.image = self.selected_image.shg_image
+
+        try:
+            fibre_segments = load_fibre_segments(
+                filename, image=self.selected_image.shg_image)
+        except (IOError, EOFError):
+            logger.info(
+                f"Unable to display fibre segments for {image_name}")
+        else:
+            self.fibre_segment_tab.segments = fibre_segments
+            self.fibre_segment_tab.image = self.selected_image.shg_image
+
+    def _update_pl_image_tabs(self, filename, image_name):
+
+        self.pl_image_tab.image = self.selected_image.pl_image
+
+        try:
+            cell_segments = load_cell_segments(
+                filename, image=self.selected_image.pl_image)
+        except (AttributeError, IOError, EOFError):
+            logger.debug(
+                f"Unable to display cell segments for {image_name}")
+        else:
+            self.cell_segment_tab.segments = cell_segments
+            self.cell_segment_tab.image = self.selected_image.pl_image
+
+        if isinstance(self.selected_image, SHGPLTransImage):
+            self.trans_image_tab.image = self.selected_image.trans_image
+
     @on_trait_change('selected_image')
     def update_viewer(self):
 
@@ -254,49 +212,10 @@ class ViewerPane(TraitsTaskPane):
             data_dir = f"{image_path}/{image_name}-pyfibre-analysis/data/"
             filename = data_dir + image_name
 
-            self.shg_image_tab.image = self.selected_image.shg_image
-            tensor_image = create_tensor_image(
-                self.selected_image.shg_image
-            ) * 255.999
-            self.tensor_tab.image = tensor_image.astype('uint8')
+            if isinstance(self.selected_image, SHGImage):
 
-            try:
-                fibre_networks = load_fibre_networks(filename)
-            except (IOError, EOFError):
-                logger.info("Unable to display network for {}".format(image_name))
-            else:
-                fibre_segments = [fibre_network.segment for fibre_network in fibre_networks]
-                networks = [fibre_network.graph for fibre_network in fibre_networks]
+                self._update_shg_image_tabs(filename, image_name)
 
-                self.network_tab.networks = networks
-                self.network_tab.image = self.selected_image.shg_image
+                if isinstance(self.selected_image, SHGPLImage):
 
-                self.fibre_segment_tab.segments = fibre_segments
-                self.fibre_segment_tab.image = self.selected_image.shg_image
-
-                try:
-                    fibres = load_fibres(
-                        filename, image=self.selected_image.shg_image)
-                except (IOError, EOFError):
-                    fibres = flatten_list([
-                        fibre_network.fibres
-                        for fibre_network in fibre_networks])
-
-                networks = [fibre.graph for fibre in fibres]
-
-                self.fibre_tab.networks = networks
-                self.fibre_tab.image = self.selected_image.shg_image
-
-            self.pl_image_tab.image = self.selected_image.pl_image
-            self.trans_image_tab.image = self.selected_image.trans_image
-
-            try:
-                cells = load_cells(
-                    filename, image=self.selected_image.pl_image)
-            except (AttributeError, IOError, EOFError):
-                logger.debug("Unable to display cell segments for {}".format(image_name))
-            else:
-                cell_segments = [cell.segment for cell in cells]
-
-                self.cell_segment_tab.segments = cell_segments
-                self.cell_segment_tab.image = self.selected_image.pl_image
+                    self._update_pl_image_tabs(filename, image_name)

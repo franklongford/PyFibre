@@ -5,7 +5,7 @@ from envisage.api import Application
 from pyfibre.gui.pyfibre_plugin import PyFibrePlugin
 
 MAIN_TASK = ("pyfibre.gui.pyfibre_main_task"
-              ".PyFibreMainTask")
+             ".PyFibreMainTask")
 PLUGIN_SERVICE = 'envisage.api.Plugin.application.get_service'
 
 

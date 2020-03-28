@@ -20,7 +20,7 @@ THRESH = 1E-7
 
 class TestImages:
 
-    def setUp(self):
+    def __init__(self):
 
         N = 50
         self.test_images = {}
@@ -28,25 +28,33 @@ class TestImages:
 
         "Make ringed test image"
         image_grid = np.mgrid[:N, :N]
-        for i in range(2): image_grid[i] -= N * np.array(2 * image_grid[i] / N, dtype=int)
+        for i in range(2):
+            image_grid[i] -= N * np.array(2 * image_grid[i] / N, dtype=int)
         image_grid = np.fft.fftshift(np.sqrt(np.sum(image_grid**2, axis=0)))
-        self.test_images['test_image_rings'] = np.sin(10 * np.pi * image_grid / N ) * np.cos(10 * np.pi * image_grid / N)
+        self.test_images['test_image_rings'] = (
+                np.sin(10 * np.pi * image_grid / N)
+                * np.cos(10 * np.pi * image_grid / N))
 
         "Make circular test image"
         image_grid = np.mgrid[:N, :N]
-        for i in range(2): image_grid[i] -= N * np.array(2 * image_grid[i] / N, dtype=int)
+        for i in range(2):
+            image_grid[i] -= N * np.array(2 * image_grid[i] / N, dtype=int)
         image_grid = np.fft.fftshift(np.sqrt(np.sum(image_grid**2, axis=0)))
-        self.test_images['test_image_circle'] = 1 - gaussian_filter(image_grid, N / 4, 5)
+        self.test_images['test_image_circle'] = (
+                1 - gaussian_filter(image_grid, N / 4, 5))
 
         "Make linear test image"
         test_image = np.zeros((N, N))
-        for i in range(4): test_image += np.eye(N, N, k=5-i)
+        for i in range(4):
+            test_image += np.eye(N, N, k=5-i)
         self.test_images['test_image_line'] = test_image
 
         "Make crossed test image"
         test_image = np.zeros((N, N))
-        for i in range(4): test_image += np.eye(N, N, k=5-i)
-        for i in range(4): test_image += np.rot90(np.eye(N, N, k=5-i))
+        for i in range(4):
+            test_image += np.eye(N, N, k=5-i)
+        for i in range(4):
+            test_image += np.rot90(np.eye(N, N, k=5-i))
         self.test_images['test_image_cross'] = np.where(test_image != 0, 1, 0)
 
         "Make noisy test image"

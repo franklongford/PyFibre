@@ -6,7 +6,7 @@ from skimage.io import imread
 from pyfibre.model.tools.extraction import (
     build_network, clean_network, fibre_network_assignment
 )
-from pyfibre.tests.fixtures import test_image_path
+from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 from pyfibre.tests.probe_classes import (
     generate_probe_graph
 )
@@ -16,7 +16,7 @@ class TestExtraction(TestCase):
 
     def setUp(self):
         self.network = generate_probe_graph()
-        self.image = imread(test_image_path)[0].mean(axis=-1)
+        self.image = imread(test_shg_pl_trans_image_path)[0].mean(axis=-1)
 
     def test_build_network(self):
 

@@ -19,4 +19,4 @@ class TestTitlePane(TestCase):
             self.title_pane.name
         )
 
-        #self.title_pane.configure_traits()
+        # self.title_pane.configure_traits()

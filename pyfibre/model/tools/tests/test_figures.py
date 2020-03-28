@@ -2,13 +2,14 @@ import numpy as np
 
 from skimage.measure import regionprops
 
-from pyfibre.tests.probe_classes import generate_image
+from pyfibre.tests.probe_classes import (
+    generate_image, ProbeFibreNetwork)
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 from ..figures import (
     create_hsb_image,
     create_tensor_image,
-    create_segment_image,
+    create_region_image,
     create_network_image
 )
 
@@ -20,6 +21,7 @@ class TestFigures(PyFibreTestCase):
         (self.image, labels,
          self.binary, _) = generate_image()
         self.segments = regionprops(labels)
+        self.fibre_network = ProbeFibreNetwork()
 
     def test_create_hsb_image(self):
         hsb_image = create_hsb_image(
@@ -42,7 +44,7 @@ class TestFigures(PyFibreTestCase):
             (10, 10, 3), tensor_image.shape)
 
     def test_create_segment_image(self):
-        segment_image = create_segment_image(
+        segment_image = create_region_image(
             self.image, self.segments
         )
 
@@ -61,4 +63,10 @@ class TestFigures(PyFibreTestCase):
         )
 
     def test_create_network_image(self):
-        pass
+
+        image = create_network_image(
+            self.image,
+            [self.fibre_network.graph])
+
+        # Expect an RGB image back
+        self.assertEqual(3, image.ndim)

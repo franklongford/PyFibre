@@ -9,22 +9,18 @@ def iterate_images(dictionary, analyser, reader):
 
         logger.info(f"Processing image data for {prefix}")
 
-        try:
-            reader.assign_images(data)
+        reader.assign_images(data)
 
-            if 'PL-SHG' in data:
-                reader.load_mode = 'PL-SHG File'
-            elif 'PL' in data and 'SHG' in data:
-                reader.load_mode = 'Separate Files'
-            else:
-                continue
+        if 'PL-SHG' in data:
+            reader.load_mode = 'PL-SHG File'
+        elif 'PL' in data and 'SHG' in data:
+            reader.load_mode = 'Separate Files'
+        else:
+            continue
 
-            multi_image = reader.load_multi_image()
+        multi_image = reader.load_multi_image()
 
-            databases = analyser.image_analysis(
-                multi_image, prefix)
+        databases = analyser.image_analysis(
+            multi_image, prefix)
 
-            yield databases
-
-        except Exception:
-            yield None
+        yield databases

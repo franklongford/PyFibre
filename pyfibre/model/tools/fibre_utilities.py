@@ -35,21 +35,25 @@ def check_2D_arrays(array1, array2, thresh=1):
         Indices of array2 that meet threshold critera
     """
 
-    array1_mat = np.tile(array1, (1, array2.shape[0]))\
-                    .reshape(array1.shape[0], array2.shape[0], 2)
-    array2_mat = np.tile(array2, (array1.shape[0], 1))\
-                    .reshape(array1.shape[0], array2.shape[0], 2)
+    shape = (array1.shape[0], array2.shape[0], 2)
+
+    array1_mat = np.tile(array1, (1, array2.shape[0]))
+    array1_mat = array1_mat.reshape(shape)
+
+    array2_mat = np.tile(array2, (array1.shape[0], 1))
+    array2_mat = array2_mat.reshape(shape)
 
     diff = np.sum((array1_mat - array2_mat)**2, axis=2)
-    array1_indices = np.argwhere(diff <= thresh**2)[:,0]
-    array2_indices = np.argwhere(diff <= thresh**2)[:,1]
+    array1_indices = np.argwhere(diff <= thresh**2)[:, 0]
+    array2_indices = np.argwhere(diff <= thresh**2)[:, 1]
 
     return array1_indices, array2_indices
 
 
 def cos_sin_theta_2D(vector, r_vector):
     """
-    Returns cosine and sine of angles of intersecting vectors betwen even and odd indicies
+    Returns cosine and sine of angles of intersecting vectors
+    between even and odd indices
 
     Parameters
     ----------
@@ -61,11 +65,14 @@ def cos_sin_theta_2D(vector, r_vector):
     Returns
     -------
     cos_the:  array_like (float); shape=(n_vector/2)
-        Cosine of the angle between each pair of displacement vectors
+        Cosine of the angle between each pair of displacement
+        vectors
     sin_the: array_like (float); shape=(n_vector/2)
-        Sine of the angle between each pair of displacement vectors
+        Sine of the angle between each pair of displacement
+        vectors
     r_prod: array_like (float); shape=(n_vector/2)
-        Product of radial distance between each pair of displacement vectors
+        Product of radial distance between each pair of
+        displacement vectors
     """
 
     n_vector = vector.shape[0]
@@ -74,10 +81,11 @@ def cos_sin_theta_2D(vector, r_vector):
     temp_vector = np.reshape(vector, (n_vector // 2, 2, n_dim))
 
     # Calculate |rij||rjk| product for each pair of vectors
-    r_prod = np.prod(np.reshape(r_vector, (n_vector // 2, 2)), axis = 1)
+    r_prod = np.prod(
+        np.reshape(r_vector, (n_vector // 2, 2)), axis=1)
 
-    # Form dot product of each vector pair rij*rjk in vector array corresponding
-    # to an angle
+    # Form dot product of each vector pair rij*rjk in vector
+    # array corresponding to an angle
     dot_prod = np.sum(np.prod(temp_vector, axis=1), axis=1)
 
     # Calculate cos(theta) for each angle
@@ -88,19 +96,21 @@ def cos_sin_theta_2D(vector, r_vector):
 
 def reduce_coord(coord, values, thresh=1):
     """
-    Find elements in coord that lie within thresh distance of eachother. Remove
-    element with lowest corresponding value.
+    Find elements in coord that lie within thresh distance of
+    each other. Remove element with lowest corresponding value.
     """
 
-    if coord.shape[0] <= 1: return coord
+    if coord.shape[0] <= 1:
+        return coord
 
     thresh = np.sqrt(2 * thresh**2)
     r_coord = cdist(coord, coord)
 
-    del_coord = np.argwhere((r_coord <= thresh) - np.identity(coord.shape[0]))
+    del_coord = np.argwhere(
+        (r_coord <= thresh) - np.identity(coord.shape[0]))
     del_coord = del_coord[np.arange(0, del_coord.shape[0], 2)]
-    indices = np.stack((values[del_coord[:,0]],
-                        values[del_coord[:,1]])).argmax(axis=0)
+    indices = np.stack((values[del_coord[:, 0]],
+                        values[del_coord[:, 1]])).argmax(axis=0)
     del_coord = [a[i] for a, i in zip(del_coord, indices)]
 
     coord = np.delete(coord, del_coord, 0)
@@ -109,10 +119,12 @@ def reduce_coord(coord, values, thresh=1):
 
 
 def new_branches(image, coord, ring_filter, max_thresh=0.2):
-    "Find local maxima in image within max_thresh of coord, excluding pixels in ring filter"
+    """Find local maxima in image within max_thresh of coord,
+    excluding pixels in ring filter"""
 
     filtered = image * ring_filter
-    branch_coord = np.argwhere(local_maxima(filtered) * image >= max_thresh)
+    branch_coord = np.argwhere(
+        local_maxima(filtered) * image >= max_thresh)
     branch_coord = reduce_coord(
         branch_coord, image[branch_coord[:, 0], branch_coord[:, 1]])
 
@@ -129,7 +141,8 @@ def branch_angles(direction, branch_vector, branch_r):
     dir_vector = np.tile(direction, (n_branch, 1))
     dir_r = np.ones(n_branch)
 
-    combined_vector = np.hstack((branch_vector, dir_vector)).reshape(n_branch * 2, 2)
+    combined_vector = np.hstack(
+        (branch_vector, dir_vector)).reshape(n_branch * 2, 2)
     combined_r = np.column_stack((branch_r, dir_r)).flatten()
     cos_the = cos_sin_theta_2D(combined_vector, combined_r)
 
@@ -144,8 +157,8 @@ def transfer_edges(network, source, target):
 
         if node != target:
             network.add_edge(node, target)
-            network[node][target]['r'] = np.sqrt(
-                ((network.nodes[target]['xy'] - network.nodes[node]['xy']) ** 2).sum())
+            diff = network.nodes[target]['xy'] - network.nodes[node]['xy']
+            network[node][target]['r'] = np.sqrt((diff ** 2).sum())
 
 
 def distance_matrix(node_coord):
@@ -208,7 +221,8 @@ def remove_redundant_nodes(network, r_thresh=2):
         duplicate_nodes = np.where(r2_coord < r2_thresh)
         checking = (duplicate_nodes[0].size > 0)
 
-        # Iterate through each duplicate and transfer edges on to most connected"
+        # Iterate through each duplicate and transfer edges on to
+        # most connected
         for node1, node2 in zip(*duplicate_nodes):
             if network.degree[node1] > network.degree[node2]:
                 transfer_edges(network, node1, node2)
@@ -216,7 +230,8 @@ def remove_redundant_nodes(network, r_thresh=2):
                 transfer_edges(network, node2, node1)
 
         if len(network.edges) == 0:
-            # If no edges are left, reduce the network down to a single node
+            # If no edges are left, reduce the network down to a
+            # single node
             checking = False
             remove_list = list(network.nodes)[1:]
         else:

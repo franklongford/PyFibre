@@ -1,11 +1,9 @@
 """
 PyFibre: Fiborous Image Analysis Program
-MAIN ROUTINE 
+MAIN ROUTINE
 
 Created by: Frank Longford
 Created on: 16/08/2018
-
-Last Modified: 18/02/2019
 """
 import logging
 
@@ -17,6 +15,7 @@ from pyfibre.io.shg_pl_reader import (
     SHGPLTransReader
 )
 from pyfibre.io.utilities import parse_files, parse_file_path
+from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
 from pyfibre.model.image_analyser import ImageAnalyser
 from pyfibre.model.iterator import iterate_images
 
@@ -41,11 +40,13 @@ class PyFibreCLI:
         self.database_name = database_name
         self.key = key
 
-        self.image_analyser = ImageAnalyser(
+        workflow = PyFibreWorkflow(
             sigma=sigma, alpha=alpha,
-            shg_analysis=shg_analysis, pl_analysis=pl_analysis,
             ow_metric=ow_metric, ow_segment=ow_segment,
             ow_network=ow_network, save_figures=save_figures
+        )
+        self.image_analyser = ImageAnalyser(
+            workflow=workflow
         )
         self.reader = SHGPLTransReader()
 

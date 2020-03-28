@@ -1,18 +1,14 @@
-import os
-from functools import partial
-
 from pyface.tasks.api import TraitsDockPane
 from pyface.api import ImageResource
 
 from traits.api import (
     HasTraits, List, Unicode, Button, File, Dict,
-    Instance, Bool, on_trait_change, Int, Property,
-    Enum
+    Bool, Int, Property
 )
 from traitsui.api import (
-    View, Item, ListEditor, Group, TableEditor, ObjectColumn,
+    View, Item, Group, TableEditor, ObjectColumn,
     FileEditor, VGroup, HGroup, Spring, UItem, ImageEditor,
-    TextEditor, ProgressEditor
+    TextEditor
 )
 
 from pyfibre.io.shg_pl_reader import (

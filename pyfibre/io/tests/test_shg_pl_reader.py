@@ -14,12 +14,16 @@ from pyfibre.io.shg_pl_reader import (
 class TestImageReader(TestCase):
 
     def test_get_image_type(self):
-        self.assertEqual('PL-SHG', get_image_type('some-pl-shg-test.tif'))
-        self.assertEqual('PL', get_image_type('some-pl-test.tif'))
-        self.assertEqual('SHG', get_image_type('some-shg-test.tif'))
+        self.assertEqual(
+            'PL-SHG', get_image_type('some-pl-shg-test.tif'))
+        self.assertEqual(
+            'PL', get_image_type('some-pl-test.tif'))
+        self.assertEqual(
+            'SHG', get_image_type('some-shg-test.tif'))
 
         # Test failure
-        self.assertEqual('Unknown', get_image_type('some-psh-test.tif'))
+        self.assertEqual(
+            'Unknown', get_image_type('some-psh-test.tif'))
 
     def test_get_image_data(self):
 
@@ -100,9 +104,10 @@ class TestImageReader(TestCase):
         populate_image_dictionary(input_files, image_dict, 'PL')
 
         self.assertDictEqual(
-            {'/directory/prefix': {
-                'PL-SHG': '/directory/prefix-pl-shg-test.tif',
-                'PL': '/directory/prefix-pl-test.tif'}
+            {
+                '/directory/prefix':
+                    {'PL-SHG': '/directory/prefix-pl-shg-test.tif',
+                     'PL': '/directory/prefix-pl-test.tif'}
             },
             image_dict)
         self.assertListEqual(
@@ -113,7 +118,7 @@ class TestImageReader(TestCase):
         input_files = ['/directory/prefix-pl-shg-test.tif',
                        '/directory/prefix-pl-test.tif',
                        '/directory/prefix-shg-test.tif',
-                       '/directory/prefix-pl-display.tif',]
+                       '/directory/prefix-pl-display.tif']
 
         image_dict = collate_image_dictionary(input_files)
 

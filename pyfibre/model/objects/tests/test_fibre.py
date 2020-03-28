@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 import numpy as np
+import pandas as pd
 
 from pyfibre.model.objects.fibre import (
     Fibre
@@ -68,15 +69,6 @@ class TestFibre(TestCase):
     def test_generate_database(self):
 
         database = self.fibre.generate_database()
-        self.assertEqual(11, len(database))
 
-        image = np.ones((5, 5))
-        image[2:, 2:] = 2
-
-        database = self.fibre.generate_database(image)
-        self.assertEqual(11, len(database))
-
-        self.fibre.image = image
-
-        database = self.fibre.generate_database()
-        self.assertEqual(11, len(database))
+        self.assertIsInstance(database, pd.Series)
+        self.assertEqual(3, len(database))
