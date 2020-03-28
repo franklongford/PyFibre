@@ -10,7 +10,7 @@ from traits.api import (
 from traitsui.api import View, Item
 
 from pyfibre.io.multi_image_reader import MultiImageReader
-from pyfibre.model.objects.multi_image import (
+from pyfibre.model.multi_image.multi_image import (
     SHGPLImage, SHGPLTransImage)
 
 logger = logging.getLogger(__name__)

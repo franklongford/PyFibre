@@ -6,7 +6,7 @@ from pyfibre.gui.viewer_pane import (
     ViewerPane
 )
 from pyfibre.gui.image_tab import ImageTab
-from pyfibre.model.objects.multi_image import SHGPLTransImage
+from pyfibre.model.multi_image.multi_image import SHGPLTransImage
 
 
 class TestImageTab(TestCase):

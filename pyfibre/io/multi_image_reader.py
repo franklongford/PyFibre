@@ -1,7 +1,7 @@
 from skimage.io import imread
 from traits.api import HasTraits, List, File, Type
 
-from pyfibre.model.objects.multi_image import MultiImage
+from pyfibre.model.multi_image.multi_image import MultiImage
 
 
 class MultiImageReader(HasTraits):

@@ -11,7 +11,7 @@ from pyfibre.model.tools.metrics import (
 )
 from pyfibre.model.tools.convertors import (
     regions_to_binary, binary_to_regions)
-from pyfibre.model.objects.multi_image import SHGPLImage
+from pyfibre.model.multi_image.multi_image import SHGPLImage
 
 
 logger = logging.getLogger(__name__)

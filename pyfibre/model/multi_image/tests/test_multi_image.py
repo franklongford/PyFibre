@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from pyfibre.model.objects.multi_image import (
+from pyfibre.model.multi_image.multi_image import (
     MultiImage, SHGPLImage, SHGPLTransImage)
 
 

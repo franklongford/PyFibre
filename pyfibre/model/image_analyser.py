@@ -15,7 +15,7 @@ from pyfibre.model.tools.figures import (
     create_network_image
 )
 from pyfibre.model.tools.preprocessing import nl_means
-from pyfibre.model.objects.multi_image import (
+from pyfibre.model.multi_image.multi_image import (
     SHGImage, SHGPLImage, SHGPLTransImage)
 from pyfibre.io.object_io import (
     save_fibre_networks, load_fibre_networks,

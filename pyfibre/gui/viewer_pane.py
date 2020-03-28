@@ -14,11 +14,11 @@ from pyfibre.gui.image_tab import (
 from pyfibre.io.object_io import (
     load_fibre_segments, load_cell_segments,
     load_fibre_networks, load_fibres)
-from pyfibre.model.objects.multi_image import (
+from pyfibre.model.multi_image.multi_image import (
     SHGImage, SHGPLImage, SHGPLTransImage)
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 from pyfibre.gui.file_display_pane import TableRow
-from pyfibre.model.objects.multi_image import MultiImage
+from pyfibre.model.multi_image.multi_image import MultiImage
 from pyfibre.model.tools.figures import (
     create_tensor_image
 )
