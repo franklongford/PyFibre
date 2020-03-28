@@ -15,7 +15,8 @@ class TestMetricAnalyser(TestCase):
 
     def setUp(self):
 
-        self.multi_image = ProbeSHGImage()
+        self.shg_multi_image = ProbeSHGImage()
+        self.shg_pl_multi_image = ProbeSHGPLTransImage()
         self.metric_analyser = MetricAnalyser(
             filename='test', sigma=0.5
         )
@@ -33,15 +34,21 @@ class TestMetricAnalyser(TestCase):
 
     def test_analyse_shg(self):
 
-        self.metric_analyser.image = self.multi_image.shg_image
+        self.metric_analyser.image = self.shg_multi_image.shg_image
         self.metric_analyser.segments = self.fibre_segments
         self.metric_analyser.networks = self.fibre_networks
         self.metric_analyser.analyse_shg()
 
+    def test_analyse_pl(self):
+
+        self.metric_analyser.image = self.shg_pl_multi_image.pl_image
+        self.metric_analyser.segments = self.cell_segments
+        self.metric_analyser.analyse_pl()
+
     def test_generate_metrics(self):
 
         global_dataframe, local_dataframes = generate_metrics(
-            self.multi_image,
+            self.shg_multi_image,
             'test_shg',
             self.fibre_networks,
             self.fibre_segments,
