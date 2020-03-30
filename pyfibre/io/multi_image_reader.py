@@ -1,14 +1,14 @@
 from skimage.io import imread
 from traits.api import HasTraits, List, File, Type
 
-from pyfibre.model.multi_image.multi_image import MultiImage
+from pyfibre.model.multi_image.base_multi_image import BaseMultiImage
 
 
 class MultiImageReader(HasTraits):
 
     filenames = List(File)
 
-    multi_image_class = Type(MultiImage)
+    multi_image_class = Type(BaseMultiImage)
 
     def image_preprocessing(self, images):
         """Preprocess images before creating MultImage instance
