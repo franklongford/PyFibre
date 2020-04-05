@@ -66,8 +66,8 @@ class MultiImageReader(HasTraits):
         for filename in filenames:
             image = imread(filename)
             minor_axis, _, _ = get_image_data(image)
-            if 'Stack' not in filename:
-                minor_axis = None
+            # if 'Stack' not in filename:
+            #    minor_axis = None
             images.append(self._format_image(image, minor_axis))
 
         return images
