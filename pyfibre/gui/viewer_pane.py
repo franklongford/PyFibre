@@ -10,13 +10,15 @@ from traitsui.api import (
 )
 
 from pyfibre.gui.image_tab import (
-    ImageTab, TensorImageTab, NetworkImageTab, SegmentImageTab, MetricTab)
+    ImageTab, TensorImageTab, NetworkImageTab, MetricTab)
+from pyfibre.gui.segment_image_tab import SegmentImageTab
 from pyfibre.io.object_io import (
     load_fibre_segments, load_cell_segments,
     load_fibre_networks, load_fibres)
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 from pyfibre.gui.file_display_pane import TableRow
 from pyfibre.model.multi_image.base_multi_image import BaseMultiImage
+from pyfibre.model.iterator import assign_images
 from pyfibre.utilities import flatten_list
 
 logger = logging.getLogger(__name__)
@@ -89,10 +91,12 @@ class ViewerPane(TraitsTaskPane):
         """Opens corresponding to the first item in
         selected_rows"""
 
-        self.multi_image_reader.assign_images(
+        filenames = assign_images(
             self.selected_row._dictionary)
 
-        self.selected_image = self.multi_image_reader.load_multi_image()
+        self.selected_image = self.multi_image_reader.load_multi_image(
+            filenames
+        )
 
     def _image_tab_list_default(self):
 

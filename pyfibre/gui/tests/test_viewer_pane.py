@@ -12,3 +12,7 @@ class TestViewerPane(TestCase):
 
         self.multi_image = ProbeMultiImage()
         self.viewer_pane = ViewerPane()
+
+    def test_open_file(self):
+        pass
+

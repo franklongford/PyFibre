@@ -1,5 +1,4 @@
 import networkx as nx
-from skimage.measure._regionprops import RegionProperties
 
 from chaco.api import ArrayPlotData, Plot
 from chaco.tools.zoom_tool import ZoomTool
@@ -12,9 +11,8 @@ from traits.api import (
 from traitsui.api import Item, View
 
 from pyfibre.model.multi_image.base_multi_image import BaseMultiImage
-from pyfibre.model.objects.base_segment import BaseSegment
 from pyfibre.model.tools.figures import (
-    create_tensor_image, create_network_image, create_region_image)
+    create_tensor_image, create_network_image)
 
 
 class ImageTab(HasTraits):
@@ -126,33 +124,6 @@ class NetworkImageTab(ImageTab):
         """Convert each image into a network image"""
         image_dict = {
             label: self._network_image(image).astype('uint8')
-            for label, image in self._image_dict.items()}
-        return ArrayPlotData(**image_dict)
-
-
-class SegmentImageTab(ImageTab):
-
-    segments = List(BaseSegment)
-
-    regions = Property(
-        List(RegionProperties), depends_on='segments')
-
-    plot_data = Property(
-        Any, depends_on='_image_dict,regions'
-    )
-
-    def _get_regions(self):
-        return [segment.region for segment in self.segments]
-
-    def _region_image(self, image):
-        return create_region_image(
-            image,
-            self.regions) * 255.999
-
-    def _get_plot_data(self):
-        """Convert each image into a segment image"""
-        image_dict = {
-            label: self._region_image(image).astype('uint8')
             for label, image in self._image_dict.items()}
         return ArrayPlotData(**image_dict)
 
