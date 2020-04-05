@@ -70,24 +70,26 @@ class TestImageReader(TestCase):
                        '/directory/prefix-shg-test.tif']
         image_dict = {}
 
-        populate_image_dictionary(input_files, image_dict, 'PL-SHG')
+        populate_image_dictionary(
+            input_files, image_dict, 'SHG-PL-Trans', 'pl-shg')
 
         self.assertDictEqual(
             {'/directory/prefix': {
-                'PL-SHG': '/directory/prefix-pl-shg-test.tif'}},
+                'SHG-PL-Trans': '/directory/prefix-pl-shg-test.tif'}},
             image_dict)
         self.assertListEqual(
             ['/directory/prefix-pl-test.tif',
              '/directory/prefix-shg-test.tif'],
             input_files)
 
-        populate_image_dictionary(input_files, image_dict, 'PL')
+        populate_image_dictionary(
+            input_files, image_dict, 'PL-Trans', 'pl')
 
         self.assertDictEqual(
             {
                 '/directory/prefix':
-                    {'PL-SHG': '/directory/prefix-pl-shg-test.tif',
-                     'PL': '/directory/prefix-pl-test.tif'}
+                    {'SHG-PL-Trans': '/directory/prefix-pl-shg-test.tif',
+                     'PL-Trans': '/directory/prefix-pl-test.tif'}
             },
             image_dict)
         self.assertListEqual(

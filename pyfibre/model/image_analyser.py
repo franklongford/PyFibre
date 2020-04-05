@@ -16,7 +16,7 @@ from pyfibre.model.tools.figures import (
 )
 from pyfibre.model.tools.preprocessing import nl_means
 from pyfibre.model.multi_image.multi_images import (
-    SHGImage, SHGPLImage, SHGPLTransImage)
+    SHGImage, SHGPLTransImage)
 from pyfibre.io.object_io import (
     save_fibre_networks, load_fibre_networks,
     save_fibre_segments, load_fibre_segments,
@@ -256,7 +256,7 @@ class ImageAnalyser:
             create_figure(fibre_image, figname + '_fibre')
             create_figure(fibre_region_image, figname + '_fibre_seg')
 
-        if isinstance(multi_image, SHGPLImage):
+        if isinstance(multi_image, SHGPLTransImage):
 
             cell_segments = load_cell_segments(
                 filename, image=multi_image.pl_image)

@@ -32,13 +32,13 @@ class TableRow(HasTraits):
 
     def _get_shg(self):
         return (
-            'PL-SHG' in self._dictionary
+            'SHG-PL-Trans' in self._dictionary
             or 'SHG' in self._dictionary)
 
     def _get_pl(self):
         return (
-            'PL-SHG' in self._dictionary
-            or 'PL' in self._dictionary)
+            'SHG-PL-Trans' in self._dictionary
+            or 'PL-Trans' in self._dictionary)
 
 
 class FileDisplayPane(TraitsDockPane):
