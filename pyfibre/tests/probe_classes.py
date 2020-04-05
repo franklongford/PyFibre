@@ -6,10 +6,12 @@ from skimage.measure import regionprops
 from envisage.core_plugin import CorePlugin
 from envisage.ui.tasks.tasks_plugin import TasksPlugin
 
-from pyfibre.gui.image_tab import ImageTab, NetworkImageTab, SegmentImageTab
+from pyfibre.gui.image_tab import ImageTab, NetworkImageTab
+from pyfibre.gui.segment_image_tab import SegmentImageTab
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
 from pyfibre.gui.pyfibre_main_task import PyFibreMainTask
 from pyfibre.gui.pyfibre_plugin import PyFibrePlugin
+from pyfibre.model.multi_image.fixed_stack_image import FixedStackImage
 
 from pyfibre.model.objects.base_segment import BaseSegment
 from pyfibre.model.objects.fibre import Fibre
@@ -190,3 +192,10 @@ class ProbeSegmentImageTab(SegmentImageTab):
         kwargs['segments'] = [ProbeSegment()]
         super().__init__(*args, **kwargs)
         self.multi_image = ProbeMultiImage()
+
+
+class ProbeFixedStackImage(FixedStackImage):
+
+    _stack_len = 1
+
+    _allowed_dim = [2]
