@@ -75,6 +75,17 @@ class TestMultiImageReader(PyFibreTestCase):
             image
         )
 
+        test_image = np.ones((3, 3, 10, 10))
+        test_image[0] *= 2
+        test_image[2] *= 3
+        image = self.reader._format_image(
+            test_image, 1
+        )
+        self.assertArrayAlmostEqual(
+            np.ones((3, 10, 10)),
+            image
+        )
+
     def test_load_multi_image(self):
 
         multi_image = self.reader.load_multi_image(

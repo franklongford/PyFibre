@@ -82,8 +82,8 @@ class MultiImageReader(HasTraits):
         elif minor_axis is not None:
             image = np.mean(image, axis=minor_axis)
 
-        image = np.apply_along_axis(
-            lambda image: image / image.max(), 0, image)
+        for index, channel in enumerate(image):
+            image[index] = channel / channel.max()
 
         return img_as_float(image)
 
