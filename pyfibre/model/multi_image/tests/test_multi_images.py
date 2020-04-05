@@ -3,7 +3,7 @@ from unittest import TestCase
 import numpy as np
 
 from pyfibre.model.multi_image.multi_images import (
-    SHGImage, SHGPLImage, SHGPLTransImage)
+    SHGImage, PLTransImage, SHGPLTransImage)
 
 
 class TestSHGImage(TestCase):
@@ -37,18 +37,8 @@ class TestSHGImage(TestCase):
             id(self.multi_image.image_stack[0])
         )
 
-    def test_preprocess_images(self):
 
-        self.multi_image.p_intensity = (10, 90)
-        self.multi_image.image_stack = [self.image]
-
-        self.multi_image.preprocess_images()
-        self.assertEqual(
-            np.ones(1),
-            np.unique(self.multi_image.image_stack[0]))
-
-
-class TestPLSHGImage(TestCase):
+class TestPLTransImage(TestCase):
 
     def setUp(self):
 
@@ -56,7 +46,7 @@ class TestPLSHGImage(TestCase):
         self.image[5: 5] = 0
         self.image[0: 0] = 2
 
-        self.multi_image = SHGPLImage()
+        self.multi_image = PLTransImage()
 
     def test_init_(self):
 
@@ -71,14 +61,24 @@ class TestPLSHGImage(TestCase):
         pl_image = np.zeros_like(self.image)
 
         self.multi_image.pl_image = pl_image
-        self.assertEqual(2, len(self.multi_image))
-        self.assertIsNone(self.multi_image.image_stack[0])
+        self.assertIsNone(self.multi_image.image_stack[1])
         self.assertEqual(
             id(pl_image),
             id(self.multi_image.pl_image)
         )
         self.assertEqual(
             id(pl_image),
+            id(self.multi_image.image_stack[0])
+        )
+
+        trans_image = np.zeros_like(self.image)
+        self.multi_image.trans_image = trans_image
+        self.assertEqual(
+            id(trans_image),
+            id(self.multi_image.trans_image)
+        )
+        self.assertEqual(
+            id(trans_image),
             id(self.multi_image.image_stack[1])
         )
 
@@ -102,11 +102,21 @@ class TestPLSHGTransImage(TestCase):
         )
 
     def test_assign_images(self):
+        pl_image = np.zeros_like(self.image)
+
+        self.multi_image.pl_image = pl_image
+        self.assertEqual(
+            id(pl_image),
+            id(self.multi_image.pl_image)
+        )
+        self.assertEqual(
+            id(pl_image),
+            id(self.multi_image.image_stack[1])
+        )
 
         trans_image = np.zeros_like(self.image)
 
         self.multi_image.trans_image = trans_image
-        self.assertIsNone(self.multi_image.image_stack[1])
         self.assertEqual(
             id(trans_image),
             id(self.multi_image.trans_image)

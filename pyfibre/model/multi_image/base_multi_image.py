@@ -6,8 +6,6 @@ from traits.api import (
 
 class BaseMultiImage(HasTraits):
 
-    p_intensity = Tuple((1, 99))
-
     shape = Property(Tuple, depends_on='image_stack')
 
     size = Property(Tuple, depends_on='image_stack')
