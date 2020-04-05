@@ -41,7 +41,15 @@ class TestBaseMultiImage(TestCase):
         self.assertIsNone(self.multi_image.shape)
         self.assertIsNone(self.multi_image.size)
 
-    def test_preprocess_images(self):
+    def test_assarray(self):
+        self.multi_image.image_stack = [self.image]
+        image_array = self.multi_image.asarray()
+        self.assertEqual((1, 15, 15), image_array.shape)
+
+    def test_not_implemented(self):
 
         with self.assertRaises(NotImplementedError):
             self.multi_image.preprocess_images()
+
+        with self.assertRaises(NotImplementedError):
+            BaseMultiImage.verify_stack([])

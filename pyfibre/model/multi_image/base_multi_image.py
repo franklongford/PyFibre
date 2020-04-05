@@ -1,3 +1,5 @@
+import numpy as np
+
 from traits.api import (
     HasTraits, ArrayOrNone, Tuple, Callable, List,
     Property, Dict, Str
@@ -48,6 +50,17 @@ class BaseMultiImage(HasTraits):
     def remove(self, image):
         """Removes an image with index from the image_stack"""
         self.image_stack.remove(image)
+
+    def asarray(self):
+        return np.stack(self.image_stack)
+
+    @classmethod
+    def verify_stack(cls, image_stack):
+        """Perform verification that image_stack is allowed by
+        subclass of BaseMultiImage"""
+        raise NotImplementedError(
+            f'{cls.__class__}.verify_stack method'
+            f' not implemented')
 
     def preprocess_images(self):
         """Implement operations that are used to pre-process
