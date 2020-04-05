@@ -15,4 +15,3 @@ class TestViewerPane(TestCase):
 
     def test_open_file(self):
         pass
-
