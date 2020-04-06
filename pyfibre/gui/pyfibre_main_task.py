@@ -47,6 +47,8 @@ class PyFibreMainTask(Task):
 
     file_display_pane = Instance(FileDisplayPane)
 
+    viewer_pane = Instance(ViewerPane)
+
     #: The Traits executor for the background jobs.
     traits_executor = Instance(TraitsExecutor, ())
 
@@ -102,6 +104,9 @@ class PyFibreMainTask(Task):
 
     def _file_display_pane_default(self):
         return FileDisplayPane()
+
+    def _viewer_pane_default(self):
+        return ViewerPane()
 
     def _menu_bar_default(self):
         """A menu bar with functions relevant to the Setup task.
@@ -166,6 +171,11 @@ class PyFibreMainTask(Task):
                 for future in self.current_futures
             ])
         return False
+
+    @on_trait_change('run_enabled')
+    def update_ui(self):
+        if self.run_enabled:
+            self.viewer_pane.update_viewer()
 
     @on_trait_change('current_futures:result_event')
     def _report_result(self, result):
@@ -238,7 +248,7 @@ class PyFibreMainTask(Task):
     def create_central_pane(self):
         """ Creates the central pane
         """
-        return ViewerPane()
+        return self.viewer_pane
 
     def create_dock_panes(self):
         """ Creates the dock panes
