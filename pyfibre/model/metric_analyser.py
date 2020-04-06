@@ -11,7 +11,7 @@ from pyfibre.model.tools.metrics import (
 )
 from pyfibre.model.tools.convertors import (
     regions_to_binary, binary_to_regions)
-from pyfibre.model.objects.multi_image import SHGPLImage
+from pyfibre.model.multi_image.multi_images import SHGPLTransImage
 
 
 logger = logging.getLogger(__name__)
@@ -169,7 +169,7 @@ def generate_metrics(
     end = time.time()
     logger.debug(f" Fibre segment analysis: {end-start} s")
 
-    if isinstance(multi_image, SHGPLImage):
+    if isinstance(multi_image, SHGPLTransImage):
 
         logger.debug(" Performing PL Image analysis")
 

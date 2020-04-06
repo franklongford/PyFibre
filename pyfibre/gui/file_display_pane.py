@@ -32,13 +32,13 @@ class TableRow(HasTraits):
 
     def _get_shg(self):
         return (
-            'PL-SHG' in self._dictionary
+            'SHG-PL-Trans' in self._dictionary
             or 'SHG' in self._dictionary)
 
     def _get_pl(self):
         return (
-            'PL-SHG' in self._dictionary
-            or 'PL' in self._dictionary)
+            'SHG-PL-Trans' in self._dictionary
+            or 'PL-Trans' in self._dictionary)
 
 
 class FileDisplayPane(TraitsDockPane):
@@ -181,7 +181,7 @@ class FileDisplayPane(TraitsDockPane):
                 table_row = TableRow(
                     name=key,
                     _dictionary=data)
-                if table_row.shg and table_row.pl:
+                if table_row.shg:
                     self.file_table.append(table_row)
 
     def view_selected_row(self, selected_rows):

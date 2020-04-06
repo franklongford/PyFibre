@@ -4,7 +4,7 @@ import numpy as np
 from skimage import data
 from scipy.ndimage.filters import gaussian_filter
 
-from pyfibre.io.shg_pl_reader import SHGPLReader
+from pyfibre.io.shg_pl_reader import SHGReader
 from pyfibre.utilities import (
     unit_vector, numpy_remove, nanmean, ring, matrix_split,
     label_set, clear_border, flatten_list
@@ -24,7 +24,7 @@ class TestImages:
 
         N = 50
         self.test_images = {}
-        self.reader = SHGPLReader()
+        self.reader = SHGReader()
 
         "Make ringed test image"
         image_grid = np.mgrid[:N, :N]

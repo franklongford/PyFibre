@@ -6,13 +6,18 @@ from skimage.measure import regionprops
 from envisage.core_plugin import CorePlugin
 from envisage.ui.tasks.tasks_plugin import TasksPlugin
 
+from pyfibre.gui.image_tab import ImageTab, NetworkImageTab
+from pyfibre.gui.segment_image_tab import SegmentImageTab
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
 from pyfibre.gui.pyfibre_main_task import PyFibreMainTask
 from pyfibre.gui.pyfibre_plugin import PyFibrePlugin
+from pyfibre.model.multi_image.fixed_stack_image import FixedStackImage
 
+from pyfibre.model.objects.base_segment import BaseSegment
 from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
-from pyfibre.model.objects.multi_image import SHGImage, SHGPLTransImage
+from pyfibre.model.multi_image.base_multi_image import BaseMultiImage
+from pyfibre.model.multi_image.multi_images import SHGImage, SHGPLTransImage
 
 from .fixtures import test_shg_image_path, test_shg_pl_trans_image_path
 
@@ -85,6 +90,31 @@ class ProbeFibreNetwork(FibreNetwork):
             shape=(10, 10))
 
 
+class ProbeSegment(BaseSegment):
+
+    _tag = 'Test'
+
+    def __init__(self, *args, **kwargs):
+        image, _, _, _ = generate_image()
+        kwargs['image'] = image
+        kwargs['region'] = generate_regions()[0]
+        super(ProbeSegment, self).__init__(
+            *args, **kwargs)
+
+
+class ProbeMultiImage(BaseMultiImage):
+
+    def __init__(self, *args, **kwargs):
+        image, _, _, _ = generate_image()
+        kwargs['image_stack'] = [image]
+        super().__init__(*args, **kwargs)
+        self.image_dict = {
+            'Test': self.image_stack[0]}
+
+    def preprocess_images(self):
+        pass
+
+
 class ProbeSHGImage(SHGImage):
 
     def __init__(self, *args, **kwargs):
@@ -138,3 +168,34 @@ class ProbePyFibreGUI(PyFibreGUI):
         # 'Run' the application by creating windows
         # without an event loop
         self.run = self._create_windows
+
+
+class ProbeImageTab(ImageTab):
+
+    def __init__(self, *args, **kwargs):
+        kwargs['label'] = 'Test Image'
+        super().__init__(*args, **kwargs)
+        self.multi_image = ProbeMultiImage()
+
+
+class ProbeNetworkImageTab(NetworkImageTab):
+
+    def __init__(self, *args, **kwargs):
+        kwargs['networks'] = [ProbeFibreNetwork().graph]
+        super().__init__(*args, **kwargs)
+        self.multi_image = ProbeMultiImage()
+
+
+class ProbeSegmentImageTab(SegmentImageTab):
+
+    def __init__(self, *args, **kwargs):
+        kwargs['segments'] = [ProbeSegment()]
+        super().__init__(*args, **kwargs)
+        self.multi_image = ProbeMultiImage()
+
+
+class ProbeFixedStackImage(FixedStackImage):
+
+    _stack_len = 1
+
+    _allowed_dim = [2]
