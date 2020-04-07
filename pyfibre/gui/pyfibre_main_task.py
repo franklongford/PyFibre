@@ -176,6 +176,9 @@ class PyFibreMainTask(Task):
     def update_ui(self):
         if self.run_enabled:
             self.viewer_pane.update_viewer()
+        self.create_databases()
+        if self.options_pane.save_database:
+            self.save_database()
 
     @on_trait_change('current_futures:result_event')
     def _report_result(self, result):

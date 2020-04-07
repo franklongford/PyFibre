@@ -181,7 +181,7 @@ class FileDisplayPane(TraitsDockPane):
                 table_row = TableRow(
                     name=key,
                     _dictionary=data)
-                if table_row.shg:
+                if table_row.shg and table_row.pl:
                     self.file_table.append(table_row)
 
     def view_selected_row(self, selected_rows):
