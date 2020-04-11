@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from pyface.api import ImageResource
+from pyface.api import ImageResource, FileDialog, OK
 from pyface.qt import QtGui
 from pyface.tasks.action.api import (
     SMenu, SMenuBar, SToolBar, TaskAction, TaskToggleGroup
@@ -146,7 +146,7 @@ class PyFibreMainTask(Task):
                                 "image metrics",
                         image=ImageResource(
                             "baseline_save_black_48dp"),
-                        method="save_database"
+                        method="save_database_as"
                     )
                 )
             ]
@@ -177,7 +177,8 @@ class PyFibreMainTask(Task):
         if self.run_enabled:
             self.viewer_pane.update_viewer()
         self.create_databases()
-        if self.options_pane.save_database:
+        if self.options_pane.save_database(
+                self.options_pane.database_filename):
             self.save_database()
 
     @on_trait_change('current_futures:result_event')
@@ -327,13 +328,32 @@ class PyFibreMainTask(Task):
         self.fibre_database = fibre_database
         self.cell_database = cell_database
 
-    def save_database(self):
-
-        filename = self.options_pane.database_filename
+    def save_database(self, filename):
 
         save_database(self.global_database, filename)
         save_database(self.fibre_database, filename, 'fibre')
         save_database(self.cell_database, filename, 'cell')
+
+    def save_database_as(self):
+        """ Shows a dialog to save the databases"""
+        dialog = FileDialog(
+            action="save as",
+            default_filename=self.options_pane.database_filename,
+        )
+
+        result = dialog.open()
+
+        if result is not OK:
+            return
+
+        current_file = dialog.path
+
+        self.create_databases()
+
+        if self.save_database(current_file):
+            self.options_pane.database_filename = current_file
+            return True
+        return False
 
     def stop_run(self):
         self._cancel_all_fired()
