@@ -222,5 +222,6 @@ def create_shg_pl_trans_figures(multi_image, figname, network_graphs=None,
 
     if cell_regions is not None:
 
-        cell_region_image = create_region_image(multi_image.pl_image, cell_regions)
+        cell_region_image = create_region_image(
+            multi_image.pl_image, cell_regions)
         create_figure(cell_region_image, figname + '_cell_seg')

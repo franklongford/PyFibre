@@ -10,13 +10,8 @@ from pyfibre.utilities import flatten_list
 from pyfibre.model.tools.extraction import (
     build_network, fibre_network_assignment
 )
-from pyfibre.model.tools.figures import (
-    create_figure, create_tensor_image, create_region_image,
-    create_network_image
-)
 from pyfibre.model.tools.preprocessing import nl_means
-from pyfibre.model.multi_image.multi_images import (
-    SHGImage, SHGPLTransImage)
+from pyfibre.model.multi_image.multi_images import SHGImage
 from pyfibre.io.object_io import (
     save_fibre_networks, load_fibre_networks,
     save_fibre_segments, load_fibre_segments,

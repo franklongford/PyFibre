@@ -1,7 +1,7 @@
 import numpy as np
 
 from traits.api import (
-    HasTraits, ArrayOrNone, Tuple, Callable, List,
+    HasTraits, ArrayOrNone, Tuple, List,
     Property, Dict, Str
 )
 
