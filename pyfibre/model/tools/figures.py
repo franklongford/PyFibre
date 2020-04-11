@@ -31,6 +31,8 @@ BASE_COLOURS = {
 def create_figure(image, filename, figsize=(10, 10),
                   ext='png', cmap='viridis'):
 
+    import matplotlib
+    matplotlib.use('Agg')
     import matplotlib.pyplot as plt
 
     plt.figure(figsize=figsize)

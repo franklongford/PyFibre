@@ -241,7 +241,7 @@ class PyFibreMainTask(Task):
                 ow_network=self.options_pane.ow_network,
                 ow_segment=self.options_pane.ow_segment,
                 ow_metric=self.options_pane.ow_metric,
-                save_figures=False)
+                save_figures=self.options_pane.save_figures)
             image_analyser = ImageAnalyser(
                 workflow=workflow
             )
@@ -265,34 +265,6 @@ class PyFibreMainTask(Task):
         """
         return [self.file_display_pane,
                 self.options_pane]
-
-    def create_figures(self):
-
-        file_table = self.file_display_pane.file_table
-        reader = SHGPLTransReader()
-        workflow = PyFibreWorkflow(
-            p_denoise=(self.options_pane.n_denoise,
-                       self.options_pane.m_denoise),
-            sigma=self.options_pane.sigma,
-            alpha=self.options_pane.alpha)
-        image_analyser = ImageAnalyser(
-            workflow=workflow
-        )
-
-        for row in file_table:
-
-            reader.assign_images(row._dictionary)
-            multi_image = reader.load_multi_image()
-
-            filenames = image_analyser.get_filenames(row.name)
-            (working_dir, data_dir, fig_dir,
-             filename, figname) = filenames
-
-            if not os.path.exists(fig_dir):
-                os.mkdir(fig_dir)
-
-            image_analyser.create_figures(
-                multi_image, filename, figname)
 
     def create_databases(self):
 

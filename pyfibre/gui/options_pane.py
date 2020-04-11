@@ -34,6 +34,8 @@ class OptionsPane(TraitsDockPane):
 
     ow_network = Bool(False)
 
+    save_figures = Bool(False)
+
     save_database = Bool(False)
 
     database_filename = File('pyfibre_database')
@@ -64,6 +66,7 @@ class OptionsPane(TraitsDockPane):
             Item('ow_network', label="Overwrite Network?"),
             Item('ow_segment', label="Overwrite Segments?"),
             Item('ow_metric', label="Overwrite Metrics?"),
+            Item('save_figures', label="Save Figures?"),
             Item('save_database', label='Save Database?'),
             Item('database_filename',
                  label='Database file',
