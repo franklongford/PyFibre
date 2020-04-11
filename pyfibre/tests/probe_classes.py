@@ -10,9 +10,9 @@ from pyfibre.gui.image_tab import ImageTab, NetworkImageTab
 from pyfibre.gui.segment_image_tab import SegmentImageTab
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
 from pyfibre.gui.pyfibre_main_task import PyFibreMainTask
+from pyfibre.gui.file_display_pane import TableRow
 from pyfibre.gui.pyfibre_plugin import PyFibrePlugin
 from pyfibre.model.multi_image.fixed_stack_image import FixedStackImage
-
 from pyfibre.model.objects.base_segment import BaseSegment
 from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
@@ -106,12 +106,16 @@ class ProbeMultiImage(BaseMultiImage):
 
     def __init__(self, *args, **kwargs):
         image, _, _, _ = generate_image()
-        kwargs['image_stack'] = [image]
+        kwargs['image_stack'] = [image, 2 * image]
         super().__init__(*args, **kwargs)
         self.image_dict = {
-            'Test': self.image_stack[0]}
+            'Test 1': self.image_stack[0],
+            'Test 2': self.image_stack[1]}
 
     def preprocess_images(self):
+        pass
+
+    def verify_stack(cls, image_stack):
         pass
 
 
@@ -199,3 +203,11 @@ class ProbeFixedStackImage(FixedStackImage):
     _stack_len = 1
 
     _allowed_dim = [2]
+
+
+class ProbeTableRow(TableRow):
+
+    def __init__(self, *args, **kwargs):
+        kwargs['_dictionary'] = {
+            'SHG-PL-Trans': test_shg_pl_trans_image_path}
+        super().__init__(*args, **kwargs)

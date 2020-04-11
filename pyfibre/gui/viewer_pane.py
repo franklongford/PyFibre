@@ -3,10 +3,10 @@ import os
 
 from pyface.tasks.api import TraitsTaskPane
 from traits.api import (
-    Instance, List, Property, Str, Enum, on_trait_change
+    Instance, List, on_trait_change
 )
 from traitsui.api import (
-    View, Group, Item, ListEditor, EnumEditor
+    View, Group, Item, ListEditor
 )
 
 from pyfibre.gui.image_tab import (
@@ -52,60 +52,31 @@ class ViewerPane(TraitsTaskPane):
 
     selected_image = Instance(BaseMultiImage)
 
-    selected_label = Enum(values='image_labels')
+    selected_tab = Instance(ImageTab)
 
-    image_labels = Property(
-        List(Str), depends_on='selected_image.image_dict'
-    )
+    def default_traits_view(self):
 
-    list_editor = ListEditor(
-        page_name='.label',
-        use_notebook=True,
-        dock_style='tab',
-        style='custom'
-    )
-
-    traits_view = View(
-        Group(
-            Item('image_tab_list',
-                 editor=list_editor,
-                 style='custom'),
-            Item('selected_label',
-                 editor=EnumEditor(
-                     name='object.image_labels'),
-                 style='simple'),
-            show_labels=False
+        list_editor = ListEditor(
+            page_name='.label',
+            use_notebook=True,
+            dock_style='tab',
+            style='custom',
+            selected='object.selected_tab'
         )
-    )
+
+        traits_view = View(
+            Group(
+                Item('image_tab_list',
+                     editor=list_editor,
+                     style='custom'),
+                show_labels=False
+            )
+        )
+
+        return traits_view
 
     def _multi_image_reader_default(self):
         return SHGPLTransReader()
-
-    def _get_image_labels(self):
-        if self.selected_image is not None:
-            return list(self.selected_image.image_dict.keys())
-        return []
-
-    @on_trait_change('selected_row')
-    def open_file(self):
-        """Opens corresponding to the first item in
-        selected_rows"""
-
-        filenames = assign_images(
-            self.selected_row._dictionary)
-
-        self.selected_image = self.multi_image_reader.load_multi_image(
-            filenames
-        )
-
-    def _image_tab_list_default(self):
-
-        return [self.multi_image_tab,
-                self.tensor_tab,
-                self.network_tab,
-                self.fibre_tab,
-                self.fibre_segment_tab,
-                self.cell_segment_tab]
 
     def _multi_image_tab_default(self):
         return ImageTab(
@@ -136,6 +107,18 @@ class ViewerPane(TraitsTaskPane):
         return SegmentImageTab(
             multi_image=self.selected_image,
             label='Cell Segments')
+
+    def _image_tab_list_default(self):
+
+        return [self.multi_image_tab,
+                self.tensor_tab,
+                self.network_tab,
+                self.fibre_tab,
+                self.fibre_segment_tab,
+                self.cell_segment_tab]
+
+    def _selected_tab_default(self):
+        return self.image_tab_list[0]
 
     def _update_shg_image_tabs(self, filename, image_name):
 
@@ -186,22 +169,31 @@ class ViewerPane(TraitsTaskPane):
 
         self.cell_segment_tab.segments = cell_segments
 
-    @on_trait_change('selected_image')
-    def update_viewer(self):
+    @on_trait_change('selected_row')
+    def open_file(self):
+        """Opens corresponding to the first item in
+        selected_rows"""
+        filenames = assign_images(
+            self.selected_row._dictionary)
 
+        self.selected_image = self.multi_image_reader.load_multi_image(
+            filenames
+        )
+
+    @on_trait_change('selected_image')
+    def update_image(self):
         if self.selected_row is not None:
             image_name = os.path.basename(self.selected_row.name)
             image_path = os.path.dirname(self.selected_row.name)
             data_dir = f"{image_path}/{image_name}-pyfibre-analysis/data/"
             filename = data_dir + image_name
 
-            for image_tab in self.image_tab_list:
-                image_tab.multi_image = self.selected_image
+            self.selected_tab.multi_image = self.selected_image
 
             self._update_shg_image_tabs(filename, image_name)
             self._update_pl_image_tabs(filename, image_name)
 
-    @on_trait_change('selected_label')
-    def update_label(self):
-        for image_tab in self.image_tab_list:
-            image_tab.selected_label = self.selected_label
+    @on_trait_change('selected_tab')
+    def update_tab(self, object, name, old, new):
+        self.selected_tab.multi_image = self.selected_image
+        self.selected_tab.selected_label = old.selected_label

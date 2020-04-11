@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from pyface.api import ImageResource
+from pyface.api import ImageResource, FileDialog, OK
 from pyface.qt import QtGui
 from pyface.tasks.action.api import (
     SMenu, SMenuBar, SToolBar, TaskAction, TaskToggleGroup
@@ -46,6 +46,8 @@ class PyFibreMainTask(Task):
     options_pane = Instance(OptionsPane)
 
     file_display_pane = Instance(FileDisplayPane)
+
+    viewer_pane = Instance(ViewerPane)
 
     #: The Traits executor for the background jobs.
     traits_executor = Instance(TraitsExecutor, ())
@@ -103,6 +105,9 @@ class PyFibreMainTask(Task):
     def _file_display_pane_default(self):
         return FileDisplayPane()
 
+    def _viewer_pane_default(self):
+        return ViewerPane()
+
     def _menu_bar_default(self):
         """A menu bar with functions relevant to the Setup task.
         """
@@ -141,7 +146,7 @@ class PyFibreMainTask(Task):
                                 "image metrics",
                         image=ImageResource(
                             "baseline_save_black_48dp"),
-                        method="save_database"
+                        method="save_database_as"
                     )
                 )
             ]
@@ -166,6 +171,21 @@ class PyFibreMainTask(Task):
                 for future in self.current_futures
             ])
         return False
+
+    @on_trait_change('file_display_pane.selected_files')
+    def update_selected_row(self):
+        """Opens corresponding to the first item in
+        selected_rows"""
+        self.viewer_pane.selected_row = (
+            self.file_display_pane.selected_files[0])
+
+    @on_trait_change('run_enabled')
+    def update_ui(self):
+        if self.run_enabled:
+            self.viewer_pane.update_image()
+        self.create_databases()
+        if self.options_pane.save_database:
+            self.save_database(self.options_pane.database_filename)
 
     @on_trait_change('current_futures:result_event')
     def _report_result(self, result):
@@ -221,7 +241,7 @@ class PyFibreMainTask(Task):
                 ow_network=self.options_pane.ow_network,
                 ow_segment=self.options_pane.ow_segment,
                 ow_metric=self.options_pane.ow_metric,
-                save_figures=False)
+                save_figures=self.options_pane.save_figures)
             image_analyser = ImageAnalyser(
                 workflow=workflow
             )
@@ -238,41 +258,13 @@ class PyFibreMainTask(Task):
     def create_central_pane(self):
         """ Creates the central pane
         """
-        return ViewerPane()
+        return self.viewer_pane
 
     def create_dock_panes(self):
         """ Creates the dock panes
         """
         return [self.file_display_pane,
                 self.options_pane]
-
-    def create_figures(self):
-
-        file_table = self.file_display_pane.file_table
-        reader = SHGPLTransReader()
-        workflow = PyFibreWorkflow(
-            p_denoise=(self.options_pane.n_denoise,
-                       self.options_pane.m_denoise),
-            sigma=self.options_pane.sigma,
-            alpha=self.options_pane.alpha)
-        image_analyser = ImageAnalyser(
-            workflow=workflow
-        )
-
-        for row in file_table:
-
-            reader.assign_images(row._dictionary)
-            multi_image = reader.load_multi_image()
-
-            filenames = image_analyser.get_filenames(row.name)
-            (working_dir, data_dir, fig_dir,
-             filename, figname) = filenames
-
-            if not os.path.exists(fig_dir):
-                os.mkdir(fig_dir)
-
-            image_analyser.create_figures(
-                multi_image, filename, figname)
 
     def create_databases(self):
 
@@ -314,13 +306,32 @@ class PyFibreMainTask(Task):
         self.fibre_database = fibre_database
         self.cell_database = cell_database
 
-    def save_database(self):
-
-        filename = self.options_pane.database_filename
+    def save_database(self, filename):
 
         save_database(self.global_database, filename)
         save_database(self.fibre_database, filename, 'fibre')
         save_database(self.cell_database, filename, 'cell')
+
+    def save_database_as(self):
+        """ Shows a dialog to save the databases"""
+        dialog = FileDialog(
+            action="save as",
+            default_filename=self.options_pane.database_filename,
+        )
+
+        result = dialog.open()
+
+        if result is not OK:
+            return
+
+        current_file = dialog.path
+
+        self.create_databases()
+
+        if self.save_database(current_file):
+            self.options_pane.database_filename = current_file
+            return True
+        return False
 
     def stop_run(self):
         self._cancel_all_fired()
