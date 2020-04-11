@@ -55,4 +55,7 @@ class TestBaseMultiImage(TestCase):
             BaseMultiImage.verify_stack([])
 
         with self.assertRaises(NotImplementedError):
-            BaseMultiImage.create_figures()
+            self.multi_image.create_figures()
+
+        with self.assertRaises(NotImplementedError):
+            self.multi_image.segmentation_algorithm()

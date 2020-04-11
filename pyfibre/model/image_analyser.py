@@ -170,7 +170,7 @@ class ImageAnalyser:
 
         logger.debug("Segmenting Fibre and Cell regions")
         fibre_segments, cell_segments = multi_image.segmentation_algorithm(
-            multi_image, fibre_networks,
+            fibre_networks,
             scale=self.workflow.scale
         )
 

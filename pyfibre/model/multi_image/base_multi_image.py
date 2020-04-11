@@ -14,8 +14,6 @@ class BaseMultiImage(HasTraits):
 
     ndim = Property(Tuple, depends_on='image_stack')
 
-    segmentation_algorithm = Callable()
-
     image_stack = List(ArrayOrNone)
 
     image_dict = Dict(Str, ArrayOrNone)
@@ -67,6 +65,13 @@ class BaseMultiImage(HasTraits):
         the image_stack before analysis"""
         raise NotImplementedError(
             f'{self.__class__}.preprocess_images method'
+            f' not implemented')
+
+    def segmentation_algorithm(self, *args, **kwargs):
+        """Implement segmentation algorithm to be used for this
+        multi-image type"""
+        raise NotImplementedError(
+            f'{self.__class__}.segmentation_algorithm method'
             f' not implemented')
 
     def create_figures(self, *args, **kwargs):
