@@ -13,11 +13,6 @@ class TestViewerPane(TestCase):
         self.table_row = ProbeTableRow()
         self.viewer_pane = ViewerPane()
 
-    def test_selected_tab(self):
-
-        self.assertEqual(
-            self.viewer_pane.selected_tab, self.viewer_pane.multi_image_tab)
-
     def test_open_file(self):
 
         self.assertIsNone(self.viewer_pane.selected_image)
@@ -30,4 +25,18 @@ class TestViewerPane(TestCase):
         self.assertListEqual(
             ['SHG', 'PL', 'Trans'],
             self.viewer_pane.selected_tab.image_labels
+        )
+
+    def test_selected_tab(self):
+
+        self.assertEqual(
+            self.viewer_pane.selected_tab,
+            self.viewer_pane.multi_image_tab)
+
+        self.viewer_pane.selected_row = self.table_row
+        self.viewer_pane.selected_tab.selected_label = 'PL'
+        self.viewer_pane.selected_tab = self.viewer_pane.image_tab_list[1]
+
+        self.assertEqual(
+            'PL', self.viewer_pane.selected_tab.selected_label
         )

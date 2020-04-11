@@ -25,7 +25,7 @@ class TestImageTab(UnittestTools, TestCase):
 
         image_tab = ImageTab()
 
-        self.assertEqual('', image_tab.selected_label)
+        self.assertIsNone(image_tab.selected_label)
         self.assertDictEqual({}, image_tab._image_dict)
         self.assertDictEqual({}, image_tab.plot.data.arrays)
         self.assertListEqual([], image_tab.image_labels)
@@ -36,6 +36,13 @@ class TestImageTab(UnittestTools, TestCase):
             ['Test 1', 'Test 2'], self.image_tab.image_labels)
         with self.assertTraitChanges(self.image_tab, 'plot'):
             self.image_tab.selected_label = 'Test 2'
+
+    def test_multi_image_change(self):
+
+        image_tab = ImageTab()
+
+        with self.assertTraitChanges(image_tab, 'plot'):
+            image_tab.multi_image = self.multi_image
 
 
 class TestNetworkImageTab(TestCase):

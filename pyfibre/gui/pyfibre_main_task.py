@@ -176,7 +176,8 @@ class PyFibreMainTask(Task):
     def update_selected_row(self):
         """Opens corresponding to the first item in
         selected_rows"""
-        self.viewer_pane.selected_row = self.file_display_pane.selected_files[0]
+        self.viewer_pane.selected_row = (
+            self.file_display_pane.selected_files[0])
 
     @on_trait_change('run_enabled')
     def update_ui(self):
