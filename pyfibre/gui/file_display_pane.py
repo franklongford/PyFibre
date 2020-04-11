@@ -3,7 +3,7 @@ from pyface.api import ImageResource
 
 from traits.api import (
     HasTraits, List, Unicode, Button, File, Dict,
-    Bool, Int, Property
+    Bool, Int, Property, Str
 )
 from traitsui.api import (
     View, Item, Group, TableEditor, ObjectColumn,
@@ -24,7 +24,7 @@ class TableRow(HasTraits):
 
     name = Unicode()
 
-    _dictionary = Dict()
+    _dictionary = Dict(Str, File)
 
     shg = Property(Bool, depends_on='_dictionary')
 
@@ -101,8 +101,7 @@ class FileDisplayPane(TraitsDockPane):
                              resize_mode="fixed")
             ],
             auto_size=False,
-            selected='selected_files',
-            on_select=self.view_selected_row,
+            selected='object.selected_files',
             selection_mode='rows',
             editable=False
         )
@@ -183,11 +182,6 @@ class FileDisplayPane(TraitsDockPane):
                     _dictionary=data)
                 if table_row.shg and table_row.pl:
                     self.file_table.append(table_row)
-
-    def view_selected_row(self, selected_rows):
-        """Opens corresponding to the first item in
-        selected_rows"""
-        self.task.window.central_pane.selected_row = selected_rows[0]
 
     def remove_file(self, selected_rows):
         for selected_row in selected_rows:

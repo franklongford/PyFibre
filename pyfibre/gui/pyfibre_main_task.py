@@ -172,14 +172,19 @@ class PyFibreMainTask(Task):
             ])
         return False
 
+    @on_trait_change('file_display_pane.selected_files')
+    def update_selected_row(self):
+        """Opens corresponding to the first item in
+        selected_rows"""
+        self.viewer_pane.selected_row = self.file_display_pane.selected_files[0]
+
     @on_trait_change('run_enabled')
     def update_ui(self):
         if self.run_enabled:
-            self.viewer_pane.update_viewer()
+            self.viewer_pane.update_image()
         self.create_databases()
-        if self.options_pane.save_database(
-                self.options_pane.database_filename):
-            self.save_database()
+        if self.options_pane.save_database:
+            self.save_database(self.options_pane.database_filename)
 
     @on_trait_change('current_futures:result_event')
     def _report_result(self, result):

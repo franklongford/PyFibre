@@ -7,6 +7,7 @@ from pyface.tasks.api import TaskWindow
 from traits_futures.toolkit_support import toolkit
 
 from pyfibre.tests.dummy_classes import DummyPyFibreGUI
+from pyfibre.tests.probe_classes import ProbeTableRow
 from pyfibre.gui.pyfibre_main_task import PyFibreMainTask
 from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
@@ -124,3 +125,12 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
 
             self.main_task.save_database_as()
             mock_open.assert_not_called()
+
+    def test_select_row(self):
+
+        table_row = ProbeTableRow()
+
+        self.main_task.file_display_pane.selected_files = [table_row]
+        self.assertEqual(
+            table_row,
+            self.main_task.viewer_pane.selected_row)
