@@ -10,13 +10,8 @@ from pyfibre.utilities import flatten_list
 from pyfibre.model.tools.extraction import (
     build_network, fibre_network_assignment
 )
-from pyfibre.model.tools.figures import (
-    create_figure, create_tensor_image, create_region_image,
-    create_network_image
-)
 from pyfibre.model.tools.preprocessing import nl_means
-from pyfibre.model.multi_image.multi_images import (
-    SHGImage, SHGPLTransImage)
+from pyfibre.model.multi_image.multi_images import SHGImage
 from pyfibre.io.object_io import (
     save_fibre_networks, load_fibre_networks,
     save_fibre_segments, load_fibre_segments,
@@ -170,7 +165,7 @@ class ImageAnalyser:
 
         logger.debug("Segmenting Fibre and Cell regions")
         fibre_segments, cell_segments = multi_image.segmentation_algorithm(
-            multi_image, fibre_networks,
+            fibre_networks,
             scale=self.workflow.scale
         )
 
@@ -224,6 +219,8 @@ class ImageAnalyser:
 
         start_fig = time.time()
 
+        kwargs = {}
+
         fibre_networks = load_fibre_networks(
             filename, image=multi_image.shg_image)
         fibre_segments = load_fibre_segments(
@@ -231,48 +228,21 @@ class ImageAnalyser:
 
         fibres = [
             fibre_network.fibres for fibre_network in fibre_networks]
-        network_graphs = [
+        kwargs['network_graphs'] = [
             fibre_network.graph for fibre_network in fibre_networks]
-        fibre_graphs = [
+        kwargs['fibre_graphs'] = [
             fibre.graph for fibre in flatten_list(fibres)]
-        fibre_regions = [
+        kwargs['fibre_regions'] = [
             fibre_segment.region for fibre_segment in fibre_segments]
 
-        if isinstance(multi_image, SHGImage):
-
-            tensor_image = create_tensor_image(
-                multi_image.shg_image)
-            network_image = create_network_image(
-                multi_image.shg_image, network_graphs)
-            fibre_image = create_network_image(
-                multi_image.shg_image, fibre_graphs, 1)
-            fibre_region_image = create_region_image(
-                multi_image.shg_image, fibre_regions)
-
-            create_figure(multi_image.shg_image, figname + '_SHG',
-                          cmap='binary_r')
-            create_figure(tensor_image, figname + '_tensor')
-            create_figure(network_image, figname + '_network')
-            create_figure(fibre_image, figname + '_fibre')
-            create_figure(fibre_region_image, figname + '_fibre_seg')
-
-        if isinstance(multi_image, SHGPLTransImage):
-
+        try:
             cell_segments = load_cell_segments(
                 filename, image=multi_image.pl_image)
+            kwargs['cell_regions'] = [cell.region for cell in cell_segments]
+        except IOError:
+            pass
 
-            cell_regions = [cell.region for cell in cell_segments]
-            cell_region_image = create_region_image(
-                multi_image.pl_image, cell_regions)
-            create_figure(cell_region_image, figname + '_cell_seg')
-            create_figure(
-                multi_image.pl_image, figname + '_PL',
-                cmap='binary_r')
-
-            if isinstance(multi_image, SHGPLTransImage):
-                create_figure(
-                    multi_image.trans_image, figname + '_trans',
-                    cmap='binary_r')
+        multi_image.create_figures(figname, **kwargs)
 
         end_fig = time.time()
 

@@ -118,6 +118,12 @@ class ProbeMultiImage(BaseMultiImage):
     def verify_stack(cls, image_stack):
         pass
 
+    def segmentation_algorithm(self, *args, **kwargs):
+        pass
+
+    def create_figures(self, *args, **kwargs):
+        pass
+
 
 class ProbeSHGImage(SHGImage):
 

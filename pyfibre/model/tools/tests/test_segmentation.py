@@ -2,7 +2,7 @@ from skimage.io import imread
 
 from pyfibre.model.tools.segmentation import (
     rgb_segmentation, shg_segmentation,
-    shg_pl_segmentation, shg_pl_trans_segmentation
+    shg_pl_trans_segmentation
 )
 from pyfibre.tests.probe_classes import (
     generate_image, generate_probe_graph,
@@ -34,12 +34,6 @@ class TestSegmentation(PyFibreTestCase):
 
         self.assertEqual(0, len(fibre_segments))
         self.assertEqual(1, len(cell_segments))
-
-    def test_shg_pl_segmentation(self):
-
-        shg_pl_segmentation(
-            self.multi_image, self.fibre_networks
-        )
 
     def test_shg_pl_trans_segmentation(self):
 

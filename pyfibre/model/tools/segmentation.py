@@ -151,58 +151,6 @@ def shg_segmentation(multi_image, fibre_networks):
     return fibre_segments, cell_segments
 
 
-def shg_pl_segmentation(multi_image, fibre_networks, scale=1.0):
-
-    # Create an image stack for the rgb_segmentation from SHG and PL
-    # images
-    fibre_filter = create_fibre_filter(
-        fibre_networks, multi_image.shape)
-
-    original_binary = np.where(
-        fibre_filter >= threshold_mean(fibre_filter),
-        1, 0)
-    stack = (multi_image.shg_image * fibre_filter,
-             multi_image.pl_image,
-             np.ones(multi_image.shape))
-
-    # Segment the PL image using k-means clustering
-    fibre_mask, cell_mask = rgb_segmentation(stack, scale=scale)
-    fibre_mask, cell_mask = fibre_cell_region_swap(
-        multi_image, fibre_mask, cell_mask)
-
-    # Create a binary for the fibrous regions based on information
-    # obtained from the rgb segmentation
-    fibre_binary = fibre_mask.astype(int)
-    fibre_binary = binary_dilation(fibre_binary, iterations=2)
-    new_binary = binary_closing(fibre_binary)
-
-    # Generate a filter for the SHG image that combines information
-    # from both FIRE and k-means algorithms
-    fibre_binary = mean_binary(
-        np.array([original_binary, new_binary]),
-        multi_image.shg_image,
-        min_intensity=0.10)
-    cell_binary = np.where(fibre_binary, 0, 1)
-
-    # Create a new set of segments for each fibre region
-    fibre_segments = generate_segments(
-        multi_image.shg_image,
-        fibre_binary,
-        FibreSegment
-    )
-
-    # Create a new set of segments for each cell region
-    cell_segments = generate_segments(
-        multi_image.pl_image,
-        cell_binary,
-        CellSegment,
-        min_size=200,
-        min_frac=0.01
-    )
-
-    return fibre_segments, cell_segments
-
-
 def shg_pl_trans_segmentation(multi_image, fibre_networks, scale=1.0):
 
     # Create an image stack for the rgb_segmentation from SHG and PL

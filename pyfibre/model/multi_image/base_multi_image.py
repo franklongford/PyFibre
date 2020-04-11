@@ -1,7 +1,7 @@
 import numpy as np
 
 from traits.api import (
-    HasTraits, ArrayOrNone, Tuple, Callable, List,
+    HasTraits, ArrayOrNone, Tuple, List,
     Property, Dict, Str
 )
 
@@ -13,8 +13,6 @@ class BaseMultiImage(HasTraits):
     size = Property(Tuple, depends_on='image_stack')
 
     ndim = Property(Tuple, depends_on='image_stack')
-
-    segmentation_algorithm = Callable()
 
     image_stack = List(ArrayOrNone)
 
@@ -67,4 +65,18 @@ class BaseMultiImage(HasTraits):
         the image_stack before analysis"""
         raise NotImplementedError(
             f'{self.__class__}.preprocess_images method'
+            f' not implemented')
+
+    def segmentation_algorithm(self, *args, **kwargs):
+        """Implement segmentation algorithm to be used for this
+        multi-image type"""
+        raise NotImplementedError(
+            f'{self.__class__}.segmentation_algorithm method'
+            f' not implemented')
+
+    def create_figures(self, *args, **kwargs):
+        """Create figures from multi-image components that can be
+        generated upon end of analysis"""
+        raise NotImplementedError(
+            f'{self.__class__}.create_figures method'
             f' not implemented')

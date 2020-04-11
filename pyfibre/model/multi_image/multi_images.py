@@ -6,6 +6,8 @@ from pyfibre.model.multi_image.fixed_stack_image import FixedStackImage
 from pyfibre.model.tools.segmentation import (
     shg_segmentation,
     shg_pl_trans_segmentation)
+from pyfibre.model.tools.figures import (
+    create_shg_figures, create_shg_pl_trans_figures)
 
 
 class SHGImage(FixedStackImage):
@@ -15,9 +17,6 @@ class SHGImage(FixedStackImage):
     _stack_len = 1
 
     _allowed_dim = [2, 3]
-
-    def _segmentation_algorithm_default(self):
-        return shg_segmentation
 
     def _get_shg_image(self):
         return self.image_stack[0]
@@ -30,6 +29,12 @@ class SHGImage(FixedStackImage):
             'SHG': self.shg_image
         }
 
+    def segmentation_algorithm(self, *args, **kwargs):
+        return shg_segmentation(self, *args, **kwargs)
+
+    def create_figures(self, figname, **kwargs):
+        return create_shg_figures(self, figname, **kwargs)
+
 
 class SHGPLTransImage(SHGImage):
 
@@ -38,9 +43,6 @@ class SHGPLTransImage(SHGImage):
     trans_image = Property(Array, depends_on='image_stack')
 
     _stack_len = 3
-
-    def _segmentation_algorithm_default(self):
-        return shg_pl_trans_segmentation
 
     def _get_pl_image(self):
         return self.image_stack[1]
@@ -60,3 +62,9 @@ class SHGPLTransImage(SHGImage):
             'PL': self.pl_image,
             'Trans': self.trans_image
         }
+
+    def segmentation_algorithm(self, *args, **kwargs):
+        return shg_pl_trans_segmentation(self, *args, **kwargs)
+
+    def create_figures(self, figname, **kwargs):
+        return create_shg_pl_trans_figures(self, figname, **kwargs)
