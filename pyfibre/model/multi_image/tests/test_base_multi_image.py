@@ -53,3 +53,6 @@ class TestBaseMultiImage(TestCase):
 
         with self.assertRaises(NotImplementedError):
             BaseMultiImage.verify_stack([])
+
+        with self.assertRaises(NotImplementedError):
+            BaseMultiImage.create_figures()

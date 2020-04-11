@@ -68,3 +68,10 @@ class BaseMultiImage(HasTraits):
         raise NotImplementedError(
             f'{self.__class__}.preprocess_images method'
             f' not implemented')
+
+    def create_figures(self, *args, **kwargs):
+        """Create figures from multi-image components that can be
+        generated upon end of analysis"""
+        raise NotImplementedError(
+            f'{self.__class__}.create_figures method'
+            f' not implemented')
