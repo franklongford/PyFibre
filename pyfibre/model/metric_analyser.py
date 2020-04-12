@@ -32,7 +32,7 @@ class MetricAnalyser:
         self.local_metrics = None
         self.global_metrics = None
 
-    def _global_averaging(self, global_metrics, local_metrics, global_binary):
+    def _global_averaging(self, global_metrics, local_metrics):
 
         global_metrics = global_metrics.drop(
             ['SHG Fibre Hu Moment 3',
@@ -40,29 +40,27 @@ class MetricAnalyser:
         global_metrics['No. Fibres'] = sum(
             [len(fibre_network.fibres)
              for fibre_network in self.networks])
-        global_metrics['SHG Fibre Density'] = np.mean(
-            self.image[np.where(global_binary)])
 
         shape_metrics = ['Area', 'Eccentricity', 'Linearity',
-                         'Coverage', 'Hu Moment 1', 'Hu Moment 2']
+                         'Coverage']
         for metric in shape_metrics:
-            global_metrics[f'SHG Fibre {metric}'] = np.mean(
+            global_metrics[f'Fibre Segment {metric}'] = np.mean(
                 local_metrics[f'Fibre Segment {metric}'])
 
-        texture_metrics = ['Mean', 'STD', 'Entropy', 'Density']
+        texture_metrics = ['Mean', 'STD', 'Entropy']
         for metric in texture_metrics:
-            global_metrics[f'SHG Fibre {metric}'] = np.mean(
-                local_metrics[f'Fibre {metric}'])
+            global_metrics[f'Fibre Segment SHG {metric}'] = np.mean(
+                local_metrics[f'Fibre Segment SHG {metric}'])
 
         fibre_metrics = ['Waviness', 'Length']
         for metric in fibre_metrics:
-            global_metrics[f'SHG Fibre {metric}'] = np.nanmean(
+            global_metrics[f'Fibre {metric}'] = np.nanmean(
                 local_metrics[f'Mean Fibre {metric}'])
 
         network_metrics = ['Degree', 'Eigenvalue', 'Connectivity',
                            'Cross-Link Density']
         for metric in network_metrics:
-            global_metrics[f'SHG Fibre Network {metric}'] = np.nanmean(
+            global_metrics[f'Fibre Network {metric}'] = np.nanmean(
                 local_metrics[f'Fibre Network {metric}'])
 
     def _get_metrics(self, attr, metric_function, tag):
@@ -83,9 +81,11 @@ class MetricAnalyser:
         return self._get_metrics(
             self.networks, fibre_network_metrics, 'fibre_networks.json')
 
-    def _get_segment_metrics(self, tag):
+    def _get_segment_metrics(self, image_tag, tag):
         metric_func = partial(
-            segment_metrics, image=self.image, sigma=self.sigma)
+            segment_metrics,
+            image=self.image, image_tag=image_tag,
+            sigma=self.sigma)
         return self._get_metrics(
             self.segments, metric_func, tag)
 
@@ -112,30 +112,39 @@ class MetricAnalyser:
         network_metrics = self._get_network_metrics()
 
         # Analyse fibre segments
-        local_metrics = self._get_segment_metrics('fibre_segments.npy')
+        local_metrics = self._get_segment_metrics('SHG', 'fibre_segments.npy')
         local_metrics = local_metrics.drop(columns=['File'])
 
         local_metrics = pd.concat((network_metrics, local_metrics), axis=1)
 
         # Perform non-linear analysis on global region
-        global_metrics, global_binary = self._get_global_metrics('SHG Fibre')
+        global_metrics, _ = self._get_global_metrics('SHG')
 
         # Average linear properties over all regions
-        self._global_averaging(global_metrics, local_metrics, global_binary)
+        self._global_averaging(global_metrics, local_metrics)
 
         return local_metrics, global_metrics
 
     def analyse_pl(self):
 
         # Analyse individual cell regions
-        local_metrics = self._get_segment_metrics('cell_segment.npy')
+        local_metrics = self._get_segment_metrics('PL', 'cell_segment.npy')
 
         # Perform non-linear analysis on global region
-        global_metrics, _ = self._get_global_metrics('PL Cell')
+        global_metrics, _ = self._get_global_metrics('PL')
 
-        global_metrics = global_metrics.drop(
-            ['PL Cell Hu Moment 3', 'PL Cell Hu Moment 4'])
         global_metrics['No. Cells'] = len(self.segments)
+
+        shape_metrics = ['Area', 'Eccentricity', 'Linearity',
+                         'Coverage']
+        for metric in shape_metrics:
+            global_metrics[f'Cell {metric}'] = np.mean(
+                local_metrics[f'Cell Segment {metric}'])
+
+        texture_metrics = ['Mean', 'STD', 'Entropy']
+        for metric in texture_metrics:
+            global_metrics[f'Cell Segment PL {metric}'] = np.mean(
+                local_metrics[f'Cell Segment PL {metric}'])
 
         return local_metrics, global_metrics
 
