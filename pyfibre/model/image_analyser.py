@@ -7,7 +7,7 @@ from pickle import UnpicklingError
 from skimage.exposure import equalize_adapthist
 
 from pyfibre.utilities import flatten_list
-from pyfibre.model.tools.extraction import (
+from pyfibre.model.tools.network_extraction import (
     build_network, fibre_network_assignment
 )
 from pyfibre.model.tools.preprocessing import nl_means
@@ -133,8 +133,7 @@ class ImageAnalyser:
 
         save_network(network, filename, "network")
 
-        fibre_networks = fibre_network_assignment(
-            network, image=multi_image.shg_image)
+        fibre_networks = fibre_network_assignment(network)
 
         save_fibre_networks(fibre_networks, filename)
 
