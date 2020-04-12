@@ -1,34 +1,66 @@
-from unittest import TestCase
-
 import numpy as np
 
-from pyfibre.tests.probe_classes import generate_regions
+from pyfibre.tests.probe_classes import ProbeSegment
+from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
-from .. segments import BaseSegment
 
-
-class TestBaseSegment(TestCase):
+class TestBaseSegment(PyFibreTestCase):
 
     def setUp(self):
-        regions = generate_regions()
-        self.segment = BaseSegment(
-            region=regions[0])
+        self.array = np.zeros((6, 8))
+        self.array[:, 4] = 1
+        self.array[2, 4:] = 1
+        self.segment = ProbeSegment()
+
+    def test_not_implemented(self):
+
+        with self.assertRaises(NotImplementedError):
+            self.segment.to_json()
+
+        with self.assertRaises(NotImplementedError):
+            ProbeSegment.from_json(None)
+
+    def test_to_array(self):
+        array = self.segment.to_array()
+        self.assertArrayAlmostEqual(
+            self.array, array
+        )
+
+    def test_from_array(self):
+        array = self.segment.to_array(shape=(6, 8))
+        new_segment = ProbeSegment.from_array(array)
+
+        self.assertEqual(
+            self.segment.region.bbox,
+            new_segment.region.bbox
+        )
+
+    def test_tags(self):
+
+        self.assertEqual(
+            'Test Segment', self.segment._shape_tag)
 
     def test_generate_database(self):
 
-        database = self.segment.generate_database()
-        self.assertEqual(13, len(database))
-
-        image = np.ones((10, 10))
-        image[2:, 2:] = 2
-
-        database = self.segment.generate_database(image)
-        self.assertEqual(13, len(database))
-
-        self.segment.image = image
+        shape_metrics = ['Area', 'Linearity', 'Eccentricity',
+                         'Coverage']
+        texture_metrics = ['Mean', 'STD', 'Entropy']
 
         database = self.segment.generate_database()
-        self.assertEqual(13, len(database))
+        self.assertEqual(7, len(database))
+
+        for metric in shape_metrics + texture_metrics:
+            self.assertIn(f'Test Segment {metric}', database)
+
+        database = self.segment.generate_database(
+            image_tag='Test')
+        self.assertEqual(7, len(database))
+
+        for metric in shape_metrics:
+            self.assertIn(f'Test Segment {metric}', database)
+
+        for metric in texture_metrics:
+            self.assertIn(f'Test Segment Test {metric}', database)
 
         self.segment.region = None
         with self.assertRaises(AttributeError):

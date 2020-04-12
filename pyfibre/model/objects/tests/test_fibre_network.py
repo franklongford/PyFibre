@@ -1,7 +1,5 @@
 from unittest import TestCase
 
-import numpy as np
-
 from pyfibre.model.objects.fibre_network import (
     FibreNetwork
 )
@@ -14,9 +12,9 @@ class TestFibreNetwork(TestCase):
 
         self.network = ProbeFibreNetwork()
 
-    def test__getstate__(self):
+    def test_to_json(self):
 
-        state = self.network.__getstate__()
+        state = self.network.to_json()
 
         self.assertIn('fibres', state)
         self.assertIn('red_graph', state)
@@ -24,11 +22,11 @@ class TestFibreNetwork(TestCase):
         self.assertIsNone(state['red_graph'])
 
         self.network.fibres = self.network.generate_fibres()
-        state = self.network.__getstate__()
+        state = self.network.to_json()
         self.assertEqual(1, len(state['fibres']))
 
         self.network.red_graph = self.network.generate_red_graph()
-        state = self.network.__getstate__()
+        state = self.network.to_json()
 
         self.assertDictEqual(
             state['red_graph'],
@@ -44,12 +42,14 @@ class TestFibreNetwork(TestCase):
              }
         )
 
-    def test_deserialise(self):
+    def test_from_json(self):
 
         self.network.red_graph = self.network.generate_red_graph()
-        status = self.network.__getstate__()
-        new_network = FibreNetwork(**status)
-        status = new_network.__getstate__()
+        self.network.fibres = self.network.generate_fibres()
+
+        status = self.network.to_json()
+        new_network = FibreNetwork.from_json(status)
+        status = new_network.to_json()
 
         self.assertDictEqual(
             status['red_graph'],
@@ -65,6 +65,10 @@ class TestFibreNetwork(TestCase):
             }
         )
 
+        self.assertEqual(1, len(new_network.fibres))
+        self.assertListEqual(
+            [0, 1, 2, 3], new_network.fibres[0].node_list)
+
     def test_fibres(self):
 
         fibres = self.network.generate_fibres()
@@ -73,30 +77,16 @@ class TestFibreNetwork(TestCase):
         self.assertListEqual([0, 1, 2, 3], fibres[0].node_list)
 
         self.network.fibres = fibres
-        status = self.network.__getstate__()
+        status = self.network.to_json()
         self.assertEqual(1, len(status["fibres"]))
-
-    def test_serialisation(self):
-        self.network.fibres = self.network.generate_fibres()
-        status = self.network.__getstate__()
-        new_network = FibreNetwork(**status)
-
-        self.assertEqual(1, len(new_network.fibres))
-        self.assertListEqual(
-            [0, 1, 2, 3], new_network.fibres[0].node_list)
 
     def test_generate_database(self):
 
-        database = self.network.generate_database()
-        self.assertEqual(12, len(database))
-
-        image = np.ones((10, 10))
-        image[2:, 2:] = 2
-
-        database = self.network.generate_database(image)
-        self.assertEqual(12, len(database))
-
-        self.network.image = image
+        metrics = ['Connectivity', 'Cross-Links',
+                   'Degree', 'Eigenvalue']
 
         database = self.network.generate_database()
-        self.assertEqual(12, len(database))
+        self.assertEqual(4, len(database))
+
+        for metric in metrics:
+            self.assertIn(f'Fibre Network {metric}', database)

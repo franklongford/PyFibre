@@ -1,32 +1,63 @@
-import copy
-
 import pandas as pd
+import numpy as np
+from skimage.measure import label, regionprops
 
 from pyfibre.model.tools.metrics import (
     region_shape_metrics, region_texture_metrics)
-from pyfibre.io.utilities import pop_under_recursive
+
+from .abc_pyfibre_object import ABCPyFibreObject
 
 
-class BaseSegment:
+class BaseSegment(ABCPyFibreObject):
     """Container for a scikit-image regionprops object
     representing a segmented area of an image"""
 
     _tag = None
 
-    def __init__(self, region=None, image=None):
-
+    def __init__(self, region=None):
         self.region = region
-        self.image = image
 
-    def __getstate__(self):
+    @property
+    def _shape_tag(self):
+        if self._tag is None:
+            return 'Segment'
+        return f'{self._tag} Segment'
+
+    @classmethod
+    def from_json(cls, data):
+        """Deserialises JSON data dictionary to return an instance
+        of the class"""
+        raise NotImplementedError(
+            f'from_json method not supported for {cls.__class__}')
+
+    def to_json(self):
+        """Serialises instance into a dictionary able to be dumped as a
+        JSON file"""
+        raise NotImplementedError(
+            f'to_json method not supported for {self.__class__}')
+
+    @classmethod
+    def from_array(cls, array, intensity_image=None):
+        """Deserialises numpy array to return an instance
+        of the class"""
+        labels = label(array.astype(np.int))
+        region = regionprops(
+            labels, intensity_image=intensity_image)[0]
+        return cls(region=region)
+
+    def to_array(self, shape=None):
         """Return the object state in a form that can be
-        serialised as a JSON file"""
-        state = pop_under_recursive(copy.copy(self.__dict__))
-        state.pop('image', None)
+        serialised as a numpy array"""
+        minr, minc, maxr, maxc = self.region.bbox
+        if shape is None:
+            shape = (maxr, maxc)
+        indices = np.mgrid[minr:maxr, minc:maxc]
+        array = np.zeros(shape, dtype=np.int)
+        array[(indices[0], indices[1])] += self.region.image
 
-        return state
+        return array
 
-    def generate_database(self, image=None):
+    def generate_database(self, image_tag=None):
         """Generates a Pandas database with all graph and segment metrics
         for assigned image"""
 
@@ -36,17 +67,18 @@ class BaseSegment:
                 'first'
             )
 
+        if image_tag is None:
+            texture_tag = self._shape_tag
+        else:
+            texture_tag = ' '.join([self._shape_tag, image_tag])
+
         database = pd.Series(dtype=object)
 
         shape_metrics = region_shape_metrics(
-            self.region, tag=f"{self._tag} Segment")
-
-        if image is None:
-            if self.image is not None:
-                image = self.image
+            self.region, tag=self._shape_tag)
 
         texture_metrics = region_texture_metrics(
-            self.region, image=image, tag=self._tag)
+            self.region, tag=texture_tag)
 
         database = database.append(shape_metrics, ignore_index=False)
         database = database.append(texture_metrics, ignore_index=False)

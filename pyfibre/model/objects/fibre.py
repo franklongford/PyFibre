@@ -11,8 +11,7 @@ class Fibre(BaseGraph):
     representing a single, un-branched fibre"""
 
     def __init__(self, *args, nodes=None, edges=None, growing=True, **kwargs):
-
-        super().__init__(*args, **kwargs)
+        super(Fibre, self).__init__(*args, **kwargs)
 
         if nodes is not None:
             self.graph.add_nodes_from(nodes)
