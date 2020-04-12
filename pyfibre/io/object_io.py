@@ -1,141 +1,162 @@
+from functools import partial
+
+import numpy as np
+
+from pyfibre.model.objects.abc_pyfibre_object import ABCPyFibreObject
 from pyfibre.model.objects.base_graph_segment import BaseGraphSegment
 from pyfibre.model.objects.base_segment import BaseSegment
 from pyfibre.model.objects.segments import CellSegment, FibreSegment
 from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
-from pyfibre.io.utilities import save_json, load_json
+from pyfibre.io.utilities import (
+    save_json, load_json, save_numpy, load_numpy)
 
 from .region_io import save_regions, load_regions
 
 
-def save_base_graph_segment(graph_segment, file_name, file_type=None):
+SUPPORTED_MODES = ['json', 'array']
 
+
+def create_file_name(file_name, file_type):
     if file_type is not None:
-        file_name = '_'.join([file_name, file_type])
-
-    data = graph_segment.__getstate__()
-
-    save_json(data, file_name)
+        return '_'.join([file_name, file_type])
+    return file_name
 
 
-def load_base_graph_segment(
-        file_name, file_type=None, klass=BaseGraphSegment, image=None):
-    """Loads pickled image objects"""
+def save_pyfibre_object(pyfibre_object, file_name, mode,
+                        file_type=None, **kwargs):
+    """Save an ABCPyFibreObject subclass"""
 
-    if file_type is not None:
-        file_name = '_'.join([file_name, file_type])
+    if mode not in SUPPORTED_MODES:
+        raise AttributeError(f'Save mode {mode} not supported')
 
-    data = load_json(file_name)
+    file_name = create_file_name(file_name, file_type)
 
-    return klass(image=image, **data)
-
-
-def save_base_graph_segments(graph_segments, file_name, file_type=None):
-
-    if file_type is not None:
-        file_name = '_'.join([file_name, file_type])
+    if mode == 'json':
+        data = pyfibre_object.to_json()
+        save_json(data, file_name)
     else:
-        file_type = 'graph_segment'
-
-    data = {file_type: [
-        graph_segment.__getstate__()
-        for graph_segment in graph_segments]
-    }
-
-    save_json(data, file_name)
+        array = pyfibre_object.to_array(**kwargs)
+        save_numpy(file_name, array)
 
 
-def load_base_graph_segments(
-        file_name, file_type=None, klass=BaseGraphSegment, image=None):
+def load_pyfibre_object(file_name, klass, mode,
+                        file_type=None, **kwargs):
+    """Load an ABCPyFibreObject subclass"""
 
-    if file_type is not None:
-        file_name = '_'.join([file_name, file_type])
+    if not issubclass(klass, ABCPyFibreObject):
+        raise TypeError(
+            'klass argument must be of type ABCPyFibreObject')
+
+    if mode not in SUPPORTED_MODES:
+        raise AttributeError(f'Save mode {mode} not supported')
+
+    file_name = create_file_name(file_name, file_type)
+
+    if mode == 'json':
+        data = load_json(file_name)
+        data.update(kwargs)
+        return klass.from_json(data)
     else:
-        file_type = 'graph_segment'
-
-    data = load_json(file_name)
-
-    graph_segments = [
-        klass(image=image, **kwargs)
-        for kwargs in data[file_type]
-    ]
-
-    return graph_segments
+        array = load_numpy(file_name)
+        return klass.from_array(array, **kwargs)
 
 
-def save_base_segments(
-        segments, file_name, shape=None, tag=None):
-    """Save a list of BaseSegment instances"""
-    regions = [segment.region for segment in segments]
+def save_pyfibre_objects(pyfibre_objects, file_name, mode,
+                         file_type=None, **kwargs):
+    """Save a list of ABCPyFibreObject subclass"""
 
-    if shape is None:
-        shape = segments[0].region.image.shape
+    if mode not in SUPPORTED_MODES:
+        raise AttributeError(f'Save mode {mode} not supported')
 
-    if tag is None:
-        tag = f"{segments[0]._tag.lower()}s"
+    file_name = create_file_name(file_name, file_type)
 
-    save_regions(
-        regions, file_name, shape, tag)
+    if file_type is None:
+        file_type = 'pyfibre_objects'
 
+    if mode == 'json':
+        data = {
+            file_type: [
+                pyfibre_object.to_json()
+                for pyfibre_object in pyfibre_objects
+            ]
+        }
+        save_json(data, file_name)
+    else:
+        try:
+            shape = kwargs['shape']
+        except KeyError:
+            shape = pyfibre_objects[0].region.image.shape
 
-def load_base_segments(
-        file_name, klass=BaseSegment, tag=None, image=None):
-    """Load a list of Cell instances"""
+        stack = np.zeros(
+            (len(pyfibre_objects),) + shape, dtype=np.int)
 
-    regions = load_regions(
-        file_name, tag, image=image)
+        for index, pyfibre_object in enumerate(pyfibre_objects):
+            array = pyfibre_object.to_array(shape=shape)
+            stack[index] += array
+        stack = np.where(stack, 1, 0)
 
-    return [klass(region=region)
-            for region in regions]
-
-
-def save_fibres(fibres, file_name):
-    """Save a nested list of Fibre instances"""
-    save_base_graph_segments(fibres, file_name, 'fibres')
-
-
-def load_fibres(file_name, image=None):
-    """Load a nested list of FibreNetwork instances"""
-    return load_base_graph_segments(
-        file_name, 'fibres', Fibre, image=image)
-
-
-def save_cell_segments(cell_segments, file_name, shape=None):
-    """Save a list of CellSegment instances"""
-    save_base_segments(
-        cell_segments, file_name,
-        shape=shape, tag='cell_segments')
+        save_numpy(file_name, stack)
 
 
-def load_cell_segments(file_name, image=None):
-    """Load a list of CellSegment instances"""
-    return load_base_segments(
-        file_name, klass=CellSegment,
-        tag='cell_segments', image=image)
+def load_pyfibre_objects(file_name, klass, mode,
+                         file_type=None, **kwargs):
+    """Load a list of ABCPyFibreObject subclass"""
+    if not issubclass(klass, ABCPyFibreObject):
+        raise TypeError(
+            'klass argument must be of type ABCPyFibreObject')
+
+    if mode not in SUPPORTED_MODES:
+        raise AttributeError(f'Save mode {mode} not supported')
+
+    file_name = create_file_name(file_name, file_type)
+
+    if file_type is None:
+        file_type = 'pyfibre_objects'
+
+    pyfibre_objects = []
+
+    if mode == 'json':
+        data = load_json(file_name)
+        for data in data[file_type]:
+            data.update(kwargs)
+            pyfibre_objects.append(klass.from_json(data))
+    else:
+        stack = load_numpy(file_name)
+        for array in stack:
+            pyfibre_objects.append(
+                klass.from_array(array, **kwargs))
+
+    return pyfibre_objects
 
 
-def save_fibre_segments(fibre_segments, file_name, shape=None):
-    """Save a list of FibreSegment instances"""
-    save_base_segments(
-        fibre_segments, file_name,
-        shape=shape, tag='fibre_segments')
+save_fibres = partial(
+    save_pyfibre_objects, mode='json', file_type='fibres')
 
+load_fibres = partial(
+    load_pyfibre_objects, mode='json', klass=Fibre, file_type='fibres')
 
-def load_fibre_segments(file_name, image=None):
-    """Load a list of FibreSegment instances"""
-    return load_base_segments(
-        file_name, klass=FibreSegment,
-        tag='fibre_segments', image=image)
+save_fibre_networks = partial(
+    save_pyfibre_objects, mode='json', file_type='fibre_networks')
 
+load_fibre_networks = partial(
+    load_pyfibre_objects, mode='json', klass=FibreNetwork,
+    file_type='fibre_networks')
 
-def save_fibre_networks(fibre_networks, file_name):
-    """Save a list of FibreNetwork instances"""
-    save_base_graph_segments(
-        fibre_networks, file_name, 'fibre_networks')
+save_cell_segments = partial(
+    save_pyfibre_objects, mode='array', file_type='cell_segments'
+)
 
+load_cell_segments = partial(
+    load_pyfibre_objects, mode='array', klass=CellSegment,
+    file_type='cell_segments'
+)
 
-def load_fibre_networks(file_name, image=None):
-    """Load a list of FibreNetwork instances"""
-    return load_base_graph_segments(
-        file_name, 'fibre_networks',
-        FibreNetwork, image=image)
+save_fibre_segments = partial(
+    save_pyfibre_objects, mode='array', file_type='fibre_segments'
+)
+
+load_fibre_segments = partial(
+    load_pyfibre_objects, mode='array', klass=FibreSegment,
+    file_type='fibre_segments'
+)

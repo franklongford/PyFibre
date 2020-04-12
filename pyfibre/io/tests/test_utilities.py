@@ -2,15 +2,18 @@ from unittest import TestCase
 import os
 from tempfile import NamedTemporaryFile
 
+import networkx as nx
 import numpy as np
 
 from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
+from pyfibre.tests.probe_classes import generate_probe_graph
 
 from .. utilities import (
     parse_files, parse_file_path, pop_under_recursive,
     pop_dunder_recursive, numpy_to_python_recursive,
     python_to_numpy_recursive, replace_ext, save_json,
-    load_json)
+    load_json, serialize_networkx_graph, deserialize_networkx_graph
+)
 
 
 class TestUtilities(TestCase):
@@ -31,6 +34,7 @@ class TestUtilities(TestCase):
                 {'__bad_key__': 'bad', 'good_key': 'good'},
                 {'also_good_key': 'good'}]
         }
+        self.graph = generate_probe_graph()
 
     def test_parse_file_path(self):
 
@@ -169,3 +173,43 @@ class TestUtilities(TestCase):
             save_json(data, temp_file.name + '.json')
             self.assertTrue(os.path.exists(
                 temp_file.name + '.json'))
+
+    def test_serialize_networkx_graph(self):
+
+        data = serialize_networkx_graph(self.graph)
+
+        self.assertDictEqual(
+            data,
+            {'directed': False,
+             'graph': {},
+             'links': [{'r': 1.4142135623730951, 'source': 2, 'target': 3},
+                       {'r': 1.4142135623730951, 'source': 3, 'target': 4},
+                       {'r': 1, 'source': 4, 'target': 5}],
+             'multigraph': False,
+             'nodes': [{'xy': [0, 0], 'id': 2},
+                       {'xy': [1, 1], 'id': 3},
+                       {'xy': [2, 2], 'id': 4},
+                       {'xy': [2, 3], 'id': 5}]
+             }
+        )
+
+    def test_deserialize_networkx_graph(self):
+
+        data = {
+            'directed': False,
+            'graph': {},
+            'links': [{'r': 1.4142135623730951, 'source': 2, 'target': 3},
+                      {'r': 1.4142135623730951, 'source': 3, 'target': 4},
+                      {'r': 1, 'source': 4, 'target': 5}],
+            'multigraph': False,
+            'nodes': [{'xy': [0, 0], 'id': 2},
+                      {'xy': [1, 1], 'id': 3},
+                      {'xy': [2, 2], 'id': 4},
+                      {'xy': [2, 3], 'id': 5}]
+        }
+
+        graph = deserialize_networkx_graph(data)
+
+        self.assertIsInstance(graph, nx.Graph)
+        self.assertEqual(4, graph.number_of_nodes())
+        self.assertIsInstance(graph.nodes[2]['xy'], np.ndarray)

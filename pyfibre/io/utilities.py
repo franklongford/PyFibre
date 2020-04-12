@@ -205,7 +205,7 @@ def load_json(file_name):
     file_name = replace_ext(file_name, 'json')
 
     try:
-        with open(f"{file_name}", 'r') as infile:
+        with open(file_name, 'r') as infile:
             data = json.load(infile)
     except IOError as e:
         raise IOError(
@@ -213,3 +213,31 @@ def load_json(file_name):
         ) from e
 
     return data
+
+
+def save_numpy(file_name, array):
+    """Saves array as numpy binary"""
+
+    file_name = replace_ext(file_name, 'npy')
+
+    try:
+        np.save(file_name, array)
+    except IOError as e:
+        raise IOError(
+            f"Cannot save to file {file_name}"
+        ) from e
+
+
+def load_numpy(file_name):
+    """Loads numpy binary file as array"""
+
+    file_name = replace_ext(file_name, 'npy')
+
+    try:
+        array = np.load(file_name)
+    except IOError as e:
+        raise IOError(
+            f"Cannot read file {file_name}"
+        ) from e
+
+    return array
