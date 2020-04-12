@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def nematic_tensor_metrics(region, nematic_tensor, tag=''):
-    """Analysis of the nematic tensor"""
+    """Nematic tensor analysis for a scikit-image region"""
 
     database = pd.Series(dtype=object)
 
@@ -39,7 +39,7 @@ def nematic_tensor_metrics(region, nematic_tensor, tag=''):
 
 
 def region_shape_metrics(region, tag=''):
-    """Analysis for a scikit-image region"""
+    """Shape analysis for a scikit-image region"""
 
     database = pd.Series(dtype=object)
 
@@ -50,16 +50,17 @@ def region_shape_metrics(region, tag=''):
     database[f"{tag} Eccentricity"] = region.eccentricity
     database[f"{tag} Coverage"] = region.extent
 
-    segment_hu = region.moments_hu
-    database[f"{tag} Hu Moment 1"] = segment_hu[0]
-    database[f"{tag} Hu Moment 2"] = segment_hu[1]
-    database[f"{tag} Hu Moment 3"] = segment_hu[2]
-    database[f"{tag} Hu Moment 4"] = segment_hu[3]
+    # segment_hu = region.moments_hu
+    # database[f"{tag} Hu Moment 1"] = segment_hu[0]
+    # database[f"{tag} Hu Moment 2"] = segment_hu[1]
+    # database[f"{tag} Hu Moment 3"] = segment_hu[2]
+    # database[f"{tag} Hu Moment 4"] = segment_hu[3]
 
     return database
 
 
 def region_texture_metrics(region, image=None, tag='', glcm=False):
+    """Texture analysis for a of scikit-image region"""
 
     database = pd.Series(dtype=object)
 
@@ -72,14 +73,12 @@ def region_texture_metrics(region, image=None, tag='', glcm=False):
     else:
         region_image = region.intensity_image
 
-    _, _, database[f"{tag} Fourier SDI"] = (0, 0, 0)
+    # _, _, database[f"{tag} Fourier SDI"] = (0, 0, 0)
     # fourier_transform_analysis(segment_image)
 
     database[f"{tag} Mean"] = np.mean(region_image)
     database[f"{tag} STD"] = np.std(region_image)
     database[f"{tag} Entropy"] = shannon_entropy(region_image)
-    database[f"{tag} Density"] = np.sum(
-        region_image * region.image) / region.area
 
     if glcm:
 
@@ -202,7 +201,7 @@ def fibre_network_metrics(fibre_networks):
     return database
 
 
-def segment_metrics(segments, image=None, sigma=0.0001):
+def segment_metrics(segments, image=None, image_tag=None, sigma=0.0001):
     """Analysis of a list of `BaseSegment` objects
 
     Parameters
@@ -226,10 +225,17 @@ def segment_metrics(segments, image=None, sigma=0.0001):
 
     for index, segment in enumerate(segments):
 
-        segment_series = segment.generate_database()
+        segment_series = segment.generate_database(
+            image_tag=image_tag)
+
+        if image_tag is not None:
+            tensor_tag = ' '.join([image_tag, 'Segment'])
+        else:
+            tensor_tag = 'Segment'
 
         nematic_metrics = nematic_tensor_metrics(
-            segment.region, nematic_tensor, f"{segment._tag} Segment")
+            segment.region, nematic_tensor,
+            tensor_tag)
         segment_series = pd.concat((segment_series, nematic_metrics))
 
         database = database.append(segment_series, ignore_index=True)

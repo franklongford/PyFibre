@@ -16,30 +16,16 @@ logger = logging.getLogger(__name__)
 
 class FibreAssigner:
 
-    def __init__(self, image=None, shape=None, angle_thresh=70, min_n=4):
+    def __init__(self, angle_thresh=70, min_n=4):
 
-        if image is None and shape is None:
-            raise RuntimeError(
-                'Cannot instantiate FibreAssigner class'
-                ' with both image and shape argument unassigned')
-
-        self.image = image
         self.angle_thresh = angle_thresh
         self.min_n = min_n
 
-        self.graph = None
+        self._graph = None
         self.node_coord = None
         self.edge_count = None
         self.d_coord = None
         self.r2_coord = None
-
-        self._shape = shape
-
-    @property
-    def shape(self):
-        if self.image is not None:
-            return self.image.shape
-        return self._shape
 
     @property
     def theta_thresh(self):
@@ -47,14 +33,14 @@ class FibreAssigner:
 
     def _get_connected_nodes(self, node):
         """Get nodes connected to input node"""
-        return np.array(list(self.graph.adj[node]))
+        return np.array(list(self._graph.adj[node]))
 
     def _initialise_graph(self, graph):
 
-        self.graph = nx.convert_node_labels_to_integers(graph)
-        self.node_coord = get_node_coord_array(self.graph)
+        self._graph = nx.convert_node_labels_to_integers(graph)
+        self.node_coord = get_node_coord_array(self._graph)
         self.edge_count = np.array(
-            [self.graph.degree[node] for node in self.graph],
+            [self._graph.degree[node] for node in self._graph],
             dtype=int
         )
         self.d_coord, self.r2_coord = distance_matrix(self.node_coord)
@@ -66,14 +52,12 @@ class FibreAssigner:
         edge_list = self.edge_count[new_nodes]
 
         new_node = new_nodes[np.argsort(edge_list)][-1]
-        coord_r = self.graph[node][new_node]['r']
+        coord_r = self._graph[node][new_node]['r']
 
-        fibre = Fibre(nodes=[node, new_node],
-                      image=self.image,
-                      shape=self.shape)
+        fibre = Fibre(nodes=[node, new_node])
 
-        fibre.graph.nodes[node]['xy'] = self.graph.nodes[node]['xy']
-        fibre.graph.nodes[new_node]['xy'] = self.graph.nodes[new_node]['xy']
+        fibre.graph.nodes[node]['xy'] = self._graph.nodes[node]['xy']
+        fibre.graph.nodes[new_node]['xy'] = self._graph.nodes[new_node]['xy']
         fibre.graph.add_edge(
             node, new_node, r=coord_r
         )
@@ -91,7 +75,7 @@ class FibreAssigner:
         if n_edges > 0:
             new_coord_vec = self.d_coord[end_node][new_connect]
             new_coord_r = np.array([
-                self.graph[end_node][n]['r'] for n in new_connect
+                self._graph[end_node][n]['r'] for n in new_connect
             ])
 
             assert np.all(new_coord_r > 0), (
@@ -114,11 +98,11 @@ class FibreAssigner:
 
                 fibre.add_node(
                     new_node,
-                    xy=self.graph.nodes[new_node]['xy'].copy()
+                    xy=self._graph.nodes[new_node]['xy'].copy()
                 )
                 fibre.add_edge(
                     end_node, new_node,
-                    r=self.graph[new_node][end_node]['r'])
+                    r=self._graph[new_node][end_node]['r'])
 
             except (ValueError, IndexError):
                 fibre.growing = False

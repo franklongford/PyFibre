@@ -32,7 +32,7 @@ class TestAnalysis(TestCase):
             self.regions[0], 'test')
 
         self.assertIsInstance(metrics, pd.Series)
-        self.assertEqual(8, len(metrics))
+        self.assertEqual(4, len(metrics))
 
     def test_region_texture_metrics(self):
 
@@ -40,19 +40,19 @@ class TestAnalysis(TestCase):
             self.regions[0], tag='test')
 
         self.assertIsInstance(metrics, pd.Series)
-        self.assertEqual(5, len(metrics))
+        self.assertEqual(3, len(metrics))
 
         metrics = region_texture_metrics(
             self.regions[0], tag='test', glcm=True)
 
         self.assertIsInstance(metrics, pd.Series)
-        self.assertEqual(14, len(metrics))
+        self.assertEqual(12, len(metrics))
 
         metrics = region_texture_metrics(
             self.regions[0], image=np.ones((10, 10)), tag='test')
 
         self.assertIsInstance(metrics, pd.Series)
-        self.assertEqual(5, len(metrics))
+        self.assertEqual(3, len(metrics))
 
     def test_network_metrics(self):
 
@@ -82,4 +82,4 @@ class TestAnalysis(TestCase):
             [self.fibre_network])
 
         self.assertIsInstance(metrics, pd.DataFrame)
-        self.assertEqual(15, len(metrics.columns))
+        self.assertEqual(11, len(metrics.columns))

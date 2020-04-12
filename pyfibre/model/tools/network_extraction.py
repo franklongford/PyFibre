@@ -1,284 +1,169 @@
 import logging
-import time
 
 import networkx as nx
 import numpy as np
 
-from skimage.morphology import local_maxima
+from scipy.ndimage import distance_transform_edt
+from scipy.ndimage.filters import gaussian_filter
 
-from pyfibre.utilities import ring, numpy_remove
+from skimage.morphology import remove_small_objects
+from skimage.transform import rescale
 
-from .fibre_utilities import (
-    branch_angles, reduce_coord, new_branches, transfer_edges,
-    check_2D_arrays
-)
+from pyfibre.model.objects.fibre_network import FibreNetwork
+from pyfibre.model.tools.filters import tubeness, hysteresis
+from pyfibre.utilities import clear_border
+
+from .fire_algorithm import FIREAlgorithm
+from .fibre_utilities import remove_redundant_nodes
 
 logger = logging.getLogger(__name__)
 
 
-class NetworkExtraction:
-    """Class that extracts a complete fibre network from a
-    provided image as a single nx.Graph object"""
-
-    def __init__(self, graph=None,
-                 nuc_thresh=2, lmp_thresh=0.15, angle_thresh=70,
-                 r_thresh=8, nuc_radius=10):
-        """Initialise FibreNetwork object
-
-        Parameters
-        ---------
-        graph : nx.Graph, optional
-            Graph object representing full network
-        nuc_thresh : float, optional
-            Minimum distance pixel threshold to be classed as
-            nucleation point
-        lmp_thresh : float, optional
-            Minimum distance pixel threshold to be classed as
-            lmp point
-        angle_thresh : float, optional
-            Maximum radian deviation of new lmp from fibre
-            trajectory
-        r_thresh : float, optional
-            Maximum length of edges between nodes
-        nuc_radius : float, optional
-        """
-
-        self.graph = None
-        self.fibres = []
-
-        if graph is None:
-            graph = nx.Graph()
-        self._assign_graph(graph)
-
-        self.nuc_thresh = nuc_thresh
-        self.lmp_thresh = lmp_thresh
-        self.angle_thresh = angle_thresh
-        self.r_thresh = r_thresh
-        self.nuc_radius = nuc_radius
-
-    @property
-    def theta_thresh(self):
-        """Conversion of angle_thresh to radians"""
-        return 1 + np.cos(
-            (180 - self.angle_thresh) * np.pi / 180)
-
-    def _assign_graph(self, graph=None):
-        """Assign graph to self.graph"""
-
-        assert isinstance(graph, nx.Graph), (
-            f"Argument `graph` must be on object "
-            f"of type {nx.Graph}"
-        )
-        self.graph = graph
-
-    def _reset_graph(self):
-        """Reset attribute `graph` to empy nx.Graph object"""
-        self._assign_graph(nx.Graph())
-
-    def _get_connected_nodes(self, node):
-        """Get nodes connected to input node"""
-        return np.array(list(self.graph.adj[node]))
-
-    def _get_nucleation_points(self, image):
-        "Set distance and angle thresholds for fibre iterator"
-
-        # Get global maxima for smoothed distance matrix
-        maxima = local_maxima(
-            image, connectivity=self.nuc_radius, allow_borders=True
-        )
-        nuc_node_coord = reduce_coord(
-            np.argwhere(maxima * image >= self.nuc_thresh),
-            image[np.where(maxima * image >= self.nuc_thresh)],
-            self.r_thresh)
-
-        return nuc_node_coord
-
-    def _initialise_graph(self, image, nuc_node_coord):
-        """Initialise graph with nucleation nodes"""
-
-        n_nuc = nuc_node_coord.shape[0]
-        self.graph.add_nodes_from(np.arange(n_nuc))
-
-        n_nodes = n_nuc
-        for nuc, nuc_coord in enumerate(nuc_node_coord):
-
-            self.graph.nodes[nuc]['xy'] = nuc_coord
-            self.graph.nodes[nuc]['nuc'] = nuc
-            self.graph.nodes[nuc]['growing'] = False
-
-            ring_filter = ring(
-                np.zeros(image.shape), nuc_coord, [self.r_thresh // 2], 1
-            )
-            lmp_coord, lmp_vectors, lmp_r = new_branches(
-                image, nuc_coord, ring_filter, self.lmp_thresh
-            )
-            n_lmp = lmp_coord.shape[0]
-
-            self.graph.add_nodes_from(n_nodes + np.arange(n_lmp))
-            self.graph.add_edges_from(
-                [*zip(nuc * np.ones(n_lmp, dtype=int),
-                      n_nodes + np.arange(n_lmp))]
-            )
+def build_network(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2,
+                  nuc_radius=11, lmp_thresh=0.15, angle_thresh=70,
+                  r_thresh=8):
+    """
+    Uses the FibeR Extraction algorithm to extract a fibre network from
+    provided image
+
+    Parameters
+    ----------
+    image:  array_like, (float); shape=(nx, ny)
+        Image to perform FIRE upon
+    scale: float
+        Scaling factor to apply to image before performing algorithm
+    alpha: float
+        Alpha metric to use in hysteresis threshold algorithm
+    sigma: float
+        Gaussian standard deviation to filter distance image
+    nuc_thresh: float
+        Minimum distance pixel threshold to be classed as nucleation point
+    nuc_radius: float
+        Minimum pixel radii between nucleation points
+    lmp_thresh: float
+        Minimum distance pixel threshold to be classed as lmp point
+    angle_thresh: float
+        Maximum angular deviation of new lmp from fibre trajectory
+    r_thresh: float
+        Maximum length of edges between nodes
+
+    Returns
+    -------
+
+    network: nx.Graph
+        Networkx graph object representing fibre network
+
+    """
+
+    # Prepare input image to gain distance matrix of foreground
+    # from background"
+
+    image_scale = rescale(image, scale, multichannel=False,
+                          mode='constant', anti_aliasing=None)
+    sigma *= scale
+
+    # Apply tubeness transform to enhance image fibres"
+    image_TB = tubeness(image_scale)
+    threshold = hysteresis(image_TB, alpha=alpha)
+    cleaned = remove_small_objects(threshold, min_size=int(64*scale**2))
+    distance = distance_transform_edt(cleaned)
+    smoothed = gaussian_filter(distance, sigma=sigma)
+    cleared = clear_border(smoothed)
+
+    # Set distance thresholds for fibre iterator based on scale factor"
+    nuc_thresh = np.min(
+        [nuc_thresh * scale**2,
+         1E-1 * scale**2 * cleared.max()])
+    lmp_thresh = np.min(
+        [lmp_thresh * scale**2,
+         1E-1 * scale**2 * cleared[np.nonzero(cleared)].mean()])
+    r_thresh = int(r_thresh * scale)
+    nuc_radius = int(nuc_radius * scale)
+
+    logger.debug(
+        "Maximum distance = {}".format(cleared.max()))
+    logger.debug(
+        f"Mean distance = {cleared[np.nonzero(cleared)].mean()}")
+    logger.debug(
+        "Using thresholds:\n"
+        " nuc = {} pix\n "
+        "lmp = {} pix\n "
+        "angle = {} deg\n "
+        "edge = {} pix".format(
+            nuc_thresh, lmp_thresh, angle_thresh, r_thresh))
+
+    fibre_network = FIREAlgorithm(
+        nuc_thresh=nuc_thresh, lmp_thresh=lmp_thresh,
+        angle_thresh=angle_thresh,
+        r_thresh=r_thresh, nuc_radius=nuc_radius)
+    network = fibre_network.create_network(cleared)
+
+    # Rescale all node coordinates and edge radii
+    for node in network.nodes():
+        network.nodes[node]['xy'] = np.array(
+            network.nodes[node]['xy'] // scale, dtype=int)
+
+    for edge in network.edges():
+        network.edges[edge]['r'] *= 1. / scale
+
+    network = clean_network(network)
+
+    return network
+
+
+def clean_network(network, r_thresh=2):
+    """Cleans network by removing isolated nodes, combining any
+    two nodes that are located too close together into one, and removing
+    any components that are too small to be considered fibres"""
+
+    logger.debug("Remove all isolated nodes")
+    network.remove_nodes_from(list(nx.isolates(network)))
+    network = nx.convert_node_labels_to_integers(network)
+
+    logger.debug("Checking for redundant nodes")
+    network = remove_redundant_nodes(network, r_thresh)
 
-            generator = zip(
-                lmp_coord, lmp_vectors, lmp_r, n_nodes + np.arange(n_lmp)
-            )
+    # Remove graph components containing either only 1 node with 1 edge or
+    # 1 node with more than 1 edge"
+    node_remove_list = []
+    for i, component in enumerate(nx.connected_components(network)):
+        subgraph = network.subgraph(component)
+        edge_count = np.array(
+            [subgraph.degree[node] for node in subgraph],
+            dtype=int)
+        graph_check = np.sum(edge_count > 1) > 1
+        graph_check *= np.sum(edge_count == 1) > 1
+        if not graph_check:
+            node_remove_list += list(subgraph.nodes())
 
-            for xy, vec, r, lmp in generator:
-                self.graph.nodes[lmp]['xy'] = xy
-                self.graph[nuc][lmp]['r'] = r
-                self.graph.nodes[lmp]['nuc'] = nuc
-                self.graph.nodes[lmp]['growing'] = True
-                self.graph.nodes[lmp]['direction'] = -vec / r
+    network.remove_nodes_from(node_remove_list)
+    network = nx.convert_node_labels_to_integers(network)
 
-            n_nodes += n_lmp
+    return network
 
-    def grow_lmp(self, index, image, tot_node_coord):
-        """
-        Grow fibre object along network
 
-        Parameters
-        ----------
+def fibre_network_assignment(network):
+    """Extract sub-networks, simplified sub-networks and Fibre objects
+    from a networkx Graph generated by modified FIRE algorithm"""
 
-        index: int
-            Index of node to grow on the graph
-        image:  array_like, (float); shape=(nx, ny)
-            Image to perform FIRE upon
-        tot_node_coord: array_like
-            Array of full coordinates (x, y) of nodes in graph network
-        """
+    logger.debug("Extracting and simplifying fibre networks from graph")
 
-        # Get nodes: end_node (end of fibre), nuc_node (start of fibre)
-        # and prior_node (node connected to end)
-        end_node = self.graph.nodes[index]
-        nuc_node = self.graph.nodes[end_node['nuc']]
+    fibre_networks = []
 
-        # Get list of connected nodes in fibre
-        connected_nodes = self._get_connected_nodes(index)
-        prior = connected_nodes[0]
-        prior_node = self.graph.nodes[prior]
+    for i, component in enumerate(nx.connected_components(network)):
 
-        # Get edge between end and prior nodes
-        edge = self.graph[index][prior]
+        subgraph = network.subgraph(component)
 
-        ring_filter = ring(
-            np.zeros(image.shape), end_node['xy'], np.arange(2, 3), 1
-        )
+        fibre_network = FibreNetwork(graph=subgraph)
 
-        branch_coord, branch_vector, branch_r = new_branches(
-            image, end_node['xy'], ring_filter, self.lmp_thresh
-        )
+        fibre_network.fibres = fibre_network.generate_fibres()
 
-        cos_the = branch_angles(
-            end_node['direction'], branch_vector, branch_r
-        )
-        indices = np.argwhere(abs(cos_the + 1) <= self.theta_thresh)
+        if len(fibre_network.fibres) > 0:
+            fibre_network.red_graph = fibre_network.generate_red_graph()
+            fibre_networks.append(fibre_network)
 
-        if indices.size == 0:
-            end_node['growing'] = False
+    # Sort segments ranked by graph size
+    fibre_networks = sorted(
+        fibre_networks, key=lambda network: network.number_of_nodes)
 
-            if edge['r'] <= self.r_thresh / 10:
-                transfer_edges(self.graph, index, prior)
-
-            return
-
-        branch_coord = branch_coord[indices]
-        branch_r = branch_r[indices]
-
-        close_nodes, _ = check_2D_arrays(tot_node_coord, branch_coord, 1)
-        close_nodes = numpy_remove(close_nodes, connected_nodes)
-
-        if close_nodes.size != 0:
-
-            new_end = close_nodes.min()
-            transfer_edges(self.graph, index, new_end)
-            end_node['growing'] = False
-
-        else:
-            new_index = branch_r.argmax()
-
-            new_end_coord = branch_coord[new_index].flatten()
-            new_end_vector = new_end_coord - prior_node['xy']
-            new_end_r = np.sqrt((new_end_vector**2).sum())
-
-            new_dir_vector = new_end_coord - nuc_node['xy']
-            new_dir_r = np.sqrt((new_dir_vector**2).sum())
-
-            if new_end_r >= self.r_thresh:
-
-                new_end = self.graph.number_of_nodes()
-
-                self.graph.add_node(new_end)
-                new_node = self.graph.nodes[new_end]
-
-                self.graph.add_edge(index, new_end)
-                new_edge = self.graph[index][new_end]
-
-                new_node['xy'] = new_end_coord
-                new_node['nuc'] = end_node['nuc']
-
-                new_edge['r'] = np.sqrt(
-                    ((new_end_coord - end_node['xy'])**2).sum())
-                new_node['direction'] = (new_dir_vector / new_dir_r)
-
-                end_node['growing'] = False
-                new_node['growing'] = True
-
-            else:
-                end_node['xy'] = new_end_coord
-                edge['r'] = new_end_r
-                end_node['direction'] = (new_dir_vector / new_dir_r)
-
-    def create_network(self, image):
-        """Initialise network from n_nucleation sites"""
-
-        self._reset_graph()
-
-        nuc_node_coord = self._get_nucleation_points(image)
-
-        self._initialise_graph(image, nuc_node_coord)
-
-        n_nuc = nuc_node_coord.shape[0]
-        n_node = self.graph.number_of_nodes()
-
-        fibre_ends = [index for index in range(n_nuc, n_node)
-                      if self.graph.degree[index] == 1]
-        fibre_grow = [index for index in fibre_ends
-                      if self.graph.nodes[index]['growing']]
-        n_fibres = len(fibre_ends)
-
-        logger.debug("No. nucleation nodes = {}".format(n_nuc))
-        logger.debug("No. nodes created = {}".format(n_node))
-        logger.debug("No. fibres to grow = {}".format(n_fibres))
-
-        it = 0
-        total_time = 0
-        while len(fibre_grow) > 0:
-            start = time.time()
-
-            tot_node_coord = [self.graph.nodes[node]['xy']
-                              for node in self.graph]
-            tot_node_coord = np.stack(tot_node_coord)
-
-            for fibre in fibre_grow:
-                self.grow_lmp(
-                    fibre, image, tot_node_coord
-                )
-
-            n_node = self.graph.number_of_nodes()
-
-            fibre_ends = [index for index in range(n_nuc, n_node)
-                          if self.graph.degree[index] == 1]
-            fibre_grow = [index for index in fibre_ends
-                          if self.graph.nodes[index]['growing']]
-
-            it += 1
-            end = time.time()
-            total_time += end - start
-
-            logger.debug(
-                f"Iteration {it} time = {round(end - start, 3)} s,"
-                f" {n_node} nodes  {len(fibre_grow)}/{n_fibres} "
-                f"fibres left to grow")
-
-        return self.graph
+    return fibre_networks
