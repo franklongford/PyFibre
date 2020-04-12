@@ -34,9 +34,6 @@ class MetricAnalyser:
 
     def _global_averaging(self, global_metrics, local_metrics):
 
-        global_metrics = global_metrics.drop(
-            ['SHG Fibre Hu Moment 3',
-             'SHG Fibre Hu Moment 4'])
         global_metrics['No. Fibres'] = sum(
             [len(fibre_network.fibres)
              for fibre_network in self.networks])
