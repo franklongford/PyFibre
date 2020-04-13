@@ -37,13 +37,19 @@ class TestMetricAnalyser(TestCase):
         self.metric_analyser.image = self.shg_multi_image.shg_image
         self.metric_analyser.segments = self.fibre_segments
         self.metric_analyser.networks = self.fibre_networks
-        self.metric_analyser.analyse_shg()
+        local_metrics, global_metrics = self.metric_analyser.analyse_shg()
+
+        self.assertEqual(18, len(local_metrics.columns))
+        self.assertEqual(17, len(global_metrics))
 
     def test_analyse_pl(self):
 
         self.metric_analyser.image = self.shg_pl_multi_image.pl_image
         self.metric_analyser.segments = self.cell_segments
-        self.metric_analyser.analyse_pl()
+        local_metrics, global_metrics = self.metric_analyser.analyse_pl()
+
+        self.assertEqual(11, len(local_metrics.columns))
+        self.assertEqual(11, len(global_metrics))
 
     def test_generate_metrics(self):
 
@@ -59,7 +65,7 @@ class TestMetricAnalyser(TestCase):
         self.assertEqual(2, len(local_dataframes))
         self.assertEqual((1, 18), local_dataframes[0].shape)
         self.assertIsNone(local_dataframes[1])
-        self.assertEqual((19,), global_dataframe.shape)
+        self.assertEqual((18,), global_dataframe.shape)
 
         global_dataframe, local_dataframes = generate_metrics(
             ProbeSHGPLTransImage(),
@@ -73,4 +79,4 @@ class TestMetricAnalyser(TestCase):
         self.assertEqual(2, len(local_dataframes))
         self.assertEqual((1, 18), local_dataframes[0].shape)
         self.assertEqual((1, 11), local_dataframes[1].shape)
-        self.assertEqual((31,), global_dataframe.shape)
+        self.assertEqual((29,), global_dataframe.shape)

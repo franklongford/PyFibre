@@ -229,9 +229,9 @@ def segment_metrics(segments, image=None, image_tag=None, sigma=0.0001):
             image_tag=image_tag)
 
         if image_tag is not None:
-            tensor_tag = ' '.join([image_tag, 'Segment'])
+            tensor_tag = ' '.join([segment._tag, 'Segment', image_tag])
         else:
-            tensor_tag = 'Segment'
+            tensor_tag = ' '.join([segment._tag, 'Segment'])
 
         nematic_metrics = nematic_tensor_metrics(
             segment.region, nematic_tensor,
