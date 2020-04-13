@@ -8,11 +8,8 @@ import pandas as pd
 from pyfibre.model.tools.metrics import (
     SHAPE_METRICS, NEMATIC_METRICS, TEXTURE_METRICS,
     FIBRE_METRICS, NETWORK_METRICS,
-    region_shape_metrics, fibre_network_metrics,
-    segment_metrics, region_texture_metrics
+    fibre_network_metrics, segment_metrics
 )
-from pyfibre.model.tools.convertors import (
-    regions_to_binary, binary_to_regions)
 from pyfibre.model.multi_image.multi_images import SHGPLTransImage
 
 
