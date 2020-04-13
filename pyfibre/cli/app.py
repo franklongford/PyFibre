@@ -11,8 +11,10 @@ Last Modified: 18/02/2019
 import logging
 import click
 
-from pyfibre.version import __version__
 from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
+
+from ..utilities import logo
+from ..version import __version__
 
 from .pyfibre_cli import PyFibreCLI
 
@@ -119,6 +121,8 @@ def run(file_path, key, sigma, alpha, log_name,
         import pstats
         profiler = cProfile.Profile()
         profiler.enable()
+
+    logging.info(logo(__version__))
 
     pyfibre_app = PyFibreCLI(
         sigma=sigma, alpha=alpha, key=key,

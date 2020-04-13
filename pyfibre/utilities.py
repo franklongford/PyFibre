@@ -25,7 +25,8 @@ class NoiseError(Exception):
 
 def logo(version):
 
-    logo_text = "           ___       ___                  " + '\n'
+    logo_text = "\n"
+    logo_text += "           ___       ___                  " + '\n'
     logo_text += "           |  \\     |   . |              " + '\n'
     logo_text += "           |__/     |__   |__   __  __  " + '\n'
     logo_text += "           |   |  | |   | |  | |   |__| " + '\n'
