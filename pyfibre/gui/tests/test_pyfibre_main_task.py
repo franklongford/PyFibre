@@ -96,6 +96,7 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
         self.assertIsInstance(
             self.main_task.create_dock_panes()[1], OptionsPane
         )
+        self.assertIn('SHG-PL-Trans', self.main_task.multi_image_readers)
 
     def test_run_cancel_enabled(self):
 
@@ -130,7 +131,6 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
 
         table_row = ProbeTableRow()
 
+        self.assertIsNone(self.main_task.viewer_pane.selected_image)
         self.main_task.file_display_pane.selected_files = [table_row]
-        self.assertEqual(
-            table_row,
-            self.main_task.viewer_pane.selected_row)
+        self.assertIsNotNone(self.main_task.viewer_pane.selected_image)

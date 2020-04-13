@@ -2,6 +2,8 @@ import os
 from unittest import TestCase
 
 from pyfibre.gui.file_display_pane import FileDisplayPane
+from pyfibre.tests.fixtures import (
+    directory, test_shg_pl_trans_image_path, test_shg_image_path)
 
 source_dir = os.path.dirname(os.path.realpath(__file__))
 pyfibre_dir = os.path.dirname(os.path.dirname(source_dir))
@@ -11,31 +13,34 @@ class TestFileDisplayPane(TestCase):
 
     def setUp(self):
 
-        self.file_display = FileDisplayPane()
-        self.file_path = (
-            f'{pyfibre_dir}/tests/fixtures/'
-            f'test-pyfibre-pl-shg-Stack.tif'
+        self.file_display = FileDisplayPane(
+            supported_readers=['SHG-PL-Trans']
         )
+        self.file_path = test_shg_pl_trans_image_path
 
     def test_add_file(self):
 
         self.file_display.add_files(self.file_path)
+        self.assertEqual(1, len(self.file_display.file_table))
 
         table_row = self.file_display.file_table[0]
         self.assertEqual(
-            pyfibre_dir + '/tests/fixtures/test-pyfibre',
+            directory + '/test-pyfibre',
             table_row.name)
         self.assertTrue(table_row.shg)
         self.assertTrue(table_row.pl)
 
+        self.file_display.add_files(test_shg_image_path)
+        self.assertEqual(1, len(self.file_display.file_table))
+
     def test_add_directory(self):
 
-        temp_dir = pyfibre_dir + '/tests/fixtures'
-        self.file_display.add_files(temp_dir)
+        self.file_display.add_files(directory)
+        self.assertEqual(1, len(self.file_display.file_table))
 
         table_row = self.file_display.file_table[0]
         self.assertEqual(
-            temp_dir + '/test-pyfibre',
+            directory + '/test-pyfibre',
             table_row.name)
         self.assertTrue(table_row.shg)
         self.assertTrue(table_row.pl)

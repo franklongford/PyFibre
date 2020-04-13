@@ -15,10 +15,7 @@ from pyfibre.gui.segment_image_tab import SegmentImageTab
 from pyfibre.io.object_io import (
     load_fibre_segments, load_cell_segments,
     load_fibre_networks, load_fibres)
-from pyfibre.io.shg_pl_reader import SHGPLTransReader
-from pyfibre.gui.file_display_pane import TableRow
 from pyfibre.model.multi_image.base_multi_image import BaseMultiImage
-from pyfibre.model.iterator import assign_images
 from pyfibre.utilities import flatten_list
 
 logger = logging.getLogger(__name__)
@@ -46,10 +43,6 @@ class ViewerPane(TraitsTaskPane):
 
     metric_tab = Instance(MetricTab)
 
-    multi_image_reader = Instance(SHGPLTransReader)
-
-    selected_row = Instance(TableRow)
-
     selected_image = Instance(BaseMultiImage)
 
     selected_tab = Instance(ImageTab)
@@ -74,9 +67,6 @@ class ViewerPane(TraitsTaskPane):
         )
 
         return traits_view
-
-    def _multi_image_reader_default(self):
-        return SHGPLTransReader()
 
     def _multi_image_tab_default(self):
         return ImageTab(
@@ -129,7 +119,7 @@ class ViewerPane(TraitsTaskPane):
         try:
             fibre_networks = load_fibre_networks(filename)
         except (IOError, EOFError):
-            logger.info(
+            logger.debug(
                 f"Unable to display network for {image_name}")
         else:
             networks = [
@@ -137,8 +127,7 @@ class ViewerPane(TraitsTaskPane):
                 for fibre_network in fibre_networks]
 
             try:
-                fibres = load_fibres(
-                    filename, image=self.selected_image.shg_image)
+                fibres = load_fibres(filename)
             except (IOError, EOFError):
                 fibres = flatten_list([
                     fibre_network.fibres
@@ -147,7 +136,7 @@ class ViewerPane(TraitsTaskPane):
 
         try:
             fibre_segments = load_fibre_segments(
-                filename, image=self.selected_image.shg_image)
+                filename, intensity_image=self.selected_image.shg_image)
         except (AttributeError, IOError, EOFError):
             logger.debug(
                 f"Unable to display fibre segments for {image_name}")
@@ -162,36 +151,28 @@ class ViewerPane(TraitsTaskPane):
 
         try:
             cell_segments = load_cell_segments(
-                filename, image=self.selected_image.pl_image)
+                filename, intensity_image=self.selected_image.pl_image)
         except (AttributeError, IOError, EOFError):
             logger.debug(
                 f"Unable to display cell segments for {image_name}")
 
         self.cell_segment_tab.segments = cell_segments
 
-    @on_trait_change('selected_row')
-    def open_file(self):
-        """Opens corresponding to the first item in
-        selected_rows"""
-        filenames = assign_images(
-            self.selected_row._dictionary)
+    def update_viewer(self, multi_image, file_name):
 
-        self.selected_image = self.multi_image_reader.load_multi_image(
-            filenames
-        )
+        self.selected_image = multi_image
+
+        image_name = os.path.basename(file_name)
+        image_path = os.path.dirname(file_name)
+        data_dir = f"{image_path}/{image_name}-pyfibre-analysis/data/"
+        filename = data_dir + image_name
+
+        self._update_shg_image_tabs(filename, image_name)
+        self._update_pl_image_tabs(filename, image_name)
 
     @on_trait_change('selected_image')
     def update_image(self):
-        if self.selected_row is not None:
-            image_name = os.path.basename(self.selected_row.name)
-            image_path = os.path.dirname(self.selected_row.name)
-            data_dir = f"{image_path}/{image_name}-pyfibre-analysis/data/"
-            filename = data_dir + image_name
-
-            self.selected_tab.multi_image = self.selected_image
-
-            self._update_shg_image_tabs(filename, image_name)
-            self._update_pl_image_tabs(filename, image_name)
+        self.selected_tab.multi_image = self.selected_image
 
     @on_trait_change('selected_tab')
     def update_tab(self, object, name, old, new):

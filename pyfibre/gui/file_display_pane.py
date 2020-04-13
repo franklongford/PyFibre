@@ -13,6 +13,7 @@ from traitsui.api import (
 
 from pyfibre.io.shg_pl_reader import (
     collate_image_dictionary)
+from pyfibre.model.iterator import assign_images
 from pyfibre.io.utilities import parse_files, parse_file_path
 
 
@@ -70,6 +71,8 @@ class FileDisplayPane(TraitsDockPane):
     file_search = File()
 
     key = Unicode()
+
+    supported_readers = List(Str)
 
     #: The PyFibre logo. Stored at images/icon.ico
     image = ImageResource('icon.ico')
@@ -176,11 +179,12 @@ class FileDisplayPane(TraitsDockPane):
         input_prefixes = [row.name for row in self.file_table]
 
         for key, data in image_dictionary.items():
-            if key not in input_prefixes:
-                table_row = TableRow(
-                    name=key,
-                    _dictionary=data)
-                if table_row.shg and table_row.pl:
+            _, image_type = assign_images(data)
+            if image_type in self.supported_readers:
+                if key not in input_prefixes:
+                    table_row = TableRow(
+                        name=key,
+                        _dictionary=data)
                     self.file_table.append(table_row)
 
     def remove_file(self, selected_rows):

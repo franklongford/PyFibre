@@ -14,7 +14,7 @@ from pyface.tasks.api import (
 )
 from traits.api import (
     Bool, Int, List, Property, Instance, Event, Any,
-    on_trait_change, HasStrictTraits
+    on_trait_change, HasStrictTraits, Dict, Str
 )
 from traits_futures.api import (
     TraitsExecutor, CANCELLED, COMPLETED,
@@ -24,10 +24,12 @@ from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.io.database_io import save_database, load_database
+from pyfibre.io.multi_image_reader import MultiImageReader
+from pyfibre.io.shg_pl_reader import SHGPLTransReader
+from pyfibre.model.iterator import assign_images
 from pyfibre.model.image_analyser import ImageAnalyser
 from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
 from pyfibre.model.iterator import iterate_images
-from pyfibre.io.shg_pl_reader import SHGPLTransReader
 
 
 logger = logging.getLogger(__name__)
@@ -42,6 +44,8 @@ class PyFibreMainTask(Task):
     id = 'pyfibre.pyfibre_main_task'
 
     name = 'PyFibre GUI (Main)'
+
+    multi_image_readers = Dict(Str, Instance(MultiImageReader))
 
     options_pane = Instance(OptionsPane)
 
@@ -99,11 +103,16 @@ class PyFibreMainTask(Task):
                 PaneItem('pyfibre.options_pane'))
         )
 
+    def _multi_image_readers_default(self):
+        return {'SHG-PL-Trans': SHGPLTransReader()}
+
     def _options_pane_default(self):
         return OptionsPane()
 
     def _file_display_pane_default(self):
-        return FileDisplayPane()
+        supported_readers = list(self.multi_image_readers.keys())
+        return FileDisplayPane(
+            supported_readers=supported_readers)
 
     def _viewer_pane_default(self):
         return ViewerPane()
@@ -176,8 +185,21 @@ class PyFibreMainTask(Task):
     def update_selected_row(self):
         """Opens corresponding to the first item in
         selected_rows"""
-        self.viewer_pane.selected_row = (
+        selected_row = (
             self.file_display_pane.selected_files[0])
+
+        file_names, image_type = assign_images(
+            selected_row._dictionary)
+
+        try:
+            reader = self.multi_image_readers[image_type]
+            multi_image = reader.load_multi_image(file_names)
+        except (KeyError, ImportError):
+            logger.debug(f'Cannot display image data for {file_names}')
+        else:
+            logger.info(f"Displaying image data for {file_names}")
+            self.viewer_pane.update_viewer(
+                multi_image, selected_row.name)
 
     @on_trait_change('run_enabled')
     def update_ui(self):
