@@ -40,7 +40,7 @@ class TestMetricAnalyser(TestCase):
         local_metrics, global_metrics = self.metric_analyser.analyse_shg()
 
         self.assertEqual(18, len(local_metrics.columns))
-        self.assertEqual(17, len(global_metrics))
+        self.assertEqual(18, len(global_metrics))
 
     def test_analyse_pl(self):
 
@@ -65,7 +65,7 @@ class TestMetricAnalyser(TestCase):
         self.assertEqual(2, len(local_dataframes))
         self.assertEqual((1, 18), local_dataframes[0].shape)
         self.assertIsNone(local_dataframes[1])
-        self.assertEqual((18,), global_dataframe.shape)
+        self.assertEqual((19,), global_dataframe.shape)
 
         global_dataframe, local_dataframes = generate_metrics(
             ProbeSHGPLTransImage(),
@@ -79,4 +79,4 @@ class TestMetricAnalyser(TestCase):
         self.assertEqual(2, len(local_dataframes))
         self.assertEqual((1, 18), local_dataframes[0].shape)
         self.assertEqual((1, 11), local_dataframes[1].shape)
-        self.assertEqual((29,), global_dataframe.shape)
+        self.assertEqual((30,), global_dataframe.shape)

@@ -6,6 +6,7 @@ import pandas as pd
 from pyfibre.model.objects.fibre import (
     Fibre
 )
+from pyfibre.model.tools.metrics import FIBRE_METRICS
 from pyfibre.tests.probe_classes import ProbeFibre
 
 
@@ -67,13 +68,11 @@ class TestFibre(TestCase):
 
     def test_generate_database(self):
 
-        metrics = ['Waviness', 'Length', 'Angle']
-
         database = self.fibre.generate_database()
 
         self.assertIsInstance(database, pd.Series)
         self.assertEqual(3, len(database))
 
-        for metric in metrics:
+        for metric in FIBRE_METRICS:
             self.assertIn(
                 f'Fibre {metric}', database)

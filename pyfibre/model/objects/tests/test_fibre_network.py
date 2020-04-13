@@ -3,7 +3,8 @@ from unittest import TestCase
 from pyfibre.model.objects.fibre_network import (
     FibreNetwork
 )
-from pyfibre.tests.probe_classes import ProbeFibreNetwork
+from pyfibre.model.tools.metrics import FIBRE_METRICS, NETWORK_METRICS
+from pyfibre.tests.probe_classes import ProbeFibreNetwork, ProbeFibre
 
 
 class TestFibreNetwork(TestCase):
@@ -11,6 +12,7 @@ class TestFibreNetwork(TestCase):
     def setUp(self):
 
         self.network = ProbeFibreNetwork()
+        self.fibres = [ProbeFibre(), ProbeFibre(), ProbeFibre()]
 
     def test_to_json(self):
 
@@ -21,9 +23,9 @@ class TestFibreNetwork(TestCase):
         self.assertListEqual([], state['fibres'])
         self.assertIsNone(state['red_graph'])
 
-        self.network.fibres = self.network.generate_fibres()
+        self.network.fibres = self.fibres
         state = self.network.to_json()
-        self.assertEqual(1, len(state['fibres']))
+        self.assertEqual(3, len(state['fibres']))
 
         self.network.red_graph = self.network.generate_red_graph()
         state = self.network.to_json()
@@ -45,7 +47,7 @@ class TestFibreNetwork(TestCase):
     def test_from_json(self):
 
         self.network.red_graph = self.network.generate_red_graph()
-        self.network.fibres = self.network.generate_fibres()
+        self.network.fibres = self.fibres
 
         status = self.network.to_json()
         new_network = FibreNetwork.from_json(status)
@@ -65,9 +67,9 @@ class TestFibreNetwork(TestCase):
             }
         )
 
-        self.assertEqual(1, len(new_network.fibres))
+        self.assertEqual(3, len(new_network.fibres))
         self.assertListEqual(
-            [0, 1, 2, 3], new_network.fibres[0].node_list)
+            [2, 3, 4, 5], new_network.fibres[0].node_list)
 
     def test_fibres(self):
 
@@ -82,11 +84,14 @@ class TestFibreNetwork(TestCase):
 
     def test_generate_database(self):
 
-        metrics = ['Connectivity', 'Cross-Links',
-                   'Degree', 'Eigenvalue']
+        self.network.red_graph = self.network.generate_red_graph()
+        self.network.fibres = self.fibres
 
         database = self.network.generate_database()
-        self.assertEqual(4, len(database))
+        self.assertEqual(7, len(database))
 
-        for metric in metrics:
+        for metric in FIBRE_METRICS:
+            self.assertIn(f'Mean Fibre {metric}', database)
+
+        for metric in NETWORK_METRICS:
             self.assertIn(f'Fibre Network {metric}', database)

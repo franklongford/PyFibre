@@ -13,6 +13,13 @@ from pyfibre.model.tools.filters import form_structure_tensor
 
 logger = logging.getLogger(__name__)
 
+NEMATIC_METRICS = ['Angle SDI', 'Anisotropy', 'Pixel Anisotropy']
+SHAPE_METRICS = ['Area', 'Eccentricity', 'Linearity', 'Coverage']
+TEXTURE_METRICS = ['Mean', 'STD', 'Entropy']
+FIBRE_METRICS = ['Waviness', 'Length', 'Angle']
+NETWORK_METRICS = ['Degree', 'Eigenvalue', 'Connectivity',
+                   'Cross-Link Density']
+
 
 def nematic_tensor_metrics(region, nematic_tensor, tag=''):
     """Nematic tensor analysis for a scikit-image region"""
@@ -102,7 +109,7 @@ def region_texture_metrics(region, image=None, tag='', glcm=False):
     return database
 
 
-def network_metrics(network, network_red, tag=''):
+def network_metrics(network, network_red, n_fibres, tag=''):
     """Analyse networkx Graph object"""
 
     database = pd.Series(dtype=object)
@@ -110,7 +117,8 @@ def network_metrics(network, network_red, tag=''):
     cross_links = np.array(
         [degree[1] for degree in network.degree],
         dtype=int)
-    database[f"{tag} Network Cross-Links"] = (cross_links > 2).sum()
+    database[f"{tag} Network Cross-Link Density"] = (
+        (cross_links > 2).sum() / n_fibres)
 
     try:
         value = nx.degree_pearson_correlation_coefficient(
@@ -185,14 +193,6 @@ def fibre_network_metrics(fibre_networks):
 
         fibre_network_series = pd.concat(
             (fibre_network_series, metrics))
-
-        metrics = fibre_metrics(fibre_network.fibres)
-        mean_metrics = metrics.mean()
-
-        for metric in ['Fibre Waviness', 'Fibre Length']:
-            fibre_network_series[f'Mean {metric}'] = mean_metrics[metric]
-        fibre_network_series['Fibre Network Cross-Link Density'] = (
-            fibre_network_series['Fibre Network Cross-Links'] / len(metrics))
 
         database = database.append(fibre_network_series, ignore_index=True)
 

@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 
 from pyfibre.model.tools.metrics import (
+    SHAPE_METRICS, NEMATIC_METRICS, TEXTURE_METRICS,
+    FIBRE_METRICS, NETWORK_METRICS,
     region_shape_metrics, fibre_network_metrics,
     segment_metrics, region_texture_metrics
 )
@@ -15,14 +17,6 @@ from pyfibre.model.multi_image.multi_images import SHGPLTransImage
 
 
 logger = logging.getLogger(__name__)
-
-
-SHAPE_METRICS = ['Area', 'Eccentricity', 'Linearity', 'Coverage']
-TEXTURE_METRICS = ['Angle SDI', 'Anisotropy', 'Pixel Anisotropy',
-                   'Mean', 'STD', 'Entropy']
-FIBRE_METRICS = ['Waviness', 'Length']
-NETWORK_METRICS = ['Degree', 'Eigenvalue', 'Connectivity',
-                   'Cross-Link Density']
 
 
 def metric_averaging(database, metrics):
@@ -62,7 +56,7 @@ class MetricAnalyser:
             for metric in SHAPE_METRICS]
         texture_metrics = [
             f'{segment_tag} Segment {image_tag} {metric}'
-            for metric in TEXTURE_METRICS]
+            for metric in NEMATIC_METRICS + TEXTURE_METRICS]
         fibre_metrics = [
             f'Mean {segment_tag} {metric}' for metric in
             FIBRE_METRICS]

@@ -6,7 +6,7 @@ from pyfibre.io.utilities import (
     serialize_networkx_graph
 )
 from pyfibre.model.tools.metrics import (
-    network_metrics)
+    network_metrics, fibre_metrics, FIBRE_METRICS)
 from pyfibre.model.tools.fibre_assigner import FibreAssigner
 from pyfibre.model.tools.fibre_utilities import simplify_network
 
@@ -80,6 +80,13 @@ class FibreNetwork(BaseGraph):
         for assigned image"""
 
         database = network_metrics(
-            self.graph, self.red_graph, 'Fibre')
+            self.graph, self.red_graph, len(self.fibres), 'Fibre')
+
+        metrics = fibre_metrics(self.fibres)
+        mean_metrics = metrics.mean()
+
+        for metric in FIBRE_METRICS:
+            database[f'Mean Fibre {metric}'] = (
+                mean_metrics[f'Fibre {metric}'])
 
         return database
