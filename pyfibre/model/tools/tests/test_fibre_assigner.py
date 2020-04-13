@@ -11,14 +11,12 @@ class TestFibreAssignment(PyFibreTestCase):
 
     def setUp(self):
 
-        self.fibre_assignment = FibreAssigner(
-            shape=(10, 10)
-        )
+        self.fibre_assignment = FibreAssigner()
         self.graph = generate_probe_graph()
 
     def test___init__(self):
 
-        self.assertIsNone(self.fibre_assignment.graph)
+        self.assertIsNone(self.fibre_assignment._graph)
         self.assertAlmostEqual(
             0.65797986, self.fibre_assignment.theta_thresh, 6
         )
@@ -27,7 +25,7 @@ class TestFibreAssignment(PyFibreTestCase):
 
         self.fibre_assignment._initialise_graph(self.graph)
         self.assertEqual(
-            [0, 1, 2, 3], list(self.fibre_assignment.graph.nodes))
+            [0, 1, 2, 3], list(self.fibre_assignment._graph.nodes))
         self.assertArrayAlmostEqual(
             np.array([[0, 0], [1, 1], [2, 2], [2, 3]]),
             self.fibre_assignment.node_coord

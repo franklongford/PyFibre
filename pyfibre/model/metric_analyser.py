@@ -6,15 +6,29 @@ import numpy as np
 import pandas as pd
 
 from pyfibre.model.tools.metrics import (
-    region_shape_metrics, fibre_network_metrics,
-    segment_metrics, region_texture_metrics
+    SHAPE_METRICS, NEMATIC_METRICS, TEXTURE_METRICS,
+    FIBRE_METRICS, NETWORK_METRICS,
+    fibre_network_metrics, segment_metrics
 )
-from pyfibre.model.tools.convertors import (
-    regions_to_binary, binary_to_regions)
 from pyfibre.model.multi_image.multi_images import SHGPLTransImage
 
 
 logger = logging.getLogger(__name__)
+
+
+def metric_averaging(database, metrics):
+    """Create new pandas database from mean of selected
+    metrics in existing database"""
+    average_database = pd.Series(dtype=object)
+
+    for metric in metrics:
+        try:
+            average_database[metric] = np.nanmean(
+                database[metric])
+        except KeyError:
+            pass
+
+    return average_database
 
 
 class MetricAnalyser:
@@ -32,38 +46,28 @@ class MetricAnalyser:
         self.local_metrics = None
         self.global_metrics = None
 
-    def _global_averaging(self, global_metrics, local_metrics, global_binary):
+    def _global_averaging(self, local_metrics, segment_tag, image_tag):
 
-        global_metrics = global_metrics.drop(
-            ['SHG Fibre Hu Moment 3',
-             'SHG Fibre Hu Moment 4'])
-        global_metrics['No. Fibres'] = sum(
-            [len(fibre_network.fibres)
-             for fibre_network in self.networks])
-        global_metrics['SHG Fibre Density'] = np.mean(
-            self.image[np.where(global_binary)])
+        shape_metrics = [
+            f'{segment_tag} Segment {metric}'
+            for metric in SHAPE_METRICS]
+        texture_metrics = [
+            f'{segment_tag} Segment {image_tag} {metric}'
+            for metric in NEMATIC_METRICS + TEXTURE_METRICS]
+        fibre_metrics = [
+            f'Mean {segment_tag} {metric}' for metric in
+            FIBRE_METRICS]
+        network_metrics = [
+            f'{segment_tag} Network {metric}' for metric in
+            NETWORK_METRICS]
 
-        shape_metrics = ['Area', 'Eccentricity', 'Linearity',
-                         'Coverage', 'Hu Moment 1', 'Hu Moment 2']
-        for metric in shape_metrics:
-            global_metrics[f'SHG Fibre {metric}'] = np.mean(
-                local_metrics[f'Fibre Segment {metric}'])
+        global_metrics = metric_averaging(
+            local_metrics,
+            shape_metrics + texture_metrics +
+            fibre_metrics + network_metrics
+        )
 
-        texture_metrics = ['Mean', 'STD', 'Entropy', 'Density']
-        for metric in texture_metrics:
-            global_metrics[f'SHG Fibre {metric}'] = np.mean(
-                local_metrics[f'Fibre {metric}'])
-
-        fibre_metrics = ['Waviness', 'Length']
-        for metric in fibre_metrics:
-            global_metrics[f'SHG Fibre {metric}'] = np.nanmean(
-                local_metrics[f'Mean Fibre {metric}'])
-
-        network_metrics = ['Degree', 'Eigenvalue', 'Connectivity',
-                           'Cross-Link Density']
-        for metric in network_metrics:
-            global_metrics[f'SHG Fibre Network {metric}'] = np.nanmean(
-                local_metrics[f'Fibre Network {metric}'])
+        return global_metrics
 
     def _get_metrics(self, attr, metric_function, tag):
 
@@ -83,28 +87,13 @@ class MetricAnalyser:
         return self._get_metrics(
             self.networks, fibre_network_metrics, 'fibre_networks.json')
 
-    def _get_segment_metrics(self, tag):
+    def _get_segment_metrics(self, image_tag, tag):
         metric_func = partial(
-            segment_metrics, image=self.image, sigma=self.sigma)
+            segment_metrics,
+            image=self.image, image_tag=image_tag,
+            sigma=self.sigma)
         return self._get_metrics(
             self.segments, metric_func, tag)
-
-    def _get_global_metrics(self, label):
-
-        logger.debug(f'Performing global metrics for {label}')
-
-        # Perform non-linear analysis on global region
-        regions = [segment.region for segment in self.segments]
-        global_binary = regions_to_binary(regions, self.image.shape)
-        global_segment = binary_to_regions(global_binary, self.image)[0]
-
-        global_metrics = region_shape_metrics(global_segment, label)
-        global_metrics.append(
-            region_texture_metrics(global_segment, self.image, label),
-            ignore_index=False
-        )
-
-        return global_metrics, global_binary
 
     def analyse_shg(self):
 
@@ -112,29 +101,30 @@ class MetricAnalyser:
         network_metrics = self._get_network_metrics()
 
         # Analyse fibre segments
-        local_metrics = self._get_segment_metrics('fibre_segments.npy')
+        local_metrics = self._get_segment_metrics('SHG', 'fibre_segments.npy')
         local_metrics = local_metrics.drop(columns=['File'])
 
         local_metrics = pd.concat((network_metrics, local_metrics), axis=1)
 
-        # Perform non-linear analysis on global region
-        global_metrics, global_binary = self._get_global_metrics('SHG Fibre')
-
         # Average linear properties over all regions
-        self._global_averaging(global_metrics, local_metrics, global_binary)
+        global_metrics = self._global_averaging(
+            local_metrics, 'Fibre', 'SHG')
+
+        global_metrics['No. Fibres'] = sum(
+            [len(fibre_network.fibres)
+             for fibre_network in self.networks])
 
         return local_metrics, global_metrics
 
     def analyse_pl(self):
 
         # Analyse individual cell regions
-        local_metrics = self._get_segment_metrics('cell_segment.npy')
+        local_metrics = self._get_segment_metrics('PL', 'cell_segment.npy')
 
-        # Perform non-linear analysis on global region
-        global_metrics, _ = self._get_global_metrics('PL Cell')
+        # Average linear properties over all regions
+        global_metrics = self._global_averaging(
+            local_metrics, 'Cell', 'PL')
 
-        global_metrics = global_metrics.drop(
-            ['PL Cell Hu Moment 3', 'PL Cell Hu Moment 4'])
         global_metrics['No. Cells'] = len(self.segments)
 
         return local_metrics, global_metrics

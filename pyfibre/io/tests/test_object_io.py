@@ -1,115 +1,224 @@
+from tempfile import NamedTemporaryFile
 from unittest import TestCase
 import os
 
-import numpy as np
-import networkx as nx
-
 from pyfibre.io.object_io import (
-    save_base_graph_segment, load_base_graph_segment,
-    save_base_graph_segments, load_base_graph_segments)
-from pyfibre.io.utilities import (
-    serialize_networkx_graph,
-    deserialize_networkx_graph
+    save_pyfibre_object, load_pyfibre_object,
+    save_pyfibre_objects, load_pyfibre_objects,
+    save_fibres, load_fibres,
+    save_fibre_networks, load_fibre_networks,
+    save_fibre_segments, load_fibre_segments,
+    save_cell_segments, load_cell_segments
 )
-from pyfibre.model.objects.base_graph_segment import (
-    BaseGraphSegment
-)
-from pyfibre.tests.probe_classes import generate_probe_graph
+from pyfibre.model.objects.fibre import Fibre
+from pyfibre.model.objects.fibre_network import FibreNetwork
+from pyfibre.model.objects.segments import (
+    FibreSegment, CellSegment)
+
+from pyfibre.tests.probe_classes import (
+    ProbeGraphSegment, ProbeSegment, ProbeFibre,
+    ProbeFibreNetwork)
+
+
+class TestPyFibreObjectIO(TestCase):
+
+    def setUp(self):
+
+        self.graph_segment = ProbeGraphSegment()
+        self.segment = ProbeSegment()
+
+    def test_exception_handling(self):
+
+        with NamedTemporaryFile() as temp_file:
+
+            with self.assertRaises(AttributeError):
+                save_pyfibre_object(
+                    self.segment, temp_file.name,
+                    mode='not_supported')
+
+            with self.assertRaises(NotImplementedError):
+                save_pyfibre_object(
+                    self.segment, temp_file.name,
+                    mode='json')
+
+    def test_save_load_pyfibre_object(self):
+
+        with NamedTemporaryFile() as temp_file:
+            save_pyfibre_object(
+                self.segment, temp_file.name,
+                mode='array')
+            self.assertTrue(
+                os.path.exists(f'{temp_file.name}.npy'))
+
+            test_segment = load_pyfibre_object(
+                f'{temp_file.name}.npy', ProbeSegment,
+                mode='array'
+            )
+
+            self.assertIsInstance(test_segment, ProbeSegment)
+            self.assertEqual(
+                self.segment.region.bbox,
+                test_segment.region.bbox
+            )
+
+        with NamedTemporaryFile() as temp_file:
+            save_pyfibre_object(
+                self.graph_segment, temp_file.name,
+                mode='json')
+            self.assertTrue(
+                os.path.exists(f'{temp_file.name}.json'))
+
+            test_segment = load_pyfibre_object(
+                f'{temp_file.name}.json', ProbeGraphSegment,
+                mode='json'
+            )
+
+            self.assertIsInstance(test_segment, ProbeGraphSegment)
+            self.assertEqual(
+                self.graph_segment.graph.number_of_nodes(),
+                test_segment.graph.number_of_nodes()
+            )
+            self.assertEqual(
+                self.graph_segment.graph.number_of_edges(),
+                test_segment.graph.number_of_edges()
+            )
+
+    def test_save_load_pyfibre_objects(self):
+
+        with NamedTemporaryFile() as temp_file:
+            save_pyfibre_objects(
+                [self.segment, self.segment], temp_file.name,
+                mode='array', shape=(10, 10))
+            self.assertTrue(
+                os.path.exists(f'{temp_file.name}.npy'))
+
+            test_segments = load_pyfibre_objects(
+                f'{temp_file.name}.npy', ProbeSegment,
+                mode='array'
+            )
+
+            self.assertEqual(2, len(test_segments))
+            self.assertIsInstance(
+                test_segments[0], ProbeSegment)
+            self.assertEqual(
+                self.segment.region.bbox,
+                test_segments[0].region.bbox
+            )
+
+        with NamedTemporaryFile() as temp_file:
+            save_pyfibre_objects(
+                [self.graph_segment, self.graph_segment],
+                temp_file.name, mode='json')
+            self.assertTrue(
+                os.path.exists(f'{temp_file.name}.json'))
+
+            test_segments = load_pyfibre_objects(
+                f'{temp_file.name}.json', ProbeGraphSegment,
+                mode='json'
+            )
+
+            self.assertEqual(2, len(test_segments))
+            self.assertIsInstance(
+                test_segments[0], ProbeGraphSegment)
+            self.assertEqual(
+                self.graph_segment.graph.number_of_nodes(),
+                test_segments[0].graph.number_of_nodes()
+            )
+            self.assertEqual(
+                self.graph_segment.graph.number_of_edges(),
+                test_segments[0].graph.number_of_edges()
+            )
 
 
 class TestObjectIO(TestCase):
 
     def setUp(self):
+        self.segment = ProbeSegment()
+        self.fibre = ProbeFibre()
+        self.fibre_network = ProbeFibreNetwork()
 
-        self.graph = generate_probe_graph()
-        self.graph_segment = BaseGraphSegment(
-            graph=self.graph, shape=(10, 10))
+    def test_save_load_fibres(self):
 
-    def test_serialize_networkx_graph(self):
+        with NamedTemporaryFile() as temp_file:
+            save_fibres([self.fibre, self.fibre], temp_file.name)
+            self.assertTrue(
+                os.path.exists(f'{temp_file.name}_fibres.json'))
 
-        data = serialize_networkx_graph(self.graph)
-
-        self.assertDictEqual(
-            data,
-            {'directed': False,
-             'graph': {},
-             'links': [{'r': 1.4142135623730951, 'source': 2, 'target': 3},
-                       {'r': 1.4142135623730951, 'source': 3, 'target': 4},
-                       {'r': 1, 'source': 4, 'target': 5}],
-             'multigraph': False,
-             'nodes': [{'xy': [0, 0], 'id': 2},
-                       {'xy': [1, 1], 'id': 3},
-                       {'xy': [2, 2], 'id': 4},
-                       {'xy': [2, 3], 'id': 5}]
-             }
-        )
-
-    def test_deserialize_networkx_graph(self):
-
-        data = {
-            'directed': False,
-            'graph': {},
-            'links': [{'r': 1.4142135623730951, 'source': 2, 'target': 3},
-                      {'r': 1.4142135623730951, 'source': 3, 'target': 4},
-                      {'r': 1, 'source': 4, 'target': 5}],
-            'multigraph': False,
-            'nodes': [{'xy': [0, 0], 'id': 2},
-                      {'xy': [1, 1], 'id': 3},
-                      {'xy': [2, 2], 'id': 4},
-                      {'xy': [2, 3], 'id': 5}]
-        }
-
-        graph = deserialize_networkx_graph(data)
-
-        self.assertIsInstance(graph, nx.Graph)
-        self.assertEqual(4, graph.number_of_nodes())
-        self.assertIsInstance(graph.nodes[2]['xy'], np.ndarray)
-
-    def test_save_load_base_graph_segment(self):
-
-        try:
-            save_base_graph_segment(self.graph_segment, 'test_json')
-            self.assertTrue(os.path.exists('test_json.json'))
-
-            test_segment = load_base_graph_segment('test_json')
-
-            self.assertIsInstance(test_segment, BaseGraphSegment)
-            self.assertEqual(
-                self.graph.number_of_nodes(),
-                test_segment.graph.number_of_nodes()
+            test_fibres = load_fibres(
+                f'{temp_file.name}_fibres.json'
             )
-
-            self.assertEqual(
-                self.graph.number_of_edges(),
-                test_segment.graph.number_of_edges()
-            )
-
-        finally:
-            if os.path.exists('test_json.json'):
-                os.remove('test_json.json')
-
-    def test_save_load_base_graph_segments(self):
-
-        try:
-            save_base_graph_segments(
-                [self.graph_segment, self.graph_segment],
-                'test_json')
-            self.assertTrue(os.path.exists('test_json.json'))
-
-            test_segments = load_base_graph_segments('test_json')
-
-            self.assertEqual(2, len(test_segments))
+            self.assertEqual(2, len(test_fibres))
             self.assertIsInstance(
-                test_segments[0], BaseGraphSegment)
+                test_fibres[0], Fibre)
             self.assertEqual(
-                self.graph.number_of_nodes(),
-                test_segments[0].graph.number_of_nodes()
+                self.fibre.graph.number_of_nodes(),
+                test_fibres[0].graph.number_of_nodes()
             )
             self.assertEqual(
-                self.graph.number_of_edges(),
-                test_segments[0].graph.number_of_edges()
+                self.fibre.graph.number_of_edges(),
+                test_fibres[0].graph.number_of_edges()
             )
 
-        finally:
-            if os.path.exists('test_json.json'):
-                os.remove('test_json.json')
+    def test_save_load_fibre_networks(self):
+
+        with NamedTemporaryFile() as temp_file:
+            save_fibre_networks(
+                [self.fibre_network, self.fibre_network],
+                temp_file.name)
+            self.assertTrue(
+                os.path.exists(f'{temp_file.name}_fibre_networks.json'))
+
+            test_fibre_networks = load_fibre_networks(
+                f'{temp_file.name}_fibre_networks.json'
+            )
+            self.assertEqual(2, len(test_fibre_networks))
+            self.assertIsInstance(
+                test_fibre_networks[0], FibreNetwork)
+            self.assertEqual(
+                self.fibre.graph.number_of_nodes(),
+                test_fibre_networks[0].graph.number_of_nodes()
+            )
+            self.assertEqual(
+                self.fibre.graph.number_of_edges(),
+                test_fibre_networks[0].graph.number_of_edges()
+            )
+
+    def test_save_load_fibre_segments(self):
+
+        with NamedTemporaryFile() as temp_file:
+            save_fibre_segments(
+                [self.segment, self.segment],
+                temp_file.name, shape=(10, 10))
+            self.assertTrue(
+                os.path.exists(f'{temp_file.name}_fibre_segments.npy'))
+
+            test_fibre_segments = load_fibre_segments(
+                f'{temp_file.name}_fibre_segments.npy'
+            )
+            self.assertEqual(2, len(test_fibre_segments))
+            self.assertIsInstance(
+                test_fibre_segments[0], FibreSegment)
+            self.assertEqual(
+                self.segment.region.bbox,
+                test_fibre_segments[0].region.bbox
+            )
+
+    def test_save_load_cell_segments(self):
+
+        with NamedTemporaryFile() as temp_file:
+            save_cell_segments(
+                [self.segment, self.segment],
+                temp_file.name, shape=(10, 10))
+            self.assertTrue(
+                os.path.exists(f'{temp_file.name}_cell_segments.npy'))
+
+            test_cell_segments = load_cell_segments(
+                f'{temp_file.name}_cell_segments.npy'
+            )
+            self.assertEqual(2, len(test_cell_segments))
+            self.assertIsInstance(
+                test_cell_segments[0], CellSegment)
+            self.assertEqual(
+                self.segment.region.bbox,
+                test_cell_segments[0].region.bbox
+            )

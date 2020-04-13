@@ -1,31 +1,22 @@
-import numpy as np
 from envisage.core_plugin import CorePlugin
 from envisage.ui.tasks.tasks_plugin import TasksPlugin
 
 from pyfibre.cli.pyfibre_cli import PyFibreCLI
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
-from pyfibre.model.tools.fibre_assigner import Fibre
+from pyfibre.model.objects.base_graph import BaseGraph
+from pyfibre.model.objects.base_graph_segment import BaseGraphSegment
 
 
-class DummyFibre(Fibre):
+class DummyGraph(BaseGraph):
 
-    def __init__(self, fibre_l=None, euclid_l=None, direction=None,
-                 *args, **kwargs):
-        super(DummyFibre, self).__init__(
-            nodes=[0, 1], *args, **kwargs
-        )
+    def generate_database(self, *args, **kwargs):
+        pass
 
-        if fibre_l is None or euclid_l is None:
-            euclid_l = np.random.random_sample()
-            fibre_l = euclid_l + np.random.random_sample()
 
-        if direction is None:
-            direction = [np.random.random_sample(),
-                         np.random.random_sample()]
+class DummyGraphSegment(BaseGraphSegment):
 
-        super(DummyFibre, self).__init__(
-            nodes=[], direction=direction, fibre_l=fibre_l
-        )
+    def generate_database(self, *args, **kwargs):
+        pass
 
 
 class DummyPyFibreCLI(PyFibreCLI):

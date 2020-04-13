@@ -37,9 +37,8 @@ class TestClickRun(TestCase):
             pyfibre.cli.app.run(
                 file_path=None, key=None, sigma=None, alpha=None,
                 log_name='pyfibre', database_name=None, debug=False,
-                profile=False, shg_analysis=False, pl_analysis=False,
-                ow_metric=False, ow_segment=False, ow_network=False,
-                save_figures=False, test=False
+                profile=False, ow_metric=False, ow_segment=False,
+                ow_network=False, save_figures=False, test=False
             )
             self.log = pyfibre.cli.app.logging.getLogger(__name__)
             # This test seems to be broken at the moment
@@ -53,9 +52,8 @@ class TestClickRun(TestCase):
             pyfibre.cli.app.run(
                 file_path=None, key=None, sigma=None, alpha=None,
                 log_name='pyfibre', database_name=None, debug=False,
-                profile=True, shg_analysis=False, pl_analysis=False,
-                ow_metric=False, ow_segment=False, ow_network=False,
-                save_figures=False, test=False
+                profile=True, ow_metric=False, ow_segment=False,
+                ow_network=False, save_figures=False, test=False
             )
             root = ('pyfibre-{}-{}.{}.{}'
                     .format(__version__,

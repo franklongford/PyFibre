@@ -6,6 +6,7 @@ import pandas as pd
 from pyfibre.model.objects.fibre import (
     Fibre
 )
+from pyfibre.model.tools.metrics import FIBRE_METRICS
 from pyfibre.tests.probe_classes import ProbeFibre
 
 
@@ -17,11 +18,11 @@ class TestFibre(TestCase):
 
     def test__getstate__(self):
 
-        status = self.fibre.__getstate__()
+        status = self.fibre.to_json()
         self.assertIn('growing', status)
 
-        new_fibre = Fibre(**status)
-        status = new_fibre.__getstate__()
+        new_fibre = Fibre.from_json(status)
+        status = new_fibre.to_json()
 
         self.assertDictEqual(
             status['graph'],
@@ -41,8 +42,7 @@ class TestFibre(TestCase):
     def test_node_list_init(self):
 
         fibre = Fibre(nodes=[2, 3, 4, 5],
-                      edges=[(3, 2), (3, 4), (4, 5)],
-                      shape=(10, 10))
+                      edges=[(3, 2), (3, 4), (4, 5)])
 
         self.assertEqual(4, fibre.number_of_nodes)
         self.assertEqual([2, 3, 4, 5], fibre.node_list)
@@ -72,3 +72,7 @@ class TestFibre(TestCase):
 
         self.assertIsInstance(database, pd.Series)
         self.assertEqual(3, len(database))
+
+        for metric in FIBRE_METRICS:
+            self.assertIn(
+                f'Fibre {metric}', database)

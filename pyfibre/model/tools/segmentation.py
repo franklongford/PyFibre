@@ -22,7 +22,8 @@ from pyfibre.model.objects.segments import CellSegment, FibreSegment
 from pyfibre.model.tools.utilities import mean_binary
 
 from .bd_cluster import BDFilter
-from .convertors import binary_to_regions, regions_to_binary
+from .convertors import (
+    binary_to_regions, regions_to_binary, networks_to_regions)
 from .utilities import region_swap
 
 logger = logging.getLogger(__name__)
@@ -85,12 +86,19 @@ def fibre_cell_region_swap(multi_image, fibre_mask, cell_mask):
     return fibre_mask, cell_mask
 
 
-def create_fibre_filter(fibre_networks, shape):
+def create_fibre_filter(fibre_networks, shape,
+                        area_threshold=200, iterations=5,
+                        sigma=0.5):
 
-    regions = [
-        fibre_network.region
+    graphs = [
+        fibre_network.graph
         for fibre_network in fibre_networks
     ]
+
+    regions = networks_to_regions(
+        graphs, shape=shape,
+        area_threshold=area_threshold,
+        iterations=iterations, sigma=sigma)
 
     # Create a filter for the image that corresponds
     # to the regions that have not been identified as fibrous
@@ -108,7 +116,8 @@ def create_fibre_filter(fibre_networks, shape):
 
 
 def generate_segments(
-        image, binary, segment_klass, min_size=100, min_frac=0.1):
+        image, binary, segment_klass,
+        min_size=100, min_frac=0.1):
 
     # Create a new set of segments for each fibre region
     regions = binary_to_regions(
@@ -124,7 +133,7 @@ def generate_segments(
     return segments
 
 
-def shg_segmentation(multi_image, fibre_networks):
+def shg_segmentation(multi_image, fibre_networks, **kwargs):
 
     fibre_filter = create_fibre_filter(
         fibre_networks, multi_image.shape)
@@ -136,7 +145,7 @@ def shg_segmentation(multi_image, fibre_networks):
     fibre_segments = generate_segments(
         multi_image.shg_image,
         fibre_binary,
-        FibreSegment
+        FibreSegment,
     )
 
     # Create a new set of segments for each cell region
@@ -188,7 +197,7 @@ def shg_pl_trans_segmentation(multi_image, fibre_networks, scale=1.0):
     fibre_segments = generate_segments(
         multi_image.shg_image,
         fibre_binary,
-        FibreSegment
+        FibreSegment,
     )
 
     # Create a new set of segments for each cell region

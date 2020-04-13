@@ -43,7 +43,7 @@ def get_image_data(image):
         raise IndexError(
             f"Image shape {image.shape} not supported")
 
-    logger.info("Number of image modes = {}".format(n_modes))
+    logger.debug("Number of image modes = {}".format(n_modes))
     logger.debug("Size of image = {}".format(xy_dim))
     if minor_axis is not None:
         n_stacks = image.shape[minor_axis]

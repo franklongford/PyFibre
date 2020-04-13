@@ -34,8 +34,10 @@ class TestPyFibreCLI(TestCase):
 
         self.assertIsInstance(
             self.pyfibre_cli.image_analyser, ImageAnalyser)
+        self.assertEqual(1, len(self.pyfibre_cli.supported_readers))
         self.assertIsInstance(
-            self.pyfibre_cli.reader, SHGPLTransReader)
+            self.pyfibre_cli.supported_readers['SHG-PL-Trans'],
+            SHGPLTransReader)
 
     def test_init_pyfibre_workflow(self):
 
@@ -61,18 +63,6 @@ class TestPyFibreCLI(TestCase):
 
             self.assertTrue(
                 os.path.exists(tmp_file.name + '.xls'))
-            self.assertTrue(
-                os.path.exists(tmp_file.name + '_fibre.xls'))
-            self.assertFalse(
-                os.path.exists(tmp_file.name + '_cell.xls'))
-
-            self.pyfibre_cli.pl_analysis = True
-            with mock.patch(ITERATOR_PATH) as mock_iterate:
-                mock_iterate.side_effect = dummy_iterate_images
-
-                self.pyfibre_cli.run(test_shg_pl_trans_image_path)
-                self.assertTrue(mock_iterate.called)
-
             self.assertTrue(
                 os.path.exists(tmp_file.name + '_fibre.xls'))
             self.assertTrue(

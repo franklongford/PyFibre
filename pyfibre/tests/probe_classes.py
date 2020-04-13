@@ -13,7 +13,9 @@ from pyfibre.gui.pyfibre_main_task import PyFibreMainTask
 from pyfibre.gui.file_display_pane import TableRow
 from pyfibre.gui.pyfibre_plugin import PyFibrePlugin
 from pyfibre.model.multi_image.fixed_stack_image import FixedStackImage
+from pyfibre.model.objects.base_graph import BaseGraph
 from pyfibre.model.objects.base_segment import BaseSegment
+from pyfibre.model.objects.base_graph_segment import BaseGraphSegment
 from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
 from pyfibre.model.multi_image.base_multi_image import BaseMultiImage
@@ -74,20 +76,38 @@ def generate_regions():
     return regions
 
 
-class ProbeFibre(Fibre):
+class ProbeGraphMixin:
 
     def __init__(self, *args, **kwargs):
-        super(ProbeFibre, self).__init__(
-            graph=generate_probe_graph(),
-            shape=(10, 10))
+        kwargs['graph'] = generate_probe_graph()
+        super().__init__(
+            *args, **kwargs)
 
 
-class ProbeFibreNetwork(FibreNetwork):
+class ProbeGraphSegment(BaseGraphSegment):
 
     def __init__(self, *args, **kwargs):
-        super(ProbeFibreNetwork, self).__init__(
-            graph=generate_probe_graph(),
-            shape=(10, 10))
+        kwargs['graph'] = generate_probe_graph()
+        kwargs['shape'] = (3, 4)
+        super().__init__(
+            *args, **kwargs)
+
+    def generate_database(self, image=None):
+        pass
+
+
+class ProbeGraph(ProbeGraphMixin, BaseGraph):
+
+    def generate_database(self, image=None):
+        pass
+
+
+class ProbeFibre(ProbeGraphMixin, Fibre):
+    pass
+
+
+class ProbeFibreNetwork(ProbeGraphMixin, FibreNetwork):
+    pass
 
 
 class ProbeSegment(BaseSegment):
@@ -95,8 +115,6 @@ class ProbeSegment(BaseSegment):
     _tag = 'Test'
 
     def __init__(self, *args, **kwargs):
-        image, _, _, _ = generate_image()
-        kwargs['image'] = image
         kwargs['region'] = generate_regions()[0]
         super(ProbeSegment, self).__init__(
             *args, **kwargs)

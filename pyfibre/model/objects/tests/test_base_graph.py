@@ -2,25 +2,28 @@ from unittest import TestCase
 
 import numpy as np
 
-from pyfibre.model.objects.base_graph import (
-    BaseGraph
-)
-from pyfibre.tests.probe_classes import generate_probe_graph
+from pyfibre.tests.probe_classes import ProbeGraph
+from pyfibre.tests.dummy_classes import DummyGraph
 
 
 class TestBaseGraph(TestCase):
 
     def setUp(self):
 
-        self.graph = generate_probe_graph()
-        self.graph_segment = BaseGraph(
-            graph=self.graph, shape=(3, 4))
+        self.graph_segment = ProbeGraph()
 
-    def test__getstate__(self):
+    def test_not_implemented(self):
 
-        status = self.graph_segment.__getstate__()
+        with self.assertRaises(NotImplementedError):
+            self.graph_segment.to_array()
 
-        self.assertIn('shape', status)
+        with self.assertRaises(NotImplementedError):
+            ProbeGraph.from_array(None)
+
+    def test_to_json(self):
+
+        status = self.graph_segment.to_json()
+
         self.assertDictEqual(
             status['graph'],
             {'directed': False,
@@ -37,9 +40,9 @@ class TestBaseGraph(TestCase):
         )
 
     def test_deserialise(self):
-        status = self.graph_segment.__getstate__()
-        new_graph_segment = BaseGraph(**status)
-        status = new_graph_segment.__getstate__()
+        status = self.graph_segment.to_json()
+        new_graph_segment = DummyGraph.from_json(status)
+        status = new_graph_segment.to_json()
 
         self.assertDictEqual(
             status['graph'],
