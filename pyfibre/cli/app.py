@@ -31,14 +31,6 @@ from .pyfibre_cli import PyFibreCLI
          "files in the current directory."
 )
 @click.option(
-    '--shg_analysis', is_flag=True, default=False,
-    help='Toggles analysis of SHG images'
-)
-@click.option(
-    '--pl_analysis', is_flag=True, default=False,
-    help='Toggles analysis of PL images'
-)
-@click.option(
     '--ow_metric', is_flag=True, default=False,
     help='Toggles overwrite analytic metrics'
 )
@@ -83,28 +75,24 @@ from .pyfibre_cli import PyFibreCLI
     required=False, default='.'
 )
 def pyfibre(file_path, key, sigma, alpha, log_name,
-            database_name, debug, profile,
-            shg_analysis, pl_analysis, ow_metric, ow_segment,
+            database_name, debug, profile, ow_metric, ow_segment,
             ow_network, save_figures, test):
     """Launches the PyFibre command line app"""
 
     run(file_path, key, sigma, alpha, log_name,
-        database_name, debug, profile,
-        shg_analysis, pl_analysis, ow_metric, ow_segment,
+        database_name, debug, profile, ow_metric, ow_segment,
         ow_network, save_figures, test)
 
 
 def run(file_path, key, sigma, alpha, log_name,
         database_name, debug, profile,
-        shg_analysis, pl_analysis, ow_metric, ow_segment,
+        ow_metric, ow_segment,
         ow_network, save_figures, test):
 
     if test:
         file_path = test_shg_pl_trans_image_path
         debug = True
         profile = True
-        shg_analysis = True
-        pl_analysis = True
         ow_network = True
         save_figures = True
 
@@ -127,7 +115,6 @@ def run(file_path, key, sigma, alpha, log_name,
     pyfibre_app = PyFibreCLI(
         sigma=sigma, alpha=alpha, key=key,
         database_name=database_name,
-        shg_analysis=shg_analysis, pl_analysis=pl_analysis,
         ow_metric=ow_metric, ow_segment=ow_segment,
         ow_network=ow_network, save_figures=save_figures
     )

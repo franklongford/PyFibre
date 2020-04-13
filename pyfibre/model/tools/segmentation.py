@@ -133,7 +133,7 @@ def generate_segments(
     return segments
 
 
-def shg_segmentation(multi_image, fibre_networks):
+def shg_segmentation(multi_image, fibre_networks, **kwargs):
 
     fibre_filter = create_fibre_filter(
         fibre_networks, multi_image.shape)

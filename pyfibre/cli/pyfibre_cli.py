@@ -29,13 +29,9 @@ class PyFibreCLI:
     name = 'PyFibre CLI'
 
     def __init__(self, sigma=0.5, alpha=0.5, key=None,
-                 database_name=None, shg_analysis=True,
-                 pl_analysis=False, ow_metric=False,
+                 database_name=None, ow_metric=False,
                  ow_segment=False, ow_network=False,
                  save_figures=False):
-
-        self.shg_analysis = shg_analysis
-        self.pl_analysis = pl_analysis
 
         self.database_name = database_name
         self.key = key
@@ -48,7 +44,9 @@ class PyFibreCLI:
         self.image_analyser = ImageAnalyser(
             workflow=workflow
         )
-        self.reader = SHGPLTransReader()
+        self.supported_readers = {
+            'SHG-PL-Trans': SHGPLTransReader()
+        }
 
     def run(self, file_path):
 
@@ -56,26 +54,29 @@ class PyFibreCLI:
         input_files = parse_files(file_name, directory, self.key)
         image_dictionary = collate_image_dictionary(input_files)
 
+        formatted_images = '\n'.join([
+            f'\t{key}: {value}'
+            for key, value in image_dictionary.items()
+        ])
+
+        logger.info(f"Analysing images: \n{formatted_images}")
+
         global_database = pd.DataFrame()
         fibre_database = pd.DataFrame()
         cell_database = pd.DataFrame()
 
         generator = iterate_images(
-            image_dictionary, self.image_analyser, self.reader)
+            image_dictionary, self.image_analyser, self.supported_readers)
 
         for databases in generator:
 
             global_database = global_database.append(
                 databases[0], ignore_index=True)
 
-            if self.shg_analysis:
-                fibre_database = pd.concat([fibre_database, databases[1]])
-            if self.pl_analysis:
-                cell_database = pd.concat([cell_database, databases[2]])
+            fibre_database = pd.concat([fibre_database, databases[1]])
+            cell_database = pd.concat([cell_database, databases[2]])
 
         if self.database_name:
             save_database(global_database, self.database_name)
-            if self.shg_analysis:
-                save_database(fibre_database, self.database_name, 'fibre')
-            if self.pl_analysis:
-                save_database(cell_database, self.database_name, 'cell')
+            save_database(fibre_database, self.database_name, 'fibre')
+            save_database(cell_database, self.database_name, 'cell')
