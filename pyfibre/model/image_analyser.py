@@ -159,8 +159,7 @@ class ImageAnalyser:
 
         start_time = time.time()
 
-        fibre_networks = load_fibre_networks(
-            filename, image=multi_image.shg_image)
+        fibre_networks = load_fibre_networks(filename)
 
         logger.debug("Segmenting Fibre and Cell regions")
         fibre_segments, cell_segments = multi_image.segmentation_algorithm(
@@ -168,8 +167,10 @@ class ImageAnalyser:
             scale=self.workflow.scale
         )
 
-        save_fibre_segments(fibre_segments, filename, multi_image.shape)
-        save_cell_segments(cell_segments, filename, multi_image.shape)
+        save_fibre_segments(
+            fibre_segments, filename, shape=multi_image.shape)
+        save_cell_segments(
+            cell_segments, filename, shape=multi_image.shape)
 
         end_time = time.time()
 
@@ -192,12 +193,11 @@ class ImageAnalyser:
         start_time = time.time()
 
         # Load networks and segments"
-        fibre_networks = load_fibre_networks(
-            filename, image=multi_image.shg_image)
+        fibre_networks = load_fibre_networks(filename)
         fibre_segments = load_fibre_segments(
-            filename, image=multi_image.shg_image)
+            filename, intensity_image=multi_image.shg_image)
         cell_segments = load_cell_segments(
-            filename, image=multi_image.pl_image)
+            filename, intensity_image=multi_image.pl_image)
 
         global_dataframe, local_dataframes = generate_metrics(
             multi_image, filename, fibre_networks,
@@ -220,10 +220,9 @@ class ImageAnalyser:
 
         kwargs = {}
 
-        fibre_networks = load_fibre_networks(
-            filename, image=multi_image.shg_image)
+        fibre_networks = load_fibre_networks(filename)
         fibre_segments = load_fibre_segments(
-            filename, image=multi_image.shg_image)
+            filename, intensity_image=multi_image.shg_image)
 
         fibres = [
             fibre_network.fibres for fibre_network in fibre_networks]
@@ -236,7 +235,7 @@ class ImageAnalyser:
 
         try:
             cell_segments = load_cell_segments(
-                filename, image=multi_image.pl_image)
+                filename, intensity_image=multi_image.pl_image)
             kwargs['cell_regions'] = [cell.region for cell in cell_segments]
         except IOError:
             pass
