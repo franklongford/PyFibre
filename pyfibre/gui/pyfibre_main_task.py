@@ -1,5 +1,4 @@
 import logging
-import os
 
 import numpy as np
 import pandas as pd
@@ -307,9 +306,9 @@ class PyFibreMainTask(Task):
             logger.info("Loading metrics for {}".format(filename))
 
             try:
-                data_global = load_database(metric_name, 'global_metric')
-                data_fibre = load_database(metric_name, 'fibre_metric')
-                data_cell = load_database(metric_name, 'cell_metric')
+                data_global = load_database(filename, 'global_metric')
+                data_fibre = load_database(filename, 'fibre_metric')
+                data_cell = load_database(filename, 'cell_metric')
 
                 global_database = global_database.append(
                     data_global, ignore_index=True)
@@ -320,7 +319,7 @@ class PyFibreMainTask(Task):
 
             except (ValueError, IOError):
                 logger.info(
-                    f"{input_file_name} databases not imported"
+                    f"{prefix} databases not imported"
                     f" - skipping")
 
         self.global_database = global_database
