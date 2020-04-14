@@ -12,7 +12,8 @@ from .. utilities import (
     parse_files, parse_file_path, pop_under_recursive,
     pop_dunder_recursive, numpy_to_python_recursive,
     python_to_numpy_recursive, replace_ext, save_json,
-    load_json, serialize_networkx_graph, deserialize_networkx_graph
+    load_json, serialize_networkx_graph, deserialize_networkx_graph,
+    check_file_name, check_string
 )
 
 
@@ -213,3 +214,13 @@ class TestUtilities(TestCase):
         self.assertIsInstance(graph, nx.Graph)
         self.assertEqual(4, graph.number_of_nodes())
         self.assertIsInstance(graph.nodes[2]['xy'], np.ndarray)
+
+    def test_string_functions(self):
+        string = "/dir/folder/test_file_SHG.pkl"
+
+        self.assertEqual(
+            "/dir/test_file_SHG.pkl",
+            check_string(string, -2, '/', 'folder'))
+        self.assertEqual(
+            "/dir/folder/test_file",
+            check_file_name(string, 'SHG', 'pkl'))

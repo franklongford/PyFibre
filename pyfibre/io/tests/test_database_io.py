@@ -5,8 +5,7 @@ import pandas as pd
 import numpy as np
 
 from pyfibre.io.database_io import (
-    save_database, load_database, check_string,
-    check_file_name
+    save_database, load_database
 )
 
 
@@ -18,16 +17,6 @@ class TestDatabaseWriter(TestCase):
                      'two': np.array([4., 3., 2., 1.])}
 
         self.database = pd.DataFrame(self.data)
-
-    def test_string_functions(self):
-        string = "/dir/folder/test_file_SHG.pkl"
-
-        self.assertEqual(
-            "/dir/test_file_SHG.pkl",
-            check_string(string, -2, '/', 'folder'))
-        self.assertEqual(
-            "/dir/folder/test_file",
-            check_file_name(string, 'SHG', 'pkl'))
 
     def test_save_database(self):
 
