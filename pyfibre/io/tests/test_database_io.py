@@ -1,5 +1,6 @@
 import os
 from unittest import TestCase
+from tempfile import NamedTemporaryFile
 
 import pandas as pd
 import numpy as np
@@ -20,31 +21,22 @@ class TestDatabaseWriter(TestCase):
 
     def test_save_database(self):
 
-        save_database(self.database, 'test_database')
+        with NamedTemporaryFile() as temp_file:
 
-        self.assertTrue(os.path.exists('test_database.h5'))
-        self.assertTrue(os.path.exists('test_database.xls'))
+            save_database(self.database, temp_file.name)
+            self.assertTrue(os.path.exists(f'{temp_file.name}.h5'))
+            self.assertTrue(os.path.exists(f'{temp_file.name}.xls'))
 
-        save_database(self.database, 'test_database', 'extra')
-
-        self.assertTrue(os.path.exists('test_database_extra.h5'))
-        self.assertTrue(os.path.exists('test_database_extra.xls'))
-
-        if os.path.exists('test_database.h5'):
-            os.remove('test_database.h5')
-        if os.path.exists('test_database.xls'):
-            os.remove('test_database.xls')
-        if os.path.exists('test_database_extra.h5'):
-            os.remove('test_database_extra.h5')
-        if os.path.exists('test_database_extra.xls'):
-            os.remove('test_database_extra.xls')
+            save_database(self.database, temp_file.name, 'extra')
+            self.assertTrue(os.path.exists(f'{temp_file.name}_extra.h5'))
+            self.assertTrue(os.path.exists(f'{temp_file.name}_extra.xls'))
 
     def test_load_database(self):
 
-        save_database(self.database, 'test_database')
+        with NamedTemporaryFile() as temp_file:
 
-        try:
-            database = load_database('test_database')
+            save_database(self.database, temp_file.name)
+            database = load_database(temp_file.name)
 
             self.assertAlmostEqual(
                 0,
@@ -52,9 +44,3 @@ class TestDatabaseWriter(TestCase):
             self.assertAlmostEqual(
                 0,
                 np.abs(self.database['two'] - database['two']).sum(), 6)
-
-        finally:
-            if os.path.exists('test_database.h5'):
-                os.remove('test_database.h5')
-            if os.path.exists('test_database.xls'):
-                os.remove('test_database.xls')
