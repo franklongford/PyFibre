@@ -1,5 +1,4 @@
 import logging
-import os
 
 import numpy as np
 import pandas as pd
@@ -26,6 +25,7 @@ from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.io.database_io import save_database, load_database
 from pyfibre.io.multi_image_reader import MultiImageReader
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
+from pyfibre.io.utilities import get_file_names
 from pyfibre.model.iterator import assign_images
 from pyfibre.model.image_analyser import ImageAnalyser
 from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
@@ -298,19 +298,17 @@ class PyFibreMainTask(Task):
             row.name for row in self.file_display_pane.file_table
         ]
 
-        for i, input_file_name in enumerate(input_prefixes):
+        for i, prefix in enumerate(input_prefixes):
 
-            image_name = os.path.basename(input_file_name)
-            image_path = os.path.dirname(input_file_name)
-            data_dir = image_path + '/data/'
-            metric_name = data_dir + image_name
+            (working_dir, data_dir, fig_dir,
+             filename, figname) = get_file_names(prefix)
 
-            logger.info("Loading metrics for {}".format(metric_name))
+            logger.info("Loading metrics for {}".format(filename))
 
             try:
-                data_global = load_database(metric_name, 'global_metric')
-                data_fibre = load_database(metric_name, 'fibre_metric')
-                data_cell = load_database(metric_name, 'cell_metric')
+                data_global = load_database(filename, 'global_metric')
+                data_fibre = load_database(filename, 'fibre_metric')
+                data_cell = load_database(filename, 'cell_metric')
 
                 global_database = global_database.append(
                     data_global, ignore_index=True)
@@ -321,7 +319,7 @@ class PyFibreMainTask(Task):
 
             except (ValueError, IOError):
                 logger.info(
-                    f"{input_file_name} databases not imported"
+                    f"{prefix} databases not imported"
                     f" - skipping")
 
         self.global_database = global_database

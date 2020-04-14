@@ -18,6 +18,7 @@ from pyfibre.io.object_io import (
     save_cell_segments, load_cell_segments)
 from pyfibre.io.network_io import save_network, load_network
 from pyfibre.io.database_io import save_database, load_database
+from pyfibre.io.utilities import get_file_names
 
 from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
 from pyfibre.model.metric_analyser import generate_metrics
@@ -84,7 +85,7 @@ class ImageAnalyser:
     def _create_directory(self, prefix):
 
         (working_dir, data_dir, fig_dir,
-         filename, figname) = self.get_filenames(prefix)
+         filename, figname) = get_file_names(prefix)
 
         if not os.path.exists(working_dir):
             os.mkdir(working_dir)
@@ -247,21 +248,6 @@ class ImageAnalyser:
         logger.info(
             f"TOTAL FIGURE TIME = "
             f"{round(end_fig - start_fig, 3)} s")
-
-    def get_filenames(self, prefix):
-
-        image_name = os.path.basename(prefix)
-        working_dir = (
-            f"{os.path.dirname(prefix)}/{image_name}"
-            "-pyfibre-analysis")
-
-        data_dir = working_dir + '/data/'
-        fig_dir = working_dir + '/fig/'
-
-        filename = data_dir + image_name
-        figname = fig_dir + image_name
-
-        return working_dir, data_dir, fig_dir, filename, figname
 
     def image_analysis(self, multi_image, prefix):
         """
