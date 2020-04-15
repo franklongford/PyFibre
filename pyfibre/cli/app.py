@@ -71,8 +71,8 @@ from .pyfibre_cli import PyFibreCLI
     default='pyfibre'
 )
 @click.argument(
-    'file_path', type=click.Path(exists=True),
-    required=False, default='.'
+    'file_path', nargs=-1, type=click.Path(exists=True),
+    required=False
 )
 def pyfibre(file_path, key, sigma, alpha, log_name,
             database_name, debug, profile, ow_metric, ow_segment,

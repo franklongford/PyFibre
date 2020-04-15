@@ -48,11 +48,16 @@ class PyFibreCLI:
             'SHG-PL-Trans': SHGPLTransReader()
         }
 
-    def run(self, file_path):
+    def run(self, file_paths):
 
-        file_name, directory = parse_file_path(file_path)
-        input_files = parse_files(file_name, directory, self.key)
-        image_dictionary = collate_image_dictionary(input_files)
+        image_dictionary = {}
+
+        if isinstance(file_paths, str):
+            file_paths = [file_paths]
+
+        for file_path in file_paths:
+            input_files = parse_file_path(file_path, self.key)
+            image_dictionary.update(collate_image_dictionary(input_files))
 
         formatted_images = '\n'.join([
             f'\t{key}: {value}'
