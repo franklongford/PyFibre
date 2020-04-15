@@ -14,7 +14,7 @@ from pyfibre.io.shg_pl_reader import (
     collate_image_dictionary,
     SHGPLTransReader
 )
-from pyfibre.io.utilities import parse_files, parse_file_path
+from pyfibre.io.utilities import parse_file_path
 from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
 from pyfibre.model.image_analyser import ImageAnalyser
 from pyfibre.model.iterator import iterate_images
