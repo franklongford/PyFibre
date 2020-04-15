@@ -14,7 +14,7 @@ from traitsui.api import (
 from pyfibre.io.shg_pl_reader import (
     collate_image_dictionary)
 from pyfibre.model.iterator import assign_images
-from pyfibre.io.utilities import parse_files, parse_file_path
+from pyfibre.io.utilities import parse_file_path
 
 
 def horizontal_centre(item_or_group):
@@ -171,9 +171,7 @@ class FileDisplayPane(TraitsDockPane):
 
     def add_files(self, file_path):
 
-        file_name, directory = parse_file_path(file_path)
-        input_files = parse_files(file_name, directory, self.key)
-
+        input_files = parse_file_path(file_path)
         image_dictionary = collate_image_dictionary(input_files)
 
         input_prefixes = [row.name for row in self.file_table]
