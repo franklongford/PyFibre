@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 NEMATIC_METRICS = ['Angle SDI', 'Anisotropy', 'Pixel Anisotropy']
 SHAPE_METRICS = ['Area', 'Eccentricity', 'Linearity', 'Coverage']
 TEXTURE_METRICS = ['Mean', 'STD', 'Entropy']
-FIBRE_METRICS = ['Waviness', 'Length', 'Angle']
+FIBRE_METRICS = ['Waviness', 'Length']
 NETWORK_METRICS = ['Degree', 'Eigenvalue', 'Connectivity',
                    'Cross-Link Density']
 

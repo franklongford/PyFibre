@@ -64,7 +64,8 @@ class MetricAnalyser:
         global_metrics = metric_averaging(
             local_metrics,
             shape_metrics + texture_metrics +
-            fibre_metrics + network_metrics
+            fibre_metrics + network_metrics +
+            ['Fibre Angle SDI']
         )
 
         return global_metrics

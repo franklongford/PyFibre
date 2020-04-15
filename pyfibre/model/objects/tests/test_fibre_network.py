@@ -3,7 +3,8 @@ from unittest import TestCase
 from pyfibre.model.objects.fibre_network import (
     FibreNetwork
 )
-from pyfibre.model.tools.metrics import FIBRE_METRICS, NETWORK_METRICS
+from pyfibre.model.tools.metrics import (
+    FIBRE_METRICS, NETWORK_METRICS)
 from pyfibre.tests.probe_classes import ProbeFibreNetwork, ProbeFibre
 
 
@@ -89,6 +90,8 @@ class TestFibreNetwork(TestCase):
 
         database = self.network.generate_database()
         self.assertEqual(7, len(database))
+
+        self.assertIn('Fibre Angle SDI', database)
 
         for metric in FIBRE_METRICS:
             self.assertIn(f'Mean Fibre {metric}', database)
