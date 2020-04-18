@@ -2,6 +2,10 @@ from abc import ABC, abstractmethod
 
 
 class ABCPyFibreObject(ABC):
+    """Abstract base class for an object representing an extracted feature
+    in a multi-image. Serialization and de-serialization routines must be
+    implemented with a concrete base subclass, along with a method that
+    generates a pandas database containing metrics."""
 
     @classmethod
     @abstractmethod

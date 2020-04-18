@@ -6,6 +6,7 @@ from pyfibre.io.utilities import (
     pop_under_recursive, deserialize_networkx_graph,
     serialize_networkx_graph)
 from pyfibre.model.tools.fibre_utilities import get_node_coord_array
+from pyfibre.utilities import NotSupportedError
 
 from .abc_pyfibre_object import ABCPyFibreObject
 
@@ -21,14 +22,24 @@ class BaseGraph(ABCPyFibreObject):
 
     @property
     def node_list(self):
+        """Helper routine to return a list of node labels in
+        the networkx graph"""
         return list(self.graph.nodes)
 
     @property
     def number_of_nodes(self):
+        """Extends networkx API to obtain number of nodes"""
         return self.graph.number_of_nodes()
 
     @property
+    def number_of_edges(self):
+        """Extends networkx API to obtain number of edges"""
+        return self.graph.number_of_edges()
+
+    @property
     def node_coord(self):
+        """Helper routine to return a numpy array of pixel coordinates
+        of each node in the networkx graph."""
         return get_node_coord_array(self.graph)
 
     def add_node(self, *args, **kwargs):
@@ -41,6 +52,8 @@ class BaseGraph(ABCPyFibreObject):
 
     @classmethod
     def from_json(cls, data):
+        """Routine to represent any instance as a dictionary containing
+        basic python data types"""
         graph = data.pop('graph', None)
         if isinstance(graph, dict):
             data['graph'] = deserialize_networkx_graph(graph)
@@ -61,11 +74,11 @@ class BaseGraph(ABCPyFibreObject):
     def from_array(cls, array, **kwargs):
         """Deserialises numpy array to return an instance
         of the class"""
-        raise NotImplementedError(
+        raise NotSupportedError(
             f'from_array method not supported for {cls.__class__}')
 
     def to_array(self, **kwargs):
         """Serialises instance into a numpy array able to be dumped as a
         numpy binary file"""
-        raise NotImplementedError(
+        raise NotSupportedError(
             f'to_array method not supported for {self.__class__}')
