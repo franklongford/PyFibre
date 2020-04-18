@@ -5,7 +5,7 @@ from pyfibre.model.tools.bd_cluster import (
     cluster_colours, cluster_mask,
     BDFilter
 )
-from pyfibre.tests.probe_classes import (
+from pyfibre.tests.probe_classes.utilities import (
     generate_image, generate_probe_graph
 )
 from pyfibre.tests.fixtures import test_shg_pl_trans_image_path

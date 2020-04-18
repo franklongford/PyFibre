@@ -1,9 +1,10 @@
 from unittest import TestCase
 
 from pyfibre.model.objects.segments import CellSegment, FibreSegment
-from pyfibre.tests.probe_classes import (
-    generate_regions,
-    ProbeFibreNetwork,
+from pyfibre.tests.probe_classes.utilities import (
+    generate_regions)
+from pyfibre.tests.probe_classes.objects import ProbeFibreNetwork
+from pyfibre.tests.probe_classes.multi_images import (
     ProbeSHGImage,
     ProbeSHGPLTransImage
 )

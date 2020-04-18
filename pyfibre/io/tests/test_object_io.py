@@ -15,7 +15,7 @@ from pyfibre.model.objects.fibre_network import FibreNetwork
 from pyfibre.model.objects.segments import (
     FibreSegment, CellSegment)
 
-from pyfibre.tests.probe_classes import (
+from pyfibre.tests.probe_classes.objects import (
     ProbeGraphSegment, ProbeSegment, ProbeFibre,
     ProbeFibreNetwork)
 

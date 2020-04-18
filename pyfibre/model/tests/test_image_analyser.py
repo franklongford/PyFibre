@@ -2,7 +2,7 @@ import os
 from tempfile import NamedTemporaryFile
 from unittest import TestCase
 
-from pyfibre.tests.probe_classes import ProbeSHGPLTransImage
+from pyfibre.tests.probe_classes.multi_images import ProbeSHGPLTransImage
 
 from .. image_analyser import ImageAnalyser
 

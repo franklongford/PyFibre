@@ -5,7 +5,7 @@ from pyfibre.model.tools.fibre_utilities import (
     remove_redundant_nodes, transfer_edges, get_edge_list,
     simplify_network
 )
-from pyfibre.tests.probe_classes import (
+from pyfibre.tests.probe_classes.utilities import (
     generate_probe_graph
 )
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase

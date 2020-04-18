@@ -5,7 +5,7 @@ from pyfibre.model.tools.utilities import (
     draw_network, region_check, region_swap,
     mean_binary
 )
-from pyfibre.tests.probe_classes import (
+from pyfibre.tests.probe_classes.utilities import (
     generate_image, generate_probe_graph
 )
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase

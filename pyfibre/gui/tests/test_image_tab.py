@@ -3,8 +3,9 @@ from unittest import TestCase
 from traits.testing.unittest_tools import UnittestTools
 
 from pyfibre.gui.image_tab import ImageTab
-from pyfibre.tests.probe_classes import (
-    ProbeImageTab, ProbeNetworkImageTab, ProbeSegmentImageTab,
+from pyfibre.tests.probe_classes.gui_objects import (
+    ProbeImageTab, ProbeNetworkImageTab, ProbeSegmentImageTab)
+from pyfibre.tests.probe_classes.multi_images import (
     ProbeMultiImage)
 
 

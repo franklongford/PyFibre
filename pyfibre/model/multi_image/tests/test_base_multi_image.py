@@ -2,60 +2,44 @@ from unittest import TestCase
 
 import numpy as np
 
-from pyfibre.model.multi_image.base_multi_image import BaseMultiImage
+from pyfibre.tests.probe_classes.multi_images import ProbeMultiImage
 
 
 class TestBaseMultiImage(TestCase):
 
     def setUp(self):
 
-        self.multi_image = BaseMultiImage()
-
-        self.image = np.ones((15, 15))
+        self.multi_image = ProbeMultiImage()
+        self.image = np.ones((10, 10))
         self.image[5: 5] = 0
         self.image[0: 0] = 2
 
     def test___init__(self):
 
-        self.assertEqual(0, len(self.multi_image))
-        self.assertIsNone(self.multi_image.shape)
-        self.assertIsNone(self.multi_image.size)
-        self.assertIsNone(self.multi_image.ndim)
-        self.assertListEqual([], self.multi_image.image_stack)
+        self.assertEqual(2, len(self.multi_image))
+        self.assertIsNotNone(self.multi_image.shape)
+        self.assertIsNotNone(self.multi_image.size)
+        self.assertIsNotNone(self.multi_image.ndim)
 
     def test_append_remove(self):
 
         self.multi_image.append(self.image)
 
-        self.assertEqual(1, len(self.multi_image))
-        self.assertEqual((15, 15), self.multi_image.shape)
-        self.assertEqual(15**2, self.multi_image.size)
+        self.assertEqual(3, len(self.multi_image))
+        self.assertEqual((10, 10), self.multi_image.shape)
+        self.assertEqual(100, self.multi_image.size)
         self.assertEqual(2, self.multi_image.ndim)
 
         with self.assertRaises(ValueError):
-            self.multi_image.append(np.ones((10, 10)))
+            self.multi_image.append(np.ones((15, 15)))
 
         self.multi_image.remove(self.image)
+        self.assertEqual(2, len(self.multi_image))
 
-        self.assertEqual(0, len(self.multi_image))
-        self.assertIsNone(self.multi_image.shape)
-        self.assertIsNone(self.multi_image.size)
+        with self.assertRaises(IndexError):
+            self.multi_image.remove(self.image)
 
-    def test_assarray(self):
+    def test_to_array(self):
         self.multi_image.image_stack = [self.image]
-        image_array = self.multi_image.asarray()
-        self.assertEqual((1, 15, 15), image_array.shape)
-
-    def test_not_implemented(self):
-
-        with self.assertRaises(NotImplementedError):
-            self.multi_image.preprocess_images()
-
-        with self.assertRaises(NotImplementedError):
-            BaseMultiImage.verify_stack([])
-
-        with self.assertRaises(NotImplementedError):
-            self.multi_image.create_figures()
-
-        with self.assertRaises(NotImplementedError):
-            self.multi_image.segmentation_algorithm()
+        image_array = self.multi_image.to_array()
+        self.assertEqual((1, 10, 10), image_array.shape)

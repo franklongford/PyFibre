@@ -2,8 +2,8 @@ import numpy as np
 
 from skimage.measure import regionprops
 
-from pyfibre.tests.probe_classes import (
-    generate_image, ProbeFibreNetwork)
+from pyfibre.tests.probe_classes.utilities import generate_image
+from pyfibre.tests.probe_classes.objects import ProbeFibreNetwork
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 from ..figures import (

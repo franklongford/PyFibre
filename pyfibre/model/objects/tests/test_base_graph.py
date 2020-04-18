@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from pyfibre.tests.probe_classes import ProbeGraph
+from pyfibre.tests.probe_classes.objects import ProbeGraph
 from pyfibre.tests.dummy_classes import DummyGraph
 
 

@@ -2,17 +2,17 @@ from unittest import TestCase
 
 import numpy as np
 
-from pyfibre.tests.probe_classes import ProbeFixedStackImage
+from pyfibre.tests.probe_classes.multi_images import (
+    ProbeFixedStackImage)
 
 
 class TestFixedStackImage(TestCase):
 
     def setUp(self):
 
-        self.image = np.ones((15, 15))
+        self.image = np.ones((10, 10))
         self.image[5: 5] = 0
         self.image[0: 0] = 2
-
         self.multi_image = ProbeFixedStackImage()
 
     def test_default_stack(self):
@@ -33,7 +33,7 @@ class TestFixedStackImage(TestCase):
                 [self.image, np.ones((10, 10))]))
         self.assertFalse(
             self.multi_image.verify_stack(
-                [np.ones((15, 15, 3))]))
+                [np.ones((10, 10, 3))]))
 
     def test_preprocess_images(self):
 

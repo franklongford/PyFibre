@@ -7,7 +7,7 @@ from pyfibre.model.tools.network_extraction import (
     build_network, clean_network, fibre_network_assignment
 )
 from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
-from pyfibre.tests.probe_classes import (
+from pyfibre.tests.probe_classes.utilities import (
     generate_probe_graph
 )
 

@@ -3,7 +3,7 @@ import numpy as np
 from pyfibre.io.multi_image_reader import MultiImageReader, get_image_data
 from pyfibre.tests.fixtures import (
     test_shg_image_path, test_shg_pl_trans_image_path)
-from pyfibre.tests.probe_classes import ProbeFixedStackImage
+from pyfibre.tests.probe_classes.multi_images import ProbeFixedStackImage
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 

@@ -7,7 +7,7 @@ from pyface.tasks.api import TaskWindow
 from traits_futures.toolkit_support import toolkit
 
 from pyfibre.tests.dummy_classes import DummyPyFibreGUI
-from pyfibre.tests.probe_classes import ProbeTableRow
+from pyfibre.tests.probe_classes.gui_objects import ProbeTableRow
 from pyfibre.gui.pyfibre_main_task import PyFibreMainTask
 from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane

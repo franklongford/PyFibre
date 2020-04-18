@@ -3,8 +3,9 @@ from unittest import TestCase
 from pyfibre.gui.viewer_pane import (
     ViewerPane
 )
-from pyfibre.tests.probe_classes import (
-    ProbeSHGPLTransImage, ProbeTableRow)
+from pyfibre.tests.probe_classes.gui_objects import ProbeTableRow
+from pyfibre.tests.probe_classes.multi_images import (
+    ProbeSHGPLTransImage, )
 
 
 class TestViewerPane(TestCase):
