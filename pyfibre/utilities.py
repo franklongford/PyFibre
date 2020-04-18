@@ -23,6 +23,11 @@ class NoiseError(Exception):
         self.message = "Image too noisy ({} > {})".format(noise, thresh)
 
 
+class NotSupportedError(Exception):
+
+    message = "Method not supported by class"
+
+
 def logo(version):
 
     logo_text = "\n"

@@ -1,12 +1,15 @@
+from abc import abstractmethod
 import numpy as np
 
 from traits.api import (
-    HasTraits, ArrayOrNone, Tuple, List,
+    ABCHasTraits, ArrayOrNone, Tuple, List,
     Property, Dict, Str
 )
 
 
-class BaseMultiImage(HasTraits):
+class BaseMultiImage(ABCHasTraits):
+    """Base class representing an image with multiple channels,
+    expected to be more complex than just RGB"""
 
     shape = Property(Tuple, depends_on='image_stack')
 
@@ -47,36 +50,37 @@ class BaseMultiImage(HasTraits):
 
     def remove(self, image):
         """Removes an image with index from the image_stack"""
-        self.image_stack.remove(image)
+        index = [
+            index for index, array in enumerate(self.image_stack)
+            if id(image) == id(array)
+        ]
+        if index:
+            self.image_stack.pop(index[0])
+        else:
+            raise IndexError(
+                f"image not found in {self.__class__}.image_stack"
+            )
 
-    def asarray(self):
+    def to_array(self):
         return np.stack(self.image_stack)
 
     @classmethod
+    @abstractmethod
     def verify_stack(cls, image_stack):
         """Perform verification that image_stack is allowed by
         subclass of BaseMultiImage"""
-        raise NotImplementedError(
-            f'{cls.__class__}.verify_stack method'
-            f' not implemented')
 
+    @abstractmethod
     def preprocess_images(self):
         """Implement operations that are used to pre-process
         the image_stack before analysis"""
-        raise NotImplementedError(
-            f'{self.__class__}.preprocess_images method'
-            f' not implemented')
 
+    @abstractmethod
     def segmentation_algorithm(self, *args, **kwargs):
         """Implement segmentation algorithm to be used for this
         multi-image type"""
-        raise NotImplementedError(
-            f'{self.__class__}.segmentation_algorithm method'
-            f' not implemented')
 
+    @abstractmethod
     def create_figures(self, *args, **kwargs):
         """Create figures from multi-image components that can be
         generated upon end of analysis"""
-        raise NotImplementedError(
-            f'{self.__class__}.create_figures method'
-            f' not implemented')
