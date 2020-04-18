@@ -102,33 +102,35 @@ class MetricAnalyser:
         network_metrics = self._get_network_metrics()
 
         # Analyse fibre segments
-        local_metrics = self._get_segment_metrics('SHG', 'fibre_segments.npy')
-        local_metrics = local_metrics.drop(columns=['File'])
-
-        local_metrics = pd.concat((network_metrics, local_metrics), axis=1)
+        segment_metrics = self._get_segment_metrics(
+            'SHG', 'fibre_segments.npy')
 
         # Average linear properties over all regions
-        global_metrics = self._global_averaging(
-            local_metrics, 'Fibre', 'SHG')
+        global_segment_metrics = self._global_averaging(
+            segment_metrics, 'Fibre', 'SHG')
+        global_network_metrics = self._global_averaging(
+            network_metrics, 'Fibre', 'SHG')
+        global_network_metrics['No. Fibres'] = sum(
+            network_metrics['No. Fibres'])
+        global_metrics = pd.concat(
+            (global_segment_metrics,
+             global_network_metrics), axis=0)
 
-        global_metrics['No. Fibres'] = sum(
-            [len(fibre_network.fibres)
-             for fibre_network in self.networks])
-
-        return local_metrics, global_metrics
+        return segment_metrics, network_metrics, global_metrics
 
     def analyse_pl(self):
 
         # Analyse individual cell regions
-        local_metrics = self._get_segment_metrics('PL', 'cell_segment.npy')
+        segment_metrics = self._get_segment_metrics(
+            'PL', 'cell_segment.npy')
 
         # Average linear properties over all regions
         global_metrics = self._global_averaging(
-            local_metrics, 'Cell', 'PL')
+            segment_metrics, 'Cell', 'PL')
 
         global_metrics['No. Cells'] = len(self.segments)
 
-        return local_metrics, global_metrics
+        return segment_metrics, global_metrics
 
 
 def generate_metrics(
@@ -138,7 +140,7 @@ def generate_metrics(
     global_dataframe = pd.Series(dtype=object)
     global_dataframe['File'] = '{}_global_segment.npy'.format(filename)
 
-    local_dataframes = [None, None]
+    local_dataframes = [None, None, None]
 
     logger.debug(" Performing SHG Image analysis")
 
@@ -151,9 +153,12 @@ def generate_metrics(
     metric_analyser.image = multi_image.shg_image
     metric_analyser.networks = fibre_networks
     metric_analyser.segments = fibre_segments
-    local_metrics, global_metrics = metric_analyser.analyse_shg()
+    (segment_merics,
+     network_metrics,
+     global_metrics) = metric_analyser.analyse_shg()
 
-    local_dataframes[0] = local_metrics
+    local_dataframes[0] = segment_merics
+    local_dataframes[1] = network_metrics
     global_dataframe = global_dataframe.append(
         global_metrics, ignore_index=False)
 
@@ -168,9 +173,9 @@ def generate_metrics(
 
         metric_analyser.image = multi_image.pl_image
         metric_analyser.segments = cell_segments
-        local_metrics, global_metrics = metric_analyser.analyse_pl()
+        segment_merics, global_metrics = metric_analyser.analyse_pl()
 
-        local_dataframes[1] = local_metrics
+        local_dataframes[2] = segment_merics
         global_dataframe = global_dataframe.append(
             global_metrics, ignore_index=False)
 

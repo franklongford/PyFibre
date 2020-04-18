@@ -114,6 +114,8 @@ def network_metrics(network, network_red, n_fibres, tag=''):
 
     database = pd.Series(dtype=object)
 
+    database['No. Fibres'] = n_fibres
+
     cross_links = np.array(
         [degree[1] for degree in network.degree],
         dtype=int)

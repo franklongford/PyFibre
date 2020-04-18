@@ -89,6 +89,7 @@ class PyFibreMainTask(Task):
 
         self.global_database = None
         self.fibre_database = None
+        self.network_database = None
         self.cell_database = None
 
     # ------------------
@@ -292,6 +293,7 @@ class PyFibreMainTask(Task):
 
         global_database = pd.DataFrame()
         fibre_database = pd.DataFrame()
+        network_database = pd.DataFrame()
         cell_database = pd.DataFrame()
 
         input_prefixes = [
@@ -308,12 +310,15 @@ class PyFibreMainTask(Task):
             try:
                 data_global = load_database(filename, 'global_metric')
                 data_fibre = load_database(filename, 'fibre_metric')
+                data_network = load_database(filename, 'network_metric')
                 data_cell = load_database(filename, 'cell_metric')
 
                 global_database = global_database.append(
                     data_global, ignore_index=True)
                 fibre_database = pd.concat(
                     [fibre_database, data_fibre], sort=True)
+                network_database = pd.concat(
+                    [network_database, data_network], sort=True)
                 cell_database = pd.concat(
                     [cell_database, data_cell], sort=True)
 
@@ -324,12 +329,14 @@ class PyFibreMainTask(Task):
 
         self.global_database = global_database
         self.fibre_database = fibre_database
+        self.network_database = network_database
         self.cell_database = cell_database
 
     def save_database(self, filename):
 
         save_database(self.global_database, filename)
         save_database(self.fibre_database, filename, 'fibre')
+        save_database(self.network_database, filename, 'network')
         save_database(self.cell_database, filename, 'cell')
 
     def save_database_as(self):

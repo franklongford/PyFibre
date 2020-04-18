@@ -37,10 +37,15 @@ class TestMetricAnalyser(TestCase):
         self.metric_analyser.image = self.shg_multi_image.shg_image
         self.metric_analyser.segments = self.fibre_segments
         self.metric_analyser.networks = self.fibre_networks
-        local_metrics, global_metrics = self.metric_analyser.analyse_shg()
+        (segment_metrics,
+         network_metrics,
+         global_metrics) = self.metric_analyser.analyse_shg()
 
-        self.assertEqual(18, len(local_metrics.columns))
-        self.assertEqual(18, len(global_metrics))
+        self.assertEqual((1, 11), segment_metrics.shape)
+        self.assertIn('File', segment_metrics)
+        self.assertEqual((1, 9), network_metrics.shape)
+        self.assertIn('File', network_metrics)
+        self.assertEqual((18,), global_metrics.shape)
 
     def test_analyse_pl(self):
 
@@ -48,8 +53,8 @@ class TestMetricAnalyser(TestCase):
         self.metric_analyser.segments = self.cell_segments
         local_metrics, global_metrics = self.metric_analyser.analyse_pl()
 
-        self.assertEqual(11, len(local_metrics.columns))
-        self.assertEqual(11, len(global_metrics))
+        self.assertEqual((1, 11), local_metrics.shape)
+        self.assertEqual((11,), global_metrics.shape)
 
     def test_generate_metrics(self):
 
@@ -62,9 +67,10 @@ class TestMetricAnalyser(TestCase):
             1.0
         )
 
-        self.assertEqual(2, len(local_dataframes))
-        self.assertEqual((1, 18), local_dataframes[0].shape)
-        self.assertIsNone(local_dataframes[1])
+        self.assertEqual(3, len(local_dataframes))
+        self.assertEqual((1, 11), local_dataframes[0].shape)
+        self.assertEqual((1, 9), local_dataframes[1].shape)
+        self.assertIsNone(local_dataframes[2])
         self.assertEqual((19,), global_dataframe.shape)
 
         global_dataframe, local_dataframes = generate_metrics(
@@ -76,7 +82,8 @@ class TestMetricAnalyser(TestCase):
             1.0
         )
 
-        self.assertEqual(2, len(local_dataframes))
-        self.assertEqual((1, 18), local_dataframes[0].shape)
-        self.assertEqual((1, 11), local_dataframes[1].shape)
+        self.assertEqual(3, len(local_dataframes))
+        self.assertEqual((1, 11), local_dataframes[0].shape)
+        self.assertEqual((1, 9), local_dataframes[1].shape)
+        self.assertEqual((1, 11), local_dataframes[2].shape)
         self.assertEqual((30,), global_dataframe.shape)

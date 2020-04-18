@@ -89,7 +89,7 @@ class TestFibreNetwork(TestCase):
         self.network.fibres = self.fibres
 
         database = self.network.generate_database()
-        self.assertEqual(7, len(database))
+        self.assertEqual(8, len(database))
 
         self.assertIn('Fibre Angle SDI', database)
 
