@@ -12,14 +12,11 @@ class BaseMultiImage(ABCHasTraits):
     """Base class representing an image with multiple channels,
     expected to be more complex than just RGB"""
 
-    shape = Property(Tuple, depends_on='image_stack')
-
-    size = Property(Tuple, depends_on='image_stack')
-
-    ndim = Property(Tuple, depends_on='image_stack')
-
+    #: List of images in stack
     image_stack = List(ArrayOrNone)
 
+    #: Dictionary containing references to each entry in
+    #: image_stack
     image_dict = Dict(Str, ArrayOrNone)
 
     def __init__(self, *args, **kwargs):

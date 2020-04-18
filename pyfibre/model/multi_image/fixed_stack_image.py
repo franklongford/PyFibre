@@ -8,8 +8,12 @@ class FixedStackImage(BaseMultiImage):
     """A BaseMultiImage implementation with a fixed stack size
     and defined preprocessing algorithm"""
 
+    #: Percentages of image intensity to be rescaled between
+    #: in preprocess_images method
     p_intensity = Tuple((1, 99))
 
+    #: Dictionary containing references to each entry in
+    #: image_stack as a property
     image_dict = Property(
         Dict(Str, ArrayOrNone),
         depends_on='image_stack')
@@ -26,7 +30,8 @@ class FixedStackImage(BaseMultiImage):
 
     @classmethod
     def verify_stack(cls, image_stack):
-
+        """Perform verification that image_stack is allowed by
+        subclass of BaseMultiImage"""
         if len(image_stack) != cls._stack_len:
             return False
 

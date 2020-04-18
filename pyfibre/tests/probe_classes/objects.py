@@ -3,7 +3,8 @@ from pyfibre.model.objects.base_graph_segment import BaseGraphSegment
 from pyfibre.model.objects.base_segment import BaseSegment
 from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
-from pyfibre.tests.probe_classes.utilities import generate_probe_graph, generate_regions
+from pyfibre.tests.probe_classes.utilities import (
+    generate_probe_graph, generate_regions)
 
 
 class ProbeGraphMixin:

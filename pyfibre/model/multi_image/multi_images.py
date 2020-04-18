@@ -11,7 +11,10 @@ from pyfibre.model.tools.figures import (
 
 
 class SHGImage(FixedStackImage):
+    """Object containing information from a single channel image
+    containing SHG information"""
 
+    #: Reference to SHG image
     shg_image = Property(Array, depends_on='image_stack')
 
     _stack_len = 1
@@ -37,9 +40,13 @@ class SHGImage(FixedStackImage):
 
 
 class SHGPLTransImage(SHGImage):
+    """Object containing information from a multi channel image
+    containing SHG, PL and Transmission information"""
 
+    #: Reference to PL image
     pl_image = Property(Array, depends_on='image_stack')
 
+    #: Reference to Transmission image
     trans_image = Property(Array, depends_on='image_stack')
 
     _stack_len = 3
