@@ -33,7 +33,7 @@ def iterate_images(dictionary, analyser, readers):
         try:
             multi_image = readers[image_type].load_multi_image(filenames)
         except (KeyError, ImportError):
-            logger.debug(f'Cannot process image data for {filenames}')
+            logger.info(f'Cannot process image data for {filenames}')
         else:
             logger.info(f"Processing image data for {filenames}")
 

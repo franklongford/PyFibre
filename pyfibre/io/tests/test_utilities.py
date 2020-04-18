@@ -9,7 +9,7 @@ from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 from pyfibre.tests.probe_classes import generate_probe_graph
 
 from .. utilities import (
-    parse_files, parse_file_path, pop_under_recursive,
+    parse_file_path, pop_under_recursive,
     pop_dunder_recursive, numpy_to_python_recursive,
     python_to_numpy_recursive, replace_ext, save_json,
     load_json, serialize_networkx_graph, deserialize_networkx_graph,
@@ -37,30 +37,21 @@ class TestUtilities(TestCase):
         }
         self.graph = generate_probe_graph()
 
-    def test_parse_file_path(self):
-
-        file_name, directory = parse_file_path(
-            '/a/path/to/some/file-pl-shg.tif')
-
-        self.assertIsNone(file_name)
-        self.assertIsNone(directory)
-
-        file_name, directory = parse_file_path(self.file_name)
-        self.assertEqual(self.file_name, file_name)
-        self.assertIsNone(directory)
-
-        file_name, directory = parse_file_path(self.directory)
-        self.assertIsNone(file_name)
-        self.assertEqual(self.directory, directory)
-
     def test_parse_files(self):
 
-        input_files = parse_files(self.file_name, key=self.key)
+        input_files = parse_file_path(
+            self.file_name, key=self.key)
+        self.assertEqual(1, len(input_files))
         self.assertIn(self.file_name, input_files)
 
-        input_files = parse_files(directory=self.directory,
-                                  key=self.key)
+        input_files = parse_file_path(
+            self.directory, key=self.key)
+        self.assertEqual(2, len(input_files))
         self.assertIn(self.file_name, input_files)
+
+        input_files = parse_file_path(
+            self.directory, key='not-there')
+        self.assertListEqual([], input_files)
 
     def test_under_recursive(self):
 

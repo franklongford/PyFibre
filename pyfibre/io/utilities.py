@@ -5,48 +5,25 @@ import numpy as np
 from networkx import node_link_graph, node_link_data
 
 
-def parse_files(name=None, directory=None, key=None):
-
+def parse_file_path(file_path, key=None):
+    """Parse input path in order to extract all files"""
     input_files = []
 
-    if key == '':
-        key = None
+    if os.path.isfile(file_path):
+        input_files.append(file_path)
 
-    if name is not None:
-        for file_name in name.split(','):
-            if file_name.find('/') == -1:
-                file_name = os.getcwd() + '/' + file_name
-            input_files.append(file_name)
-
-    if directory is not None:
-        for folder in directory.split(','):
-            for file_name in os.listdir(folder):
-                input_files += [folder + '/' + file_name]
+    elif os.path.isdir(file_path):
+        for file_name in os.listdir(file_path):
+            input_files.append(
+                os.path.join(file_path, file_name))
 
     if key is not None:
-        removed_files = []
-        for file_name in input_files:
-            if ((file_name.find(key) == -1) and
-                    (file_name not in removed_files)):
-                removed_files.append(file_name)
-
-        for file_name in removed_files:
-            input_files.remove(file_name)
+        input_files = [
+            input_file for input_file in input_files
+            if key in input_file
+        ]
 
     return input_files
-
-
-def parse_file_path(file_path):
-
-    file_name = None
-    directory = None
-
-    if os.path.isfile(file_path):
-        file_name = file_path
-    elif os.path.isdir(file_path):
-        directory = file_path
-
-    return file_name, directory
 
 
 def remove_under(dictionary):
