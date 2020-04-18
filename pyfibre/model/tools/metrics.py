@@ -196,9 +196,8 @@ def fibre_network_metrics(fibre_networks):
         fibre_network_series = pd.concat(
             (fibre_network_series, metrics))
 
-        database = database.append(fibre_network_series, ignore_index=True)
-
-    # fibre_angle_sdi[i] = angle_analysis(fibre_ang, np.ones(fibre_ang.shape))
+        database = database.append(
+            fibre_network_series, ignore_index=True)
 
     return database
 

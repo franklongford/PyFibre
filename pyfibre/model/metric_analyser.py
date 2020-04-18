@@ -7,11 +7,11 @@ import pandas as pd
 
 from pyfibre.model.tools.metrics import (
     SHAPE_METRICS, NEMATIC_METRICS, TEXTURE_METRICS,
-    FIBRE_METRICS, NETWORK_METRICS,
+    FIBRE_METRICS, NETWORK_METRICS, angle_analysis,
     fibre_network_metrics, segment_metrics
 )
 from pyfibre.model.multi_image.multi_images import SHGPLTransImage
-
+from pyfibre.utilities import flatten_list
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +64,7 @@ class MetricAnalyser:
         global_metrics = metric_averaging(
             local_metrics,
             shape_metrics + texture_metrics +
-            fibre_metrics + network_metrics +
-            ['Fibre Angle SDI']
+            fibre_metrics + network_metrics
         )
 
         return global_metrics
@@ -112,6 +111,12 @@ class MetricAnalyser:
             network_metrics, 'Fibre', 'SHG')
         global_network_metrics['No. Fibres'] = sum(
             network_metrics['No. Fibres'])
+        fibre_angles = flatten_list([
+            [fibre.angle for fibre in fibre_network.fibres]
+            for fibre_network in self.networks
+        ])
+        global_network_metrics['Fibre Angle SDI'] = angle_analysis(
+            fibre_angles)
         global_metrics = pd.concat(
             (global_segment_metrics,
              global_network_metrics), axis=0)
