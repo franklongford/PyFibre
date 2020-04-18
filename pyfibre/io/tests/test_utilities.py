@@ -56,11 +56,11 @@ class TestUtilities(TestCase):
     def test_parse_files(self):
 
         input_files = parse_files(self.file_name, key=self.key)
-        self.assertEqual(input_files[0], self.file_name)
+        self.assertIn(self.file_name, input_files)
 
         input_files = parse_files(directory=self.directory,
                                   key=self.key)
-        self.assertEqual(input_files[0], self.file_name)
+        self.assertIn(self.file_name, input_files)
 
     def test_under_recursive(self):
 
