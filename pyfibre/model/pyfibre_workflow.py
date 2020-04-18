@@ -10,7 +10,7 @@ class PyFibreWorkflow(HasStrictTraits):
     #: Unit of scale to resize image
     scale = Float(1.25)
 
-    #: Parameters for non-linear means denoise algorithm
+    #: Parameters for non-linear means algorithm
     #: (used to remove noise)
     p_denoise = Tuple((Int, Int))
 

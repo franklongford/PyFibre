@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class FibreAssigner:
+    """Assigns a list of Fibre class instances to a networkx Graph"""
 
     def __init__(self, angle_thresh=70, min_n=4):
 
@@ -29,6 +30,8 @@ class FibreAssigner:
 
     @property
     def theta_thresh(self):
+        """Conversion of angle_thresh from degrees into
+        cosine(radians)"""
         return np.cos((180 - self.angle_thresh) * np.pi / 180) + 1
 
     def _get_connected_nodes(self, node):
@@ -36,7 +39,7 @@ class FibreAssigner:
         return np.array(list(self._graph.adj[node]))
 
     def _initialise_graph(self, graph):
-
+        """Initialise private networkx graph object"""
         self._graph = nx.convert_node_labels_to_integers(graph)
         self.node_coord = get_node_coord_array(self._graph)
         self.edge_count = np.array(
@@ -65,19 +68,23 @@ class FibreAssigner:
         return fibre
 
     def _grow_fibre(self, fibre):
-        """Grow fibre using node"""
+        """Grow fibre using node of networkx graph"""
 
+        # Obtain node at end of fibre and all connected nodes
         end_node = fibre.node_list[-1]
         new_connect = self._get_connected_nodes(end_node)
         new_connect = numpy_remove(new_connect, fibre.node_list)
         n_edges = new_connect.shape[0]
 
+        # Iterate along connected nodes
         if n_edges > 0:
+            # Calculate vectors from end of fibre to new nodes
             new_coord_vec = self.d_coord[end_node][new_connect]
             new_coord_r = np.array([
                 self._graph[end_node][n]['r'] for n in new_connect
             ])
 
+            # Check no connected nodes have the same coordinates
             assert np.all(new_coord_r > 0), (
                 logger.exception(
                     f"{end_node}, {new_connect}, {new_coord_vec},"
@@ -85,10 +92,14 @@ class FibreAssigner:
                 )
             )
 
+            # Calculate angles away from current fibre direction
+            # to next nodes
             cos_the = branch_angles(
                 fibre.direction, new_coord_vec, new_coord_r)
 
             try:
+                # Obtain node that will provide smallest change in
+                # direction of Fibre
                 indices = np.argwhere(
                     cos_the + 1 <= self.theta_thresh).flatten()
                 straight = (cos_the[indices] + 1).argmin()
@@ -96,6 +107,7 @@ class FibreAssigner:
 
                 new_node = new_connect[index]
 
+                # Add node to end of growing Fibre
                 fibre.add_node(
                     new_node,
                     xy=self._graph.nodes[new_node]['xy'].copy()
@@ -115,13 +127,20 @@ class FibreAssigner:
         tracing = np.ones(self.edge_count.shape)
         tot_fibres = []
 
+        # Iterate through all nodes at network ends
         for n, node in enumerate(np.argsort(self.edge_count)):
             if tracing[node]:
+
+                # Create new Fibre instance and grow by tracing along
+                # existing networkx graph
                 fibre = self._create_fibre(node)
 
                 while fibre.growing:
                     self._grow_fibre(fibre)
 
+                # If Fibre is long enough, add it to the list and
+                # prevent nodes that are contained within it from
+                # ending up in any new Fibre
                 if fibre.number_of_nodes >= self.min_n:
                     tot_fibres.append(fibre)
                     for node in fibre.graph:
