@@ -5,6 +5,23 @@ from pyfibre.cli.pyfibre_cli import PyFibreCLI
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
 from pyfibre.model.objects.base_graph import BaseGraph
 from pyfibre.model.objects.base_graph_segment import BaseGraphSegment
+from pyfibre.model.multi_image.base_multi_image import BaseMultiImage
+
+
+class DummyMultiImage(BaseMultiImage):
+
+    def preprocess_images(self):
+        pass
+
+    @classmethod
+    def verify_stack(cls, image_stack):
+        return True
+
+    def segmentation_algorithm(self, *args, **kwargs):
+        pass
+
+    def create_figures(self, *args, **kwargs):
+        pass
 
 
 class DummyGraph(BaseGraph):

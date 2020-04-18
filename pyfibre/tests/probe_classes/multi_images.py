@@ -3,8 +3,10 @@ from skimage.io import imread
 
 from pyfibre.model.multi_image.base_multi_image import BaseMultiImage
 from pyfibre.model.multi_image.fixed_stack_image import FixedStackImage
-from pyfibre.model.multi_image.multi_images import SHGImage, SHGPLTransImage
-from pyfibre.tests.fixtures import test_shg_image_path, test_shg_pl_trans_image_path
+from pyfibre.model.multi_image.multi_images import (
+    SHGImage, SHGPLTransImage)
+from pyfibre.tests.fixtures import (
+    test_shg_image_path, test_shg_pl_trans_image_path)
 
 from .utilities import generate_image
 
@@ -12,19 +14,24 @@ from .utilities import generate_image
 class ProbeMultiImage(BaseMultiImage):
 
     def __init__(self, *args, **kwargs):
-        image, _, _, _ = generate_image()
-        kwargs['image_stack'] = [image, 2 * image]
+        if 'image_stack' not in kwargs:
+            image, _, _, _ = generate_image()
+            kwargs['image_stack'] = [image, 2 * image]
+
         super().__init__(*args, **kwargs)
+
         self.image_dict = {
-            'Test 1': self.image_stack[0],
-            'Test 2': self.image_stack[1]}
+            f'Test {index}': image
+            for index, image in enumerate(self.image_stack)
+        }
 
     def preprocess_images(self):
         pass
 
     @classmethod
     def verify_stack(cls, image_stack):
-        pass
+        shapes = [image.shape == (10, 10) for image in image_stack]
+        return all(shapes)
 
     def segmentation_algorithm(self, *args, **kwargs):
         pass

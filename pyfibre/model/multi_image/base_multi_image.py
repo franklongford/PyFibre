@@ -2,9 +2,10 @@ from abc import abstractmethod
 import numpy as np
 
 from traits.api import (
-    ABCHasTraits, ArrayOrNone, Tuple, List,
-    Property, Dict, Str
+    ABCHasTraits, ArrayOrNone, List, Dict, Str
 )
+
+from pyfibre.utilities import NotSupportedError
 
 
 class BaseMultiImage(ABCHasTraits):
@@ -21,18 +22,33 @@ class BaseMultiImage(ABCHasTraits):
 
     image_dict = Dict(Str, ArrayOrNone)
 
+    def __init__(self, *args, **kwargs):
+
+        if 'image_stack' in kwargs:
+            if not self.verify_stack(kwargs['image_stack']):
+                raise ValueError(
+                    f'image_stack not supported by {self.__class__}')
+
+        super(BaseMultiImage, self).__init__(*args, **kwargs)
+
     def __len__(self):
         return len(self.image_stack)
 
-    def _get_ndim(self):
+    @property
+    def ndim(self):
+        """Extends numpy API to get ndim of images in stack"""
         if len(self):
             return self.image_stack[0].ndim
 
-    def _get_shape(self):
+    @property
+    def shape(self):
+        """Extends numpy API to get shape  ofimages in stack"""
         if len(self):
             return self.image_stack[0].shape
 
-    def _get_size(self):
+    @property
+    def size(self):
+        """Extends numpy API to get size of images in stack"""
         if len(self):
             return self.image_stack[0].size
 
@@ -60,6 +76,16 @@ class BaseMultiImage(ABCHasTraits):
             raise IndexError(
                 f"image not found in {self.__class__}.image_stack"
             )
+
+    @classmethod
+    def from_array(cls, array):
+        """Create instance from either a 2D or 3D numpy array"""
+        if array.ndim == 2:
+            return cls(image_stack=[array])
+        elif array.ndim == 3:
+            return cls(image_stack=[image for image in array])
+        raise NotSupportedError(
+            'MultiImage creation only supported for 2D or 3D arrays')
 
     def to_array(self):
         return np.stack(self.image_stack)

@@ -2,6 +2,7 @@ from unittest import TestCase
 
 import numpy as np
 
+from pyfibre.tests.dummy_classes import DummyMultiImage
 from pyfibre.tests.probe_classes.multi_images import ProbeMultiImage
 
 
@@ -21,6 +22,10 @@ class TestBaseMultiImage(TestCase):
         self.assertIsNotNone(self.multi_image.size)
         self.assertIsNotNone(self.multi_image.ndim)
 
+        with self.assertRaises(ValueError):
+            ProbeMultiImage(
+                image_stack=[np.ones((5, 5))])
+
     def test_append_remove(self):
 
         self.multi_image.append(self.image)
@@ -39,7 +44,12 @@ class TestBaseMultiImage(TestCase):
         with self.assertRaises(IndexError):
             self.multi_image.remove(self.image)
 
-    def test_to_array(self):
+    def test_to_from_array(self):
+
         self.multi_image.image_stack = [self.image]
         image_array = self.multi_image.to_array()
         self.assertEqual((1, 10, 10), image_array.shape)
+
+        multi_image = DummyMultiImage.from_array(image_array)
+        self.assertEqual(1, len(multi_image))
+        self.assertEqual((10, 10), multi_image.shape)
