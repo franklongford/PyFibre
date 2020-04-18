@@ -207,7 +207,8 @@ class ImageAnalyser:
 
         save_database(global_dataframe, filename, 'global_metric')
         save_database(local_dataframes[0], filename, 'fibre_metric')
-        save_database(local_dataframes[1], filename, 'cell_metric')
+        save_database(local_dataframes[1], filename, 'network_metric')
+        save_database(local_dataframes[2], filename, 'cell_metric')
 
         end_time = time.time()
 
@@ -295,13 +296,12 @@ class ImageAnalyser:
 
         logger.info(f"TOTAL ANALYSIS TIME = {round(end - start, 3)} s")
 
-        databases = ()
-
         global_dataframe = load_database(filename, 'global_metric')
         fibre_dataframe = load_database(filename, 'fibre_metric')
-        databases += (global_dataframe, fibre_dataframe)
-
+        network_dataframe = load_database(filename, 'network_metric')
         cell_dataframe = load_database(filename, 'cell_metric')
-        databases += (cell_dataframe,)
+
+        databases = (global_dataframe, fibre_dataframe,
+                     network_dataframe, cell_dataframe)
 
         return databases

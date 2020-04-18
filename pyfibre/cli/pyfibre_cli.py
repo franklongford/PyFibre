@@ -68,6 +68,7 @@ class PyFibreCLI:
 
         global_database = pd.DataFrame()
         fibre_database = pd.DataFrame()
+        network_database = pd.DataFrame()
         cell_database = pd.DataFrame()
 
         generator = iterate_images(
@@ -79,9 +80,11 @@ class PyFibreCLI:
                 databases[0], ignore_index=True)
 
             fibre_database = pd.concat([fibre_database, databases[1]])
-            cell_database = pd.concat([cell_database, databases[2]])
+            network_database = pd.concat([network_database, databases[2]])
+            cell_database = pd.concat([cell_database, databases[3]])
 
         if self.database_name:
             save_database(global_database, self.database_name)
             save_database(fibre_database, self.database_name, 'fibre')
+            save_database(network_database, self.database_name, 'network')
             save_database(cell_database, self.database_name, 'cell')

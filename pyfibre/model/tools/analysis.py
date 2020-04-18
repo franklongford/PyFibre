@@ -136,6 +136,9 @@ def angle_analysis(angles, weights=None, n_bin=200):
         Angle and SDI values corresponding to each bin in histogram
     """
 
+    if not isinstance(angles, np.ndarray):
+        angles = np.array(angles)
+
     if weights is None:
         weights = np.ones(angles.shape)
 

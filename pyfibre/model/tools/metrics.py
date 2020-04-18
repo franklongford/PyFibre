@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 NEMATIC_METRICS = ['Angle SDI', 'Anisotropy', 'Pixel Anisotropy']
 SHAPE_METRICS = ['Area', 'Eccentricity', 'Linearity', 'Coverage']
 TEXTURE_METRICS = ['Mean', 'STD', 'Entropy']
-FIBRE_METRICS = ['Waviness', 'Length', 'Angle']
+FIBRE_METRICS = ['Waviness', 'Length']
 NETWORK_METRICS = ['Degree', 'Eigenvalue', 'Connectivity',
                    'Cross-Link Density']
 
@@ -114,6 +114,8 @@ def network_metrics(network, network_red, n_fibres, tag=''):
 
     database = pd.Series(dtype=object)
 
+    database['No. Fibres'] = n_fibres
+
     cross_links = np.array(
         [degree[1] for degree in network.degree],
         dtype=int)
@@ -194,9 +196,8 @@ def fibre_network_metrics(fibre_networks):
         fibre_network_series = pd.concat(
             (fibre_network_series, metrics))
 
-        database = database.append(fibre_network_series, ignore_index=True)
-
-    # fibre_angle_sdi[i] = angle_analysis(fibre_ang, np.ones(fibre_ang.shape))
+        database = database.append(
+            fibre_network_series, ignore_index=True)
 
     return database
 

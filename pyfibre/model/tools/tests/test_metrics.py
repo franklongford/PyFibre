@@ -85,7 +85,7 @@ class TestAnalysis(TestCase):
             'test')
 
         self.assertIsInstance(metrics, pd.Series)
-        self.assertEqual(4, len(metrics))
+        self.assertEqual(5, len(metrics))
 
         for metric in NETWORK_METRICS:
             self.assertIn(f'test Network {metric}', metrics)
@@ -98,7 +98,8 @@ class TestAnalysis(TestCase):
             [self.fibre_network])
 
         self.assertIsInstance(metrics, pd.DataFrame)
-        self.assertEqual((1, 7), metrics.shape)
+        self.assertEqual((1, 8), metrics.shape)
+        self.assertIn('No. Fibres', metrics)
 
         for metric in FIBRE_METRICS:
             self.assertIn(f'Mean Fibre {metric}', metrics)

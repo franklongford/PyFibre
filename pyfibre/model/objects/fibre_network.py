@@ -5,6 +5,7 @@ from pyfibre.io.utilities import (
     deserialize_networkx_graph,
     serialize_networkx_graph
 )
+from pyfibre.model.tools.analysis import angle_analysis
 from pyfibre.model.tools.metrics import (
     network_metrics, fibre_metrics, FIBRE_METRICS)
 from pyfibre.model.tools.fibre_assigner import FibreAssigner
@@ -83,6 +84,10 @@ class FibreNetwork(BaseGraph):
             self.graph, self.red_graph, len(self.fibres), 'Fibre')
 
         metrics = fibre_metrics(self.fibres)
+        database['Fibre Angle SDI'], _ = angle_analysis(
+            metrics['Fibre Angle'].to_numpy())
+
+        metrics = metrics.drop(['Fibre Angle'], axis=1)
         mean_metrics = metrics.mean()
 
         for metric in FIBRE_METRICS:

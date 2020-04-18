@@ -20,6 +20,7 @@ def dummy_iterate_images(dictionary, analyser, reader):
         yield [
             pd.Series(dtype=object),
             pd.Series(dtype=object),
+            pd.Series(dtype=object),
             pd.Series(dtype=object)
         ]
 
@@ -65,5 +66,7 @@ class TestPyFibreCLI(TestCase):
                 os.path.exists(tmp_file.name + '.xls'))
             self.assertTrue(
                 os.path.exists(tmp_file.name + '_fibre.xls'))
+            self.assertTrue(
+                os.path.exists(tmp_file.name + '_network.xls'))
             self.assertTrue(
                 os.path.exists(tmp_file.name + '_cell.xls'))

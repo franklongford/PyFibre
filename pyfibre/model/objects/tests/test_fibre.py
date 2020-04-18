@@ -73,6 +73,6 @@ class TestFibre(TestCase):
         self.assertIsInstance(database, pd.Series)
         self.assertEqual(3, len(database))
 
-        for metric in FIBRE_METRICS:
+        for metric in FIBRE_METRICS + ['Angle']:
             self.assertIn(
                 f'Fibre {metric}', database)
