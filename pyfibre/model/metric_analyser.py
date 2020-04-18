@@ -115,7 +115,7 @@ class MetricAnalyser:
             [fibre.angle for fibre in fibre_network.fibres]
             for fibre_network in self.networks
         ])
-        global_network_metrics['Fibre Angle SDI'] = angle_analysis(
+        global_network_metrics['Fibre Angle SDI'], _ = angle_analysis(
             fibre_angles)
         global_metrics = pd.concat(
             (global_segment_metrics,
