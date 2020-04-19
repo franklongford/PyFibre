@@ -74,6 +74,7 @@ class ImageAnalyser:
         try:
             load_database(filename, 'global_metric')
             load_database(filename, 'fibre_metric')
+            load_database(filename, 'network_metric')
             load_database(filename, 'cell_metric')
         except (UnpicklingError, Exception):
             logger.info(
