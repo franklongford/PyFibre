@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def build_network(image, scale=1, alpha=0.5, sigma=0.5, nuc_thresh=2,
                   nuc_radius=11, lmp_thresh=0.15, angle_thresh=70,
-                  r_thresh=8):
+                  r_thresh=6):
     """
     Uses the FibeR Extraction algorithm to extract a fibre network from
     provided image

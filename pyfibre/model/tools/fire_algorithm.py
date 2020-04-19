@@ -22,7 +22,7 @@ class FIREAlgorithm:
     provided image as a single nx.Graph object"""
 
     def __init__(self, nuc_thresh=2, lmp_thresh=0.15, angle_thresh=70,
-                 r_thresh=8, nuc_radius=10):
+                 r_thresh=6, nuc_radius=10):
         """Initialise FibreNetwork object
 
         Parameters
