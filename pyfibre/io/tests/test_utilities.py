@@ -13,7 +13,7 @@ from .. utilities import (
     pop_dunder_recursive, numpy_to_python_recursive,
     python_to_numpy_recursive, replace_ext, save_json,
     load_json, serialize_networkx_graph, deserialize_networkx_graph,
-    check_file_name, check_string
+    check_file_name, check_string, get_file_names
 )
 
 
@@ -215,3 +215,37 @@ class TestUtilities(TestCase):
         self.assertEqual(
             "/dir/folder/test_file",
             check_file_name(string, 'SHG', 'pkl'))
+
+    def test_get_file_names(self):
+
+        test_path = '/path/to/some/file'
+
+        (working_dir, data_dir,
+         fig_dir, filename, figname) = get_file_names(test_path)
+
+        self.assertEqual(
+            '/path/to/some/file-pyfibre-analysis', working_dir)
+        self.assertEqual(
+            '/path/to/some/file-pyfibre-analysis/data', data_dir)
+        self.assertEqual(
+            '/path/to/some/file-pyfibre-analysis/fig', fig_dir)
+        self.assertEqual(
+            '/path/to/some/file-pyfibre-analysis/data/file', filename)
+        self.assertEqual(
+            '/path/to/some/file-pyfibre-analysis/fig/file', figname)
+
+        test_path = 'local-file'
+
+        (working_dir, data_dir,
+         fig_dir, filename, figname) = get_file_names(test_path)
+
+        self.assertEqual(
+            'local-file-pyfibre-analysis', working_dir)
+        self.assertEqual(
+            'local-file-pyfibre-analysis/data', data_dir)
+        self.assertEqual(
+            'local-file-pyfibre-analysis/fig', fig_dir)
+        self.assertEqual(
+            'local-file-pyfibre-analysis/data/local-file', filename)
+        self.assertEqual(
+            'local-file-pyfibre-analysis/fig/local-file', figname)
