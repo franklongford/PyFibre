@@ -187,8 +187,9 @@ def networks_to_regions(networks, image=None, shape=None,
 def binary_to_segments(binary, segment_klass,
                        intensity_image=None, min_size=100,
                        min_frac=0.1):
+    """Transform binary array into a BaseSegment instance"""
 
-    # Create a new set of segments for each fibre region
+    # Create a new set of segments for each region in binary
     regions = binary_to_regions(
         binary,
         intensity_image=intensity_image,
