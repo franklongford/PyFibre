@@ -233,3 +233,19 @@ class TestUtilities(TestCase):
             '/path/to/some/file-pyfibre-analysis/data/file', filename)
         self.assertEqual(
             '/path/to/some/file-pyfibre-analysis/fig/file', figname)
+
+        test_path = 'local-file'
+
+        (working_dir, data_dir,
+         fig_dir, filename, figname) = get_file_names(test_path)
+
+        self.assertEqual(
+            'local-file-pyfibre-analysis', working_dir)
+        self.assertEqual(
+            'local-file-pyfibre-analysis/data', data_dir)
+        self.assertEqual(
+            'local-file-pyfibre-analysis/fig', fig_dir)
+        self.assertEqual(
+            'local-file-pyfibre-analysis/data/local-file', filename)
+        self.assertEqual(
+            'local-file-pyfibre-analysis/fig/local-file', figname)
