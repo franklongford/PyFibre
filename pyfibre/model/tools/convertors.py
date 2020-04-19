@@ -182,3 +182,21 @@ def networks_to_regions(networks, image=None, shape=None,
                                 intensity_image=image)
 
     return regions
+
+
+def binary_to_segments(binary, segment_klass,
+                       intensity_image=None, min_size=100,
+                       min_frac=0.1):
+
+    # Create a new set of segments for each fibre region
+    regions = binary_to_regions(
+        binary,
+        intensity_image=intensity_image,
+        min_size=min_size,
+        min_frac=min_frac)
+    segments = [
+        segment_klass(region=region)
+        for region in regions
+    ]
+
+    return segments

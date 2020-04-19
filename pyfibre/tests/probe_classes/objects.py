@@ -46,6 +46,7 @@ class ProbeSegment(BaseSegment):
     _tag = 'Test'
 
     def __init__(self, *args, **kwargs):
-        kwargs['region'] = generate_regions()[0]
+        if 'region' not in kwargs:
+            kwargs['region'] = generate_regions()[0]
         super(ProbeSegment, self).__init__(
             *args, **kwargs)

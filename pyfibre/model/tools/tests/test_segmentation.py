@@ -41,7 +41,7 @@ class TestSegmentation(PyFibreTestCase):
             self.multi_image, self.fibre_networks
         )
 
-    def test_cell_segmentation(self):
+    def test_rgb_segmentation(self):
 
         stack = (self.image_stack[0],
                  self.image_stack[1],
@@ -51,6 +51,3 @@ class TestSegmentation(PyFibreTestCase):
 
         self.assertEqual((200, 200), fibre_mask.shape)
         self.assertEqual((200, 200), cell_mask.shape)
-
-    def test_fibre_segmentation(self):
-        pass
