@@ -2,6 +2,7 @@ import numpy as np
 
 from pyfibre.tests.probe_classes.objects import ProbeSegment
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
+from pyfibre.utilities import NotSupportedError
 
 
 class TestBaseSegment(PyFibreTestCase):
@@ -14,10 +15,10 @@ class TestBaseSegment(PyFibreTestCase):
 
     def test_not_implemented(self):
 
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(NotSupportedError):
             self.segment.to_json()
 
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(NotSupportedError):
             ProbeSegment.from_json(None)
 
     def test_to_array(self):

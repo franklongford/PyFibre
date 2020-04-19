@@ -4,6 +4,7 @@ from skimage.measure import label, regionprops
 
 from pyfibre.model.tools.metrics import (
     region_shape_metrics, region_texture_metrics)
+from pyfibre.utilities import NotSupportedError
 
 from .abc_pyfibre_object import ABCPyFibreObject
 
@@ -27,13 +28,13 @@ class BaseSegment(ABCPyFibreObject):
     def from_json(cls, data):
         """Deserialises JSON data dictionary to return an instance
         of the class"""
-        raise NotImplementedError(
+        raise NotSupportedError(
             f'from_json method not supported for {cls.__class__}')
 
     def to_json(self):
         """Serialises instance into a dictionary able to be dumped as a
         JSON file"""
-        raise NotImplementedError(
+        raise NotSupportedError(
             f'to_json method not supported for {self.__class__}')
 
     @classmethod
