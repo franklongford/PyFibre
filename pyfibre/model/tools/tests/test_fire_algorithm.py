@@ -18,7 +18,9 @@ class TestNetworkExtraction(PyFibreTestCase):
             self.image += 2 * np.eye(self.N, self.N, k=5 - i)
             self.image += np.rot90(np.eye(self.N, self.N, k=5 - i))
 
-        self.fire_algorithm = FIREAlgorithm()
+        self.fire_algorithm = FIREAlgorithm(
+            nuc_thresh=2, lmp_thresh=0.15, angle_thresh=70,
+            r_thresh=8, nuc_radius=10)
 
     def test___init__(self):
 
@@ -73,10 +75,13 @@ class TestNetworkExtraction(PyFibreTestCase):
         self.assertEqual(5, self.fire_algorithm._graph.number_of_nodes())
         self.assertEqual(4, len(self.fire_algorithm._graph.edges))
 
-        self.assertEqual(5.0, self.fire_algorithm._graph[0][1]['r'])
+        self.assertAlmostEqual(
+            5.65685, self.fire_algorithm._graph[0][1]['r'], 5)
         self.assertEqual(5.0, self.fire_algorithm._graph[0][2]['r'])
-        self.assertAlmostEqual(5.65685, self.fire_algorithm._graph[0][3]['r'], 5)
-        self.assertAlmostEqual(5.65685, self.fire_algorithm._graph[0][4]['r'], 5)
+        self.assertAlmostEqual(
+            5.65685, self.fire_algorithm._graph[0][3]['r'], 5)
+        self.assertAlmostEqual(
+            5.65685, self.fire_algorithm._graph[0][4]['r'], 5)
         self.assertListEqual([1, 2, 3, 4], self.fire_algorithm.grow_list)
 
         for index in range(1, 5):
@@ -85,9 +90,9 @@ class TestNetworkExtraction(PyFibreTestCase):
             self.assertEqual(0, node['nuc'])
             if index == 1:
                 self.assertEqual(1, node['xy'][0])
-                self.assertEqual(13, node['xy'][1])
-                self.assertEqual(-0.8, node['direction'][0])
-                self.assertEqual(0.6, node['direction'][1])
+                self.assertEqual(14, node['xy'][1])
+                self.assertAlmostEqual(-0.707107, node['direction'][0], 5)
+                self.assertAlmostEqual(0.707106, node['direction'][1], 5)
 
             elif index == 2:
                 self.assertEqual(2, node['xy'][0])
@@ -114,8 +119,10 @@ class TestNetworkExtraction(PyFibreTestCase):
             self.image, np.array([[5, 10]]))
 
         for index in range(1, 5):
-            self.assertEqual(1, len(self.fire_algorithm._get_connected_nodes(index)))
-            self.assertEqual(0, self.fire_algorithm._get_connected_nodes(index)[0])
+            self.assertEqual(
+                1, len(self.fire_algorithm._get_connected_nodes(index)))
+            self.assertEqual(
+                0, self.fire_algorithm._get_connected_nodes(index)[0])
 
     def test_grow_lmp(self):
 
@@ -138,11 +145,11 @@ class TestNetworkExtraction(PyFibreTestCase):
             self.assertEqual(0, node['nuc'])
 
             if index == 1:
-                self.assertEqual(0, node['xy'][0])
-                self.assertEqual(15, node['xy'][1])
+                self.assertEqual(1, node['xy'][0])
+                self.assertEqual(14, node['xy'][1])
                 self.assertAlmostEqual(-0.707106, node['direction'][0], 5)
                 self.assertAlmostEqual(0.707106, node['direction'][1], 5)
-                self.assertIn(index, self.fire_algorithm.grow_list)
+                self.assertNotIn(index, self.fire_algorithm.grow_list)
 
             elif index == 2:
                 self.assertEqual(0, node['xy'][0])
