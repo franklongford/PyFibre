@@ -2,7 +2,7 @@ import numpy as np
 
 from scipy.ndimage.filters import gaussian_filter
 
-from skimage.feature import structure_tensor, hessian_matrix
+from skimage.feature import structure_tensor
 from skimage.filters import (
     threshold_li, threshold_isodata, threshold_mean,
     apply_hysteresis_threshold, sato)

@@ -14,10 +14,10 @@ from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
 from pyfibre.model.objects.segments import (
     FibreSegment, CellSegment)
-
 from pyfibre.tests.probe_classes.objects import (
     ProbeGraphSegment, ProbeSegment, ProbeFibre,
     ProbeFibreNetwork)
+from pyfibre.utilities import NotSupportedError
 
 
 class TestPyFibreObjectIO(TestCase):
@@ -36,7 +36,7 @@ class TestPyFibreObjectIO(TestCase):
                     self.segment, temp_file.name,
                     mode='not_supported')
 
-            with self.assertRaises(NotImplementedError):
+            with self.assertRaises(NotSupportedError):
                 save_pyfibre_object(
                     self.segment, temp_file.name,
                     mode='json')
