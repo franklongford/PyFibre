@@ -103,23 +103,39 @@ def cos_sin_theta_2D(vector, r_vector):
     return cos_the
 
 
-def reduce_coord(coord, values, thresh=1):
+def reduce_coord(coord, weights=None, thresh=1):
     """
     Find elements in coord that lie within thresh distance of
     each other. Remove element with lowest corresponding value.
+
+    Parameters
+    ----------
+    coord: array_like
+        Set of pixel coordinates to assess
+    weights: array_like, optional
+        Importance weights corresponding to each coordinate. If
+        undefined, all coordinates are considered equally
+    thresh: int, optional
+        Minimum pixel distance required between coordinates
     """
 
     if coord.shape[0] <= 1:
         return coord
 
+    if weights is None:
+        weights = np.ones(len(coord))
+
     thresh = np.sqrt(2 * thresh**2)
     r_coord = cdist(coord, coord)
 
-    del_coord = np.argwhere(
-        (r_coord <= thresh) - np.identity(coord.shape[0]))
-    del_coord = del_coord[np.arange(0, del_coord.shape[0], 2)]
-    indices = np.stack((values[del_coord[:, 0]],
-                        values[del_coord[:, 1]])).argmax(axis=0)
+    # Identify coordinates that lie too close together
+    upper_tri = np.triu(r_coord, k=1)
+    del_coord = np.argwhere((upper_tri <= thresh) * upper_tri)
+
+    # For any clashes, keep the coordinate with the highest
+    # corresponding intensity value
+    indices = np.stack((weights[del_coord[:, 0]],
+                        weights[del_coord[:, 1]])).argmax(axis=0)
     del_coord = [a[i] for a, i in zip(del_coord, indices)]
 
     coord = np.delete(coord, del_coord, 0)
