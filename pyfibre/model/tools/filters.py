@@ -84,7 +84,7 @@ def derivatives(image, rank=1):
     return derivative
 
 
-def form_nematic_tensor(image, sigma=None):
+def form_nematic_tensor(image, sigma=0.0001):
     """
     form_nematic_tensor(dx_shg, dy_shg)
 
@@ -94,6 +94,8 @@ def form_nematic_tensor(image, sigma=None):
     ----------
     image:  array_like (float); shape(n_y, n_x)
         Image to analyse
+    sigma: float, optional
+        Gaussian smoothing standard deviation
 
     Returns
     -------
@@ -119,14 +121,14 @@ def form_nematic_tensor(image, sigma=None):
     nyy[indicies] += dx_shg[indicies]**2 / r_xy_2[indicies]
     nxy[indicies] -= dx_shg[indicies] * dy_shg[indicies] / r_xy_2[indicies]
 
-    if sigma is not None:
-        for frame in range(nframe):
-            nxx[frame] = gaussian_filter(nxx[frame], sigma=sigma)
-            nyy[frame] = gaussian_filter(nyy[frame], sigma=sigma)
-            nxy[frame] = gaussian_filter(nxy[frame], sigma=sigma)
+    for frame in range(nframe):
+        nxx[frame] = gaussian_filter(nxx[frame], sigma=sigma)
+        nyy[frame] = gaussian_filter(nyy[frame], sigma=sigma)
+        nxy[frame] = gaussian_filter(nxy[frame], sigma=sigma)
 
     n_tensor = np.stack((nxx, nxy, nxy, nyy), -1).reshape(
         nxx.shape + (2, 2))
+
     if nframe == 1:
         n_tensor = n_tensor.reshape(n_tensor.shape[1:])
 
@@ -143,6 +145,9 @@ def form_structure_tensor(image, sigma=0.0001):
     ----------
     image:  array_like (float); shape(n_y, n_x)
         Image to analyse
+    sigma: float, optional
+        Gaussian smoothing standard deviation
+
     Returns
     -------
     j_tensor:  array_like (float); shape(nframe, n_y, n_x, 2, 2)
@@ -164,82 +169,8 @@ def form_structure_tensor(image, sigma=0.0001):
 
     j_tensor = np.stack((jxx, jxy, jxy, jyy), -1).reshape(
         jxx.shape + (2, 2))
+
     if nframe == 1:
         j_tensor = j_tensor.reshape(j_tensor.shape[1:])
 
     return j_tensor
-
-
-def form_hessian_tensor(image, sigma=None):
-    """
-    form_hessian_tensor(image)
-
-    Create local hessian tensor n for each pixel in image
-
-    Parameters
-    ----------
-    image:  array_like (float); shape(n_y, n_x)
-        Image to analyse
-
-    Returns
-    -------
-
-    H_tensor:  array_like (float); shape(nframe, n_y, n_x, 2, 2)
-        2x2 hessian tensor for each pixel in image stack
-
-    """
-
-    if image.ndim == 2:
-        image = image.reshape((1,) + image.shape)
-    nframe = image.shape[0]
-
-    dxdx = np.zeros(image.shape)
-    dxdy = np.zeros(image.shape)
-    dydy = np.zeros(image.shape)
-
-    for frame in range(nframe):
-        dxdx[frame], dxdy[frame], dydy[frame] = hessian_matrix(
-            image[frame], order="xy", sigma=sigma)
-
-    H_tensor = np.stack((dxdx, dxdy, dxdy, dydy), -1).reshape(
-        dxdx.shape + (2, 2))
-    if nframe == 1:
-        H_tensor = H_tensor.reshape(H_tensor.shape[1:])
-
-    return H_tensor
-
-
-def get_curvature(j_tensor, H_tensor):
-    """
-    Return Gaussian and Mean curvature at each pixel from
-    structure and hessian tensors
-
-    Parameters
-    ----------
-
-    j_tensor:  array_like (float); shape(nframe, n_y, n_x, 2, 2)
-        2x2 structure tensor for each pixel in image stack
-
-    H_tensor:  array_like (float); shape(nframe, n_y, n_x, 2, 2)
-        2x2 hessian tensor for each pixel in image stack
-
-    Returns
-    -------
-
-    gauss_curvature: array_like (float); shape(nframe, n_y, n_x)
-        Gaussian curvature at each image pixel
-
-    mean_curvature: array_like (float); shape(nframe, n_y, n_x)
-        Mean curvature at each image pixel
-    """
-
-    denominator = 1 + j_tensor[..., 0, 0] + j_tensor[..., 1, 1]
-    gauss_curvature = np.linalg.det(H_tensor) / denominator ** 2
-
-    numerator = - 2 * j_tensor[..., 0, 1] * H_tensor[..., 0, 1]
-    numerator += (1 + j_tensor[..., 1, 1]) * H_tensor[..., 0, 0]
-    numerator += (1 + j_tensor[..., 0, 0]) * H_tensor[..., 1, 1]
-
-    mean_curvature = numerator / (2 * denominator ** 1.5)
-
-    return np.nan_to_num(gauss_curvature), np.nan_to_num(mean_curvature)
