@@ -27,6 +27,8 @@ def parse_file_path(file_path, key=None):
 
 
 def remove_under(dictionary):
+    """Remove any keys from dictionary beginning
+    with an underscore"""
     keys = [key for key in dictionary.keys()]
     for key in keys:
         if key.startswith('_'):
@@ -34,6 +36,8 @@ def remove_under(dictionary):
 
 
 def remove_dunder(dictionary):
+    """Remove any keys from dictionary beginning
+    with an double underscore"""
     keys = [key for key in dictionary.keys()]
     for key in keys:
         if key.startswith('__') and key.endswith('__'):
@@ -41,6 +45,8 @@ def remove_dunder(dictionary):
 
 
 def remove_contraction(dictionary):
+    """Remove any keys from nested dictionary beginning
+    with the word `contraction`"""
     keys = [key for key in dictionary.keys()]
     for key in keys:
         if isinstance(key, str) and key.startswith('contraction'):

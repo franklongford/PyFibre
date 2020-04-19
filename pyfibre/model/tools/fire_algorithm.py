@@ -39,6 +39,7 @@ class FIREAlgorithm:
         r_thresh : float, optional
             Maximum length of edges between nodes
         nuc_radius : float, optional
+            Minimum radial distance between nucleation points
         """
 
         self._graph = None
