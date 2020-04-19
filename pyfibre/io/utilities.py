@@ -194,15 +194,15 @@ def replace_ext(file_name, extension):
 def get_file_names(prefix):
 
     image_name = os.path.basename(prefix)
-    working_dir = (
-        f"{os.path.dirname(prefix)}/{image_name}"
-        "-pyfibre-analysis")
+    working_dir = os.path.join(
+        os.path.dirname(prefix),
+        f"{image_name}-pyfibre-analysis")
 
-    data_dir = working_dir + '/data/'
-    fig_dir = working_dir + '/fig/'
+    data_dir = os.path.join(working_dir, 'data')
+    fig_dir = os.path.join(working_dir, 'fig')
 
-    filename = data_dir + image_name
-    figname = fig_dir + image_name
+    filename = os.path.join(data_dir, image_name)
+    figname = os.path.join(fig_dir, image_name)
 
     return working_dir, data_dir, fig_dir, filename, figname
 
