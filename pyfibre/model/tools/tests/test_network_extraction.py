@@ -22,8 +22,8 @@ class TestExtraction(TestCase):
 
         network = build_network(self.image)
         self.assertFalse(list(nx.isolates(network)))
-        self.assertEqual(723, network.number_of_nodes())
-        self.assertEqual(791, network.number_of_edges())
+        self.assertEqual(575, network.number_of_nodes())
+        self.assertEqual(621, network.number_of_edges())
 
     def test_clean_network(self):
 

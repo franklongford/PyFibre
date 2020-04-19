@@ -130,7 +130,8 @@ class ImageAnalyser:
             image_nl,
             scale=self.workflow.scale,
             sigma=self.workflow.sigma,
-            alpha=self.workflow.alpha)
+            alpha=self.workflow.alpha,
+            **self.workflow.fire_parameters)
 
         save_network(network, filename, "network")
 

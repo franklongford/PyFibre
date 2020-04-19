@@ -1,8 +1,5 @@
-import copy
-
-from traits.api import HasStrictTraits, Bool, Float, Tuple, Int
-
-from pyfibre.io.utilities import pop_under_recursive
+from traits.api import (
+    HasStrictTraits, Bool, Float, Tuple, Int, Dict)
 
 
 class PyFibreWorkflow(HasStrictTraits):
@@ -20,6 +17,9 @@ class PyFibreWorkflow(HasStrictTraits):
     #: Metric for hysterisis segmentation
     alpha = Float(0.5)
 
+    #: Parameters used for FIRE algorithm
+    fire_parameters = Dict()
+
     #: Toggles force overwrite of existing fibre network
     ow_network = Bool(False)
 
@@ -35,6 +35,11 @@ class PyFibreWorkflow(HasStrictTraits):
     def _p_denoise_default(self):
         return (5, 35)
 
-    def __getstate__(self):
-        state = pop_under_recursive(copy.copy(self.__dict__))
-        return state
+    def _fire_parameters_default(self):
+        return {
+            'nuc_thresh': 2,
+            'nuc_radius': 11,
+            'lmp_thresh': 0.15,
+            'angle_thresh': 70,
+            'r_thresh': 7
+        }

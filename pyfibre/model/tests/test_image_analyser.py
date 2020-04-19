@@ -58,9 +58,9 @@ class TestImageAnalyser(TestCase):
             self.assertTrue(
                 os.path.exists(tmp_file.name + '_fibre_networks.json'))
 
-        self.assertEqual(655, network.number_of_nodes())
-        self.assertEqual(688, network.number_of_edges())
-        self.assertEqual(4, len(fibre_networks))
+        self.assertEqual(556, network.number_of_nodes())
+        self.assertEqual(578, network.number_of_edges())
+        self.assertEqual(5, len(fibre_networks))
 
     def test_segment_analysis(self):
 
