@@ -14,6 +14,15 @@ def get_node_coord_array(graph):
     return np.stack(node_coord)
 
 
+def get_node_degree_array(graph):
+    """Return a numpy array containing number of edges for each node
+    in graph"""
+
+    node_degree = [graph.degree[node] for node in graph]
+
+    return np.array(node_degree, dtype=int)
+
+
 def check_2D_arrays(array1, array2, thresh=1):
     """Returns indices where values of array1 are within thresh distance
     of array2

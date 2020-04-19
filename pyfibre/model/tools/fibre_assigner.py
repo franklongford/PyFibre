@@ -8,7 +8,7 @@ from pyfibre.utilities import numpy_remove
 from pyfibre.model.objects.fibre import Fibre
 from .fibre_utilities import (
     distance_matrix, branch_angles,
-    get_node_coord_array
+    get_node_coord_array, get_node_degree_array
 )
 
 logger = logging.getLogger(__name__)
@@ -23,8 +23,6 @@ class FibreAssigner:
         self.min_n = min_n
 
         self._graph = None
-        self.node_coord = None
-        self.edge_count = None
         self.d_coord = None
         self.r2_coord = None
 
@@ -34,26 +32,43 @@ class FibreAssigner:
         cosine(radians)"""
         return np.cos((180 - self.angle_thresh) * np.pi / 180) + 1
 
+    @property
+    def node_coord(self):
+        """Utility method to generate array of all pixel coordinates
+        of networkx graph nodes"""
+        if self._graph:
+            return get_node_coord_array(self._graph)
+
+    @property
+    def edge_count(self):
+        """Utility method to generate array containing number of edges
+        for each networkx graph node"""
+        if self._graph:
+            return get_node_degree_array(self._graph)
+
     def _get_connected_nodes(self, node):
-        """Get nodes connected to input node"""
+        """Get nodes connected to input node on private graph"""
         return np.array(list(self._graph.adj[node]))
 
     def _initialise_graph(self, graph):
         """Initialise private networkx graph object"""
         self._graph = nx.convert_node_labels_to_integers(graph)
-        self.node_coord = get_node_coord_array(self._graph)
-        self.edge_count = np.array(
-            [self._graph.degree[node] for node in self._graph],
-            dtype=int
-        )
+
+        # NOTE: Although these could be properties, we generate them
+        # only once here once to ensure they are cached. This could be
+        # replaced by using cached properties introduced in standard
+        # library for Python 3.8
         self.d_coord, self.r2_coord = distance_matrix(self.node_coord)
 
     def _create_fibre(self, node):
-        """Get nodes connected to input node"""
+        """Create a new Fibre instance beginning from node on
+        existing networkx graph"""
 
+        # Find all connected nodes
         new_nodes = self._get_connected_nodes(node)
         edge_list = self.edge_count[new_nodes]
 
+        # Obtain the most connected node as the first connection
         new_node = new_nodes[np.argsort(edge_list)][-1]
         coord_r = self._graph[node][new_node]['r']
 
@@ -68,7 +83,13 @@ class FibreAssigner:
         return fibre
 
     def _grow_fibre(self, fibre):
-        """Grow fibre using node of networkx graph"""
+        """Grow fibre using node of networkx graph
+
+        Parameters
+        ----------
+        fibre: Fibre
+            Fibre instance to be grown
+        """
 
         # Obtain node at end of fibre and all connected nodes
         end_node = fibre.node_list[-1]
@@ -122,7 +143,19 @@ class FibreAssigner:
             fibre.growing = False
 
     def assign_fibres(self, graph):
+        """Returns a list of Fibre instances, extracted from a networkx graph
 
+        Parameters
+        ----------
+        graph: Networkx.Graph
+            Graph to extract fibres from
+
+        Returns
+        -------
+        tot_fibres: list of Fibre
+            List of fibre objects extracted from graph
+
+        """
         self._initialise_graph(graph)
         tracing = np.ones(self.edge_count.shape)
         tot_fibres = []
