@@ -95,7 +95,7 @@ def create_angle_reference(size, min_n=50, max_n=120):
     return pix_j_angle, pix_j_anis, pix_j_energy
 
 
-def create_tensor_image(image, min_N=50, max_N=120):
+def create_tensor_image(image, min_N=50):
 
     # Form nematic and structure tensors for each pixel
     j_tensor = form_structure_tensor(image, sigma=1.0)
@@ -109,7 +109,7 @@ def create_tensor_image(image, min_N=50, max_N=120):
 
     size = 0.2 * np.sqrt(image.size)
 
-    if size >= 50:
+    if size >= min_N:
         ref_angle, ref_anis, ref_energy = create_angle_reference(size)
         size = ref_angle.shape[1]
         start = - size // 2
@@ -120,7 +120,8 @@ def create_tensor_image(image, min_N=50, max_N=120):
         brightness[start: end, : size] = ref_energy / ref_energy.max()
 
     # Form structure tensor image
-    rgb_image = create_hsb_image(image, hue, saturation, brightness)
+    rgb_image = create_hsb_image(
+        image, hue, saturation, brightness)
 
     return rgb_image
 
@@ -155,6 +156,7 @@ def create_region_image(image, regions):
 
 
 def create_network_image(image, networks, c_mode=0):
+    """Create image with overlayed fibre networks"""
 
     colours = list(BASE_COLOURS.keys())
 

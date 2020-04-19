@@ -19,7 +19,6 @@ from pyfibre.io.object_io import (
 from pyfibre.io.network_io import save_network, load_network
 from pyfibre.io.database_io import save_database, load_database
 from pyfibre.io.utilities import get_file_names
-
 from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
 from pyfibre.model.metric_analyser import generate_metrics
 

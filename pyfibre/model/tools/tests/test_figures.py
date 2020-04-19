@@ -1,5 +1,7 @@
-import numpy as np
+import os
+from tempfile import NamedTemporaryFile
 
+import numpy as np
 from skimage.measure import regionprops
 
 from pyfibre.tests.probe_classes.utilities import generate_image
@@ -7,6 +9,7 @@ from pyfibre.tests.probe_classes.objects import ProbeFibreNetwork
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 from ..figures import (
+    create_figure,
     create_hsb_image,
     create_tensor_image,
     create_region_image,
@@ -22,6 +25,15 @@ class TestFigures(PyFibreTestCase):
          self.binary, _) = generate_image()
         self.segments = regionprops(labels)
         self.fibre_network = ProbeFibreNetwork()
+
+    def test_create_figure(self):
+
+        with NamedTemporaryFile() as temp_file:
+            create_figure(self.image, temp_file.name)
+
+            self.assertTrue(
+                os.path.exists(temp_file.name + '.png')
+            )
 
     def test_create_hsb_image(self):
         hsb_image = create_hsb_image(
