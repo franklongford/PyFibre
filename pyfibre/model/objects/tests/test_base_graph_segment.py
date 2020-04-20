@@ -2,9 +2,9 @@ from unittest import TestCase
 
 import numpy as np
 
-from pyfibre.tests.probe_classes import generate_probe_graph
+from pyfibre.tests.probe_classes.utilities import generate_probe_graph
 from pyfibre.tests.dummy_classes import DummyGraphSegment
-from pyfibre.tests.probe_classes import ProbeGraphSegment
+from pyfibre.tests.probe_classes.objects import ProbeGraphSegment
 
 
 class TestBaseGraphSegment(TestCase):

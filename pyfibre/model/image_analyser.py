@@ -19,7 +19,6 @@ from pyfibre.io.object_io import (
 from pyfibre.io.network_io import save_network, load_network
 from pyfibre.io.database_io import save_database, load_database
 from pyfibre.io.utilities import get_file_names
-
 from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
 from pyfibre.model.metric_analyser import generate_metrics
 
@@ -74,6 +73,7 @@ class ImageAnalyser:
         try:
             load_database(filename, 'global_metric')
             load_database(filename, 'fibre_metric')
+            load_database(filename, 'network_metric')
             load_database(filename, 'cell_metric')
         except (UnpicklingError, Exception):
             logger.info(
@@ -130,7 +130,8 @@ class ImageAnalyser:
             image_nl,
             scale=self.workflow.scale,
             sigma=self.workflow.sigma,
-            alpha=self.workflow.alpha)
+            alpha=self.workflow.alpha,
+            **self.workflow.fire_parameters)
 
         save_network(network, filename, "network")
 

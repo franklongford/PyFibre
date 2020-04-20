@@ -10,7 +10,7 @@ from pyfibre.utilities import (
     label_set, clear_border, flatten_list
 )
 
-from .probe_classes import generate_image
+from .probe_classes.utilities import generate_image
 from .pyfibre_test_case import PyFibreTestCase
 
 logger = logging.getLogger(__name__)

@@ -2,8 +2,9 @@ from unittest import TestCase
 
 import numpy as np
 
-from pyfibre.tests.probe_classes import ProbeGraph
+from pyfibre.tests.probe_classes.objects import ProbeGraph
 from pyfibre.tests.dummy_classes import DummyGraph
+from pyfibre.utilities import NotSupportedError
 
 
 class TestBaseGraph(TestCase):
@@ -14,10 +15,10 @@ class TestBaseGraph(TestCase):
 
     def test_not_implemented(self):
 
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(NotSupportedError):
             self.graph_segment.to_array()
 
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(NotSupportedError):
             ProbeGraph.from_array(None)
 
     def test_to_json(self):
@@ -62,6 +63,7 @@ class TestBaseGraph(TestCase):
     def test_network_init(self):
 
         self.assertEqual(4, self.graph_segment.number_of_nodes)
+        self.assertEqual(3, self.graph_segment.number_of_edges)
         self.assertListEqual([2, 3, 4, 5], self.graph_segment.node_list)
         self.assertEqual(3, self.graph_segment.graph.size())
 
@@ -83,7 +85,8 @@ class TestBaseGraph(TestCase):
         self.graph_segment.add_node(6)
 
         self.assertEqual(5, self.graph_segment.number_of_nodes)
+        self.assertEqual(3, self.graph_segment.number_of_edges)
 
         self.graph_segment.add_edge(6, 2)
-
+        self.assertEqual(4, self.graph_segment.number_of_edges)
         self.assertEqual(4, self.graph_segment.graph.size())

@@ -7,7 +7,7 @@ from pyfibre.model.tools.network_extraction import (
     build_network, clean_network, fibre_network_assignment
 )
 from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
-from pyfibre.tests.probe_classes import (
+from pyfibre.tests.probe_classes.utilities import (
     generate_probe_graph
 )
 
@@ -22,8 +22,8 @@ class TestExtraction(TestCase):
 
         network = build_network(self.image)
         self.assertFalse(list(nx.isolates(network)))
-        self.assertEqual(526, network.number_of_nodes())
-        self.assertEqual(577, network.number_of_edges())
+        self.assertEqual(575, network.number_of_nodes())
+        self.assertEqual(621, network.number_of_edges())
 
     def test_clean_network(self):
 

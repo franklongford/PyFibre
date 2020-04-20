@@ -6,7 +6,7 @@ import networkx as nx
 import numpy as np
 
 from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
-from pyfibre.tests.probe_classes import generate_probe_graph
+from pyfibre.tests.probe_classes.utilities import generate_probe_graph
 
 from .. utilities import (
     parse_file_path, pop_under_recursive,

@@ -22,13 +22,11 @@ class FIREAlgorithm:
     provided image as a single nx.Graph object"""
 
     def __init__(self, nuc_thresh=2, lmp_thresh=0.15, angle_thresh=70,
-                 r_thresh=8, nuc_radius=10):
+                 r_thresh=7, nuc_radius=10):
         """Initialise FibreNetwork object
 
         Parameters
         ---------
-        graph : nx.Graph, optional
-            Graph object representing full network
         nuc_thresh : float, optional
             Minimum distance pixel threshold to be classed as
             nucleation point
@@ -41,10 +39,12 @@ class FIREAlgorithm:
         r_thresh : float, optional
             Maximum length of edges between nodes
         nuc_radius : float, optional
+            Minimum radial distance between nucleation points
         """
 
         self._graph = None
         self.fibres = []
+        self.grow_list = []
 
         self.nuc_thresh = nuc_thresh
         self.lmp_thresh = lmp_thresh
@@ -62,21 +62,23 @@ class FIREAlgorithm:
         """Assign graph to self.graph"""
 
         assert isinstance(graph, nx.Graph), (
-            f"Argument `graph` must be on object "
+            f"Argument `graph` must be an object "
             f"of type {nx.Graph}"
         )
         self._graph = graph
 
     def _reset_graph(self):
-        """Reset attribute `graph` to empy nx.Graph object"""
+        """Reset attribute `graph` to empty nx.Graph object"""
         self._assign_graph(nx.Graph())
+        self.grow_list = []
+        self.fibres = []
 
     def _get_connected_nodes(self, node):
         """Get nodes connected to input node"""
         return np.array(list(self._graph.adj[node]))
 
     def _get_nucleation_points(self, image):
-        "Set distance and angle thresholds for fibre iterator"
+        """Set distance and angle thresholds for fibre iterator"""
 
         # Get global maxima for smoothed distance matrix
         maxima = local_maxima(
@@ -94,13 +96,14 @@ class FIREAlgorithm:
 
         n_nuc = nuc_node_coord.shape[0]
         self._graph.add_nodes_from(np.arange(n_nuc))
+        self.grow_list = list(range(n_nuc))
 
         n_nodes = n_nuc
         for nuc, nuc_coord in enumerate(nuc_node_coord):
 
             self._graph.nodes[nuc]['xy'] = nuc_coord
             self._graph.nodes[nuc]['nuc'] = nuc
-            self._graph.nodes[nuc]['growing'] = False
+            self.grow_list.remove(nuc)
 
             ring_filter = ring(
                 np.zeros(image.shape), nuc_coord, [self.r_thresh // 2], 1
@@ -124,7 +127,7 @@ class FIREAlgorithm:
                 self._graph.nodes[lmp]['xy'] = xy
                 self._graph[nuc][lmp]['r'] = r
                 self._graph.nodes[lmp]['nuc'] = nuc
-                self._graph.nodes[lmp]['growing'] = True
+                self.grow_list.append(lmp)
                 self._graph.nodes[lmp]['direction'] = -vec / r
 
             n_nodes += n_lmp
@@ -171,7 +174,7 @@ class FIREAlgorithm:
         indices = np.argwhere(abs(cos_the + 1) <= self.theta_thresh)
 
         if indices.size == 0:
-            end_node['growing'] = False
+            self.grow_list.remove(index)
 
             if edge['r'] <= self.r_thresh / 10:
                 transfer_edges(self._graph, index, prior)
@@ -188,7 +191,7 @@ class FIREAlgorithm:
 
             new_end = close_nodes.min()
             transfer_edges(self._graph, index, new_end)
-            end_node['growing'] = False
+            self.grow_list.remove(index)
 
         else:
             new_index = branch_r.argmax()
@@ -217,8 +220,8 @@ class FIREAlgorithm:
                     ((new_end_coord - end_node['xy'])**2).sum())
                 new_node['direction'] = (new_dir_vector / new_dir_r)
 
-                end_node['growing'] = False
-                new_node['growing'] = True
+                self.grow_list.remove(index)
+                self.grow_list.append(new_end)
 
             else:
                 end_node['xy'] = new_end_coord
@@ -237,11 +240,9 @@ class FIREAlgorithm:
         n_nuc = nuc_node_coord.shape[0]
         n_node = self._graph.number_of_nodes()
 
-        fibre_ends = [index for index in range(n_nuc, n_node)
-                      if self._graph.degree[index] == 1]
-        fibre_grow = [index for index in fibre_ends
-                      if self._graph.nodes[index]['growing']]
-        n_fibres = len(fibre_ends)
+        fibre_grow = []
+        fibre_grow[:] = self.grow_list
+        n_fibres = len(fibre_grow)
 
         logger.debug("No. nucleation nodes = {}".format(n_nuc))
         logger.debug("No. nodes created = {}".format(n_node))
@@ -262,11 +263,7 @@ class FIREAlgorithm:
                 )
 
             n_node = self._graph.number_of_nodes()
-
-            fibre_ends = [index for index in range(n_nuc, n_node)
-                          if self._graph.degree[index] == 1]
-            fibre_grow = [index for index in fibre_ends
-                          if self._graph.nodes[index]['growing']]
+            fibre_grow[:] = self.grow_list
 
             it += 1
             end = time.time()

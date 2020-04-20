@@ -9,8 +9,9 @@ from pyfibre.model.tools.metrics import (
     fibre_metrics, fibre_network_metrics,
     nematic_tensor_metrics, region_shape_metrics,
     region_texture_metrics, network_metrics)
-from pyfibre.tests.probe_classes import (
-    ProbeFibre, ProbeFibreNetwork, generate_regions)
+from pyfibre.tests.probe_classes.utilities import generate_regions
+from pyfibre.tests.probe_classes.objects import (
+    ProbeFibre, ProbeFibreNetwork)
 
 
 class TestAnalysis(TestCase):

@@ -4,10 +4,10 @@ from pyfibre.model.tools.segmentation import (
     rgb_segmentation, shg_segmentation,
     shg_pl_trans_segmentation
 )
-from pyfibre.tests.probe_classes import (
-    generate_image, generate_probe_graph,
-    ProbeFibreNetwork, ProbeSHGPLTransImage
-)
+from pyfibre.tests.probe_classes.utilities import (
+    generate_image, generate_probe_graph)
+from pyfibre.tests.probe_classes.objects import ProbeFibreNetwork
+from pyfibre.tests.probe_classes.multi_images import ProbeSHGPLTransImage
 from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
@@ -41,7 +41,7 @@ class TestSegmentation(PyFibreTestCase):
             self.multi_image, self.fibre_networks
         )
 
-    def test_cell_segmentation(self):
+    def test_rgb_segmentation(self):
 
         stack = (self.image_stack[0],
                  self.image_stack[1],
@@ -51,6 +51,3 @@ class TestSegmentation(PyFibreTestCase):
 
         self.assertEqual((200, 200), fibre_mask.shape)
         self.assertEqual((200, 200), cell_mask.shape)
-
-    def test_fibre_segmentation(self):
-        pass

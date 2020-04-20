@@ -3,7 +3,7 @@ import numpy as np
 from pyfibre.model.tools.fibre_assigner import (
     Fibre, FibreAssigner
 )
-from pyfibre.tests.probe_classes import generate_probe_graph
+from pyfibre.tests.probe_classes.utilities import generate_probe_graph
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 

@@ -5,7 +5,7 @@ from pyfibre.model.objects.fibre_network import (
 )
 from pyfibre.model.tools.metrics import (
     FIBRE_METRICS, NETWORK_METRICS)
-from pyfibre.tests.probe_classes import ProbeFibreNetwork, ProbeFibre
+from pyfibre.tests.probe_classes.objects import ProbeFibreNetwork, ProbeFibre
 
 
 class TestFibreNetwork(TestCase):

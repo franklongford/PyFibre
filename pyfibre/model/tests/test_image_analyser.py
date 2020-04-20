@@ -1,8 +1,10 @@
 import os
 from tempfile import NamedTemporaryFile
-from unittest import TestCase
+from unittest import TestCase, mock
 
-from pyfibre.tests.probe_classes import ProbeSHGPLTransImage
+from pyfibre.tests.probe_classes.multi_images import ProbeSHGPLTransImage
+from pyfibre.tests.probe_classes.objects import (
+    ProbeFibreNetwork)
 
 from .. image_analyser import ImageAnalyser
 
@@ -20,6 +22,10 @@ SAVE_REGION_PATH = "numpy.save"
 def mock_load(*args, klass=None, **kwargs):
     print('mock_load called')
     return klass()
+
+
+def mock_load_fibre_networks(*args, **kwargs):
+    return [ProbeFibreNetwork()]
 
 
 class TestImageAnalyser(TestCase):
@@ -52,10 +58,32 @@ class TestImageAnalyser(TestCase):
             self.assertTrue(
                 os.path.exists(tmp_file.name + '_fibre_networks.json'))
 
-        self.assertEqual(403, network.number_of_nodes())
-        self.assertEqual(411, network.number_of_edges())
-
-        self.assertEqual(10, len(fibre_networks))
+        self.assertEqual(556, network.number_of_nodes())
+        self.assertEqual(578, network.number_of_edges())
+        self.assertEqual(5, len(fibre_networks))
 
     def test_segment_analysis(self):
+
+        with NamedTemporaryFile() as tmp_file:
+            with mock.patch(
+                    'pyfibre.model.image_analyser'
+                    '.load_fibre_networks') as mock_loader:
+                mock_loader.side_effect = mock_load_fibre_networks
+
+                fibre_segments, cell_segments = (
+                    self.image_analyser.segment_analysis(
+                        self.multi_image, tmp_file.name))
+
+            self.assertTrue(
+                os.path.exists(tmp_file.name + '_fibre_segments.npy'))
+            self.assertTrue(
+                os.path.exists(tmp_file.name + '_cell_segments.npy'))
+
+        self.assertEqual(13, len(fibre_segments))
+        self.assertEqual(1, len(cell_segments))
+
+    def test_metric_analysis(self):
+        pass
+
+    def test_create_figures(self):
         pass

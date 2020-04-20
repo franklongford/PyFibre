@@ -4,7 +4,7 @@ from unittest import TestCase
 
 from pyface.ui.qt4.util.gui_test_assistant import GuiTestAssistant
 
-from pyfibre.tests.probe_classes import ProbePyFibreGUI
+from pyfibre.tests.probe_classes.gui_objects import ProbePyFibreGUI
 
 
 class TestPyFibreGUI(GuiTestAssistant, TestCase):

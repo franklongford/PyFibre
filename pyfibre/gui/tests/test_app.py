@@ -1,5 +1,6 @@
 from unittest import mock, TestCase
 import os
+
 from pyfibre.gui.app import run
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
 

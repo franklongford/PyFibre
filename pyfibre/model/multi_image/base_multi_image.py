@@ -1,35 +1,51 @@
+from abc import abstractmethod
 import numpy as np
 
 from traits.api import (
-    HasTraits, ArrayOrNone, Tuple, List,
-    Property, Dict, Str
+    ABCHasTraits, ArrayOrNone, List, Dict, Str
 )
 
+from pyfibre.utilities import NotSupportedError
 
-class BaseMultiImage(HasTraits):
 
-    shape = Property(Tuple, depends_on='image_stack')
+class BaseMultiImage(ABCHasTraits):
+    """Base class representing an image with multiple channels,
+    expected to be more complex than just RGB"""
 
-    size = Property(Tuple, depends_on='image_stack')
-
-    ndim = Property(Tuple, depends_on='image_stack')
-
+    #: List of images in stack
     image_stack = List(ArrayOrNone)
 
+    #: Dictionary containing references to each entry in
+    #: image_stack
     image_dict = Dict(Str, ArrayOrNone)
+
+    def __init__(self, *args, **kwargs):
+
+        if 'image_stack' in kwargs:
+            if not self.verify_stack(kwargs['image_stack']):
+                raise ValueError(
+                    f'image_stack not supported by {self.__class__}')
+
+        super(BaseMultiImage, self).__init__(*args, **kwargs)
 
     def __len__(self):
         return len(self.image_stack)
 
-    def _get_ndim(self):
+    @property
+    def ndim(self):
+        """Extends numpy API to get ndim of images in stack"""
         if len(self):
             return self.image_stack[0].ndim
 
-    def _get_shape(self):
+    @property
+    def shape(self):
+        """Extends numpy API to get shape  ofimages in stack"""
         if len(self):
             return self.image_stack[0].shape
 
-    def _get_size(self):
+    @property
+    def size(self):
+        """Extends numpy API to get size of images in stack"""
         if len(self):
             return self.image_stack[0].size
 
@@ -47,36 +63,47 @@ class BaseMultiImage(HasTraits):
 
     def remove(self, image):
         """Removes an image with index from the image_stack"""
-        self.image_stack.remove(image)
+        index = [
+            index for index, array in enumerate(self.image_stack)
+            if id(image) == id(array)
+        ]
+        if index:
+            self.image_stack.pop(index[0])
+        else:
+            raise IndexError(
+                f"image not found in {self.__class__}.image_stack"
+            )
 
-    def asarray(self):
+    @classmethod
+    def from_array(cls, array):
+        """Create instance from either a 2D or 3D numpy array"""
+        if array.ndim == 2:
+            return cls(image_stack=[array])
+        elif array.ndim == 3:
+            return cls(image_stack=[image for image in array])
+        raise NotSupportedError(
+            'MultiImage creation only supported for 2D or 3D arrays')
+
+    def to_array(self):
         return np.stack(self.image_stack)
 
     @classmethod
+    @abstractmethod
     def verify_stack(cls, image_stack):
         """Perform verification that image_stack is allowed by
         subclass of BaseMultiImage"""
-        raise NotImplementedError(
-            f'{cls.__class__}.verify_stack method'
-            f' not implemented')
 
+    @abstractmethod
     def preprocess_images(self):
         """Implement operations that are used to pre-process
         the image_stack before analysis"""
-        raise NotImplementedError(
-            f'{self.__class__}.preprocess_images method'
-            f' not implemented')
 
+    @abstractmethod
     def segmentation_algorithm(self, *args, **kwargs):
         """Implement segmentation algorithm to be used for this
         multi-image type"""
-        raise NotImplementedError(
-            f'{self.__class__}.segmentation_algorithm method'
-            f' not implemented')
 
+    @abstractmethod
     def create_figures(self, *args, **kwargs):
         """Create figures from multi-image components that can be
         generated upon end of analysis"""
-        raise NotImplementedError(
-            f'{self.__class__}.create_figures method'
-            f' not implemented')

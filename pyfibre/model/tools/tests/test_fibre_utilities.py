@@ -3,10 +3,10 @@ import numpy as np
 from pyfibre.model.tools.fibre_utilities import (
     check_2D_arrays, distance_matrix, branch_angles,
     remove_redundant_nodes, transfer_edges, get_edge_list,
-    simplify_network
+    simplify_network, reduce_coord
 )
-from pyfibre.tests.probe_classes import (
-    generate_probe_graph
+from pyfibre.tests.probe_classes.utilities import (
+    generate_image, generate_probe_graph
 )
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
@@ -15,6 +15,7 @@ class TestFibreUtilities(PyFibreTestCase):
 
     def setUp(self):
 
+        self.image, _, _, _ = generate_image()
         self.network = generate_probe_graph()
         self.pos_2D = np.array([[1, 3], [4, 2], [1, 5]])
         self.answer_d_2D = np.array([[[0, 0], [3, -1], [0, 2]],
@@ -88,3 +89,33 @@ class TestFibreUtilities(PyFibreTestCase):
 
         network = simplify_network(self.network)
         self.assertListEqual([0, 1], list(network.nodes))
+
+    def test_reduce_coord(self):
+
+        coord = np.argwhere(self.image > 2)
+        weights = np.arange(len(coord))
+
+        reduced_coord = reduce_coord(coord)
+        self.assertArrayAlmostEqual(
+            np.array([[2, 7], [8, 3]]), reduced_coord
+        )
+
+        reduced_coord = reduce_coord(coord, weights)
+        self.assertArrayAlmostEqual(
+            np.array([[2, 4], [8, 1]]), reduced_coord
+        )
+
+        # Edge case with no minimum threshold
+        reduced_coord = reduce_coord(
+            coord, weights, thresh=0)
+        self.assertArrayAlmostEqual(
+            coord, reduced_coord
+        )
+
+        # Edge case with infinite threshold, should always
+        # return at least one coordinate
+        reduced_coord = reduce_coord(
+            coord, weights, thresh=500)
+        self.assertArrayAlmostEqual(
+            np.array([[2, 4]]), reduced_coord
+        )
