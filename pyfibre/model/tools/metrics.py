@@ -13,7 +13,7 @@ from pyfibre.model.tools.filters import form_structure_tensor
 
 logger = logging.getLogger(__name__)
 
-NEMATIC_METRICS = ['Angle SDI', 'Anisotropy', 'Pixel Anisotropy']
+NEMATIC_METRICS = ['Angle SDI', 'Anisotropy', 'Local Anisotropy']
 SHAPE_METRICS = ['Area', 'Eccentricity', 'Linearity', 'Coverage']
 TEXTURE_METRICS = ['Mean', 'STD', 'Entropy']
 FIBRE_METRICS = ['Waviness', 'Length']
@@ -40,7 +40,7 @@ def nematic_tensor_metrics(region, nematic_tensor, tag=''):
     database[f"{tag} Angle SDI"], _ = angle_analysis(
         segment_angle_map, segment_anis_map)
     database[f"{tag} Anisotropy"] = segment_anis[0]
-    database[f"{tag} Pixel Anisotropy"] = np.mean(segment_anis_map)
+    database[f"{tag} Local Anisotropy"] = np.mean(segment_anis_map)
 
     return database
 
