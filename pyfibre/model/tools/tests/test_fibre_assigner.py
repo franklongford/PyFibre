@@ -51,11 +51,12 @@ class TestFibreAssignment(PyFibreTestCase):
             self.fibre_assignment.d_coord[..., 1]
         )
         self.assertArrayAlmostEqual(
-            np.array([[0, 2, 8, 13],
-                      [2, 0, 2, 5],
-                      [8, 2, 0, 1],
-                      [13, 5, 1, 0]]),
-            self.fibre_assignment.r2_coord
+            np.sqrt(
+                np.array([[0, 2, 8, 13],
+                          [2, 0, 2, 5],
+                          [8, 2, 0, 1],
+                          [13, 5, 1, 0]])),
+            self.fibre_assignment.r_coord
         )
 
     def test_theta_thresh(self):

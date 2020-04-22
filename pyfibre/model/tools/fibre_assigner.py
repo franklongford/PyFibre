@@ -75,8 +75,8 @@ class FibreAssigner:
 
         fibre = Fibre(nodes=[node, new_node])
 
-        fibre.graph.nodes[node]['xy'] = self._graph.nodes[node]['xy']
-        fibre.graph.nodes[new_node]['xy'] = self._graph.nodes[new_node]['xy']
+        fibre.graph.nodes[node]['xy'] = self.node_coord[node]
+        fibre.graph.nodes[new_node]['xy'] = self.node_coord[new_node]
         fibre.graph.add_edge(
             node, new_node, r=coord_r
         )
@@ -135,11 +135,11 @@ class FibreAssigner:
                 # Add node to end of growing Fibre
                 fibre.add_node(
                     new_node,
-                    xy=self._graph.nodes[new_node]['xy'].copy()
+                    xy=self.node_coord[new_node]
                 )
                 fibre.add_edge(
                     end_node, new_node,
-                    r=self._graph[new_node][end_node]['r'])
+                    r=self.r_coord[new_node][end_node])
 
             except (ValueError, IndexError):
                 fibre.growing = False
