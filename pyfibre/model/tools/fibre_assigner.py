@@ -24,7 +24,7 @@ class FibreAssigner:
 
         self._graph = None
         self.d_coord = None
-        self.r2_coord = None
+        self.r_coord = None
 
     @property
     def theta_thresh(self):
@@ -58,7 +58,8 @@ class FibreAssigner:
         # only once here once to ensure they are cached. This could be
         # replaced by using cached properties introduced in standard
         # library for Python 3.8
-        self.d_coord, self.r2_coord = distance_matrix(self.node_coord)
+        self.d_coord, r2_coord = distance_matrix(self.node_coord)
+        self.r_coord = np.sqrt(r2_coord)
 
     def _create_fibre(self, node):
         """Create a new Fibre instance beginning from node on
@@ -70,12 +71,12 @@ class FibreAssigner:
 
         # Obtain the most connected node as the first connection
         new_node = new_nodes[np.argsort(edge_list)][-1]
-        coord_r = self._graph[node][new_node]['r']
+        coord_r = self.r_coord[node][new_node]
 
         fibre = Fibre(nodes=[node, new_node])
 
-        fibre.graph.nodes[node]['xy'] = self._graph.nodes[node]['xy']
-        fibre.graph.nodes[new_node]['xy'] = self._graph.nodes[new_node]['xy']
+        fibre.graph.nodes[node]['xy'] = self.node_coord[node]
+        fibre.graph.nodes[new_node]['xy'] = self.node_coord[new_node]
         fibre.graph.add_edge(
             node, new_node, r=coord_r
         )
@@ -102,13 +103,16 @@ class FibreAssigner:
             # Calculate vectors from end of fibre to new nodes
             new_coord_vec = self.d_coord[end_node][new_connect]
             new_coord_r = np.array([
-                self._graph[end_node][n]['r'] for n in new_connect
+                self.r_coord[end_node][n] for n in new_connect
             ])
 
             # Check no connected nodes have the same coordinates
             assert np.all(new_coord_r > 0), (
                 logger.exception(
-                    f"{end_node}, {new_connect}, {new_coord_vec},"
+                    f" {end_node}, {new_connect}, "
+                    f" {self.node_coord[end_node]}"
+                    f" {[self.node_coord[node] for node in new_connect]}"
+                    f" {new_coord_vec},"
                     f" {new_coord_r}, {fibre.node_list}"
                 )
             )
@@ -131,11 +135,11 @@ class FibreAssigner:
                 # Add node to end of growing Fibre
                 fibre.add_node(
                     new_node,
-                    xy=self._graph.nodes[new_node]['xy'].copy()
+                    xy=self.node_coord[new_node]
                 )
                 fibre.add_edge(
                     end_node, new_node,
-                    r=self._graph[new_node][end_node]['r'])
+                    r=self.r_coord[new_node][end_node])
 
             except (ValueError, IndexError):
                 fibre.growing = False
