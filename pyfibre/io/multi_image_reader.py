@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 def get_image_data(image):
     """Return the number of different modes, xy dimensions
-    and index of image that contains stacks of repeats"""
+    and index of image that contains stacks of repeats."""
 
     minor_axis = None
 
@@ -46,31 +46,59 @@ def get_image_data(image):
     return minor_axis, n_modes, xy_dim
 
 
+def lookup_page(tiff_page):
+    """Obtain relevant information from a TiffPage object"""
+
+    xy_dim = tiff_page.shape
+    description = tiff_page.image_description.decode('utf-8')
+
+    return xy_dim, description
+
+
 def get_tiff_param(tiff_file):
+    """Obtain relevant parameters of TiffFile object"""
 
-    xy_dim = tiff_file.shape
+    xy_dim, description = lookup_page(tiff_file.pages[0])
     image = tiff_file.asarray()
-    page = tiff_file.pages[0]
 
-    description = page.image_description.decode()
     desc_list = description.split('\n')
 
     channel_lines = [
         line.strip() for line in desc_list if 'Gamma' in line]
-
     n_modes = len(channel_lines)
 
-    if image.shape.count(n_modes) == 1:
+    # If number of modes is not in image shape (typically
+    # because the image only contains one mode)
+    if image.shape.count(n_modes) == 0:
+        if n_modes == 1 and image.ndim == 2:
+            minor_axis = None
+        elif n_modes == 1 and image.ndim == 3:
+            minor_axis = np.argmin(image.shape)
+        else:
+            raise IndexError(
+                f"Image shape {image.shape} not supported")
+
+        return minor_axis, n_modes, xy_dim
+
+    elif image.shape.count(n_modes) == 1:
         major_axis = image.shape.index(n_modes)
+
     else:
-        raise IndexError('Channel index unknown')
+        if image.shape[0] == n_modes:
+            major_axis = 0
+        else:
+            raise IndexError(
+                f"Image shape {image.shape} not supported")
 
     minor_axes = [
         index for index, value in enumerate(image.shape)
-        if value not in (major_axis,) + xy_dim]
+        if value not in xy_dim and index != major_axis]
 
     if len(minor_axes) == 1:
         minor_axis = minor_axes[0]
+    else:
+        raise IndexError(
+            f"Image shape {image.shape} not supported")
 
     return minor_axis, n_modes, xy_dim
 
@@ -87,13 +115,10 @@ class MultiImageReader(HasTraits):
 
         images = []
         for filename in filenames:
-
             logger.info(f'Loading {filename}')
             with TiffFile(filename) as tiff_file:
                 image = tiff_file.asarray()
-                if tiff_file.is_fluoview:
-                    minor_axis, n_modes, xy_dim = get_tiff_param(tiff_file)
-                minor_axis, n_modes, _ = get_image_data(image)
+                minor_axis, n_modes, xy_dim = get_tiff_param(tiff_file)
 
             logger.debug(f"Number of image modes = {n_modes}")
             logger.debug(f"Size of image = {xy_dim}")
@@ -117,8 +142,11 @@ class MultiImageReader(HasTraits):
         elif minor_axis is not None:
             image = np.mean(image, axis=minor_axis)
 
-        for index, channel in enumerate(image):
-            image[index] = channel / channel.max()
+        if image.ndim > 2:
+            for index, channel in enumerate(image):
+                image[index] = channel / channel.max()
+        else:
+            image = image / image.max()
 
         return img_as_float(image)
 
