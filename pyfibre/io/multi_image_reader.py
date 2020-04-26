@@ -1,8 +1,9 @@
 import logging
+import json
 
 import numpy as np
 from skimage.util import img_as_float
-from skimage.external.tifffile import imread
+from skimage.external.tifffile import TiffFile
 
 from traits.api import HasTraits, Type
 
@@ -11,43 +12,79 @@ from pyfibre.model.multi_image.base_multi_image import BaseMultiImage
 logger = logging.getLogger(__name__)
 
 
-def get_image_data(image):
-    """Return the number of different modes, xy dimensions
-    and index of image that contains stacks of repeats"""
+def lookup_page(tiff_page):
+    """Obtain relevant information from a TiffPage object"""
 
-    minor_axis = None
+    xy_dim = tiff_page.shape
+    description = tiff_page.image_description.decode('utf-8')
 
-    if image.ndim == 2:
-        n_modes = 1
-        xy_dim = image.shape
+    return xy_dim, description
 
-    elif image.ndim == 3:
-        if np.argmin(image.shape) == 0:
-            n_modes = image.shape[0]
-            xy_dim = image.shape[1:]
+
+def get_tiff_param(tiff_file):
+    """Obtain relevant parameters of TiffFile object"""
+
+    xy_dim, description = lookup_page(tiff_file.pages[0])
+    image = tiff_file.asarray()
+
+    if tiff_file.is_fluoview:
+        desc_list = description.split('\n')
+        channel_lines = [
+            line.strip() for line in desc_list if 'Gamma' in line]
+        n_modes = len(channel_lines)
+    else:
+        # Check if this is test data
+        try:
+            desc_dict = json.loads(description)
+            minor_axis = desc_dict['minor_axis']
+            n_modes = desc_dict['n_modes']
+            xy_dim = tuple(desc_dict['xy_dim'])
+            return minor_axis, n_modes, xy_dim
+        except Exception:
+            raise RuntimeError(
+                'Only Olympus Tiff images currently supported')
+
+    # If number of modes is not in image shape (typically
+    # because the image only contains one mode)
+    if image.shape.count(n_modes) == 0:
+        if n_modes == 1 and image.ndim == 2:
+            minor_axis = None
+        elif n_modes == 1 and image.ndim == 3:
+            minor_axis = np.argmin(image.shape)
         else:
-            n_modes = 1
-            xy_dim = image.shape[:2]
-            minor_axis = 2
+            raise IndexError(
+                f"Image shape {image.shape} not supported")
 
-    elif image.ndim == 4:
-        if image.shape[-1] == 3:
-            n_modes = image.shape[0]
-            xy_dim = image.shape[1:3]
+        return minor_axis, n_modes, xy_dim
+
+    # If there is an exact match in the image shape, identify
+    # this as the axis containing each mode
+    elif image.shape.count(n_modes) == 1:
+        major_axis = image.shape.index(n_modes)
+
+    # If multiple image dimensions share the same number of
+    # elements as number of modes, identify which corresponds
+    # to each mode
+    else:
+        if image.shape[0] == n_modes:
+            major_axis = 0
         else:
-            n_modes = image.shape[0]
-            xy_dim = image.shape[2:]
-            minor_axis = 1
+            raise IndexError(
+                f"Image shape {image.shape} not supported")
 
+    # Work out the minor axis (stack to average over) from the
+    # remaining image dimensions
+    minor_axes = [
+        index for index, value in enumerate(image.shape)
+        if value not in xy_dim and index != major_axis]
+
+    if len(minor_axes) == 0:
+        minor_axis = None
+    elif len(minor_axes) == 1:
+        minor_axis = minor_axes[0]
     else:
         raise IndexError(
             f"Image shape {image.shape} not supported")
-
-    logger.debug("Number of image modes = {}".format(n_modes))
-    logger.debug("Size of image = {}".format(xy_dim))
-    if minor_axis is not None:
-        n_stacks = image.shape[minor_axis]
-        logger.debug("Number of stacks = {}".format(n_stacks))
 
     return minor_axis, n_modes, xy_dim
 
@@ -64,8 +101,17 @@ class MultiImageReader(HasTraits):
 
         images = []
         for filename in filenames:
-            image = imread(filename)
-            minor_axis, _, _ = get_image_data(image)
+            logger.info(f'Loading {filename}')
+            with TiffFile(filename) as tiff_file:
+                image = tiff_file.asarray()
+                minor_axis, n_modes, xy_dim = get_tiff_param(tiff_file)
+
+            logger.debug(f"Number of image modes = {n_modes}")
+            logger.debug(f"Size of image = {xy_dim}")
+            if minor_axis is not None:
+                n_stacks = image.shape[minor_axis]
+                logger.debug(f"Number of stacks = {n_stacks}")
+
             # if 'Stack' not in filename:
             #    minor_axis = None
             images.append(self._format_image(image, minor_axis))
@@ -82,8 +128,11 @@ class MultiImageReader(HasTraits):
         elif minor_axis is not None:
             image = np.mean(image, axis=minor_axis)
 
-        for index, channel in enumerate(image):
-            image[index] = channel / channel.max()
+        if image.ndim > 2:
+            for index, channel in enumerate(image):
+                image[index] = channel / channel.max()
+        else:
+            image = image / image.max()
 
         return img_as_float(image)
 

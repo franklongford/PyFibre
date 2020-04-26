@@ -1,6 +1,9 @@
 import numpy as np
 
-from pyfibre.io.multi_image_reader import MultiImageReader, get_image_data
+from skimage.external.tifffile import TiffFile
+
+from pyfibre.io.multi_image_reader import (
+    MultiImageReader, get_tiff_param)
 from pyfibre.tests.fixtures import (
     test_shg_image_path, test_shg_pl_trans_image_path)
 from pyfibre.tests.probe_classes.multi_images import ProbeFixedStackImage
@@ -21,26 +24,6 @@ class TestMultiImageReader(PyFibreTestCase):
         self.reader = ProbeMultiImageReader()
         self.filenames = [test_shg_image_path,
                           test_shg_pl_trans_image_path]
-
-    def test_get_image_data(self):
-        test_image = np.zeros((100, 100))
-        self.assertEqual((None, 1, (100, 100)), get_image_data(test_image))
-
-        test_image = np.zeros((100, 100, 3))
-        self.assertEqual((2, 1, (100, 100)), get_image_data(test_image))
-
-        test_image = np.zeros((3, 100, 100))
-        self.assertEqual((None, 3, (100, 100)), get_image_data(test_image))
-
-        test_image = np.zeros((4, 100, 100, 3))
-        self.assertEqual((None, 4, (100, 100)), get_image_data(test_image))
-
-        test_image = np.zeros((4, 3, 100, 100))
-        self.assertEqual((1, 4, (100, 100)), get_image_data(test_image))
-
-        test_image = np.zeros((2, 100, 100, 3, 4))
-        with self.assertRaises(IndexError):
-            get_image_data(test_image)
 
     def test_load_images(self):
         images = self.reader._load_images(self.filenames)
@@ -96,3 +79,17 @@ class TestMultiImageReader(PyFibreTestCase):
 
         with self.assertRaises(ImportError):
             self.reader.load_multi_image(self.filenames)
+
+    def test_get_tiff_param(self):
+
+        with TiffFile(test_shg_image_path) as tiff_file:
+            minor_axis, n_modes, xy_dim = get_tiff_param(tiff_file)
+            self.assertEqual(2, minor_axis)
+            self.assertEqual(1, n_modes)
+            self.assertEqual((200, 200), xy_dim)
+
+        with TiffFile(test_shg_pl_trans_image_path) as tiff_file:
+            minor_axis, n_modes, xy_dim = get_tiff_param(tiff_file)
+            self.assertEqual(1, minor_axis)
+            self.assertEqual(3, n_modes)
+            self.assertEqual((200, 200), xy_dim)
