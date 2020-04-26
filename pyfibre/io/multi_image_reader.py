@@ -50,7 +50,7 @@ def lookup_page(tiff_page):
     """Obtain relevant information from a TiffPage object"""
 
     xy_dim = tiff_page.shape
-    description = tiff_page.image_description.decode('utf-8')
+    description = tiff_page.image_description.decode()
 
     return xy_dim, description
 
@@ -61,11 +61,18 @@ def get_tiff_param(tiff_file):
     xy_dim, description = lookup_page(tiff_file.pages[0])
     image = tiff_file.asarray()
 
-    desc_list = description.split('\n')
-
-    channel_lines = [
-        line.strip() for line in desc_list if 'Gamma' in line]
-    n_modes = len(channel_lines)
+    if tiff_file.is_fluoview:
+        desc_list = description.split('\n')
+        channel_lines = [
+            line.strip() for line in desc_list if 'Gamma' in line]
+        n_modes = len(channel_lines)
+    else:
+        # Check if this is test data
+        try:
+            n_modes = description['n_modes']
+        except Exception:
+            raise RuntimeError(
+                'Only Olympus Tiff images currently supported')
 
     # If number of modes is not in image shape (typically
     # because the image only contains one mode)
