@@ -12,41 +12,6 @@ from pyfibre.model.multi_image.base_multi_image import BaseMultiImage
 logger = logging.getLogger(__name__)
 
 
-def get_image_data(image):
-    """Return the number of different modes, xy dimensions
-    and index of image that contains stacks of repeats."""
-
-    minor_axis = None
-
-    if image.ndim == 2:
-        n_modes = 1
-        xy_dim = image.shape
-
-    elif image.ndim == 3:
-        if np.argmin(image.shape) == 0:
-            n_modes = image.shape[0]
-            xy_dim = image.shape[1:]
-        else:
-            n_modes = 1
-            xy_dim = image.shape[:2]
-            minor_axis = 2
-
-    elif image.ndim == 4:
-        if image.shape[-1] == 3:
-            n_modes = image.shape[0]
-            xy_dim = image.shape[1:3]
-        else:
-            n_modes = image.shape[0]
-            xy_dim = image.shape[2:]
-            minor_axis = 1
-
-    else:
-        raise IndexError(
-            f"Image shape {image.shape} not supported")
-
-    return minor_axis, n_modes, xy_dim
-
-
 def lookup_page(tiff_page):
     """Obtain relevant information from a TiffPage object"""
 

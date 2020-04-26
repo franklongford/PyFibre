@@ -1,5 +1,3 @@
-from unittest import mock
-
 import numpy as np
 
 from skimage.external.tifffile import TiffFile
@@ -26,26 +24,6 @@ class TestMultiImageReader(PyFibreTestCase):
         self.reader = ProbeMultiImageReader()
         self.filenames = [test_shg_image_path,
                           test_shg_pl_trans_image_path]
-
-    def test_get_image_data(self):
-        test_image = np.zeros((100, 100))
-        self.assertEqual((None, 1, (100, 100)), get_image_data(test_image))
-
-        test_image = np.zeros((100, 100, 3))
-        self.assertEqual((2, 1, (100, 100)), get_image_data(test_image))
-
-        test_image = np.zeros((3, 100, 100))
-        self.assertEqual((None, 3, (100, 100)), get_image_data(test_image))
-
-        test_image = np.zeros((4, 100, 100, 3))
-        self.assertEqual((None, 4, (100, 100)), get_image_data(test_image))
-
-        test_image = np.zeros((4, 3, 100, 100))
-        self.assertEqual((1, 4, (100, 100)), get_image_data(test_image))
-
-        test_image = np.zeros((2, 100, 100, 3, 4))
-        with self.assertRaises(IndexError):
-            get_image_data(test_image)
 
     def test_load_images(self):
         images = self.reader._load_images(self.filenames)
