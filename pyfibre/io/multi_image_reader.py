@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 from skimage.util import img_as_float
-from skimage.external.tifffile import imread
+from skimage.external.tifffile import TiffFile
 
 from traits.api import HasTraits, Type
 
@@ -43,11 +43,34 @@ def get_image_data(image):
         raise IndexError(
             f"Image shape {image.shape} not supported")
 
-    logger.debug("Number of image modes = {}".format(n_modes))
-    logger.debug("Size of image = {}".format(xy_dim))
-    if minor_axis is not None:
-        n_stacks = image.shape[minor_axis]
-        logger.debug("Number of stacks = {}".format(n_stacks))
+    return minor_axis, n_modes, xy_dim
+
+
+def get_tiff_param(tiff_file):
+
+    xy_dim = tiff_file.shape
+    image = tiff_file.asarray()
+    page = tiff_file.pages[0]
+
+    description = page.image_description.decode()
+    desc_list = description.split('\n')
+
+    channel_lines = [
+        line.strip() for line in desc_list if 'Gamma' in line]
+
+    n_modes = len(channel_lines)
+
+    if image.shape.count(n_modes) == 1:
+        major_axis = image.shape.index(n_modes)
+    else:
+        raise IndexError('Channel index unknown')
+
+    minor_axes = [
+        index for index, value in enumerate(image.shape)
+        if value not in (major_axis,) + xy_dim]
+
+    if len(minor_axes) == 1:
+        minor_axis = minor_axes[0]
 
     return minor_axis, n_modes, xy_dim
 
@@ -64,8 +87,20 @@ class MultiImageReader(HasTraits):
 
         images = []
         for filename in filenames:
-            image = imread(filename)
-            minor_axis, _, _ = get_image_data(image)
+
+            logger.info(f'Loading {filename}')
+            with TiffFile(filename) as tiff_file:
+                image = tiff_file.asarray()
+                if tiff_file.is_fluoview:
+                    minor_axis, n_modes, xy_dim = get_tiff_param(tiff_file)
+                minor_axis, n_modes, _ = get_image_data(image)
+
+            logger.debug(f"Number of image modes = {n_modes}")
+            logger.debug(f"Size of image = {xy_dim}")
+            if minor_axis is not None:
+                n_stacks = image.shape[minor_axis]
+                logger.debug(f"Number of stacks = {n_stacks}")
+
             # if 'Stack' not in filename:
             #    minor_axis = None
             images.append(self._format_image(image, minor_axis))
