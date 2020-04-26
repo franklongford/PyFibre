@@ -5,7 +5,7 @@ import numpy as np
 from skimage.external.tifffile import TiffFile
 
 from pyfibre.io.multi_image_reader import (
-    MultiImageReader, get_image_data, get_tiff_param)
+    MultiImageReader, get_tiff_param)
 from pyfibre.tests.fixtures import (
     test_shg_image_path, test_shg_pl_trans_image_path)
 from pyfibre.tests.probe_classes.multi_images import ProbeFixedStackImage
@@ -104,23 +104,14 @@ class TestMultiImageReader(PyFibreTestCase):
 
     def test_get_tiff_param(self):
 
-        with mock.patch(
-                'pyfibre.io.multi_image_reader'
-                '.lookup_page') as mock_desc:
-            mock_desc.return_value = (
-                (200, 200), 'Gamma 0=1\n')
+        with TiffFile(test_shg_image_path) as tiff_file:
+            minor_axis, n_modes, xy_dim = get_tiff_param(tiff_file)
+            self.assertEqual(2, minor_axis)
+            self.assertEqual(1, n_modes)
+            self.assertEqual((200, 200), xy_dim)
 
-            with TiffFile(test_shg_image_path) as tiff_file:
-                minor_axis, n_modes, xy_dim = get_tiff_param(tiff_file)
-                self.assertEqual(2, minor_axis)
-                self.assertEqual(1, n_modes)
-                self.assertEqual((200, 200), xy_dim)
-
-            mock_desc.return_value = (
-                (200, 200), 'Gamma 0=1\nGamma 1=1\nGamma 2=1')
-
-            with TiffFile(test_shg_pl_trans_image_path) as tiff_file:
-                minor_axis, n_modes, xy_dim = get_tiff_param(tiff_file)
-                self.assertEqual(1, minor_axis)
-                self.assertEqual(3, n_modes)
-                self.assertEqual((200, 200), xy_dim)
+        with TiffFile(test_shg_pl_trans_image_path) as tiff_file:
+            minor_axis, n_modes, xy_dim = get_tiff_param(tiff_file)
+            self.assertEqual(1, minor_axis)
+            self.assertEqual(3, n_modes)
+            self.assertEqual((200, 200), xy_dim)

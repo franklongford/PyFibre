@@ -1,4 +1,5 @@
 import logging
+import json
 
 import numpy as np
 from skimage.util import img_as_float
@@ -50,7 +51,7 @@ def lookup_page(tiff_page):
     """Obtain relevant information from a TiffPage object"""
 
     xy_dim = tiff_page.shape
-    description = tiff_page.image_description.decode()
+    description = tiff_page.image_description.decode('utf-8')
 
     return xy_dim, description
 
@@ -69,7 +70,11 @@ def get_tiff_param(tiff_file):
     else:
         # Check if this is test data
         try:
-            n_modes = description['n_modes']
+            desc_dict = json.loads(description)
+            minor_axis = desc_dict['minor_axis']
+            n_modes = desc_dict['n_modes']
+            xy_dim = tuple(desc_dict['xy_dim'])
+            return minor_axis, n_modes, xy_dim
         except Exception:
             raise RuntimeError(
                 'Only Olympus Tiff images currently supported')
@@ -87,9 +92,14 @@ def get_tiff_param(tiff_file):
 
         return minor_axis, n_modes, xy_dim
 
+    # If there is an exact match in the image shape, identify
+    # this as the axis containing each mode
     elif image.shape.count(n_modes) == 1:
         major_axis = image.shape.index(n_modes)
 
+    # If multiple image dimensions share the same number of
+    # elements as number of modes, identify which corresponds
+    # to each mode
     else:
         if image.shape[0] == n_modes:
             major_axis = 0
@@ -97,11 +107,15 @@ def get_tiff_param(tiff_file):
             raise IndexError(
                 f"Image shape {image.shape} not supported")
 
+    # Work out the minor axis (stack to average over) from the
+    # remaining image dimensions
     minor_axes = [
         index for index, value in enumerate(image.shape)
         if value not in xy_dim and index != major_axis]
 
-    if len(minor_axes) == 1:
+    if len(minor_axes) == 0:
+        minor_axis = None
+    elif len(minor_axes) == 1:
         minor_axis = minor_axes[0]
     else:
         raise IndexError(
