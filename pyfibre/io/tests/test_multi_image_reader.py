@@ -3,7 +3,7 @@ import numpy as np
 from skimage.external.tifffile import TiffFile
 
 from pyfibre.io.multi_image_reader import (
-    MultiImageReader, get_tiff_param)
+    MultiImageReader, get_tiff_param, WrongFileTypeError)
 from pyfibre.tests.fixtures import (
     test_shg_image_path, test_shg_pl_trans_image_path)
 from pyfibre.tests.probe_classes.multi_images import ProbeFixedStackImage
@@ -26,10 +26,14 @@ class TestMultiImageReader(PyFibreTestCase):
                           test_shg_pl_trans_image_path]
 
     def test_load_images(self):
+
         images = self.reader._load_images(self.filenames)
         self.assertEqual(2, len(images))
         self.assertEqual((200, 200), images[0].shape)
         self.assertEqual((3, 200, 200), images[1].shape)
+
+        with self.assertRaises(WrongFileTypeError):
+            self.reader._load_images(['not a file'])
 
     def test__format_image(self):
 
@@ -68,6 +72,11 @@ class TestMultiImageReader(PyFibreTestCase):
             np.ones((3, 10, 10)),
             image
         )
+
+    def test_can_load(self):
+
+        self.assertTrue(self.reader.can_load(test_shg_image_path))
+        self.assertFalse(self.reader.can_load('not_an_image'))
 
     def test_load_multi_image(self):
 

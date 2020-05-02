@@ -12,6 +12,10 @@ from pyfibre.model.multi_image.base_multi_image import BaseMultiImage
 logger = logging.getLogger(__name__)
 
 
+class WrongFileTypeError(Exception):
+    pass
+
+
 def lookup_page(tiff_page):
     """Obtain relevant information from a TiffPage object"""
 
@@ -25,7 +29,6 @@ def get_tiff_param(tiff_file):
     """Obtain relevant parameters of TiffFile object"""
 
     xy_dim, description = lookup_page(tiff_file.pages[0])
-    image = tiff_file.asarray()
 
     if tiff_file.is_fluoview:
         desc_list = description.split('\n')
@@ -33,16 +36,16 @@ def get_tiff_param(tiff_file):
             line.strip() for line in desc_list if 'Gamma' in line]
         n_modes = len(channel_lines)
     else:
-        # Check if this is test data
-        try:
-            desc_dict = json.loads(description)
-            minor_axis = desc_dict['minor_axis']
-            n_modes = desc_dict['n_modes']
-            xy_dim = tuple(desc_dict['xy_dim'])
-            return minor_axis, n_modes, xy_dim
-        except Exception:
-            raise RuntimeError(
-                'Only Olympus Tiff images currently supported')
+        # We are using test data
+        desc_dict = json.loads(description)
+
+        minor_axis = desc_dict['minor_axis']
+        n_modes = desc_dict['n_modes']
+        xy_dim = tuple(desc_dict['xy_dim'])
+
+        return minor_axis, n_modes, xy_dim
+
+    image = tiff_file.asarray()
 
     # If number of modes is not in image shape (typically
     # because the image only contains one mode)
@@ -90,6 +93,8 @@ def get_tiff_param(tiff_file):
 
 
 class MultiImageReader(HasTraits):
+    """File reader that loads a stack of Tiff images, represented
+    by a BaseMultiImage subclass"""
 
     _multi_image_class = Type(BaseMultiImage)
 
@@ -101,20 +106,24 @@ class MultiImageReader(HasTraits):
 
         images = []
         for filename in filenames:
+
             logger.info(f'Loading {filename}')
+
+            if not self.can_load(filename):
+                raise WrongFileTypeError
+
             with TiffFile(filename) as tiff_file:
                 image = tiff_file.asarray()
                 minor_axis, n_modes, xy_dim = get_tiff_param(tiff_file)
+
+            # Add file image to stack
+            images.append(self._format_image(image, minor_axis))
 
             logger.debug(f"Number of image modes = {n_modes}")
             logger.debug(f"Size of image = {xy_dim}")
             if minor_axis is not None:
                 n_stacks = image.shape[minor_axis]
                 logger.debug(f"Number of stacks = {n_stacks}")
-
-            # if 'Stack' not in filename:
-            #    minor_axis = None
-            images.append(self._format_image(image, minor_axis))
 
         return images
 
@@ -157,3 +166,25 @@ class MultiImageReader(HasTraits):
         multi_image.preprocess_images()
 
         return multi_image
+
+    def can_load(self, filename):
+        """Perform check to see whether file is formatted
+        correctly to be loaded"""
+
+        try:
+            with TiffFile(filename) as tiff_file:
+                # Check is this is Olympus FluoView formatted
+                if tiff_file.is_fluoview:
+                    return True
+
+                # Check if this is test data
+                _, description = lookup_page(tiff_file.pages[0])
+                desc_dict = json.loads(description)
+                for key in ['minor_axis','n_modes', 'xy_dim']:
+                    _ = desc_dict[key]
+        except Exception:
+            logger.info(
+                'File type {} not supported')
+            return False
+
+        return True
