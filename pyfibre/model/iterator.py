@@ -1,6 +1,6 @@
 import logging
 
-from pyfibre.io.multi_image_reader import WrongFileTypeError
+from pyfibre.io.base_multi_image_reader import WrongFileTypeError
 
 logger = logging.getLogger(__name__)
 

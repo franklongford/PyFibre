@@ -23,7 +23,7 @@ from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.io.database_io import save_database, load_database
-from pyfibre.io.multi_image_reader import MultiImageReader
+from pyfibre.io.base_multi_image_reader import BaseMultiImageReader
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 from pyfibre.io.utilities import get_file_names
 from pyfibre.model.iterator import assign_images
@@ -45,7 +45,7 @@ class PyFibreMainTask(Task):
 
     name = 'PyFibre GUI (Main)'
 
-    multi_image_readers = Dict(Str, Instance(MultiImageReader))
+    multi_image_readers = Dict(Str, Instance(BaseMultiImageReader))
 
     options_pane = Instance(OptionsPane)
 

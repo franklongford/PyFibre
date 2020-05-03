@@ -2,20 +2,27 @@ import numpy as np
 
 from skimage.external.tifffile import TiffFile
 
-from pyfibre.io.multi_image_reader import (
-    MultiImageReader, get_tiff_param, WrongFileTypeError)
+from pyfibre.io.base_multi_image_reader import (
+    BaseMultiImageReader)
+from pyfibre.io.shg_pl_reader import get_tiff_param
 from pyfibre.tests.fixtures import (
     test_shg_image_path, test_shg_pl_trans_image_path)
 from pyfibre.tests.probe_classes.multi_images import ProbeFixedStackImage
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 
-class ProbeMultiImageReader(MultiImageReader):
+class ProbeMultiImageReader(BaseMultiImageReader):
 
     _multi_image_class = ProbeFixedStackImage
 
+    def can_load(self, filename):
+        return True
+
+    def load_image(self, filename):
+        return np.ones((100, 100))
+
     def create_image_stack(self, filenames):
-        return [np.ones((100, 100))] * len(filenames)
+        return [self.load_image(filename) for filename in filenames]
 
 
 class TestMultiImageReader(PyFibreTestCase):
@@ -24,59 +31,6 @@ class TestMultiImageReader(PyFibreTestCase):
         self.reader = ProbeMultiImageReader()
         self.filenames = [test_shg_image_path,
                           test_shg_pl_trans_image_path]
-
-    def test_load_images(self):
-
-        images = self.reader._load_images(self.filenames)
-        self.assertEqual(2, len(images))
-        self.assertEqual((200, 200), images[0].shape)
-        self.assertEqual((3, 200, 200), images[1].shape)
-
-        with self.assertRaises(WrongFileTypeError):
-            self.reader._load_images(['not a file'])
-
-    def test__format_image(self):
-
-        image = self.reader._format_image(
-            np.ones((10, 10)) * 2
-        )
-        self.assertArrayAlmostEqual(
-            np.ones((10, 10)),
-            image
-        )
-        self.assertEqual(np.float, image.dtype)
-
-        image = self.reader._format_image(
-            np.ones((10, 10, 3)) * 2
-        )
-        self.assertArrayAlmostEqual(
-            np.ones((10, 10, 3)),
-            image
-        )
-
-        image = self.reader._format_image(
-            np.ones((10, 10, 3)) * 2, 2
-        )
-        self.assertArrayAlmostEqual(
-            np.ones((10, 10)),
-            image
-        )
-
-        test_image = np.ones((3, 3, 10, 10))
-        test_image[0] *= 2
-        test_image[2] *= 3
-        image = self.reader._format_image(
-            test_image, 1
-        )
-        self.assertArrayAlmostEqual(
-            np.ones((3, 10, 10)),
-            image
-        )
-
-    def test_can_load(self):
-
-        self.assertTrue(self.reader.can_load(test_shg_image_path))
-        self.assertFalse(self.reader.can_load('not_an_image'))
 
     def test_load_multi_image(self):
 
