@@ -136,7 +136,6 @@ class ImageAnalyser:
         save_network(network, filename, "network")
 
         fibre_networks = fibre_network_assignment(network)
-
         save_fibre_networks(fibre_networks, filename)
 
         end_time = time.time()
@@ -147,7 +146,7 @@ class ImageAnalyser:
 
         return network, fibre_networks
 
-    def segment_analysis(self, multi_image, filename):
+    def segment_analysis(self, multi_image, filename, fibre_networks):
         """Segment image into fiborous and cellular regions based on
         fibre network
 
@@ -157,11 +156,10 @@ class ImageAnalyser:
             MultiImage object to analyse
         filename: str
             Reference to original tif files for output data
+        fibre_networks: list of FibreNetwork
         """
 
         start_time = time.time()
-
-        fibre_networks = load_fibre_networks(filename)
 
         logger.debug("Segmenting Fibre and Cell regions")
         fibre_segments, cell_segments = multi_image.segmentation_algorithm(
@@ -181,7 +179,8 @@ class ImageAnalyser:
 
         return fibre_segments, cell_segments
 
-    def metric_analysis(self, multi_image, filename):
+    def metric_analysis(self, multi_image, filename,
+                        fibre_networks, fibre_segments, cell_segments):
         """Perform metric analysis on segmented image
 
         Parameters
@@ -190,16 +189,12 @@ class ImageAnalyser:
             MultiImage object to analyse
         filename: str
             Reference to original tif files for output data
+        fibre_networks: list of FibreNetwork
+        fibre_segments: list of FibreSegment
+        cell_segments: list of CellSegment
         """
 
         start_time = time.time()
-
-        # Load networks and segments"
-        fibre_networks = load_fibre_networks(filename)
-        fibre_segments = load_fibre_segments(
-            filename, intensity_image=multi_image.shg_image)
-        cell_segments = load_cell_segments(
-            filename, intensity_image=multi_image.pl_image)
 
         global_dataframe, local_dataframes = generate_metrics(
             multi_image, filename, fibre_networks,
@@ -215,6 +210,10 @@ class ImageAnalyser:
 
         logger.info(f"TOTAL METRIC TIME = "
                     f"{round(end_time - start_time, 3)} s")
+
+        databases = tuple([global_dataframe] + local_dataframes)
+
+        return databases
 
     def create_figures(self, multi_image, filename, figname):
         """Create and save figures"""
@@ -281,28 +280,42 @@ class ImageAnalyser:
 
         start = time.time()
 
+        # Load or create list of FibreNetwork instances
         if network:
-            self.network_analysis(multi_image, filename)
+            _, fibre_networks = self.network_analysis(
+                multi_image, filename)
+        else:
+            fibre_networks = load_fibre_networks(filename)
 
+        # Load or create lists of FibreSegments
         if segment:
-            self.segment_analysis(multi_image, filename)
+            fibre_segments, cell_segments = self.segment_analysis(
+                multi_image, filename, fibre_networks)
+        else:
+            fibre_segments = load_fibre_segments(
+                filename, intensity_image=multi_image.shg_image)
+            cell_segments = load_cell_segments(
+                filename, intensity_image=multi_image.pl_image)
 
+        # Load or create metric databases
         if metric:
-            self.metric_analysis(multi_image, filename)
+            databases = self.metric_analysis(
+                multi_image, filename, fibre_networks,
+                fibre_segments, cell_segments)
+        else:
+            global_dataframe = load_database(filename, 'global_metric')
+            fibre_dataframe = load_database(filename, 'fibre_metric')
+            network_dataframe = load_database(filename, 'network_metric')
+            cell_dataframe = load_database(filename, 'cell_metric')
+            databases = (global_dataframe, fibre_dataframe,
+                         network_dataframe, cell_dataframe)
 
+        # Create figures
         if self.workflow.save_figures:
             self.create_figures(multi_image, filename, figname)
 
         end = time.time()
 
         logger.info(f"TOTAL ANALYSIS TIME = {round(end - start, 3)} s")
-
-        global_dataframe = load_database(filename, 'global_metric')
-        fibre_dataframe = load_database(filename, 'fibre_metric')
-        network_dataframe = load_database(filename, 'network_metric')
-        cell_dataframe = load_database(filename, 'cell_metric')
-
-        databases = (global_dataframe, fibre_dataframe,
-                     network_dataframe, cell_dataframe)
 
         return databases
