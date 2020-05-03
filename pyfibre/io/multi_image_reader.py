@@ -131,17 +131,16 @@ class MultiImageReader(HasTraits):
         """Transform image to normalised float array and average
         over any stack"""
 
-        if image.ndim == 2:
-            return img_as_float(image / image.max())
-
-        elif minor_axis is not None:
+        # Average over minor axis if needed
+        if minor_axis is not None:
             image = np.mean(image, axis=minor_axis)
 
-        if image.ndim > 2:
+        # If 2D array, simply normalise and return as float
+        if image.ndim == 2:
+            image = image / image.max()
+        elif image.ndim > 2:
             for index, channel in enumerate(image):
                 image[index] = channel / channel.max()
-        else:
-            image = image / image.max()
 
         return img_as_float(image)
 
@@ -149,9 +148,7 @@ class MultiImageReader(HasTraits):
         raise NotImplementedError()
 
     def load_multi_image(self, filenames):
-        """
-        Image loader for MultiImage classes
-        """
+        """Image loader for MultiImage classes"""
 
         image_stack = self.create_image_stack(filenames)
 
@@ -180,7 +177,7 @@ class MultiImageReader(HasTraits):
                 # Check if this is test data
                 _, description = lookup_page(tiff_file.pages[0])
                 desc_dict = json.loads(description)
-                for key in ['minor_axis','n_modes', 'xy_dim']:
+                for key in ['minor_axis', 'n_modes', 'xy_dim']:
                     _ = desc_dict[key]
         except Exception:
             logger.info(
