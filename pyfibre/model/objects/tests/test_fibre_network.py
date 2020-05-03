@@ -21,14 +21,9 @@ class TestFibreNetwork(TestCase):
 
         self.assertIn('fibres', state)
         self.assertIn('red_graph', state)
-        self.assertListEqual([], state['fibres'])
-        self.assertIsNone(state['red_graph'])
+        self.assertIsNotNone(state['red_graph'])
+        self.assertEqual(1, len(state['fibres']))
 
-        self.network.fibres = self.fibres
-        state = self.network.to_json()
-        self.assertEqual(3, len(state['fibres']))
-
-        self.network.red_graph = self.network.generate_red_graph()
         state = self.network.to_json()
 
         self.assertDictEqual(
