@@ -88,8 +88,6 @@ class TestImageAnalyser(TestCase):
                     self.fibre_networks, self.fibre_segments,
                     self.cell_segments)
 
-            print(len(databases))
-
             self.assertTrue(
                 os.path.exists(tmp_file.name + '_global_metric.h5'))
             self.assertTrue(
@@ -98,6 +96,8 @@ class TestImageAnalyser(TestCase):
                 os.path.exists(tmp_file.name + '_network_metric.h5'))
             self.assertTrue(
                 os.path.exists(tmp_file.name + '_cell_metric.h5'))
+
+        self.assertEqual(4, len(databases))
 
     def test_create_figures(self):
         pass

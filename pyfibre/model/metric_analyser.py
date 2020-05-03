@@ -143,7 +143,7 @@ def generate_metrics(
         fibre_segments, cell_segments, sigma):
 
     global_dataframe = pd.Series(dtype=object)
-    global_dataframe['File'] = '{}_global_segment.npy'.format(filename)
+    global_dataframe['File'] = filename
 
     local_dataframes = [None, None, None]
 

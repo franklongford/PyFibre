@@ -206,13 +206,13 @@ class PyFibreMainTask(Task):
     def update_ui(self):
         if self.run_enabled:
             self.viewer_pane.update_image()
-        self.create_databases()
         if self.options_pane.save_database:
             self.save_database(self.options_pane.database_filename)
 
     @on_trait_change('current_futures:result_event')
     def _report_result(self, result):
-        logger.info("Image analysis complete for {}".format(result))
+        database = result[0]
+        logger.info(f"Image analysis complete for {database['File']}")
 
     @on_trait_change('current_futures:done')
     def _future_done(self, future, name, new):
@@ -255,7 +255,6 @@ class PyFibreMainTask(Task):
             batch_dict = {row.name: row._dictionary
                           for row in batch_rows}
 
-            reader = SHGPLTransReader()
             workflow = PyFibreWorkflow(
                 p_denoise=(self.options_pane.n_denoise,
                            self.options_pane.m_denoise),
@@ -270,7 +269,8 @@ class PyFibreMainTask(Task):
             )
 
             future = self.traits_executor.submit_iteration(
-                iterate_images, batch_dict, image_analyser, reader
+                iterate_images, batch_dict, image_analyser,
+                self.multi_image_readers
             )
             self.current_futures.append(future)
 
