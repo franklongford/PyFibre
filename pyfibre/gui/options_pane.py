@@ -1,7 +1,7 @@
 from pyface.tasks.api import TraitsDockPane
 
 from traits.api import (
-    Bool, Float, Int, File
+    Bool, Float, Int
 )
 from traitsui.api import (
     View, VGroup, Item,
