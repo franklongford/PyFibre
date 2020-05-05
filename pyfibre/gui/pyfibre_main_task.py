@@ -13,7 +13,8 @@ from pyface.tasks.api import (
 )
 from traits.api import (
     Bool, Int, List, Property, Instance, Event, Any,
-    on_trait_change, HasStrictTraits, Dict, Str
+    on_trait_change, HasStrictTraits, Dict, Str,
+    File
 )
 from traits_futures.api import (
     TraitsExecutor, CANCELLED, COMPLETED,
@@ -46,6 +47,8 @@ class PyFibreMainTask(Task):
     name = 'PyFibre GUI (Main)'
 
     multi_image_readers = Dict(Str, Instance(BaseMultiImageReader))
+
+    database_filename = File('pyfibre_database')
 
     options_pane = Instance(OptionsPane)
 
@@ -206,8 +209,6 @@ class PyFibreMainTask(Task):
     def update_ui(self):
         if self.run_enabled:
             self.viewer_pane.update_image()
-        if self.options_pane.save_database:
-            self.save_database(self.options_pane.database_filename)
 
     @on_trait_change('current_futures:result_event')
     def _report_result(self, result):
@@ -334,16 +335,21 @@ class PyFibreMainTask(Task):
 
     def save_database(self, filename):
 
-        save_database(self.global_database, filename)
-        save_database(self.fibre_database, filename, 'fibre')
-        save_database(self.network_database, filename, 'network')
-        save_database(self.cell_database, filename, 'cell')
+        try:
+            save_database(self.global_database, filename)
+            save_database(self.fibre_database, filename, 'fibre')
+            save_database(self.network_database, filename, 'network')
+            save_database(self.cell_database, filename, 'cell')
+        except IOError:
+            logger.exception("Error when saving databases")
+            return False
+        return True
 
     def save_database_as(self):
         """ Shows a dialog to save the databases"""
         dialog = FileDialog(
             action="save as",
-            default_filename=self.options_pane.database_filename,
+            default_filename=self.database_filename,
         )
 
         result = dialog.open()
@@ -355,10 +361,7 @@ class PyFibreMainTask(Task):
 
         self.create_databases()
 
-        if self.save_database(current_file):
-            self.options_pane.database_filename = current_file
-            return True
-        return False
+        return self.save_database(current_file)
 
     def stop_run(self):
         self._cancel_all_fired()
