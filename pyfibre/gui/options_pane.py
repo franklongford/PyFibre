@@ -1,7 +1,7 @@
 from pyface.tasks.api import TraitsDockPane
 
 from traits.api import (
-    Bool, Float, Int, File
+    Bool, Float, Int
 )
 from traitsui.api import (
     View, VGroup, Item,
@@ -36,10 +36,6 @@ class OptionsPane(TraitsDockPane):
 
     save_figures = Bool(False)
 
-    save_database = Bool(False)
-
-    database_filename = File('pyfibre_database')
-
     # Image analysis parameters
     sigma = Float(0.5)
 
@@ -67,10 +63,6 @@ class OptionsPane(TraitsDockPane):
             Item('ow_segment', label="Overwrite Segments?"),
             Item('ow_metric', label="Overwrite Metrics?"),
             Item('save_figures', label="Save Figures?"),
-            Item('save_database', label='Save Database?'),
-            Item('database_filename',
-                 label='Database file',
-                 visible_when='save_database'),
             Item('sigma', label="Gaussian Std Dev (pix)"),
             Item('alpha', label="Alpha network coefficient"),
             Group(

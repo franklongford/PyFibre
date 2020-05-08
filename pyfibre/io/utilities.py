@@ -198,6 +198,7 @@ def replace_ext(file_name, extension):
 
 
 def get_file_names(prefix):
+    """Return set of paths determined from file prefix"""
 
     image_name = os.path.basename(prefix)
     working_dir = os.path.join(

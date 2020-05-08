@@ -7,15 +7,12 @@ from pyfibre.tests.probe_classes.utilities import (
     generate_probe_graph, generate_regions)
 
 
-class ProbeGraphMixin:
+class ProbeGraph(BaseGraph):
 
     def __init__(self, *args, **kwargs):
         kwargs['graph'] = generate_probe_graph()
         super().__init__(
             *args, **kwargs)
-
-
-class ProbeGraph(ProbeGraphMixin, BaseGraph):
 
     def generate_database(self, image=None):
         pass
@@ -33,12 +30,22 @@ class ProbeGraphSegment(BaseGraphSegment):
         pass
 
 
-class ProbeFibre(ProbeGraphMixin, Fibre):
-    pass
+class ProbeFibre(Fibre):
+
+    def __init__(self, *args, **kwargs):
+        kwargs['graph'] = generate_probe_graph()
+        super().__init__(
+            *args, **kwargs)
 
 
-class ProbeFibreNetwork(ProbeGraphMixin, FibreNetwork):
-    pass
+class ProbeFibreNetwork(FibreNetwork):
+
+    def __init__(self, *args, **kwargs):
+        kwargs['graph'] = generate_probe_graph()
+        super().__init__(
+            *args, **kwargs)
+        self.fibres = self.generate_fibres()
+        self.red_graph = self.generate_red_graph()
 
 
 class ProbeSegment(BaseSegment):
@@ -50,3 +57,13 @@ class ProbeSegment(BaseSegment):
             kwargs['region'] = generate_regions()[0]
         super(ProbeSegment, self).__init__(
             *args, **kwargs)
+
+
+class ProbeFibreSegment(ProbeSegment):
+
+    _tag = 'Fibre'
+
+
+class ProbeCellSegment(ProbeSegment):
+
+    _tag = 'Cell'

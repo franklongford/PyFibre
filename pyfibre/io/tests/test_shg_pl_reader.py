@@ -1,5 +1,8 @@
 from unittest import TestCase
 
+import numpy as np
+
+from pyfibre.io.base_multi_image_reader import WrongFileTypeError
 from pyfibre.io.shg_pl_reader import (
     get_image_type, extract_prefix,
     get_files_prefixes, filter_input_files,
@@ -10,6 +13,7 @@ from pyfibre.io.shg_pl_reader import (
 from pyfibre.tests.fixtures import (
     test_shg_image_path, test_pl_image_path,
     test_shg_pl_trans_image_path)
+from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 
 class TestImageReader(TestCase):
@@ -113,11 +117,63 @@ class TestImageReader(TestCase):
         self.assertEqual(4, len(input_files))
 
 
-class TestSHGReader(TestCase):
+class TestSHGReader(PyFibreTestCase):
 
     def setUp(self):
         self.reader = SHGReader()
         self.filenames = [test_shg_image_path]
+
+    def test_can_load(self):
+
+        self.assertTrue(self.reader.can_load(test_shg_image_path))
+        self.assertFalse(self.reader.can_load('not_an_image'))
+
+    def test__format_image(self):
+
+        image = self.reader._format_image(
+            np.ones((10, 10)) * 2
+        )
+        self.assertArrayAlmostEqual(
+            np.ones((10, 10)),
+            image
+        )
+        self.assertEqual(np.float, image.dtype)
+
+        image = self.reader._format_image(
+            np.ones((10, 10, 3)) * 2
+        )
+        self.assertArrayAlmostEqual(
+            np.ones((10, 10, 3)),
+            image
+        )
+
+        image = self.reader._format_image(
+            np.ones((10, 10, 3)) * 2, 2
+        )
+        self.assertArrayAlmostEqual(
+            np.ones((10, 10)),
+            image
+        )
+
+        test_image = np.ones((3, 3, 10, 10))
+        test_image[0] *= 2
+        test_image[2] *= 3
+        image = self.reader._format_image(
+            test_image, 1
+        )
+        self.assertArrayAlmostEqual(
+            np.ones((3, 10, 10)),
+            image
+        )
+
+    def test_load_images(self):
+
+        images = self.reader._load_images(self.filenames)
+        self.assertEqual(1, len(images))
+        self.assertEqual((200, 200), images[0].shape)
+
+        with self.assertRaises(WrongFileTypeError):
+            self.reader._load_images(['not a file'])
 
     def test_create_image_stack(self):
 
@@ -137,6 +193,12 @@ class TestSHGPLTransReader(TestCase):
     def setUp(self):
         self.reader = SHGPLTransReader()
         self.filenames = [test_shg_pl_trans_image_path]
+
+    def test_load_images(self):
+
+        images = self.reader._load_images(self.filenames)
+        self.assertEqual(1, len(images))
+        self.assertEqual((3, 200, 200), images[0].shape)
 
     def test_create_image_stack(self):
         image_stack = self.reader.create_image_stack(self.filenames)

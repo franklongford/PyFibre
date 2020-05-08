@@ -13,7 +13,8 @@ from pyface.tasks.api import (
 )
 from traits.api import (
     Bool, Int, List, Property, Instance, Event, Any,
-    on_trait_change, HasStrictTraits, Dict, Str
+    on_trait_change, HasStrictTraits, Dict, Str,
+    File
 )
 from traits_futures.api import (
     TraitsExecutor, CANCELLED, COMPLETED,
@@ -23,7 +24,7 @@ from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.io.database_io import save_database, load_database
-from pyfibre.io.multi_image_reader import MultiImageReader
+from pyfibre.io.base_multi_image_reader import BaseMultiImageReader
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 from pyfibre.io.utilities import get_file_names
 from pyfibre.model.iterator import assign_images
@@ -45,7 +46,9 @@ class PyFibreMainTask(Task):
 
     name = 'PyFibre GUI (Main)'
 
-    multi_image_readers = Dict(Str, Instance(MultiImageReader))
+    multi_image_readers = Dict(Str, Instance(BaseMultiImageReader))
+
+    database_filename = File('pyfibre_database')
 
     options_pane = Instance(OptionsPane)
 
@@ -206,13 +209,11 @@ class PyFibreMainTask(Task):
     def update_ui(self):
         if self.run_enabled:
             self.viewer_pane.update_image()
-        self.create_databases()
-        if self.options_pane.save_database:
-            self.save_database(self.options_pane.database_filename)
 
     @on_trait_change('current_futures:result_event')
     def _report_result(self, result):
-        logger.info("Image analysis complete for {}".format(result))
+        database = result[0]
+        logger.info(f"Image analysis complete for {database['File']}")
 
     @on_trait_change('current_futures:done')
     def _future_done(self, future, name, new):
@@ -255,7 +256,6 @@ class PyFibreMainTask(Task):
             batch_dict = {row.name: row._dictionary
                           for row in batch_rows}
 
-            reader = SHGPLTransReader()
             workflow = PyFibreWorkflow(
                 p_denoise=(self.options_pane.n_denoise,
                            self.options_pane.m_denoise),
@@ -270,7 +270,8 @@ class PyFibreMainTask(Task):
             )
 
             future = self.traits_executor.submit_iteration(
-                iterate_images, batch_dict, image_analyser, reader
+                iterate_images, batch_dict, image_analyser,
+                self.multi_image_readers
             )
             self.current_futures.append(future)
 
@@ -334,16 +335,21 @@ class PyFibreMainTask(Task):
 
     def save_database(self, filename):
 
-        save_database(self.global_database, filename)
-        save_database(self.fibre_database, filename, 'fibre')
-        save_database(self.network_database, filename, 'network')
-        save_database(self.cell_database, filename, 'cell')
+        try:
+            save_database(self.global_database, filename)
+            save_database(self.fibre_database, filename, 'fibre')
+            save_database(self.network_database, filename, 'network')
+            save_database(self.cell_database, filename, 'cell')
+        except IOError:
+            logger.exception("Error when saving databases")
+            return False
+        return True
 
     def save_database_as(self):
         """ Shows a dialog to save the databases"""
         dialog = FileDialog(
             action="save as",
-            default_filename=self.options_pane.database_filename,
+            default_filename=self.database_filename,
         )
 
         result = dialog.open()
@@ -355,10 +361,7 @@ class PyFibreMainTask(Task):
 
         self.create_databases()
 
-        if self.save_database(current_file):
-            self.options_pane.database_filename = current_file
-            return True
-        return False
+        return self.save_database(current_file)
 
     def stop_run(self):
         self._cancel_all_fired()

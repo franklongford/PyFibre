@@ -1,5 +1,7 @@
 import logging
 
+from pyfibre.io.base_multi_image_reader import WrongFileTypeError
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,7 +34,7 @@ def iterate_images(dictionary, analyser, readers):
 
         try:
             multi_image = readers[image_type].load_multi_image(filenames)
-        except (KeyError, ImportError):
+        except (KeyError, ImportError, WrongFileTypeError):
             logger.info(f'Cannot process image data for {filenames}')
         else:
             logger.info(f"Processing image data for {filenames}")

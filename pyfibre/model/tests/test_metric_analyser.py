@@ -22,8 +22,6 @@ class TestMetricAnalyser(TestCase):
             filename='test', sigma=0.5
         )
         self.fibre_network = ProbeFibreNetwork()
-        self.fibre_network.fibres = self.fibre_network.generate_fibres()
-        self.fibre_network.red_graph = self.fibre_network.generate_red_graph()
 
         regions = generate_regions()
         self.fibre_segment = FibreSegment(region=regions[0])
