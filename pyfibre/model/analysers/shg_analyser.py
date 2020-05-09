@@ -275,6 +275,7 @@ class SHGAnalyser(BaseAnalyser):
         )
 
         self._clear_attr()
+        self.make_directories()
 
         start = time.time()
 
