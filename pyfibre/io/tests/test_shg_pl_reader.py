@@ -183,7 +183,10 @@ class TestSHGReader(PyFibreTestCase):
 
     def test_load_multi_image(self):
 
-        multi_image = self.reader.load_multi_image(self.filenames)
+        multi_image = self.reader.load_multi_image(
+            self.filenames, '/some/path/test-shg')
+        self.assertEqual('test-shg', multi_image.name)
+        self.assertEqual('/some/path', multi_image.path)
         self.assertEqual((200, 200), multi_image.shape)
         self.assertEqual(1, len(multi_image))
 
@@ -211,11 +214,18 @@ class TestSHGPLTransReader(TestCase):
         self.assertEqual((200, 200), image_stack[0].shape)
 
     def test_load_multi_image(self):
-        multi_image = self.reader.load_multi_image(self.filenames)
+        multi_image = self.reader.load_multi_image(
+            self.filenames, '/some/path/test-shg-pl-trans')
+        self.assertEqual('test-shg-pl-trans', multi_image.name)
+        self.assertEqual('/some/path', multi_image.path)
         self.assertEqual((200, 200), multi_image.shape)
         self.assertEqual(3, len(multi_image))
 
         multi_image = self.reader.load_multi_image(
-            [test_shg_image_path, test_pl_image_path])
+            [test_shg_image_path, test_pl_image_path],
+            'test-shg-pl-trans'
+        )
+        self.assertEqual('test-shg-pl-trans', multi_image.name)
+        self.assertEqual('', multi_image.path)
         self.assertEqual((200, 200), multi_image.shape)
         self.assertEqual(3, len(multi_image))

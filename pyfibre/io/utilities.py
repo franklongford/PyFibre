@@ -201,17 +201,9 @@ def get_file_names(prefix):
     """Return set of paths determined from file prefix"""
 
     image_name = os.path.basename(prefix)
-    working_dir = os.path.join(
-        os.path.dirname(prefix),
-        f"{image_name}-pyfibre-analysis")
+    working_dir = os.path.dirname(prefix)
 
-    data_dir = os.path.join(working_dir, 'data')
-    fig_dir = os.path.join(working_dir, 'fig')
-
-    filename = os.path.join(data_dir, image_name)
-    figname = os.path.join(fig_dir, image_name)
-
-    return working_dir, data_dir, fig_dir, filename, figname
+    return image_name, working_dir
 
 
 def save_json(data, file_name):

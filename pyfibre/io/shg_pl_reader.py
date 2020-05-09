@@ -9,8 +9,9 @@ from skimage.external.tifffile import TiffFile
 
 from pyfibre.io.base_multi_image_reader import (
     BaseMultiImageReader, lookup_page)
-from pyfibre.model.multi_image.multi_images import (
-    SHGImage, SHGPLTransImage)
+from pyfibre.model.multi_image.shg_image import (
+    SHGImage)
+from pyfibre.model.multi_image.shg_pl_trans_image import SHGPLTransImage
 
 logger = logging.getLogger(__name__)
 

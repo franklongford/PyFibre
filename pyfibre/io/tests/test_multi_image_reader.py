@@ -35,13 +35,15 @@ class TestMultiImageReader(PyFibreTestCase):
     def test_load_multi_image(self):
 
         multi_image = self.reader.load_multi_image(
-            [test_shg_image_path])
+            [test_shg_image_path], 'test-pyfibre')
 
         self.assertEqual((100, 100), multi_image.shape)
         self.assertEqual(1, len(multi_image))
+        self.assertEqual('test-pyfibre', multi_image.name)
+        self.assertEqual('', multi_image.path)
 
         with self.assertRaises(ImportError):
-            self.reader.load_multi_image(self.filenames)
+            self.reader.load_multi_image(self.filenames, None)
 
     def test_get_tiff_param(self):
 
