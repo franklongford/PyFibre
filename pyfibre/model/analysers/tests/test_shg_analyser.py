@@ -89,11 +89,14 @@ class TestSHGAnalyser(PyFibreTestCase):
 
             self.analyser._save_networks()
 
-            self.assertListEqual(
-                ['test-shg_fibre_networks.json',
-                 'test-shg_network.pkl'],
-                os.listdir(f"{tmp_dir}/test-shg-pyfibre-analysis/data")
-            )
+            networks = ['test-shg_fibre_networks.json',
+                        'test-shg_network.pkl']
+
+            for network in networks:
+                self.assertIn(
+                    network,
+                    os.listdir(f"{tmp_dir}/test-shg-pyfibre-analysis/data")
+                )
 
             self.analyser._load_networks()
 
@@ -123,11 +126,15 @@ class TestSHGAnalyser(PyFibreTestCase):
 
             self.analyser._save_segments()
 
-            self.assertListEqual(
-                ['test-shg_fibre_segments.npy',
-                 'test-shg_cell_segments.npy'],
-                os.listdir(f"{tmp_dir}/test-shg-pyfibre-analysis/data")
-            )
+            segments = ['test-shg_cell_segments.npy',
+                        'test-shg_fibre_segments.npy']
+
+            for segment in segments:
+                self.assertIn(
+                    segment,
+                    os.listdir(f"{tmp_dir}/test-shg-pyfibre-analysis"
+                               f"/data")
+                )
 
             self.analyser._load_segments()
 
@@ -153,17 +160,20 @@ class TestSHGAnalyser(PyFibreTestCase):
 
             self.analyser._save_databases()
 
-            self.assertListEqual(
-                ['test-shg_network_metric.xls',
-                 'test-shg_network_metric.h5',
-                 'test-shg_fibre_metric.xls',
-                 'test-shg_global_metric.xls',
-                 'test-shg_fibre_metric.h5',
-                 'test-shg_cell_metric.h5',
-                 'test-shg_global_metric.h5',
-                 'test-shg_cell_metric.xls'],
-                os.listdir(f"{tmp_dir}/test-shg-pyfibre-analysis/data")
-            )
+            databases = ['test-shg_network_metric.xls',
+                         'test-shg_network_metric.h5',
+                         'test-shg_fibre_metric.xls',
+                         'test-shg_global_metric.xls',
+                         'test-shg_fibre_metric.h5',
+                         'test-shg_cell_metric.h5',
+                         'test-shg_global_metric.h5',
+                         'test-shg_cell_metric.xls']
+
+            for database in databases:
+                self.assertIn(
+                    database,
+                    os.listdir(f"{tmp_dir}/test-shg-pyfibre-analysis/data")
+                )
 
             self.analyser._load_databases()
 

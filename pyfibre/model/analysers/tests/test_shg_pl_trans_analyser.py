@@ -44,12 +44,15 @@ class TestSHGPLTransAnalyser(PyFibreTestCase):
 
             self.analyser._save_segments()
 
-            self.assertListEqual(
-                ['test-shg-pl-trans_cell_segments.npy',
-                 'test-shg-pl-trans_fibre_segments.npy'],
-                os.listdir(f"{tmp_dir}/test-shg-pl-trans-pyfibre-analysis"
-                           f"/data")
-            )
+            segments = ['test-shg-pl-trans_cell_segments.npy',
+                        'test-shg-pl-trans_fibre_segments.npy']
+
+            for segment in segments:
+                self.assertIn(
+                    segment,
+                    os.listdir(f"{tmp_dir}/test-shg-pl-trans-pyfibre-analysis"
+                               f"/data")
+                )
 
             self.analyser._load_segments()
 
