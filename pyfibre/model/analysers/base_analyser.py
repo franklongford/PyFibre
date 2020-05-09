@@ -10,6 +10,7 @@ class BaseAnalyser(ABCHasTraits):
     """Class that provides analysis instructions for a particular
     BaseMultiImage class"""
 
+    #: Reference to multi image under analysis
     multi_image = Instance(BaseMultiImage)
 
     @abstractmethod
@@ -28,6 +29,8 @@ class BaseAnalyser(ABCHasTraits):
 
     @property
     def analysis_path(self):
+        """Identifies folder that will be used to store analysis
+        files"""
         return os.path.join(
             self.multi_image.path,
             '-'.join([self.multi_image.name, 'pyfibre', 'analysis'])

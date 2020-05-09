@@ -21,21 +21,16 @@ def clip_intensities(image, p_intensity=(1, 98)):
 
     Parameters
     ----------
-
     image:  array_like (float); shape=(n_y, n_x)
         Image to pre-process
-
     p_intensity: tuple (float); shape=(2,)
         Percentile range for intensity rescaling
         (used to remove outliers)
 
-
     Returns
     -------
-
     image:  array_like (float); shape=(n_y, n_x)
         Pre-processed image
-
     """
 
     logger.debug(
@@ -55,20 +50,16 @@ def nl_means(image, p_denoise=(5, 35)):
 
     Parameters
     ----------
-
     image:  array_like (float); shape=(n_y, n_x)
         Image to pre-process
-
     p_denoise: tuple (float); shape=(2,)
         Parameters for non-linear means denoise algorithm
         (used to remove noise)
 
     Returns
     -------
-
     image:  array_like (float); shape=(n_y, n_x)
         Pre-processed image
-
     """
 
     sigma = estimate_sigma(image)
