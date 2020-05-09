@@ -25,6 +25,13 @@ class SHGPLTransAnalyser(SHGAnalyser):
         self._cell_segments = load_cell_segments(
             self._data_file, intensity_image=self.multi_image.pl_image)
 
+    def _figures_kwargs(self):
+        kwargs = super(SHGPLTransAnalyser, self)._figures_kwargs()
+
+        kwargs['cell_regions'] = [cell.region for cell in self._cell_segments]
+
+        return kwargs
+
     def create_metrics(self, sigma):
         """Perform metric analysis on segmented image
 

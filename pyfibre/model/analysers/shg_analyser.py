@@ -66,13 +66,13 @@ class SHGAnalyser(BaseAnalyser):
 
         fibres = [
             fibre_network.fibres for fibre_network in self._fibre_networks]
+
         kwargs['network_graphs'] = [
             fibre_network.graph for fibre_network in self._fibre_networks]
         kwargs['fibre_graphs'] = [
             fibre.graph for fibre in flatten_list(fibres)]
         kwargs['fibre_regions'] = [
             fibre_segment.region for fibre_segment in self._fibre_segments]
-        kwargs['cell_regions'] = [cell.region for cell in self._cell_segments]
 
         return kwargs
 
@@ -246,7 +246,6 @@ class SHGAnalyser(BaseAnalyser):
 
         start_fig = time.time()
 
-        self._load_segments()
         kwargs = self._figures_kwargs()
 
         self.multi_image.create_figures(
@@ -302,7 +301,7 @@ class SHGAnalyser(BaseAnalyser):
         # Load or create lists of FibreSegments
         logger.debug("Segmenting Fibre and Cell regions")
         if segment:
-            self_fibre_segments, self._cell_segments = (
+            self._fibre_segments, self._cell_segments = (
                 self.multi_image.segmentation_algorithm(
                     self._fibre_networks,
                     scale=workflow.scale
@@ -319,7 +318,7 @@ class SHGAnalyser(BaseAnalyser):
             f"{round(seg_checkpoint - net_checkpoint, 3)} s")
 
         if metric:
-            self.create_metrics()
+            self.create_metrics(sigma=workflow.sigma)
             self._save_databases()
         else:
             self._load_databases()

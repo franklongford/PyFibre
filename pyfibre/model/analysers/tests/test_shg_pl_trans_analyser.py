@@ -80,3 +80,21 @@ class TestSHGPLTransAnalyser(PyFibreTestCase):
         self.assertIsInstance(self.analyser._databases[0], Series)
         for database in self.analyser._databases[1:]:
             self.assertIsInstance(database, DataFrame)
+
+    def test_create_figures(self):
+
+        with TemporaryDirectory() as tmp_dir:
+            self.multi_image.path = tmp_dir
+            self.analyser.make_directories()
+
+            self.analyser.create_figures()
+
+            figures = ['test-shg-pl-trans_PL.png',
+                       'test-shg-pl-trans_trans.png']
+
+            for figure in figures:
+                self.assertIn(
+                    figure,
+                    os.listdir(f"{tmp_dir}/test-shg-pl-trans-pyfibre-analysis"
+                               f"/fig")
+                )

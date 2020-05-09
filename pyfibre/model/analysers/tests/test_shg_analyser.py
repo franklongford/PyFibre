@@ -201,3 +201,20 @@ class TestSHGAnalyser(PyFibreTestCase):
         for database in self.analyser._databases[1:3]:
             self.assertIsInstance(database, DataFrame)
         self.assertIsNone(self.analyser._databases[3])
+
+    def test_create_figures(self):
+
+        with TemporaryDirectory() as tmp_dir:
+            self.multi_image.path = tmp_dir
+            self.analyser.make_directories()
+
+            self.analyser.create_figures()
+
+            figures = ['test-shg_SHG.png',
+                       'test-shg_tensor.png']
+
+            for figure in figures:
+                self.assertIn(
+                    figure,
+                    os.listdir(f"{tmp_dir}/test-shg-pyfibre-analysis/fig")
+                )

@@ -40,8 +40,8 @@ class SHGPLTransImage(SHGImage):
             'Trans': self.trans_image
         }
 
+    def _create_figures_default(self):
+        return create_shg_pl_trans_figures
+
     def segmentation_algorithm(self, *args, **kwargs):
         return shg_pl_trans_segmentation(self, *args, **kwargs)
-
-    def create_figures(self, *args, **kwargs):
-        return create_shg_pl_trans_figures(self, *args, **kwargs)

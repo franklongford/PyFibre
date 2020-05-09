@@ -1,7 +1,7 @@
 import logging
 
 from traits.api import (
-    Array, Property
+    Array, Property, Callable
 )
 
 from pyfibre.model.multi_image.fixed_stack_image import (
@@ -25,6 +25,8 @@ class SHGImage(FixedStackImage):
 
     _allowed_dim = [2, 3]
 
+    create_figures = Callable()
+
     def _get_shg_image(self):
         return self.image_stack[0]
 
@@ -36,8 +38,8 @@ class SHGImage(FixedStackImage):
             'SHG': self.shg_image
         }
 
+    def _create_figures_default(self):
+        return create_shg_figures
+
     def segmentation_algorithm(self, *args, **kwargs):
         return shg_segmentation(self, *args, **kwargs)
-
-    def create_figures(self, *args, **kwargs):
-        return create_shg_figures(self, *args, **kwargs)

@@ -78,6 +78,7 @@ class MetricAnalyser(ABC):
         filenames = pd.Series(
             ['{}_{}'.format(self.filename, tag)] * len(attr),
             name='File')
+
         metrics = pd.concat((filenames, metrics), axis=1)
 
         return metrics
