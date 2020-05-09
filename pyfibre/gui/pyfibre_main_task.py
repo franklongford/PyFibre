@@ -1,4 +1,5 @@
 import logging
+import os
 
 import numpy as np
 import pandas as pd
@@ -313,8 +314,9 @@ class PyFibreMainTask(Task):
 
         for i, prefix in enumerate(input_prefixes):
 
-            (working_dir, data_dir, fig_dir,
-             filename, figname) = get_file_names(prefix)
+            name, path = get_file_names(prefix)
+            filename = os.path.join(
+                path, f"{name}-pyfibre-analysis", 'data', name)
 
             logger.info("Loading metrics for {}".format(filename))
 
