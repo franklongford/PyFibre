@@ -16,7 +16,7 @@ class WrongFileTypeError(Exception):
 def lookup_page(tiff_page):
     """Obtain relevant information from a TiffPage object"""
 
-    xy_dim = tiff_page.shape
+    xy_dim = (tiff_page.image_width, tiff_page.image_length)
     description = tiff_page.image_description.decode('utf-8')
 
     return xy_dim, description
