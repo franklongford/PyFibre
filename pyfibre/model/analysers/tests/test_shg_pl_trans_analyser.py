@@ -6,7 +6,7 @@ from pandas import DataFrame, Series
 
 from pyfibre.model.analysers.shg_pl_trans_analyser import (
     SHGPLTransAnalyser)
-from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
+from pyfibre.model.pyfibre_runner import PyFibreRunner
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 from pyfibre.tests.probe_classes.shg_pl_trans_image import (
     ProbeSHGPLTransImage)
@@ -30,7 +30,7 @@ class TestSHGPLTransAnalyser(PyFibreTestCase):
         self.analyser = SHGPLTransAnalyser(
             multi_image=self.multi_image
         )
-        self.workflow = PyFibreWorkflow()
+        self.runner = PyFibreRunner()
 
     def test_save_load_segments(self):
         self.multi_image.shg_image = self.image
@@ -72,7 +72,7 @@ class TestSHGPLTransAnalyser(PyFibreTestCase):
         self.analyser._fibre_segments = self.fibre_segments
         self.analyser._cell_segments = self.cell_segments
 
-        self.analyser.create_metrics(sigma=self.workflow.sigma)
+        self.analyser.create_metrics(sigma=self.runner.sigma)
 
         self.assertEqual(4, len(self.analyser._databases))
         self.assertEqual((30,), self.analyser._databases[0].shape)

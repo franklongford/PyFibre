@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 from pandas import DataFrame, Series
 
 from pyfibre.model.analysers.shg_analyser import SHGAnalyser
-from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
+from pyfibre.model.pyfibre_runner import PyFibreRunner
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 from pyfibre.tests.probe_classes.objects import (
     ProbeFibreNetwork, ProbeFibreSegment, ProbeCellSegment)
@@ -26,7 +26,7 @@ class TestSHGAnalyser(PyFibreTestCase):
         self.analyser = SHGAnalyser(
             multi_image=self.multi_image
         )
-        self.workflow = PyFibreWorkflow()
+        self.runner = PyFibreRunner()
 
     def test_file_paths(self):
         self.multi_image.path = '/path/to/image'
@@ -51,7 +51,7 @@ class TestSHGAnalyser(PyFibreTestCase):
             self.multi_image.path = tmp_dir
 
             ow_network, ow_segment, ow_metric = (
-                self.analyser.get_analysis_options(self.workflow)
+                self.analyser.get_analysis_options(self.runner)
             )
 
             self.assertTrue(ow_network)
@@ -185,11 +185,11 @@ class TestSHGAnalyser(PyFibreTestCase):
         self.multi_image.preprocess_images()
 
         self.analyser.network_analysis(
-            sigma=self.workflow.sigma,
-            alpha=self.workflow.alpha,
-            scale=self.workflow.scale,
-            p_denoise=self.workflow.p_denoise,
-            fire_parameters=self.workflow.fire_parameters
+            sigma=self.runner.sigma,
+            alpha=self.runner.alpha,
+            scale=self.runner.scale,
+            p_denoise=self.runner.p_denoise,
+            fire_parameters=self.runner.fire_parameters
         )
 
         self.assertEqual(38, self.analyser._network.number_of_nodes())
@@ -201,7 +201,7 @@ class TestSHGAnalyser(PyFibreTestCase):
         self.analyser._fibre_segments = self.fibre_segments
         self.analyser._cell_segments = self.cell_segments
 
-        self.analyser.create_metrics(sigma=self.workflow.sigma)
+        self.analyser.create_metrics(sigma=self.runner.sigma)
 
         self.assertEqual((19,), self.analyser._databases[0].shape)
         self.assertEqual((1, 11), self.analyser._databases[1].shape)

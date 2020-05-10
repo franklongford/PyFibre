@@ -1,27 +1,50 @@
 import logging
 
-from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
-
+from traits.api import (
+    HasStrictTraits, Bool, Float, Tuple, Dict)
 
 logger = logging.getLogger(__name__)
 
 
-class PyFibreRunner:
+class PyFibreRunner(HasStrictTraits):
+    """ Set parameters for ImageAnalyser routines """
 
-    def __init__(self, workflow=None):
-        """ Set parameters for ImageAnalyser routines
+    #: Unit of scale to resize image
+    scale = Float(1.25)
 
-        Parameters
-        ----------
-        workflow: PyFibreWorkflow
-            Instance containing information regarding PyFibre's
-            Workflow
-        """
+    #: Parameters for non-linear means algorithm
+    #: (used to remove noise)
+    p_denoise = Tuple((5, 35))
 
-        if workflow is not None:
-            self.workflow = workflow
-        else:
-            self.workflow = PyFibreWorkflow()
+    #: Standard deviation of Gaussian smoothing
+    sigma = Float(0.5)
+
+    #: Metric for hysterisis segmentation
+    alpha = Float(0.5)
+
+    #: Parameters used for FIRE algorithm
+    fire_parameters = Dict()
+
+    #: Toggles force overwrite of existing fibre network
+    ow_network = Bool(False)
+
+    #: Toggles force overwrite of existing segmentation
+    ow_segment = Bool(False)
+
+    #: Toggles force overwrite of existing metric analysis
+    ow_metric = Bool(False)
+
+    #: Toggles creation of figures
+    save_figures = Bool(False)
+
+    def _fire_parameters_default(self):
+        return {
+            'nuc_thresh': 2,
+            'nuc_radius': 11,
+            'lmp_thresh': 0.15,
+            'angle_thresh': 70,
+            'r_thresh': 7
+        }
 
     def run_analysis(self, analyser):
         """
@@ -48,8 +71,8 @@ class PyFibreRunner:
                      f"Extract Network = {network}\n "
                      f"Segment Image = {segment}\n "
                      f"Generate Metrics = {metric}\n "
-                     f"Save Figures = {self.workflow.save_figures}")
+                     f"Save Figures = {self.save_figures}")
 
-        databases = analyser.image_analysis(self.workflow)
+        databases = analyser.image_analysis(self)
 
         return databases

@@ -34,7 +34,6 @@ from pyfibre.model.analysers.shg_pl_trans_analyser import (
 )
 from pyfibre.model.iterator import assign_images
 from pyfibre.model.pyfibre_runner import PyFibreRunner
-from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
 from pyfibre.model.iterator import iterate_images
 
 
@@ -267,7 +266,7 @@ class PyFibreMainTask(Task):
             batch_dict = {row.name: row._dictionary
                           for row in batch_rows}
 
-            workflow = PyFibreWorkflow(
+            runner = PyFibreRunner(
                 p_denoise=(self.options_pane.n_denoise,
                            self.options_pane.m_denoise),
                 sigma=self.options_pane.sigma,
@@ -276,9 +275,6 @@ class PyFibreMainTask(Task):
                 ow_segment=self.options_pane.ow_segment,
                 ow_metric=self.options_pane.ow_metric,
                 save_figures=self.options_pane.save_figures)
-            runner = PyFibreRunner(
-                workflow=workflow
-            )
 
             future = self.traits_executor.submit_iteration(
                 iterate_images, batch_dict, runner,

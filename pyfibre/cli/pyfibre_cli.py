@@ -17,7 +17,6 @@ from pyfibre.io.shg_pl_reader import (
 from pyfibre.model.analysers.shg_pl_trans_analyser import (
     SHGPLTransAnalyser)
 from pyfibre.io.utilities import parse_file_path
-from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
 from pyfibre.model.pyfibre_runner import PyFibreRunner
 from pyfibre.model.iterator import iterate_images
 
@@ -38,13 +37,10 @@ class PyFibreCLI:
         self.database_name = database_name
         self.key = key
 
-        workflow = PyFibreWorkflow(
+        self.runner = PyFibreRunner(
             sigma=sigma, alpha=alpha,
             ow_metric=ow_metric, ow_segment=ow_segment,
             ow_network=ow_network, save_figures=save_figures
-        )
-        self.runner = PyFibreRunner(
-            workflow=workflow
         )
         self.supported_readers = {
             'SHG-PL-Trans': SHGPLTransReader()

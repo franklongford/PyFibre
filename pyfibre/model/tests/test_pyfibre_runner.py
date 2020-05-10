@@ -33,5 +33,15 @@ class TestPyFibreRunner(TestCase):
         self.fibre_segments = [ProbeFibreSegment()]
         self.cell_segments = [ProbeCellSegment()]
 
+    def test_defaults(self):
+        self.assertEqual((5, 35), self.runner.p_denoise)
+        self.assertDictEqual(
+            {'nuc_thresh': 2,
+             'nuc_radius': 11,
+             'lmp_thresh': 0.15,
+             'angle_thresh': 70,
+             'r_thresh': 7},
+            self.runner.fire_parameters)
+
     def test_run_analysis(self):
         pass

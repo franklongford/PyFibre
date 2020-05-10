@@ -42,7 +42,7 @@ class TestPyFibreCLI(TestCase):
 
     def test_init_pyfibre_workflow(self):
 
-        workflow = self.pyfibre_cli.runner.workflow
+        workflow = self.pyfibre_cli.runner
 
         self.assertEqual(0.5, workflow.sigma)
         self.assertEqual(0.5, workflow.alpha)
