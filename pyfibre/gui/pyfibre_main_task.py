@@ -26,16 +26,13 @@ from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.io.database_io import save_database, load_database
 from pyfibre.io.base_multi_image_reader import BaseMultiImageReader
-from pyfibre.io.shg_pl_reader import SHGPLTransReader
+from pyfibre.io.shg_pl_reader import SHGPLTransReader, assign_images
 from pyfibre.io.utilities import get_file_names
 from pyfibre.model.core.base_analyser import BaseAnalyser
 from pyfibre.model.analysers.shg_pl_trans_analyser import (
     SHGPLTransAnalyser
 )
-from pyfibre.model.iterator import assign_images
-from pyfibre.pyfibre_runner import PyFibreRunner
-from pyfibre.model.iterator import iterate_images
-
+from pyfibre.pyfibre_runner import PyFibreRunner, analysis_generator
 
 logger = logging.getLogger(__name__)
 
@@ -277,7 +274,7 @@ class PyFibreMainTask(Task):
                 save_figures=self.options_pane.save_figures)
 
             future = self.traits_executor.submit_iteration(
-                iterate_images, batch_dict, runner,
+                analysis_generator, batch_dict, runner,
                 self.analysers, self.multi_image_readers
             )
             self.current_futures.append(future)

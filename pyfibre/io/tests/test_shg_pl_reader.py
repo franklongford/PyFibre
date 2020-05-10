@@ -7,7 +7,9 @@ from pyfibre.io.shg_pl_reader import (
     get_image_type, extract_prefix,
     get_files_prefixes, filter_input_files,
     populate_image_dictionary,
-    collate_image_dictionary, SHGReader,
+    collate_image_dictionary,
+    assign_images,
+    SHGReader,
     SHGPLTransReader
 )
 from pyfibre.tests.fixtures import (
@@ -17,6 +19,12 @@ from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 
 class TestImageReader(TestCase):
+
+    def setUp(self):
+        self.image_dictionary = {
+            'SHG-PL-Trans': '/directory/prefix-pl-shg-test.tif',
+            'PL-Trans': '/directory/prefix-pl-test.tif',
+            'SHG': '/directory/prefix-shg-test.tif'}
 
     def test_get_image_type(self):
         self.assertEqual(
@@ -115,6 +123,26 @@ class TestImageReader(TestCase):
                 'SHG': '/directory/prefix-shg-test.tif'}},
             image_dict)
         self.assertEqual(4, len(input_files))
+
+    def test_assign_images(self):
+
+        filenames, image_type = assign_images(self.image_dictionary)
+        self.assertEqual(1, len(filenames))
+        self.assertEqual('SHG-PL-Trans', image_type)
+        self.assertEqual(
+            '/directory/prefix-pl-shg-test.tif',
+            filenames[0])
+
+        self.image_dictionary.pop('SHG-PL-Trans')
+        filenames, image_type = assign_images(self.image_dictionary)
+        self.assertEqual(2, len(filenames))
+        self.assertEqual('SHG-PL-Trans', image_type)
+        self.assertEqual(
+            '/directory/prefix-shg-test.tif',
+            filenames[0])
+        self.assertEqual(
+            '/directory/prefix-pl-test.tif',
+            filenames[1])
 
 
 class TestSHGReader(PyFibreTestCase):

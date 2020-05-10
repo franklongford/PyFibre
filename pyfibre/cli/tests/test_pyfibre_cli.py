@@ -11,7 +11,7 @@ from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 from ..pyfibre_cli import PyFibreCLI
 
 
-ITERATOR_PATH = 'pyfibre.cli.pyfibre_cli.iterate_images'
+ITERATOR_PATH = 'pyfibre.cli.pyfibre_cli.analysis_generator'
 
 
 def dummy_iterate_images(dictionary, runner, analysers, reader):

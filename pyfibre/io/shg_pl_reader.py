@@ -110,6 +110,27 @@ def collate_image_dictionary(input_files):
     return image_dictionary
 
 
+def assign_images(image_dictionary):
+    """Assign images from an image_dictionary to
+    the SHG-PL, PL and SHG file names"""
+
+    filenames = []
+    image_type = 'Unknown'
+
+    if 'SHG-PL-Trans' in image_dictionary:
+        filenames = [image_dictionary['SHG-PL-Trans']]
+        image_type = 'SHG-PL-Trans'
+
+    elif 'SHG' in image_dictionary:
+        filenames = [image_dictionary['SHG']]
+        image_type = 'SHG'
+        if 'PL-Trans' in image_dictionary:
+            filenames.append(image_dictionary['PL-Trans'])
+            image_type = 'SHG-PL-Trans'
+
+    return filenames, image_type
+
+
 def get_fluoview_param(description, xy_dim, shape):
 
     desc_list = description.split('\n')
@@ -291,6 +312,8 @@ class SHGReader(BaseMultiImageReader):
 class SHGPLTransReader(SHGReader):
     """Reader class for a combined PL/Transmission
     file"""
+
+    _tag = 'SHG-PL-Trans'
 
     _multi_image_class = SHGPLTransImage
 
