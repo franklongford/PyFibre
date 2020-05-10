@@ -1,4 +1,3 @@
-import time
 import logging
 
 from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
@@ -51,22 +50,6 @@ class PyFibreRunner:
                      f"Generate Metrics = {metric}\n "
                      f"Save Figures = {self.workflow.save_figures}")
 
-        start = time.time()
-
         databases = analyser.image_analysis(self.workflow)
-
-        # Create figures
-        if self.workflow.save_figures:
-            checkpoint = time.time()
-
-            analyser.create_figures()
-
-            logger.info(
-                f"TOTAL FIGURES TIME = "
-                f"{round(time.time() - checkpoint, 3)} s")
-
-        end = time.time()
-
-        logger.info(f"TOTAL ANALYSIS TIME = {round(end - start, 3)} s")
 
         return databases

@@ -1,7 +1,6 @@
 import os
 from pickle import UnpicklingError
 import logging
-import time
 
 import pandas as pd
 from skimage.exposure import equalize_adapthist
@@ -23,7 +22,7 @@ from pyfibre.model.tools.network_extraction import (
     build_network, fibre_network_assignment
 )
 from pyfibre.model.tools.preprocessing import nl_means
-from pyfibre.utilities import flatten_list
+from pyfibre.utilities import flatten_list, log_time
 
 from .base_analyser import BaseAnalyser
 
@@ -181,6 +180,7 @@ class SHGAnalyser(BaseAnalyser):
 
         return network, segment, metric
 
+    @log_time(message='NETWORK EXTRACTION')
     def network_analysis(
             self, sigma, alpha, scale, p_denoise, fire_parameters):
         """Perform FIRE algorithm on image and save networkx
@@ -223,6 +223,24 @@ class SHGAnalyser(BaseAnalyser):
 
         self._fibre_networks = fibre_network_assignment(self._network)
 
+    @log_time(message='SEGMENTATION')
+    def segmentation_analysis(self, scale):
+        """Segment image into regions
+
+        Parameters
+        ----------
+        scale: float
+
+        """
+        logger.debug("Segmenting Fibre and Cell regions")
+        self._fibre_segments, self._cell_segments = (
+            self.multi_image.segmentation_algorithm(
+                self._fibre_networks,
+                scale=scale
+            )
+        )
+
+    @log_time(message='SHG METRICS')
     def create_metrics(self, sigma):
         """Perform metric analysis on segmented image
 
@@ -234,8 +252,6 @@ class SHGAnalyser(BaseAnalyser):
 
         global_dataframe = pd.Series(dtype=object)
         global_dataframe['File'] = self.multi_image.name
-
-        start = time.time()
 
         logger.debug(" Performing SHG Image analysis")
 
@@ -254,18 +270,15 @@ class SHGAnalyser(BaseAnalyser):
         global_dataframe = global_dataframe.append(
             global_metrics, ignore_index=False)
 
-        end = time.time()
-
-        logger.debug(f" Fibre segment analysis: {end - start} s")
+        logger.debug(f" Fibre segment analysis complete")
 
         self._databases = tuple(
             [global_dataframe, segment_merics, network_metrics, None]
         )
 
+    @log_time(message='FIGURE')
     def create_figures(self):
         """Create and save figures"""
-
-        start_fig = time.time()
 
         kwargs = self._figures_kwargs()
 
@@ -275,12 +288,7 @@ class SHGAnalyser(BaseAnalyser):
             **kwargs
         )
 
-        end_fig = time.time()
-
-        logger.info(
-            f"TOTAL FIGURE TIME = "
-            f"{round(end_fig - start_fig, 3)} s")
-
+    @log_time(message='ANALYSIS')
     def image_analysis(self, workflow):
         """
         Analyse input image by calculating metrics and
@@ -304,8 +312,6 @@ class SHGAnalyser(BaseAnalyser):
         self._clear_attr()
         self.make_directories()
 
-        start = time.time()
-
         self.multi_image.preprocess_images()
 
         # Load or create list of FibreNetwork instances
@@ -318,32 +324,15 @@ class SHGAnalyser(BaseAnalyser):
                 fire_parameters=workflow.fire_parameters)
             self._save_networks()
         else:
-            self._load_fibre_networks()
-
-        net_checkpoint = time.time()
-
-        logger.info(
-            f"TOTAL NETWORK EXTRACTION TIME = "
-            f"{round(net_checkpoint - start, 3)} s")
+            self._load_networks()
 
         # Load or create lists of FibreSegments
-        logger.debug("Segmenting Fibre and Cell regions")
         if segment:
-            self._fibre_segments, self._cell_segments = (
-                self.multi_image.segmentation_algorithm(
-                    self._fibre_networks,
-                    scale=workflow.scale
-                )
-            )
+            self.segmentation_analysis(
+                scale=workflow.scale)
             self._save_segments()
         else:
             self._load_segments()
-
-        seg_checkpoint = time.time()
-
-        logger.info(
-            f"TOTAL SEGMENTATION TIME = "
-            f"{round(seg_checkpoint - net_checkpoint, 3)} s")
 
         if metric:
             self.create_metrics(sigma=workflow.sigma)
@@ -351,10 +340,8 @@ class SHGAnalyser(BaseAnalyser):
         else:
             self._load_databases()
 
-        end = time.time()
-
-        logger.info(
-            f"TOTAL METRIC TIME = "
-            f"{round(end - seg_checkpoint, 3)} s")
+        # Create figures
+        if workflow.save_figures:
+            self.create_figures()
 
         return self._databases

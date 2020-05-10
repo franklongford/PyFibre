@@ -165,7 +165,7 @@ def matrix_split(matrix, nrows, ncols):
     return grid
 
 
-def log_timer(message):
+def log_time(message):
     """Use as a decorator around a callable to automatically record
     elapsed time to the log. Can be personalised with an extra string
     message argument
@@ -173,7 +173,7 @@ def log_timer(message):
     Example
     -------
 
-    >>> @log_timer(name='TEST')
+    >>> @log_time(name='TEST')
     >>> def function(x, y):
     >>>     return x * y
     >>> ...
@@ -187,7 +187,7 @@ def log_timer(message):
     INFO: TOTAL TEST TIME .. s
 
     """
-    def log_timer_decorator(func):
+    def log_time_decorator(func):
         """Decorator around function to be called"""
         @wraps(func)
         def function_wrapper(*args, **kwargs):
@@ -204,4 +204,4 @@ def log_timer(message):
 
             return result
         return function_wrapper
-    return log_timer_decorator
+    return log_time_decorator

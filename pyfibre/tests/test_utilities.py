@@ -8,7 +8,7 @@ from scipy.ndimage.filters import gaussian_filter
 from pyfibre.io.shg_pl_reader import SHGReader
 from pyfibre.utilities import (
     unit_vector, numpy_remove, nanmean, ring, matrix_split,
-    label_set, clear_border, flatten_list, log_timer
+    label_set, clear_border, flatten_list, log_time
 )
 
 from .probe_classes.utilities import generate_image
@@ -176,7 +176,7 @@ class TestUtilities(PyFibreTestCase):
 
     def test_timer(self):
 
-        @log_timer(message='TEST')
+        @log_time(message='TEST')
         def function(x, y):
             return x * y
 

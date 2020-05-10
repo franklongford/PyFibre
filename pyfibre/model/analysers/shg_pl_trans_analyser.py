@@ -1,4 +1,3 @@
-import time
 import logging
 
 from traits.api import Instance
@@ -6,6 +5,7 @@ from traits.api import Instance
 from pyfibre.io.object_io import (
     load_fibre_segments, load_cell_segments)
 from pyfibre.model.multi_image.shg_pl_trans_image import SHGPLTransImage
+from pyfibre.utilities import log_time
 
 from .shg_analyser import SHGAnalyser
 from .metric_analyser import PLMetricAnalyser
@@ -32,6 +32,7 @@ class SHGPLTransAnalyser(SHGAnalyser):
 
         return kwargs
 
+    @log_time('PL METRICS')
     def create_metrics(self, sigma):
         """Perform metric analysis on segmented image
 
@@ -47,8 +48,6 @@ class SHGPLTransAnalyser(SHGAnalyser):
 
         logger.debug(" Performing PL Image analysis")
 
-        start = time.time()
-
         metric_analyser = PLMetricAnalyser(
             filename=self.multi_image.name,
             image=self.multi_image.pl_image,
@@ -61,9 +60,7 @@ class SHGPLTransAnalyser(SHGAnalyser):
         global_database = global_database.append(
             global_metrics, ignore_index=False)
 
-        end = time.time()
-
-        logger.debug(f" Cell segment analysis: {end - start} s")
+        logger.debug(f" Cell segment analysis complete")
 
         self._databases = tuple(
             [global_database,
