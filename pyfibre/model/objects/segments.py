@@ -1,4 +1,4 @@
-from .base_segment import BaseSegment
+from pyfibre.model.core.base_segment import BaseSegment
 
 
 class CellSegment(BaseSegment):

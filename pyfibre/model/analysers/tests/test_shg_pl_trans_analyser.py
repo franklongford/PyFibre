@@ -6,7 +6,7 @@ from pandas import DataFrame, Series
 
 from pyfibre.model.analysers.shg_pl_trans_analyser import (
     SHGPLTransAnalyser)
-from pyfibre.model.pyfibre_runner import PyFibreRunner
+from pyfibre.pyfibre_runner import PyFibreRunner
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 from pyfibre.tests.probe_classes.shg_pl_trans_image import (
     ProbeSHGPLTransImage)

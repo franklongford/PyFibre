@@ -3,6 +3,9 @@ import logging
 from traits.api import (
     HasStrictTraits, Bool, Float, Tuple, Dict)
 
+from pyfibre.io.base_multi_image_reader import WrongFileTypeError
+from pyfibre.io.shg_pl_reader import assign_images
+
 logger = logging.getLogger(__name__)
 
 
@@ -76,3 +79,26 @@ class PyFibreRunner(HasStrictTraits):
         databases = analyser.image_analysis(self)
 
         return databases
+
+
+def analysis_generator(dictionary, runner, analysers, readers):
+
+    for prefix, data in dictionary.items():
+
+        filenames, image_type = assign_images(data)
+
+        try:
+            multi_image = readers[image_type].load_multi_image(
+                filenames, prefix)
+            analyser = analysers[image_type]
+
+        except (KeyError, ImportError, WrongFileTypeError):
+            logger.info(f'Cannot process image data for {filenames}')
+
+        else:
+            logger.info(f"Processing image data for {filenames}")
+
+            analyser.multi_image = multi_image
+            databases = runner.run_analysis(analyser)
+
+            yield databases

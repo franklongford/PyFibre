@@ -1,5 +1,4 @@
 import logging
-import os
 
 import numpy as np
 import pandas as pd
@@ -24,18 +23,14 @@ from traits_futures.api import (
 from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
-from pyfibre.io.database_io import save_database, load_database
+from pyfibre.io.database_io import save_database
 from pyfibre.io.base_multi_image_reader import BaseMultiImageReader
-from pyfibre.io.shg_pl_reader import SHGPLTransReader
-from pyfibre.io.utilities import get_file_names
-from pyfibre.model.analysers.base_analyser import BaseAnalyser
+from pyfibre.io.shg_pl_reader import SHGPLTransReader, assign_images
+from pyfibre.model.core.base_analyser import BaseAnalyser
 from pyfibre.model.analysers.shg_pl_trans_analyser import (
     SHGPLTransAnalyser
 )
-from pyfibre.model.iterator import assign_images
-from pyfibre.model.pyfibre_runner import PyFibreRunner
-from pyfibre.model.iterator import iterate_images
-
+from pyfibre.pyfibre_runner import PyFibreRunner, analysis_generator
 
 logger = logging.getLogger(__name__)
 
@@ -277,7 +272,7 @@ class PyFibreMainTask(Task):
                 save_figures=self.options_pane.save_figures)
 
             future = self.traits_executor.submit_iteration(
-                iterate_images, batch_dict, runner,
+                analysis_generator, batch_dict, runner,
                 self.analysers, self.multi_image_readers
             )
             self.current_futures.append(future)
@@ -304,37 +299,40 @@ class PyFibreMainTask(Task):
         network_database = pd.DataFrame()
         cell_database = pd.DataFrame()
 
-        input_prefixes = [
-            row.name for row in self.file_display_pane.file_table
-        ]
+        image_dictionary = {
+            row.name: row._dictionary
+            for row in self.file_display_pane.file_table
+        }
 
-        for i, prefix in enumerate(input_prefixes):
+        for prefix, data in image_dictionary.items():
 
-            name, path = get_file_names(prefix)
-            filename = os.path.join(
-                path, f"{name}-pyfibre-analysis", 'data', name)
-
-            logger.info("Loading metrics for {}".format(filename))
+            filenames, image_type = assign_images(data)
 
             try:
-                data_global = load_database(filename, 'global_metric')
-                data_fibre = load_database(filename, 'fibre_metric')
-                data_network = load_database(filename, 'network_metric')
-                data_cell = load_database(filename, 'cell_metric')
+                reader = self.multi_image_readers[image_type]
+                analyser = self.analysers[image_type]
+            except KeyError:
+                continue
+
+            try:
+                analyser.multi_image = reader.load_multi_image(
+                    filenames, prefix)
+                databases = analyser.load_databases()
 
                 global_database = global_database.append(
-                    data_global, ignore_index=True)
+                    databases[0], ignore_index=True)
                 fibre_database = pd.concat(
-                    [fibre_database, data_fibre], sort=True)
+                    [fibre_database, databases[1]], sort=True)
                 network_database = pd.concat(
-                    [network_database, data_network], sort=True)
+                    [network_database, databases[2]], sort=True)
                 cell_database = pd.concat(
-                    [cell_database, data_cell], sort=True)
-
-            except (ValueError, IOError):
+                    [cell_database, databases[3]], sort=True)
+            except Exception:
                 logger.info(
                     f"{prefix} databases not imported"
                     f" - skipping")
+            finally:
+                analyser.multi_image = None
 
         self.global_database = global_database
         self.fibre_database = fibre_database

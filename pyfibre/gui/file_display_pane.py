@@ -12,8 +12,7 @@ from traitsui.api import (
 )
 
 from pyfibre.io.shg_pl_reader import (
-    collate_image_dictionary)
-from pyfibre.model.iterator import assign_images
+    assign_images, collate_image_dictionary)
 from pyfibre.io.utilities import parse_file_path
 
 

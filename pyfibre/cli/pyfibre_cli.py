@@ -17,8 +17,7 @@ from pyfibre.io.shg_pl_reader import (
 from pyfibre.model.analysers.shg_pl_trans_analyser import (
     SHGPLTransAnalyser)
 from pyfibre.io.utilities import parse_file_path
-from pyfibre.model.pyfibre_runner import PyFibreRunner
-from pyfibre.model.iterator import iterate_images
+from pyfibre.pyfibre_runner import PyFibreRunner, analysis_generator
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +71,7 @@ class PyFibreCLI:
         network_database = pd.DataFrame()
         cell_database = pd.DataFrame()
 
-        generator = iterate_images(
+        generator = analysis_generator(
             image_dictionary, self.runner,
             self.supported_analysers, self.supported_readers)
 

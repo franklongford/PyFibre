@@ -15,7 +15,7 @@ from pyfibre.gui.segment_image_tab import SegmentImageTab
 from pyfibre.io.object_io import (
     load_fibre_segments, load_cell_segments,
     load_fibre_networks, load_fibres)
-from pyfibre.model.multi_image.base_multi_image import BaseMultiImage
+from pyfibre.model.core.base_multi_image import BaseMultiImage
 from pyfibre.utilities import flatten_list
 
 logger = logging.getLogger(__name__)

@@ -11,7 +11,7 @@ from pyfibre.model.tools.metrics import (
 from pyfibre.model.tools.fibre_assigner import FibreAssigner
 from pyfibre.model.tools.fibre_utilities import simplify_network
 
-from .base_graph_segment import BaseGraph
+from pyfibre.model.core.base_graph_segment import BaseGraph
 from .fibre import Fibre
 
 
