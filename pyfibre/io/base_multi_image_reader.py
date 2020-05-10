@@ -3,6 +3,7 @@ import logging
 
 from traits.api import ABCHasTraits, Type
 
+from pyfibre.io.utilities import get_file_names
 from pyfibre.model.multi_image.base_multi_image import BaseMultiImage
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ class WrongFileTypeError(Exception):
 def lookup_page(tiff_page):
     """Obtain relevant information from a TiffPage object"""
 
-    xy_dim = tiff_page.shape
+    xy_dim = (tiff_page.image_width, tiff_page.image_length)
     description = tiff_page.image_description.decode('utf-8')
 
     return xy_dim, description
@@ -48,7 +49,7 @@ class BaseMultiImageReader(ABCHasTraits):
 
         return images
 
-    def load_multi_image(self, filenames):
+    def load_multi_image(self, filenames, prefix):
         """Image loader for MultiImage classes"""
 
         image_stack = self.create_image_stack(filenames)
@@ -59,7 +60,13 @@ class BaseMultiImageReader(ABCHasTraits):
                 f"for type {self._multi_image_class}"
             )
 
-        multi_image = self._multi_image_class(image_stack=image_stack)
+        name, path = get_file_names(prefix)
+
+        multi_image = self._multi_image_class(
+            name=name,
+            path=path,
+            image_stack=image_stack,
+        )
 
         multi_image.preprocess_images()
 

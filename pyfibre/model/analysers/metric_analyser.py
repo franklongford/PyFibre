@@ -1,5 +1,5 @@
+from abc import ABC, abstractmethod
 import logging
-import time
 from functools import partial
 
 import numpy as np
@@ -10,7 +10,6 @@ from pyfibre.model.tools.metrics import (
     FIBRE_METRICS, NETWORK_METRICS, angle_analysis,
     fibre_network_metrics, segment_metrics
 )
-from pyfibre.model.multi_image.multi_images import SHGPLTransImage
 from pyfibre.utilities import flatten_list
 
 logger = logging.getLogger(__name__)
@@ -31,7 +30,7 @@ def metric_averaging(database, metrics):
     return average_database
 
 
-class MetricAnalyser:
+class MetricAnalyser(ABC):
 
     def __init__(
             self, image=None, filename=None, networks=None,
@@ -79,6 +78,7 @@ class MetricAnalyser:
         filenames = pd.Series(
             ['{}_{}'.format(self.filename, tag)] * len(attr),
             name='File')
+
         metrics = pd.concat((filenames, metrics), axis=1)
 
         return metrics
@@ -95,7 +95,15 @@ class MetricAnalyser:
         return self._get_metrics(
             self.segments, metric_func, tag)
 
-    def analyse_shg(self):
+    @abstractmethod
+    def analyse(self):
+        """Perform metric analysis, returning list of pandas
+        DataFrame instances"""
+
+
+class SHGMetricAnalyser(MetricAnalyser):
+
+    def analyse(self):
 
         # Analyse fibre networks
         network_metrics = self._get_network_metrics()
@@ -123,8 +131,10 @@ class MetricAnalyser:
 
         return segment_metrics, network_metrics, global_metrics
 
-    def analyse_pl(self):
 
+class PLMetricAnalyser(MetricAnalyser):
+
+    def analyse(self):
         # Analyse individual cell regions
         segment_metrics = self._get_segment_metrics(
             'PL', 'cell_segment.npy')
@@ -136,55 +146,3 @@ class MetricAnalyser:
         global_metrics['No. Cells'] = len(self.segments)
 
         return segment_metrics, global_metrics
-
-
-def generate_metrics(
-        multi_image, filename, fibre_networks,
-        fibre_segments, cell_segments, sigma):
-
-    global_dataframe = pd.Series(dtype=object)
-    global_dataframe['File'] = filename
-
-    local_dataframes = [None, None, None]
-
-    logger.debug(" Performing SHG Image analysis")
-
-    metric_analyser = MetricAnalyser(
-        filename=filename, sigma=sigma
-    )
-
-    start = time.time()
-
-    metric_analyser.image = multi_image.shg_image
-    metric_analyser.networks = fibre_networks
-    metric_analyser.segments = fibre_segments
-    (segment_merics,
-     network_metrics,
-     global_metrics) = metric_analyser.analyse_shg()
-
-    local_dataframes[0] = segment_merics
-    local_dataframes[1] = network_metrics
-    global_dataframe = global_dataframe.append(
-        global_metrics, ignore_index=False)
-
-    end = time.time()
-    logger.debug(f" Fibre segment analysis: {end-start} s")
-
-    if isinstance(multi_image, SHGPLTransImage):
-
-        logger.debug(" Performing PL Image analysis")
-
-        start = time.time()
-
-        metric_analyser.image = multi_image.pl_image
-        metric_analyser.segments = cell_segments
-        segment_merics, global_metrics = metric_analyser.analyse_pl()
-
-        local_dataframes[2] = segment_merics
-        global_dataframe = global_dataframe.append(
-            global_metrics, ignore_index=False)
-
-        end = time.time()
-        logger.debug(f" Cell segment analysis: {end - start} s")
-
-    return global_dataframe, local_dataframes

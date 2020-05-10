@@ -1,4 +1,5 @@
 import logging
+import os
 
 import numpy as np
 import pandas as pd
@@ -27,9 +28,12 @@ from pyfibre.io.database_io import save_database, load_database
 from pyfibre.io.base_multi_image_reader import BaseMultiImageReader
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 from pyfibre.io.utilities import get_file_names
+from pyfibre.model.analysers.base_analyser import BaseAnalyser
+from pyfibre.model.analysers.shg_pl_trans_analyser import (
+    SHGPLTransAnalyser
+)
 from pyfibre.model.iterator import assign_images
-from pyfibre.model.image_analyser import ImageAnalyser
-from pyfibre.model.pyfibre_workflow import PyFibreWorkflow
+from pyfibre.model.pyfibre_runner import PyFibreRunner
 from pyfibre.model.iterator import iterate_images
 
 
@@ -47,6 +51,8 @@ class PyFibreMainTask(Task):
     name = 'PyFibre GUI (Main)'
 
     multi_image_readers = Dict(Str, Instance(BaseMultiImageReader))
+
+    analysers = Dict(Str, Instance(BaseAnalyser))
 
     database_filename = File('pyfibre_database')
 
@@ -109,6 +115,9 @@ class PyFibreMainTask(Task):
 
     def _multi_image_readers_default(self):
         return {'SHG-PL-Trans': SHGPLTransReader()}
+
+    def _analysers_default(self):
+        return {'SHG-PL-Trans': SHGPLTransAnalyser()}
 
     def _options_pane_default(self):
         return OptionsPane()
@@ -197,7 +206,8 @@ class PyFibreMainTask(Task):
 
         try:
             reader = self.multi_image_readers[image_type]
-            multi_image = reader.load_multi_image(file_names)
+            multi_image = reader.load_multi_image(
+                file_names, selected_row.name)
         except (KeyError, ImportError):
             logger.debug(f'Cannot display image data for {file_names}')
         else:
@@ -256,7 +266,7 @@ class PyFibreMainTask(Task):
             batch_dict = {row.name: row._dictionary
                           for row in batch_rows}
 
-            workflow = PyFibreWorkflow(
+            runner = PyFibreRunner(
                 p_denoise=(self.options_pane.n_denoise,
                            self.options_pane.m_denoise),
                 sigma=self.options_pane.sigma,
@@ -265,13 +275,10 @@ class PyFibreMainTask(Task):
                 ow_segment=self.options_pane.ow_segment,
                 ow_metric=self.options_pane.ow_metric,
                 save_figures=self.options_pane.save_figures)
-            image_analyser = ImageAnalyser(
-                workflow=workflow
-            )
 
             future = self.traits_executor.submit_iteration(
-                iterate_images, batch_dict, image_analyser,
-                self.multi_image_readers
+                iterate_images, batch_dict, runner,
+                self.analysers, self.multi_image_readers
             )
             self.current_futures.append(future)
 
@@ -303,8 +310,9 @@ class PyFibreMainTask(Task):
 
         for i, prefix in enumerate(input_prefixes):
 
-            (working_dir, data_dir, fig_dir,
-             filename, figname) = get_file_names(prefix)
+            name, path = get_file_names(prefix)
+            filename = os.path.join(
+                path, f"{name}-pyfibre-analysis", 'data', name)
 
             logger.info("Loading metrics for {}".format(filename))
 

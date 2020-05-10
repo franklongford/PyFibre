@@ -5,7 +5,7 @@ from tempfile import NamedTemporaryFile
 import pandas as pd
 
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
-from pyfibre.model.image_analyser import ImageAnalyser
+from pyfibre.model.pyfibre_runner import PyFibreRunner
 from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 
 from ..pyfibre_cli import PyFibreCLI
@@ -14,7 +14,7 @@ from ..pyfibre_cli import PyFibreCLI
 ITERATOR_PATH = 'pyfibre.cli.pyfibre_cli.iterate_images'
 
 
-def dummy_iterate_images(dictionary, analyser, reader):
+def dummy_iterate_images(dictionary, runner, analysers, reader):
 
     for key, value in dictionary.items():
         yield [
@@ -34,7 +34,7 @@ class TestPyFibreCLI(TestCase):
     def test_init(self):
 
         self.assertIsInstance(
-            self.pyfibre_cli.image_analyser, ImageAnalyser)
+            self.pyfibre_cli.runner, PyFibreRunner)
         self.assertEqual(1, len(self.pyfibre_cli.supported_readers))
         self.assertIsInstance(
             self.pyfibre_cli.supported_readers['SHG-PL-Trans'],
@@ -42,7 +42,7 @@ class TestPyFibreCLI(TestCase):
 
     def test_init_pyfibre_workflow(self):
 
-        workflow = self.pyfibre_cli.image_analyser.workflow
+        workflow = self.pyfibre_cli.runner
 
         self.assertEqual(0.5, workflow.sigma)
         self.assertEqual(0.5, workflow.alpha)

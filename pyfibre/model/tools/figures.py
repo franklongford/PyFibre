@@ -216,9 +216,9 @@ def create_shg_pl_trans_figures(multi_image, figname, network_graphs=None,
                                 fibre_graphs=None, fibre_regions=None,
                                 cell_regions=None):
     """Creates and saves figures associated with SHG-PL-Trans images"""
-
     create_shg_figures(multi_image, figname,
                        network_graphs, fibre_graphs, fibre_regions)
+
     create_figure(multi_image.pl_image, figname + '_PL', cmap='binary_r')
     create_figure(multi_image.trans_image, figname + '_trans', cmap='binary_r')
 

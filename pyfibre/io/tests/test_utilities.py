@@ -220,32 +220,14 @@ class TestUtilities(TestCase):
 
         test_path = '/path/to/some/file'
 
-        (working_dir, data_dir,
-         fig_dir, filename, figname) = get_file_names(test_path)
+        name, path = get_file_names(test_path)
 
-        self.assertEqual(
-            '/path/to/some/file-pyfibre-analysis', working_dir)
-        self.assertEqual(
-            '/path/to/some/file-pyfibre-analysis/data', data_dir)
-        self.assertEqual(
-            '/path/to/some/file-pyfibre-analysis/fig', fig_dir)
-        self.assertEqual(
-            '/path/to/some/file-pyfibre-analysis/data/file', filename)
-        self.assertEqual(
-            '/path/to/some/file-pyfibre-analysis/fig/file', figname)
+        self.assertEqual('file', name)
+        self.assertEqual('/path/to/some', path)
 
         test_path = 'local-file'
 
-        (working_dir, data_dir,
-         fig_dir, filename, figname) = get_file_names(test_path)
+        name, path = get_file_names(test_path)
 
-        self.assertEqual(
-            'local-file-pyfibre-analysis', working_dir)
-        self.assertEqual(
-            'local-file-pyfibre-analysis/data', data_dir)
-        self.assertEqual(
-            'local-file-pyfibre-analysis/fig', fig_dir)
-        self.assertEqual(
-            'local-file-pyfibre-analysis/data/local-file', filename)
-        self.assertEqual(
-            'local-file-pyfibre-analysis/fig/local-file', figname)
+        self.assertEqual('local-file', name)
+        self.assertEqual('', path)

@@ -1,8 +1,9 @@
 from abc import abstractmethod
+
 import numpy as np
 
 from traits.api import (
-    ABCHasTraits, ArrayOrNone, List, Dict, Str
+    ABCHasTraits, ArrayOrNone, List, Dict, Str, Directory
 )
 
 from pyfibre.utilities import NotSupportedError
@@ -11,6 +12,12 @@ from pyfibre.utilities import NotSupportedError
 class BaseMultiImage(ABCHasTraits):
     """Base class representing an image with multiple channels,
     expected to be more complex than just RGB"""
+
+    #: Name of BaseMultiImage
+    name = Str()
+
+    #: File path for images
+    path = Directory()
 
     #: List of images in stack
     image_stack = List(ArrayOrNone)
@@ -102,8 +109,3 @@ class BaseMultiImage(ABCHasTraits):
     def segmentation_algorithm(self, *args, **kwargs):
         """Implement segmentation algorithm to be used for this
         multi-image type"""
-
-    @abstractmethod
-    def create_figures(self, *args, **kwargs):
-        """Create figures from multi-image components that can be
-        generated upon end of analysis"""

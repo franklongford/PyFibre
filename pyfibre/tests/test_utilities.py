@@ -1,4 +1,5 @@
-import logging
+from testfixtures import LogCapture
+from unittest import mock
 
 import numpy as np
 from skimage import data
@@ -7,13 +8,12 @@ from scipy.ndimage.filters import gaussian_filter
 from pyfibre.io.shg_pl_reader import SHGReader
 from pyfibre.utilities import (
     unit_vector, numpy_remove, nanmean, ring, matrix_split,
-    label_set, clear_border, flatten_list
+    label_set, clear_border, flatten_list, log_time
 )
 
 from .probe_classes.utilities import generate_image
 from .pyfibre_test_case import PyFibreTestCase
 
-logger = logging.getLogger(__name__)
 
 THRESH = 1E-7
 
@@ -173,3 +173,20 @@ class TestUtilities(PyFibreTestCase):
              '2:0', '2:1', '2:2'],
             flattened_list
         )
+
+    def test_timer(self):
+
+        @log_time(message='TEST')
+        def function(x, y):
+            return x * y
+
+        with LogCapture() as capture:
+            with mock.patch('pyfibre.utilities.round',
+                            return_value=1.0):
+                self.assertEqual(6, function(2, 3))
+
+            capture.check(
+                ('pyfibre.utilities',
+                 'INFO',
+                 'TOTAL TEST TIME = 1.0 s')
+            )

@@ -3,6 +3,7 @@ from pyfibre.model.objects.base_graph_segment import BaseGraphSegment
 from pyfibre.model.objects.base_segment import BaseSegment
 from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
+from pyfibre.model.objects.segments import FibreSegment, CellSegment
 from pyfibre.tests.probe_classes.utilities import (
     generate_probe_graph, generate_regions)
 
@@ -59,11 +60,19 @@ class ProbeSegment(BaseSegment):
             *args, **kwargs)
 
 
-class ProbeFibreSegment(ProbeSegment):
+class ProbeFibreSegment(FibreSegment):
 
-    _tag = 'Fibre'
+    def __init__(self, *args, **kwargs):
+        if 'region' not in kwargs:
+            kwargs['region'] = generate_regions()[0]
+        super(ProbeFibreSegment, self).__init__(
+            *args, **kwargs)
 
 
-class ProbeCellSegment(ProbeSegment):
+class ProbeCellSegment(CellSegment):
 
-    _tag = 'Cell'
+    def __init__(self, *args, **kwargs):
+        if 'region' not in kwargs:
+            kwargs['region'] = generate_regions()[0]
+        super(ProbeCellSegment, self).__init__(
+            *args, **kwargs)

@@ -26,20 +26,22 @@ def assign_images(image_dictionary):
     return filenames, image_type
 
 
-def iterate_images(dictionary, analyser, readers):
+def iterate_images(dictionary, runner, analysers, readers):
 
     for prefix, data in dictionary.items():
 
         filenames, image_type = assign_images(data)
 
         try:
-            multi_image = readers[image_type].load_multi_image(filenames)
+            multi_image = readers[image_type].load_multi_image(
+                filenames, prefix)
+            analyser = analysers[image_type]
         except (KeyError, ImportError, WrongFileTypeError):
             logger.info(f'Cannot process image data for {filenames}')
         else:
             logger.info(f"Processing image data for {filenames}")
 
-            databases = analyser.image_analysis(
-                multi_image, prefix)
+            analyser.multi_image = multi_image
+            databases = runner.run_analysis(analyser)
 
             yield databases
