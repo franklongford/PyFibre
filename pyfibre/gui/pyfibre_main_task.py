@@ -28,12 +28,12 @@ from pyfibre.io.database_io import save_database, load_database
 from pyfibre.io.base_multi_image_reader import BaseMultiImageReader
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
 from pyfibre.io.utilities import get_file_names
-from pyfibre.model.analysers.base_analyser import BaseAnalyser
+from pyfibre.model.core.base_analyser import BaseAnalyser
 from pyfibre.model.analysers.shg_pl_trans_analyser import (
     SHGPLTransAnalyser
 )
 from pyfibre.model.iterator import assign_images
-from pyfibre.model.pyfibre_runner import PyFibreRunner
+from pyfibre.pyfibre_runner import PyFibreRunner
 from pyfibre.model.iterator import iterate_images
 
 

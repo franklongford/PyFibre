@@ -3,7 +3,7 @@ import numpy as np
 
 from pyfibre.model.tools.fibre_utilities import branch_angles
 
-from .base_graph import BaseGraph
+from pyfibre.model.core.base_graph import BaseGraph
 
 
 class Fibre(BaseGraph):

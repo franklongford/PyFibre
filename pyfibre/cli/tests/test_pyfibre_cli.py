@@ -5,7 +5,7 @@ from tempfile import NamedTemporaryFile
 import pandas as pd
 
 from pyfibre.io.shg_pl_reader import SHGPLTransReader
-from pyfibre.model.pyfibre_runner import PyFibreRunner
+from pyfibre.pyfibre_runner import PyFibreRunner
 from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 
 from ..pyfibre_cli import PyFibreCLI

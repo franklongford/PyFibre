@@ -8,7 +8,7 @@ from pyfibre.io.utilities import (
 from pyfibre.model.tools.fibre_utilities import get_node_coord_array
 from pyfibre.utilities import NotSupportedError
 
-from .abc_pyfibre_object import ABCPyFibreObject
+from pyfibre.model.core.abc_pyfibre_object import ABCPyFibreObject
 
 
 class BaseGraph(ABCPyFibreObject):

@@ -1,6 +1,6 @@
 from pyfibre.model.tools.convertors import networks_to_regions
 
-from .base_graph import BaseGraph
+from pyfibre.model.core.base_graph import BaseGraph
 
 
 class BaseGraphSegment(BaseGraph):

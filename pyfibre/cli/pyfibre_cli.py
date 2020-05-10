@@ -17,7 +17,7 @@ from pyfibre.io.shg_pl_reader import (
 from pyfibre.model.analysers.shg_pl_trans_analyser import (
     SHGPLTransAnalyser)
 from pyfibre.io.utilities import parse_file_path
-from pyfibre.model.pyfibre_runner import PyFibreRunner
+from pyfibre.pyfibre_runner import PyFibreRunner
 from pyfibre.model.iterator import iterate_images
 
 logger = logging.getLogger(__name__)

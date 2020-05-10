@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 from pandas import DataFrame, Series
 
 from pyfibre.model.analysers.shg_analyser import SHGAnalyser
-from pyfibre.model.pyfibre_runner import PyFibreRunner
+from pyfibre.pyfibre_runner import PyFibreRunner
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 from pyfibre.tests.probe_classes.objects import (
     ProbeFibreNetwork, ProbeFibreSegment, ProbeCellSegment)

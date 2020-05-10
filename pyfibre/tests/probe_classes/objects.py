@@ -1,6 +1,6 @@
-from pyfibre.model.objects.base_graph import BaseGraph
-from pyfibre.model.objects.base_graph_segment import BaseGraphSegment
-from pyfibre.model.objects.base_segment import BaseSegment
+from pyfibre.model.core.base_graph import BaseGraph
+from pyfibre.model.core.base_graph_segment import BaseGraphSegment
+from pyfibre.model.core.base_segment import BaseSegment
 from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
 from pyfibre.model.objects.segments import FibreSegment, CellSegment

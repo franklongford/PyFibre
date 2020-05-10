@@ -24,7 +24,7 @@ from pyfibre.model.tools.network_extraction import (
 from pyfibre.model.tools.preprocessing import nl_means
 from pyfibre.utilities import flatten_list, log_time
 
-from .base_analyser import BaseAnalyser
+from pyfibre.model.core.base_analyser import BaseAnalyser
 
 logger = logging.getLogger(__name__)
 

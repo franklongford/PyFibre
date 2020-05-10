@@ -2,7 +2,7 @@ from functools import partial
 
 import numpy as np
 
-from pyfibre.model.objects.abc_pyfibre_object import ABCPyFibreObject
+from pyfibre.model.core.abc_pyfibre_object import ABCPyFibreObject
 from pyfibre.model.objects.segments import CellSegment, FibreSegment
 from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork

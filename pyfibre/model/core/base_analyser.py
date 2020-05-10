@@ -3,7 +3,7 @@ import os
 
 from traits.api import ABCHasTraits, Instance
 
-from pyfibre.model.multi_image.base_multi_image import BaseMultiImage
+from .base_multi_image import BaseMultiImage
 
 
 class BaseAnalyser(ABCHasTraits):

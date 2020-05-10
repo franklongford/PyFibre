@@ -3,10 +3,10 @@ from envisage.ui.tasks.tasks_plugin import TasksPlugin
 
 from pyfibre.cli.pyfibre_cli import PyFibreCLI
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
-from pyfibre.model.objects.base_graph import BaseGraph
-from pyfibre.model.objects.base_graph_segment import BaseGraphSegment
-from pyfibre.model.multi_image.base_multi_image import BaseMultiImage
-from pyfibre.model.analysers.base_analyser import BaseAnalyser
+from pyfibre.model.core.base_graph import BaseGraph
+from pyfibre.model.core.base_graph_segment import BaseGraphSegment
+from pyfibre.model.core.base_multi_image import BaseMultiImage
+from pyfibre.model.core.base_analyser import BaseAnalyser
 
 
 class DummyMultiImage(BaseMultiImage):

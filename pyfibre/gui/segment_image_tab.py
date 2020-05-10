@@ -4,7 +4,7 @@ from traits.trait_types import List, Any
 from traits.traits import Property
 
 from pyfibre.gui.image_tab import ImageTab
-from pyfibre.model.objects.base_segment import BaseSegment
+from pyfibre.model.core.base_segment import BaseSegment
 from pyfibre.model.tools.figures import create_region_image
 
 
