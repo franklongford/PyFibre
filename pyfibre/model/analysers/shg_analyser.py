@@ -120,20 +120,29 @@ class SHGAnalyser(BaseAnalyser):
         self._cell_segments = load_cell_segments(
             self._data_file, intensity_image=self.multi_image.shg_image)
 
-    def _save_databases(self):
-        """Save pandas DataFrame instances created during the analysis"""
-        save_database(self._databases[0], self._data_file, 'global_metric')
-        save_database(self._databases[1], self._data_file, 'fibre_metric')
-        save_database(self._databases[2], self._data_file, 'network_metric')
-        save_database(self._databases[3], self._data_file, 'cell_metric')
-
     def _load_databases(self):
+        """Shadows public API to assign pandas DataFrames to private
+        attribute"""
+        self._databases = self.load_databases()
+
+    def _save_databases(self):
+        """Shadows public API to save private pandas DataFrames attribute"""
+        self.save_databases(self._databases)
+
+    def save_databases(self, databases):
+        """Save pandas DataFrame instances created during the analysis"""
+        save_database(databases[0], self._data_file, 'global_metric')
+        save_database(databases[1], self._data_file, 'fibre_metric')
+        save_database(databases[2], self._data_file, 'network_metric')
+        save_database(databases[3], self._data_file, 'cell_metric')
+
+    def load_databases(self):
         """Load pandas DataFrame instances created during the analysis"""
         global_metrics = load_database(self._data_file, 'global_metric')
         fibre_metrics = load_database(self._data_file, 'fibre_metric')
         network_metrics = load_database(self._data_file, 'network_metric')
         cell_metrics = load_database(self._data_file, 'cell_metric')
-        self._databases = tuple(
+        return tuple(
             [global_metrics, fibre_metrics,
              network_metrics, cell_metrics]
         )
