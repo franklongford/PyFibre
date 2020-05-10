@@ -289,14 +289,14 @@ class SHGAnalyser(BaseAnalyser):
         )
 
     @log_time(message='ANALYSIS')
-    def image_analysis(self, workflow):
+    def image_analysis(self, runner):
         """
         Analyse input image by calculating metrics and
         segmenting via FIRE algorithm
 
         Parameters
         ----------
-        workflow: PyFibreWorkflow
+        runner: PyFibreRunner
             Instructions for all image analysis algorithms
 
         Returns
@@ -306,7 +306,7 @@ class SHGAnalyser(BaseAnalyser):
         """
 
         network, segment, metric = self.get_analysis_options(
-            workflow
+            runner
         )
 
         self._clear_attr()
@@ -317,11 +317,11 @@ class SHGAnalyser(BaseAnalyser):
         # Load or create list of FibreNetwork instances
         if network:
             self.network_analysis(
-                sigma=workflow.sigma,
-                alpha=workflow.alpha,
-                scale=workflow.scale,
-                p_denoise=workflow.p_denoise,
-                fire_parameters=workflow.fire_parameters)
+                sigma=runner.sigma,
+                alpha=runner.alpha,
+                scale=runner.scale,
+                p_denoise=runner.p_denoise,
+                fire_parameters=runner.fire_parameters)
             self._save_networks()
         else:
             self._load_networks()
@@ -329,19 +329,19 @@ class SHGAnalyser(BaseAnalyser):
         # Load or create lists of FibreSegments
         if segment:
             self.segmentation_analysis(
-                scale=workflow.scale)
+                scale=runner.scale)
             self._save_segments()
         else:
             self._load_segments()
 
         if metric:
-            self.create_metrics(sigma=workflow.sigma)
+            self.create_metrics(sigma=runner.sigma)
             self._save_databases()
         else:
             self._load_databases()
 
         # Create figures
-        if workflow.save_figures:
+        if runner.save_figures:
             self.create_figures()
 
         return self._databases

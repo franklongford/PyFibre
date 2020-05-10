@@ -64,7 +64,7 @@ class PyFibreRunner(HasStrictTraits):
         """
 
         network, segment, metric = analyser.get_analysis_options(
-            self.workflow
+            self
         )
 
         logger.debug(f"Analysis options:\n "
