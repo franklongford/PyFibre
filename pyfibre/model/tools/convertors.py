@@ -201,3 +201,14 @@ def binary_to_segments(binary, segment_klass,
     ]
 
     return segments
+
+
+def segments_to_binary(segments, shape):
+    """Transform list of BaseSegment instances into a binary array"""
+
+    stack = [
+        segment.to_array(shape=shape) for segment in segments
+    ]
+    binary = stack_to_binary(stack)
+
+    return binary

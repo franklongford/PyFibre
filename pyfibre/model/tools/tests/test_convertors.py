@@ -3,11 +3,11 @@ import numpy as np
 from pyfibre.model.tools.convertors import (
     binary_to_stack, regions_to_binary, binary_to_regions,
     networks_to_binary, stack_to_binary, stack_to_regions,
-    regions_to_stack, binary_to_segments)
+    regions_to_stack, binary_to_segments, segments_to_binary)
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 from pyfibre.tests.probe_classes.objects import ProbeSegment
 from pyfibre.tests.probe_classes.utilities import (
-    generate_image, generate_probe_graph
+    generate_image, generate_probe_graph, generate_regions
 )
 
 
@@ -17,6 +17,10 @@ class TestConvertors(PyFibreTestCase):
         (self.image, self.labels,
          self.binary, self.stack) = generate_image()
         self.network = generate_probe_graph()
+        self.regions = generate_regions()
+        self.segments = [
+            ProbeSegment(region=region) for region in self.regions
+        ]
 
     def test_binary_to_stack(self):
 
@@ -55,8 +59,7 @@ class TestConvertors(PyFibreTestCase):
         self.assertEqual(3, regions[1].filled_area)
 
     def test_regions_to_binary(self):
-        regions = binary_to_regions(self.binary, self.image)
-        binary = regions_to_binary(regions, (10, 10))
+        binary = regions_to_binary(self.regions, (10, 10))
 
         self.assertEqual((10, 10), binary.shape)
         self.assertTrue((self.binary == binary).all())
@@ -101,13 +104,17 @@ class TestConvertors(PyFibreTestCase):
     def test_networks_to_segments(self):
         pass
 
-    def test_segments_to_stack(self):
-        segments = stack_to_regions(self.stack)
-        stack = regions_to_stack(segments, (10, 10))
+    def test_regions_to_stack(self):
+        stack = regions_to_stack(self.regions, (10, 10))
         self.assertArrayAlmostEqual(self.stack, stack)
 
-    def test_stack_to_segments(self):
-        segments = stack_to_regions(self.stack)
-        self.assertEqual(2, len(segments))
-        self.assertEqual(9, segments[0].filled_area)
-        self.assertEqual(3, segments[1].filled_area)
+    def test_stack_to_regions(self):
+        regions = stack_to_regions(self.stack)
+        self.assertEqual(2, len(regions))
+        self.assertEqual(9, regions[0].filled_area)
+        self.assertEqual(3, regions[1].filled_area)
+
+    def test_segments_to_binary(self):
+        binary = segments_to_binary(self.segments, (10, 10))
+        self.assertEqual((10, 10), binary.shape)
+        self.assertArrayAlmostEqual(self.binary, binary)
