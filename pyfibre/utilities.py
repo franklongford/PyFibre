@@ -7,8 +7,13 @@ Created on: 01/11/2015
 
 Last Modified: 12/04/2018
 """
+from functools import wraps
+import time
+import logging
+
 import numpy as np
 
+logger = logging.getLogger(__name__)
 SQRT3 = np.sqrt(3)
 SQRT2 = np.sqrt(2)
 SQRTPI = np.sqrt(np.pi)
@@ -158,3 +163,45 @@ def matrix_split(matrix, nrows, ncols):
         grid += np.array_split(item, nrows, axis=-1)
 
     return grid
+
+
+def log_timer(message):
+    """Use as a decorator around a callable to automatically record
+    elapsed time to the log. Can be personalised with an extra string
+    message argument
+
+    Example
+    -------
+
+    >>> @log_timer(name='TEST')
+    >>> def function(x, y):
+    >>>     return x * y
+    >>> ...
+    >>>
+    >>> function(2, 3)
+    6
+
+    Will produce a log message:
+
+    >>>
+    INFO: TOTAL TEST TIME .. s
+
+    """
+    def log_timer_decorator(func):
+        """Decorator around function to be called"""
+        @wraps(func)
+        def function_wrapper(*args, **kwargs):
+            """Actual wrapper around callable, including log
+            instructions"""
+            start = time.time()
+
+            result = func(*args, **kwargs)
+
+            logger.info(
+                # f"TOTAL TIME = "
+                f"TOTAL {message.upper()} TIME = "
+                f"{round(time.time() - start, 3)} s")
+
+            return result
+        return function_wrapper
+    return log_timer_decorator

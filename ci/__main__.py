@@ -27,6 +27,7 @@ EDM_CORE_DEPS = [
     "traits_futures==0.1.0-16"]
 
 EDM_DEV_DEPS = ["flake8==3.7.7-1",
+                "testfixtures==4.10.0-1",
                 "coverage==4.3.4-1",
                 "mock==2.0.0-3"]
 
