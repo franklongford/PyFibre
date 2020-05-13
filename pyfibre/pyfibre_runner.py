@@ -28,6 +28,9 @@ class PyFibreRunner(HasStrictTraits):
     #: Parameters used for FIRE algorithm
     fire_parameters = Dict()
 
+    #: Parameters used for segmentation
+    segment_parameters = Dict()
+
     #: Toggles force overwrite of existing fibre network
     ow_network = Bool(False)
 
@@ -47,6 +50,14 @@ class PyFibreRunner(HasStrictTraits):
             'lmp_thresh': 0.15,
             'angle_thresh': 70,
             'r_thresh': 7
+        }
+
+    def _segment_parameters_default(self):
+        return {
+            'min_fibre_size': 100,
+            'min_fibre_frac': 0.1,
+            'min_cell_size': 200,
+            'min_cell_frac': 0.01,
         }
 
     def run_analysis(self, analyser):
