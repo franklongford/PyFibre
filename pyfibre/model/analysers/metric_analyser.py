@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from pyfibre.model.tools.metrics import (
-    SHAPE_METRICS, NEMATIC_METRICS, TEXTURE_METRICS,
+    SHAPE_METRICS, STRUCTURE_METRICS, TEXTURE_METRICS,
     FIBRE_METRICS, NETWORK_METRICS, angle_analysis,
     fibre_network_metrics, segment_metrics
 )
@@ -52,7 +52,7 @@ class MetricAnalyser(ABC):
             for metric in SHAPE_METRICS]
         texture_metrics = [
             f'{segment_tag} Segment {image_tag} {metric}'
-            for metric in NEMATIC_METRICS + TEXTURE_METRICS]
+            for metric in STRUCTURE_METRICS + TEXTURE_METRICS]
         fibre_metrics = [
             f'Mean {segment_tag} {metric}' for metric in
             FIBRE_METRICS]

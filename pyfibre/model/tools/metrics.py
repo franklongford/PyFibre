@@ -13,7 +13,7 @@ from pyfibre.model.tools.filters import form_structure_tensor
 
 logger = logging.getLogger(__name__)
 
-NEMATIC_METRICS = ['Angle SDI', 'Anisotropy', 'Local Anisotropy']
+STRUCTURE_METRICS = ['Angle SDI', 'Anisotropy', 'Local Anisotropy']
 SHAPE_METRICS = ['Area', 'Eccentricity', 'Linearity', 'Coverage']
 TEXTURE_METRICS = ['Mean', 'STD', 'Entropy']
 FIBRE_METRICS = ['Waviness', 'Length']
@@ -21,21 +21,17 @@ NETWORK_METRICS = ['Degree', 'Eigenvalue', 'Connectivity',
                    'Cross-Link Density']
 
 
-def nematic_tensor_metrics(region, nematic_tensor, tag=''):
+def structure_tensor_metrics(structure_tensor, tag=''):
     """Nematic tensor analysis for a scikit-image region"""
 
     database = pd.Series(dtype=object)
 
-    minr, minc, maxr, maxc = region.bbox
-    indices = np.mgrid[minr:maxr, minc:maxc]
-    segment_n_tensor = nematic_tensor[(indices[0], indices[1])]
-
     (segment_anis_map,
      segment_angle_map,
-     segment_angle_map) = tensor_analysis(segment_n_tensor)
+     segment_angle_map) = tensor_analysis(structure_tensor)
 
     segment_anis, _, _ = tensor_analysis(
-        np.mean(segment_n_tensor, axis=(0, 1)))
+        np.mean(structure_tensor, axis=(0, 1)))
 
     database[f"{tag} Angle SDI"], _ = angle_analysis(
         segment_angle_map, segment_anis_map)
@@ -219,9 +215,9 @@ def segment_metrics(segments, image=None, image_tag=None, sigma=0.0001):
     database = pd.DataFrame()
 
     if image is not None:
-        nematic_tensor = form_structure_tensor(image, sigma)
+        structure_tensor = form_structure_tensor(image, sigma)
     else:
-        nematic_tensor = form_structure_tensor(
+        structure_tensor = form_structure_tensor(
             segments[0].image, sigma)
 
     for index, segment in enumerate(segments):
@@ -234,9 +230,13 @@ def segment_metrics(segments, image=None, image_tag=None, sigma=0.0001):
         else:
             tensor_tag = ' '.join([segment._tag, 'Segment'])
 
-        nematic_metrics = nematic_tensor_metrics(
-            segment.region, nematic_tensor,
-            tensor_tag)
+        minr, minc, maxr, maxc = segment.region.bbox
+        indices = np.mgrid[minr:maxr, minc:maxc]
+        segment_tensor = structure_tensor[(indices[0], indices[1])]
+
+        nematic_metrics = structure_tensor_metrics(
+            segment_tensor, tensor_tag)
+
         segment_series = pd.concat((segment_series, nematic_metrics))
 
         database = database.append(segment_series, ignore_index=True)

@@ -110,7 +110,7 @@ def regions_to_binary(regions, shape):
 
 
 def binary_to_regions(binary, intensity_image=None,
-                      min_size=0, min_frac=0):
+                      min_size=0, min_frac=0.0):
     """Convert a binary mask image to a set of scikit-image
     segment objects"""
 
