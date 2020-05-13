@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 import logging
 from functools import partial
 
-import numpy as np
 import pandas as pd
 
 from pyfibre.model.tools.metrics import (
@@ -10,20 +9,26 @@ from pyfibre.model.tools.metrics import (
     FIBRE_METRICS, NETWORK_METRICS, angle_analysis,
     fibre_network_metrics, segment_metrics
 )
-from pyfibre.utilities import flatten_list
+from pyfibre.utilities import flatten_list, nanmean
 
 logger = logging.getLogger(__name__)
 
 
-def metric_averaging(database, metrics):
+def metric_averaging(database, metrics, weights=None):
     """Create new pandas database from mean of selected
     metrics in existing database"""
     average_database = pd.Series(dtype=object)
 
+    if weights is not None:
+        if weights.size != database.shape[0]:
+            raise ValueError(
+                'Weights array must have same shape as '
+                'database columns')
+
     for metric in metrics:
         try:
-            average_database[metric] = np.nanmean(
-                database[metric])
+            average_database[metric] = nanmean(
+                database[metric], weights)
         except KeyError:
             pass
 
@@ -45,7 +50,8 @@ class MetricAnalyser(ABC):
         self.local_metrics = None
         self.global_metrics = None
 
-    def _global_averaging(self, local_metrics, segment_tag, image_tag):
+    def _global_averaging(self, local_metrics, segment_tag, image_tag,
+                          weight_metric=None):
 
         shape_metrics = [
             f'{segment_tag} Segment {metric}'
@@ -60,10 +66,16 @@ class MetricAnalyser(ABC):
             f'{segment_tag} Network {metric}' for metric in
             NETWORK_METRICS]
 
+        if weight_metric is None:
+            weights = None
+        else:
+            weights = local_metrics[weight_metric].values
+
         global_metrics = metric_averaging(
             local_metrics,
             shape_metrics + texture_metrics +
-            fibre_metrics + network_metrics
+            fibre_metrics + network_metrics,
+            weights
         )
 
         return global_metrics
@@ -114,7 +126,7 @@ class SHGMetricAnalyser(MetricAnalyser):
 
         # Average linear properties over all regions
         global_segment_metrics = self._global_averaging(
-            segment_metrics, 'Fibre', 'SHG')
+            segment_metrics, 'Fibre', 'SHG', 'Fibre Segment Area')
         global_network_metrics = self._global_averaging(
             network_metrics, 'Fibre', 'SHG')
         global_network_metrics['No. Fibres'] = sum(
@@ -141,7 +153,7 @@ class PLMetricAnalyser(MetricAnalyser):
 
         # Average linear properties over all regions
         global_metrics = self._global_averaging(
-            segment_metrics, 'Cell', 'PL')
+            segment_metrics, 'Cell', 'PL', 'Cell Segment Area')
 
         global_metrics['No. Cells'] = len(self.segments)
 
