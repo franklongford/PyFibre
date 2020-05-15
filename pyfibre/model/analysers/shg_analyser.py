@@ -233,19 +233,21 @@ class SHGAnalyser(BaseAnalyser):
         self._fibre_networks = fibre_network_assignment(self._network)
 
     @log_time(message='SEGMENTATION')
-    def segmentation_analysis(self, scale):
+    def segmentation_analysis(self, scale, segment_parameters):
         """Segment image into regions
 
         Parameters
         ----------
         scale: float
+        segment_parameters: Dict
 
         """
         logger.debug("Segmenting Fibre and Cell regions")
         self._fibre_segments, self._cell_segments = (
             self.multi_image.segmentation_algorithm(
                 self._fibre_networks,
-                scale=scale
+                scale=scale,
+                **segment_parameters
             )
         )
 
@@ -338,7 +340,8 @@ class SHGAnalyser(BaseAnalyser):
         # Load or create lists of FibreSegments
         if segment:
             self.segmentation_analysis(
-                scale=runner.scale)
+                scale=runner.scale,
+                segment_parameters=runner.segment_parameters)
             self._save_segments()
         else:
             self._load_segments()

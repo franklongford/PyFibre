@@ -110,7 +110,7 @@ def regions_to_binary(regions, shape):
 
 
 def binary_to_regions(binary, intensity_image=None,
-                      min_size=0, min_frac=0):
+                      min_size=0, min_frac=0.0):
     """Convert a binary mask image to a set of scikit-image
     segment objects"""
 
@@ -201,3 +201,14 @@ def binary_to_segments(binary, segment_klass,
     ]
 
     return segments
+
+
+def segments_to_binary(segments, shape):
+    """Transform list of BaseSegment instances into a binary array"""
+
+    stack = [
+        segment.to_array(shape=shape) for segment in segments
+    ]
+    binary = stack_to_binary(stack)
+
+    return binary

@@ -97,9 +97,13 @@ class TestUtilities(PyFibreTestCase):
 
         self.assertArrayAlmostEqual(answer, edit_array)
 
-        array_nan = np.array([2, 3, 1, np.nan])
+    def test_nanmean(self):
 
+        array_nan = np.array([2, 3, 1, np.nan])
         self.assertEqual(nanmean(array_nan), 2)
+
+        weights = np.array([3, 2, 5, 1])
+        self.assertAlmostEqual(nanmean(array_nan, weights), 1.7)
 
     def test_label_set(self):
 

@@ -5,9 +5,9 @@ import pandas as pd
 
 from pyfibre.model.tools.metrics import (
     SHAPE_METRICS, TEXTURE_METRICS, FIBRE_METRICS,
-    NETWORK_METRICS, NEMATIC_METRICS,
+    NETWORK_METRICS, STRUCTURE_METRICS,
     fibre_metrics, fibre_network_metrics,
-    nematic_tensor_metrics, region_shape_metrics,
+    structure_tensor_metrics, region_shape_metrics,
     region_texture_metrics, network_metrics)
 from pyfibre.tests.probe_classes.utilities import generate_regions
 from pyfibre.tests.probe_classes.objects import (
@@ -24,13 +24,13 @@ class TestAnalysis(TestCase):
 
     def test_nematic_tensor_metrics(self):
 
-        metrics = nematic_tensor_metrics(
-            self.regions[0], np.ones((10, 10, 2, 2)), 'test')
+        metrics = structure_tensor_metrics(
+            np.ones((10, 10, 2, 2)), 'test')
 
         self.assertIsInstance(metrics, pd.Series)
         self.assertEqual(3, len(metrics))
 
-        for metric in NEMATIC_METRICS:
+        for metric in STRUCTURE_METRICS:
             self.assertIn(f'test {metric}', metrics)
 
     def test_region_shape_metrics(self):

@@ -118,7 +118,11 @@ def create_fibre_filter(fibre_networks, shape,
     return fibre_filter
 
 
-def shg_segmentation(multi_image, fibre_networks, **kwargs):
+def shg_segmentation(
+        multi_image, fibre_networks,
+        min_fibre_size=100, min_cell_size=200,
+        min_fibre_frac=100, min_cell_frac=0.001,
+        **kwargs):
 
     fibre_filter = create_fibre_filter(
         fibre_networks, multi_image.shape)
@@ -129,18 +133,25 @@ def shg_segmentation(multi_image, fibre_networks, **kwargs):
     # Create a new set of segments for each fibre region
     fibre_segments = binary_to_segments(
         fibre_binary, FibreSegment,
-        multi_image.shg_image)
+        intensity_image=multi_image.shg_image,
+        min_size=min_fibre_size,
+        min_frac=min_fibre_frac)
 
     # Create a new set of segments for each cell region
     cell_segments = binary_to_segments(
         cell_binary, CellSegment,
         intensity_image=multi_image.shg_image,
-        min_size=200, min_frac=0.001)
+        min_size=min_cell_size,
+        min_frac=min_cell_frac)
 
     return fibre_segments, cell_segments
 
 
-def shg_pl_trans_segmentation(multi_image, fibre_networks, scale=1.0):
+def shg_pl_trans_segmentation(
+        multi_image, fibre_networks,
+        min_fibre_size=100, min_cell_size=200,
+        min_fibre_frac=100, min_cell_frac=0.001,
+        scale=1.0, **kwargs):
 
     # Create an image stack for the rgb_segmentation from SHG and PL
     # images
@@ -176,12 +187,15 @@ def shg_pl_trans_segmentation(multi_image, fibre_networks, scale=1.0):
     # Create a new set of segments for each fibre region
     fibre_segments = binary_to_segments(
         fibre_binary, FibreSegment,
-        intensity_image=multi_image.shg_image)
+        intensity_image=multi_image.shg_image,
+        min_size=min_fibre_size,
+        min_frac=min_fibre_frac)
 
     # Create a new set of segments for each cell region
     cell_segments = binary_to_segments(
         cell_binary, CellSegment,
-        intensity_image=multi_image.pl_image,
-        min_size=200, min_frac=0.01)
+        intensity_image=multi_image.shg_image,
+        min_size=min_cell_size,
+        min_frac=min_cell_frac)
 
     return fibre_segments, cell_segments
