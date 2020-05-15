@@ -198,13 +198,15 @@ def fibre_network_metrics(fibre_networks):
     return database
 
 
-def segment_metrics(segments, image=None, image_tag=None, sigma=0.0001):
+def segment_metrics(segments, image, image_tag=None, sigma=0.0001):
     """Analysis of a list of `BaseSegment` objects
 
     Parameters
     ----------
     segments : list of `<class: BaseSegment>`
         List of cells to analyse
+    image: array-like
+        Full image to analyse
 
     Returns
     -------
@@ -214,11 +216,7 @@ def segment_metrics(segments, image=None, image_tag=None, sigma=0.0001):
     """
     database = pd.DataFrame()
 
-    if image is not None:
-        structure_tensor = form_structure_tensor(image, sigma)
-    else:
-        structure_tensor = form_structure_tensor(
-            segments[0].image, sigma)
+    structure_tensor = form_structure_tensor(image, sigma)
 
     for index, segment in enumerate(segments):
 
