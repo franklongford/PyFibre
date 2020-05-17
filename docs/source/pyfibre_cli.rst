@@ -1,7 +1,7 @@
-Running in the Terminal
+Running the PyFibre CLI
 -----------------------
 
-Calling the executable `PyFibre` from the command line will initiate the terminal based version of PyFibre.
+Calling the executable ``PyFibre`` from the command line will initiate the terminal based version of PyFibre::
 
 	Usage: PyFibre [OPTIONS] [FILE_PATH]
 
