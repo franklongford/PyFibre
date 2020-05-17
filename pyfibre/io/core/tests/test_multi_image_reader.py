@@ -2,9 +2,9 @@ import numpy as np
 
 from skimage.external.tifffile import TiffFile
 
-from pyfibre.io.base_multi_image_reader import (
+from pyfibre.io.core.base_multi_image_reader import (
     BaseMultiImageReader)
-from pyfibre.io.shg_pl_reader import (
+from pyfibre.shg_pl_trans_plugin.shg_pl_reader import (
     get_fluoview_param,
     get_imagej_param,
     get_tiff_param
