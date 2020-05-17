@@ -5,15 +5,15 @@ from docutils.utils import get_source_line
 import sys
 import os
 
+from pyfibre.version import __version__ as RELEASE
+
 
 sys.path.insert(0, os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "..")
     )
 
-from pyfibre.version import __version__ as RELEASE
 
-
-MOCK_MODULES=[]
+MOCK_MODULES = []
 
 
 def _warn_node(self, msg, node, **kwargs):
@@ -44,6 +44,7 @@ def mock_modules():
 mock_modules()
 
 extensions = [
+    'sphinxcontrib.apidoc',
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
@@ -68,3 +69,7 @@ html_static_path = ['_static']
 html_logo = '_static/icon.ico'
 htmlhelp_basename = 'PyFibredoc'
 intersphinx_mapping = {'http://docs.python.org/': None}
+apidoc_module_dir = '../../pyfibre'
+apidoc_output_dir = 'api'
+apidoc_excluded_paths = ['*tests*', '*cli', '*gui*']
+apidoc_separate_modules = True

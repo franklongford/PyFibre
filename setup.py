@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 VERSION = '2.0.0.dev'
 
 #: Read description
-with open('README.md', 'r') as readme:
+with open('README.rst', 'r') as readme:
     README_TEXT = readme.read()
 
 
