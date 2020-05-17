@@ -7,11 +7,11 @@ import numpy as np
 from skimage.util import img_as_float
 from skimage.external.tifffile import TiffFile
 
-from pyfibre.io.base_multi_image_reader import (
+from pyfibre.io.core.base_multi_image_reader import (
     BaseMultiImageReader, lookup_page)
-from pyfibre.model.multi_image.shg_image import (
-    SHGImage)
-from pyfibre.model.multi_image.shg_pl_trans_image import SHGPLTransImage
+
+from .shg_image import SHGImage
+from .shg_pl_trans_image import SHGPLTransImage
 
 logger = logging.getLogger(__name__)
 

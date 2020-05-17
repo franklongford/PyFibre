@@ -2,8 +2,8 @@ from unittest import TestCase
 
 import numpy as np
 
-from pyfibre.io.base_multi_image_reader import WrongFileTypeError
-from pyfibre.io.shg_pl_reader import (
+from pyfibre.io.core.base_multi_image_reader import WrongFileTypeError
+from pyfibre.shg_pl_trans_plugin.shg_pl_reader import (
     get_image_type, extract_prefix,
     get_files_prefixes, filter_input_files,
     populate_image_dictionary,

@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from pyfibre.model.multi_image.shg_image import SHGImage
+from pyfibre.shg_pl_trans_plugin.shg_image import SHGImage
 
 
 class TestSHGImage(TestCase):

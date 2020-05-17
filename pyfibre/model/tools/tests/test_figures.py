@@ -6,9 +6,6 @@ from skimage.measure import regionprops
 
 from pyfibre.tests.probe_classes.utilities import generate_image
 from pyfibre.tests.probe_classes.objects import ProbeFibreNetwork
-from pyfibre.tests.probe_classes.shg_image import ProbeSHGImage
-from pyfibre.tests.probe_classes.shg_pl_trans_image import (
-    ProbeSHGPLTransImage)
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 from ..figures import (
@@ -16,9 +13,7 @@ from ..figures import (
     create_hsb_image,
     create_tensor_image,
     create_region_image,
-    create_network_image,
-    create_shg_figures,
-    create_shg_pl_trans_figures
+    create_network_image
 )
 
 
@@ -87,29 +82,3 @@ class TestFigures(PyFibreTestCase):
 
         # Expect an RGB image back
         self.assertEqual(3, image.ndim)
-
-    def test_create_shg_figures(self):
-        multi_image = ProbeSHGImage()
-
-        with NamedTemporaryFile() as tmp_file:
-            create_shg_figures(multi_image, tmp_file.name)
-
-            self.assertTrue(
-                os.path.exists(f"{tmp_file.name}_SHG.png"))
-            self.assertTrue(
-                os.path.exists(f"{tmp_file.name}_tensor.png"))
-
-    def test_create_shg_pl_trans_figures(self):
-        multi_image = ProbeSHGPLTransImage()
-
-        with NamedTemporaryFile() as tmp_file:
-            create_shg_pl_trans_figures(multi_image, tmp_file.name)
-
-            self.assertTrue(
-                os.path.exists(f"{tmp_file.name}_SHG.png"))
-            self.assertTrue(
-                os.path.exists(f"{tmp_file.name}_tensor.png"))
-            self.assertTrue(
-                os.path.exists(f"{tmp_file.name}_PL.png"))
-            self.assertTrue(
-                os.path.exists(f"{tmp_file.name}_trans.png"))

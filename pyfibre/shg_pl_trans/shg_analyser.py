@@ -7,7 +7,8 @@ from skimage.exposure import equalize_adapthist
 
 from traits.api import Instance, List, Any, Tuple
 
-from pyfibre.model.multi_image.shg_image import SHGImage
+from pyfibre.model.core.base_multi_image_analyser import (
+    BaseMultiImageAnalyser)
 from pyfibre.model.objects.segments import (
     FibreSegment, CellSegment)
 from pyfibre.model.objects.fibre_network import FibreNetwork
@@ -24,12 +25,12 @@ from pyfibre.model.tools.network_extraction import (
 from pyfibre.model.tools.preprocessing import nl_means
 from pyfibre.utilities import flatten_list, log_time
 
-from pyfibre.model.core.base_analyser import BaseAnalyser
+from .shg_image import SHGImage
 
 logger = logging.getLogger(__name__)
 
 
-class SHGAnalyser(BaseAnalyser):
+class SHGAnalyser(BaseMultiImageAnalyser):
 
     #: Reference to multi image under analysis
     multi_image = Instance(SHGImage)
