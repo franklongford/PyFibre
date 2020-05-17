@@ -1,7 +1,7 @@
 from envisage.core_plugin import CorePlugin
 from envisage.ui.tasks.tasks_plugin import TasksPlugin
 
-from pyfibre.cli.pyfibre_cli import PyFibreCLI
+from pyfibre.cli.pyfibre_app import PyFibreApplication
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
 from pyfibre.model.core.base_graph import BaseGraph
 from pyfibre.model.core.base_graph_segment import BaseGraphSegment
@@ -46,9 +46,9 @@ class DummyGraphSegment(BaseGraphSegment):
         pass
 
 
-class DummyPyFibreCLI(PyFibreCLI):
+class DummyPyFibreApplication(PyFibreApplication):
 
-    def run(self, file_name):
+    def _run_pyfibre(self):
         """Run the application (dummy class:
         does nothing in this case)."""
         pass

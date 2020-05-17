@@ -4,88 +4,137 @@ MAIN ROUTINE
 
 Created by: Frank Longford
 Created on: 16/08/2018
+
+Last Modified: 18/02/2019
 """
+
 import logging
+import click
 
-import pandas as pd
+from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 
-from pyfibre.io.database_io import save_database
-from pyfibre.io.shg_pl_reader import (
-    collate_image_dictionary,
-    SHGPLTransReader
+from ..utilities import logo
+from ..version import __version__
+
+from .pyfibre_app import PyFibreApplication
+
+
+@click.command()
+@click.version_option(version=__version__)
+@click.option(
+    '--debug', is_flag=True, default=False,
+    help="Prints extra debug information in pyfibre.log"
 )
-from pyfibre.model.analysers.shg_pl_trans_analyser import (
-    SHGPLTransAnalyser)
-from pyfibre.io.utilities import parse_file_path
-from pyfibre.pyfibre_runner import PyFibreRunner, analysis_generator
+@click.option(
+    '--profile', is_flag=True, default=False,
+    help="Run GUI under cProfile, creating .prof and .pstats "
+         "files in the current directory."
+)
+@click.option(
+    '--ow_metric', is_flag=True, default=False,
+    help='Toggles overwrite analytic metrics'
+)
+@click.option(
+    '--ow_segment', is_flag=True, default=False,
+    help='Toggles overwrite image segmentation'
+)
+@click.option(
+    '--ow_network', is_flag=True, default=False,
+    help='Toggles overwrite network extraction'
+)
+@click.option(
+    '--save_figures', is_flag=True, default=False,
+    help='Toggles saving of figures'
+)
+@click.option(
+    '--test', is_flag=True, default=False,
+    help='Perform run on test image'
+)
+@click.option(
+    '--key', help='Keywords to filter file names',
+    default=''
+)
+@click.option(
+    '--sigma', help='Gaussian smoothing standard deviation',
+    default=0.5
+)
+@click.option(
+    '--alpha', help='Alpha network coefficient',
+    default=0.5
+)
+@click.option(
+    '--database_name', help='Output database filename',
+    default='pyfibre_database'
+)
+@click.option(
+    '--log_name', help='Pyfibre log filename',
+    default='pyfibre'
+)
+@click.argument(
+    'file_path', nargs=-1, type=click.Path(exists=True),
+    required=False
+)
+def pyfibre(file_path, key, sigma, alpha, log_name,
+            database_name, debug, profile, ow_metric, ow_segment,
+            ow_network, save_figures, test):
+    """Launches the PyFibre command line app"""
 
-logger = logging.getLogger(__name__)
+    run(file_path, key, sigma, alpha, log_name,
+        database_name, debug, profile, ow_metric, ow_segment,
+        ow_network, save_figures, test)
 
 
-class PyFibreCLI:
+def run(file_path, key, sigma, alpha, log_name,
+        database_name, debug, profile,
+        ow_metric, ow_segment,
+        ow_network, save_figures, test):
 
-    id = 'pyfibre.pyfibre_cli'
+    if test:
+        file_path = test_shg_pl_trans_image_path
+        debug = True
+        profile = True
+        ow_network = True
+        save_figures = True
 
-    name = 'PyFibre CLI'
+    if debug:
+        level = logging.DEBUG
+    else:
+        level = logging.INFO
 
-    def __init__(self, sigma=0.5, alpha=0.5, key=None,
-                 database_name=None, ow_metric=False,
-                 ow_segment=False, ow_network=False,
-                 save_figures=False):
+    logging.basicConfig(filename=f"{log_name}.log", filemode="w",
+                        level=level)
 
-        self.database_name = database_name
-        self.key = key
+    if profile:
+        import cProfile
+        import pstats
+        profiler = cProfile.Profile()
+        profiler.enable()
 
-        self.runner = PyFibreRunner(
-            sigma=sigma, alpha=alpha,
-            ow_metric=ow_metric, ow_segment=ow_segment,
-            ow_network=ow_network, save_figures=save_figures
-        )
-        self.supported_readers = {
-            'SHG-PL-Trans': SHGPLTransReader()
-        }
-        self.supported_analysers = {
-            'SHG-PL-Trans': SHGPLTransAnalyser()
-        }
+    logging.info(logo(__version__))
 
-    def run(self, file_paths):
+    if isinstance(file_path, str):
+        file_path = [file_path]
 
-        image_dictionary = {}
+    pyfibre_app = PyFibreApplication(
+        file_paths=file_path,
+        sigma=sigma, alpha=alpha, key=key,
+        database_name=database_name,
+        ow_metric=ow_metric, ow_segment=ow_segment,
+        ow_network=ow_network, save_figures=save_figures
+    )
 
-        if isinstance(file_paths, str):
-            file_paths = [file_paths]
+    pyfibre_app.run()
 
-        for file_path in file_paths:
-            input_files = parse_file_path(file_path, self.key)
-            image_dictionary.update(collate_image_dictionary(input_files))
+    if profile:
+        profiler.disable()
+        from sys import version_info
+        fname = 'pyfibre-{}-{}.{}.{}'.format(__version__,
+                                             version_info.major,
+                                             version_info.minor,
+                                             version_info.micro)
 
-        formatted_images = '\n'.join([
-            f'\t{key}: {value}'
-            for key, value in image_dictionary.items()
-        ])
-
-        logger.info(f"Analysing images: \n{formatted_images}")
-
-        global_database = pd.DataFrame()
-        fibre_database = pd.DataFrame()
-        network_database = pd.DataFrame()
-        cell_database = pd.DataFrame()
-
-        generator = analysis_generator(
-            image_dictionary, self.runner,
-            self.supported_analysers, self.supported_readers)
-
-        for databases in generator:
-
-            global_database = global_database.append(
-                databases[0], ignore_index=True)
-
-            fibre_database = pd.concat([fibre_database, databases[1]])
-            network_database = pd.concat([network_database, databases[2]])
-            cell_database = pd.concat([cell_database, databases[3]])
-
-        if self.database_name:
-            save_database(global_database, self.database_name)
-            save_database(fibre_database, self.database_name, 'fibre')
-            save_database(network_database, self.database_name, 'network')
-            save_database(cell_database, self.database_name, 'cell')
+        profiler.dump_stats(fname + '.prof')
+        with open(fname + '.pstats', 'w') as fp:
+            stats = pstats.Stats(
+                profiler, stream=fp).sort_stats('cumulative')
+            stats.print_stats()
