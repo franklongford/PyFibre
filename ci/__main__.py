@@ -2,7 +2,6 @@ import click
 import os
 import subprocess
 from subprocess import check_call
-import shutil
 
 
 DEFAULT_PYTHON_VERSION = "3.6"
