@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from pyfibre.tests.probe_classes.shg_pl_trans_image import ProbeSHGPLTransImage
+from pyfibre.shg_pl_trans.tests.probe_classes import ProbeSHGPLTransImage
 from pyfibre.tests.probe_classes.objects import (
     ProbeFibreNetwork, ProbeFibreSegment, ProbeCellSegment)
 

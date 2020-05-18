@@ -13,13 +13,12 @@ from envisage.api import Application
 from envisage.core_plugin import CorePlugin
 from traits.api import Instance, Str, List, File
 
+from pyfibre.shg_pl_trans.shg_pl_trans_factory import (
+    SHGPLTransFactory)
 from pyfibre.io.database_io import save_database
-from pyfibre.io.shg_pl_reader import (
-    collate_image_dictionary,
-    SHGPLTransReader
+from pyfibre.shg_pl_trans.shg_pl_reader import (
+    collate_image_dictionary
 )
-from pyfibre.model.analysers.shg_pl_trans_analyser import (
-    SHGPLTransAnalyser)
 from pyfibre.io.utilities import parse_file_path
 from pyfibre.pyfibre_runner import PyFibreRunner, analysis_generator
 
@@ -58,12 +57,10 @@ class PyFibreApplication(Application):
             plugins=plugins,
             **traits)
 
-        self.supported_readers = {
-            'SHG-PL-Trans': SHGPLTransReader()
-        }
-        self.supported_analysers = {
-            'SHG-PL-Trans': SHGPLTransAnalyser()
-        }
+        factory = SHGPLTransFactory()
+
+        self.supported_readers = factory.create_reader()
+        self.supported_analysers = factory.create_analyser()
 
     def _run_pyfibre(self):
 

@@ -6,7 +6,7 @@ from pyfibre.gui.pyfibre_gui import PyFibreGUI
 from pyfibre.model.core.base_graph import BaseGraph
 from pyfibre.model.core.base_graph_segment import BaseGraphSegment
 from pyfibre.model.core.base_multi_image import BaseMultiImage
-from pyfibre.model.core.base_analyser import BaseAnalyser
+from pyfibre.model.core.base_multi_image_analyser import BaseMultiImageAnalyser
 
 
 class DummyMultiImage(BaseMultiImage):
@@ -22,7 +22,7 @@ class DummyMultiImage(BaseMultiImage):
         pass
 
 
-class DummyAnalyser(BaseAnalyser):
+class DummyAnalyser(BaseMultiImageAnalyser):
 
     def create_figures(self, *args, **kwargs):
         pass

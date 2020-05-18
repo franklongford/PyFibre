@@ -5,7 +5,7 @@ import numpy as np
 from skimage import data
 from scipy.ndimage.filters import gaussian_filter
 
-from pyfibre.io.shg_pl_reader import SHGReader
+from pyfibre.shg_pl_trans.shg_pl_reader import SHGReader
 from pyfibre.utilities import (
     unit_vector, numpy_remove, nanmean, ring, matrix_split,
     label_set, clear_border, flatten_list, log_time

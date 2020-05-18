@@ -11,7 +11,7 @@ from traitsui.api import (
     TextEditor
 )
 
-from pyfibre.io.shg_pl_reader import (
+from pyfibre.shg_pl_trans.shg_pl_reader import (
     assign_images, collate_image_dictionary)
 from pyfibre.io.utilities import parse_file_path
 

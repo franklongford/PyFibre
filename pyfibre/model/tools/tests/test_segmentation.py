@@ -6,7 +6,7 @@ from pyfibre.model.tools.segmentation import (
 from pyfibre.tests.probe_classes.utilities import (
     generate_image, generate_probe_graph)
 from pyfibre.tests.probe_classes.objects import ProbeFibreNetwork
-from pyfibre.tests.probe_classes.shg_pl_trans_image import ProbeSHGPLTransImage
+from pyfibre.shg_pl_trans.tests.probe_classes import ProbeSHGPLTransImage
 from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 

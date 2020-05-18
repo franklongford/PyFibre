@@ -6,7 +6,7 @@ from traits.api import ABCHasTraits, Instance
 from .base_multi_image import BaseMultiImage
 
 
-class BaseAnalyser(ABCHasTraits):
+class BaseMultiImageAnalyser(ABCHasTraits):
     """Class that provides analysis instructions for a particular
     BaseMultiImage class"""
 

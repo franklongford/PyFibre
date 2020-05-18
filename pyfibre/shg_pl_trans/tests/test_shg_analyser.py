@@ -3,14 +3,15 @@ from tempfile import TemporaryDirectory
 
 from pandas import DataFrame, Series
 
-from pyfibre.shg_pl_trans_plugin.shg_analyser import SHGAnalyser
 from pyfibre.pyfibre_runner import PyFibreRunner
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 from pyfibre.tests.probe_classes.objects import (
     ProbeFibreNetwork, ProbeFibreSegment, ProbeCellSegment)
-from pyfibre.tests.probe_classes.shg_image import ProbeSHGImage
 from pyfibre.tests.probe_classes.utilities import (
     generate_image, generate_probe_graph)
+from pyfibre.shg_pl_trans.shg_analyser import SHGAnalyser
+from pyfibre.shg_pl_trans.tests.probe_classes import (
+    ProbeSHGImage)
 
 
 class TestSHGAnalyser(PyFibreTestCase):

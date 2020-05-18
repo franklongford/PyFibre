@@ -24,10 +24,10 @@ from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.io.database_io import save_database
-from pyfibre.io.base_multi_image_reader import BaseMultiImageReader
-from pyfibre.io.shg_pl_reader import SHGPLTransReader, assign_images
-from pyfibre.model.core.base_analyser import BaseAnalyser
-from pyfibre.model.analysers.shg_pl_trans_analyser import (
+from pyfibre.io.core.base_multi_image_reader import BaseMultiImageReader
+from pyfibre.shg_pl_trans.shg_pl_reader import SHGPLTransReader, assign_images
+from pyfibre.model.core.base_multi_image_analyser import BaseMultiImageAnalyser
+from pyfibre.shg_pl_trans.shg_pl_trans_analyser import (
     SHGPLTransAnalyser
 )
 from pyfibre.pyfibre_runner import PyFibreRunner, analysis_generator
@@ -47,7 +47,7 @@ class PyFibreMainTask(Task):
 
     multi_image_readers = Dict(Str, Instance(BaseMultiImageReader))
 
-    analysers = Dict(Str, Instance(BaseAnalyser))
+    analysers = Dict(Str, Instance(BaseMultiImageAnalyser))
 
     database_filename = File('pyfibre_database')
 

@@ -6,7 +6,21 @@ from networkx import node_link_graph, node_link_data
 
 
 def parse_file_path(file_path, key=None):
-    """Parse input path in order to extract all files"""
+    """Parse input path in order to extract all files
+
+    Parameters
+    ----------
+    file_path: str
+        Path to either a file or directory
+    key: str, optional
+        Section of file name to filter
+
+    Returns
+    -------
+    input_files: list of str
+        Parsed file names
+    """
+
     input_files = []
 
     if os.path.isfile(file_path):
