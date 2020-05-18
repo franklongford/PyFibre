@@ -6,8 +6,8 @@ from traits.api import (
 
 from pyfibre.model.multi_image.fixed_stack_image import (
     FixedStackImage)
-from pyfibre.shg_pl_trans_plugin.tools.figures import create_shg_figures
 
+from .tools.figures import create_shg_figures
 from .tools.segmentation import shg_segmentation
 
 logger = logging.getLogger(__name__)
