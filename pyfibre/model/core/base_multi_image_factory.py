@@ -1,11 +1,14 @@
 from abc import abstractmethod
 
-from traits.api import ABCHasStrictTraits, Type, Str
+from traits.api import ABCHasStrictTraits, Type, Str, provides
 
-from .base_multi_image_analyser import BaseMultiImageAnalyser
 from pyfibre.io.core.base_multi_image_reader import BaseMultiImageReader
 
+from .base_multi_image_analyser import BaseMultiImageAnalyser
+from .i_multi_image_factory import IMultiImageFactory
 
+
+@provides(IMultiImageFactory)
 class BaseMultiImageFactory(ABCHasStrictTraits):
 
     tag = Str
@@ -41,8 +44,8 @@ class BaseMultiImageFactory(ABCHasStrictTraits):
         """Returns list of BaseMultiImageAnalyser classes able to analyse
         the BaseMultiImage class created by this factory"""
 
-    def create_reader(self):
-        return {self.tag: self.reader_class()}
+    def create_reader(self, **kwargs):
+        return self.reader_class(**kwargs)
 
-    def create_analyser(self):
-        return {self.tag: self.analyser_class()}
+    def create_analyser(self, **kwargs):
+        return self.analyser_class(**kwargs)

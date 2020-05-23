@@ -1,9 +1,5 @@
-import numpy as np
-
 from skimage.external.tifffile import TiffFile
 
-from pyfibre.io.core.base_multi_image_reader import (
-    BaseMultiImageReader)
 from pyfibre.shg_pl_trans.shg_pl_reader import (
     get_fluoview_param,
     get_imagej_param,
@@ -11,22 +7,8 @@ from pyfibre.shg_pl_trans.shg_pl_reader import (
 )
 from pyfibre.tests.fixtures import (
     test_shg_image_path, test_shg_pl_trans_image_path)
-from pyfibre.tests.probe_classes.multi_images import ProbeFixedStackImage
+from pyfibre.tests.probe_classes.readers import ProbeMultiImageReader
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
-
-
-class ProbeMultiImageReader(BaseMultiImageReader):
-
-    _multi_image_class = ProbeFixedStackImage
-
-    def can_load(self, filename):
-        return True
-
-    def load_image(self, filename):
-        return np.ones((100, 100))
-
-    def create_image_stack(self, filenames):
-        return [self.load_image(filename) for filename in filenames]
 
 
 class TestMultiImageReader(PyFibreTestCase):
