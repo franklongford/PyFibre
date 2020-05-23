@@ -1,4 +1,8 @@
-from pyfibre.model.tools.figures import create_figure, create_tensor_image, create_network_image, create_region_image
+from pyfibre.model.tools.figures import (
+    create_figure,
+    create_tensor_image,
+    create_network_image,
+    create_region_image)
 
 
 def create_shg_figures(multi_image, figname, network_graphs=None,

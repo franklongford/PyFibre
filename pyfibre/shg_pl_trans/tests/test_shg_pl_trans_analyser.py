@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 import numpy as np
 from pandas import DataFrame, Series
 
-from pyfibre.pyfibre_runner import PyFibreRunner
+from pyfibre.cli.app.pyfibre_runner import PyFibreRunner
 from pyfibre.shg_pl_trans.tests.probe_classes import ProbeSHGPLTransImage
 from pyfibre.shg_pl_trans.shg_pl_trans_analyser import (
     SHGPLTransAnalyser)

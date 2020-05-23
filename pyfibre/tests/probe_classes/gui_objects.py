@@ -6,7 +6,7 @@ from pyfibre.gui.segment_image_tab import SegmentImageTab
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
 from pyfibre.gui.file_display_pane import TableRow
 from pyfibre.tests.probe_classes.multi_images import ProbeMultiImage
-from pyfibre.tests.probe_classes.plugin import ProbePyFibrePlugin
+from pyfibre.tests.probe_classes.plugins import ProbePyFibreGUIPlugin
 from pyfibre.tests.probe_classes.objects import ProbeFibreNetwork, ProbeSegment
 
 from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
@@ -17,7 +17,7 @@ class ProbePyFibreGUI(PyFibreGUI):
     def __init__(self):
 
         plugins = [CorePlugin(), TasksPlugin(),
-                   ProbePyFibrePlugin()]
+                   ProbePyFibreGUIPlugin()]
 
         super(ProbePyFibreGUI, self).__init__(plugins=plugins)
 

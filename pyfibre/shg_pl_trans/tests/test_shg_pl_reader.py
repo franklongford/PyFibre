@@ -3,7 +3,12 @@ from unittest import TestCase
 import numpy as np
 
 from pyfibre.io.core.base_multi_image_reader import WrongFileTypeError
-from pyfibre.shg_pl_trans_plugin.shg_pl_reader import (
+from pyfibre.tests.fixtures import (
+    test_shg_image_path, test_pl_image_path,
+    test_shg_pl_trans_image_path)
+from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
+
+from ..shg_pl_reader import (
     get_image_type, extract_prefix,
     get_files_prefixes, filter_input_files,
     populate_image_dictionary,
@@ -12,13 +17,9 @@ from pyfibre.shg_pl_trans_plugin.shg_pl_reader import (
     SHGReader,
     SHGPLTransReader
 )
-from pyfibre.tests.fixtures import (
-    test_shg_image_path, test_pl_image_path,
-    test_shg_pl_trans_image_path)
-from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 
-class TestImageReader(TestCase):
+class TestSHGPLTransReader(TestCase):
 
     def setUp(self):
         self.image_dictionary = {
