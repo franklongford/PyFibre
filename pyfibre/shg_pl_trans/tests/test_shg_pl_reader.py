@@ -19,7 +19,7 @@ from ..shg_pl_reader import (
 )
 
 
-class TestSHGPLTransReader(TestCase):
+class TestReader(TestCase):
 
     def setUp(self):
         self.image_dictionary = {
