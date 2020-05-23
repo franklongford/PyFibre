@@ -1,12 +1,8 @@
 import logging
 import os
 
-from envisage.ui.tasks.api import (
-    TasksApplication
-)
-
+from envisage.ui.tasks.api import TasksApplication
 from pyface.tasks.api import TaskWindowLayout
-
 from traits.api import (
     Tuple, Int, List, Bool
 )

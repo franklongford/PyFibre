@@ -13,8 +13,7 @@ from pyface.tasks.api import (
 )
 from traits.api import (
     Bool, Int, List, Property, Instance, Event, Any,
-    on_trait_change, HasStrictTraits, Dict, Str,
-    File
+    on_trait_change, HasStrictTraits, File
 )
 from traits_futures.api import (
     TraitsExecutor, CANCELLED, COMPLETED,
@@ -24,13 +23,10 @@ from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.io.database_io import save_database
-from pyfibre.io.core.base_multi_image_reader import BaseMultiImageReader
-from pyfibre.shg_pl_trans.shg_pl_reader import SHGPLTransReader, assign_images
-from pyfibre.model.core.base_multi_image_analyser import BaseMultiImageAnalyser
-from pyfibre.shg_pl_trans.shg_pl_trans_analyser import (
-    SHGPLTransAnalyser
-)
-from pyfibre.pyfibre_runner import PyFibreRunner, analysis_generator
+from pyfibre.model.core.i_multi_image_factory import IMultiImageFactory
+from pyfibre.shg_pl_trans.shg_pl_reader import assign_images
+from pyfibre.cli.app.pyfibre_runner import (
+    PyFibreRunner, analysis_generator)
 
 logger = logging.getLogger(__name__)
 
@@ -45,11 +41,9 @@ class PyFibreMainTask(Task):
 
     name = 'PyFibre GUI (Main)'
 
-    multi_image_readers = Dict(Str, Instance(BaseMultiImageReader))
-
-    analysers = Dict(Str, Instance(BaseMultiImageAnalyser))
-
     database_filename = File('pyfibre_database')
+
+    multi_image_factories = List(IMultiImageFactory)
 
     options_pane = Instance(OptionsPane)
 
@@ -89,7 +83,15 @@ class PyFibreMainTask(Task):
     _progress_bar = Any()
 
     def __init__(self, *args, **kwargs):
+
         super(PyFibreMainTask, self).__init__(*args, **kwargs)
+
+        self.supported_readers = {}
+        self.supported_analysers = {}
+
+        for factory in self.multi_image_factories:
+            self.supported_readers[factory.tag] = factory.create_reader()
+            self.supported_analysers[factory.tag] = factory.create_analyser()
 
         self.global_database = None
         self.fibre_database = None
@@ -108,19 +110,13 @@ class PyFibreMainTask(Task):
                 PaneItem('pyfibre.options_pane'))
         )
 
-    def _multi_image_readers_default(self):
-        return {'SHG-PL-Trans': SHGPLTransReader()}
-
-    def _analysers_default(self):
-        return {'SHG-PL-Trans': SHGPLTransAnalyser()}
-
     def _options_pane_default(self):
         return OptionsPane()
 
     def _file_display_pane_default(self):
-        supported_readers = list(self.multi_image_readers.keys())
+        readers = list(self.supported_readers.keys())
         return FileDisplayPane(
-            supported_readers=supported_readers)
+            supported_readers=readers)
 
     def _viewer_pane_default(self):
         return ViewerPane()
@@ -200,7 +196,7 @@ class PyFibreMainTask(Task):
             selected_row._dictionary)
 
         try:
-            reader = self.multi_image_readers[image_type]
+            reader = self.supported_readers[image_type]
             multi_image = reader.load_multi_image(
                 file_names, selected_row.name)
         except (KeyError, ImportError):
@@ -273,7 +269,7 @@ class PyFibreMainTask(Task):
 
             future = self.traits_executor.submit_iteration(
                 analysis_generator, batch_dict, runner,
-                self.analysers, self.multi_image_readers
+                self.supported_analysers, self.supported_readers
             )
             self.current_futures.append(future)
 
@@ -309,8 +305,8 @@ class PyFibreMainTask(Task):
             filenames, image_type = assign_images(data)
 
             try:
-                reader = self.multi_image_readers[image_type]
-                analyser = self.analysers[image_type]
+                reader = self.supported_readers[image_type]
+                analyser = self.supported_analysers[image_type]
             except KeyError:
                 continue
 

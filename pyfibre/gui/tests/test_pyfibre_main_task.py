@@ -12,6 +12,7 @@ from pyfibre.gui.pyfibre_main_task import PyFibreMainTask
 from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
+from pyfibre.shg_pl_trans.shg_pl_trans_factory import SHGPLTransFactory
 
 GuiTestAssistant = toolkit("gui_test_assistant:GuiTestAssistant")
 
@@ -40,7 +41,9 @@ def get_probe_pyfibre_tasks():
 
     pyfibre_gui = DummyPyFibreGUI()
 
-    main_task = PyFibreMainTask()
+    main_task = PyFibreMainTask(
+        multi_image_factories=[SHGPLTransFactory()]
+    )
 
     tasks = [main_task]
     mock_window = mock.Mock(spec=TaskWindow)
@@ -96,8 +99,8 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
         self.assertIsInstance(
             self.main_task.create_dock_panes()[1], OptionsPane
         )
-        self.assertIn('SHG-PL-Trans', self.main_task.multi_image_readers)
-        self.assertIn('SHG-PL-Trans', self.main_task.analysers)
+        self.assertIn('SHG-PL-Trans', self.main_task.supported_readers)
+        self.assertIn('SHG-PL-Trans', self.main_task.supported_analysers)
 
     def test_run_cancel_enabled(self):
 

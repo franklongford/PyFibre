@@ -4,7 +4,7 @@ from pyfibre.shg_pl_trans.tests.probe_classes import ProbeSHGPLTransImage
 from pyfibre.tests.probe_classes.objects import (
     ProbeFibreNetwork, ProbeFibreSegment, ProbeCellSegment)
 
-from pyfibre.pyfibre_runner import PyFibreRunner
+from pyfibre.cli.app.pyfibre_runner import PyFibreRunner
 
 
 LOAD_NETWORK_PATH = "networkx.read_gpickle"

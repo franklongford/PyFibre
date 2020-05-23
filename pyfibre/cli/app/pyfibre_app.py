@@ -10,17 +10,15 @@ import logging
 import pandas as pd
 
 from envisage.api import Application
-from envisage.core_plugin import CorePlugin
 from traits.api import Instance, Str, List, File
 
-from pyfibre.shg_pl_trans.shg_pl_trans_factory import (
-    SHGPLTransFactory)
 from pyfibre.io.database_io import save_database
 from pyfibre.shg_pl_trans.shg_pl_reader import (
     collate_image_dictionary
 )
 from pyfibre.io.utilities import parse_file_path
-from pyfibre.pyfibre_runner import PyFibreRunner, analysis_generator
+from pyfibre.ids import MULTI_IMAGE_FACTORIES
+from .pyfibre_runner import PyFibreRunner, analysis_generator
 
 logger = logging.getLogger(__name__)
 
@@ -50,17 +48,17 @@ class PyFibreApplication(Application):
             ow_network=ow_network, save_figures=save_figures
         )
 
-        plugins = [CorePlugin()]
-
         super(PyFibreApplication, self).__init__(
             runner=runner,
-            plugins=plugins,
             **traits)
 
-        factory = SHGPLTransFactory()
+        factories = self.get_extensions(MULTI_IMAGE_FACTORIES)
+        self.supported_readers = {}
+        self.supported_analysers = {}
 
-        self.supported_readers = factory.create_reader()
-        self.supported_analysers = factory.create_analyser()
+        for factory in factories:
+            self.supported_readers[factory.tag] = factory.create_reader()
+            self.supported_analysers[factory.tag] = factory.create_analyser()
 
     def _run_pyfibre(self):
 

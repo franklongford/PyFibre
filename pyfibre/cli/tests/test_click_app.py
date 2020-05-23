@@ -35,7 +35,7 @@ class TestClickRun(TestCase):
 
     def test_run(self):
         with mock.patch(
-                'pyfibre.cli.pyfibre_app'
+                'pyfibre.cli.app.pyfibre_app'
                 '.PyFibreApplication._run_pyfibre') as mock_pyfibre:
             mock_pyfibre.side_effect = mock_run_pyfibre
             pyfibre.cli.pyfibre_cli.run(
@@ -52,7 +52,7 @@ class TestClickRun(TestCase):
 
     def test_run_with_profile(self):
         with mock.patch(
-                'pyfibre.cli.pyfibre_app'
+                'pyfibre.cli.app.pyfibre_app'
                 '.PyFibreApplication._run_pyfibre') as mock_pyfibre:
             mock_pyfibre.side_effect = mock_run_pyfibre
             pyfibre.cli.pyfibre_cli.run(
