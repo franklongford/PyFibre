@@ -36,6 +36,29 @@ class PyFibreRunner(HasStrictTraits):
     #: Toggles creation of figures
     save_figures = Bool(False)
 
+    def run(self, dictionary, analyser, reader):
+        """Generator that returns databases of metrics from each image in
+        dictionary"""
+
+        for prefix, filenames in dictionary.items():
+
+            try:
+                multi_image = reader.load_multi_image(filenames, prefix)
+            except (ImportError, WrongFileTypeError):
+                logger.info(f'Cannot read image data for {filenames}')
+                continue
+
+            analyser.multi_image = multi_image
+
+            try:
+                logger.info(f"Processing image data for {filenames}")
+                databases = self.run_analysis(analyser)
+            except Exception:
+                logger.info(f'Cannot analyse image data for {filenames}')
+                continue
+
+            yield databases
+
     def run_analysis(self, analyser):
         """
         Analyse input image by calculating metrics and
@@ -66,29 +89,3 @@ class PyFibreRunner(HasStrictTraits):
         databases = analyser.image_analysis(self)
 
         return databases
-
-
-def analysis_generator(dictionary, runner, analysers, readers):
-
-    for image_type, inner_dict in dictionary.items():
-        for prefix, filenames in inner_dict.items():
-
-            try:
-                multi_image = readers[image_type].load_multi_image(
-                    filenames, prefix)
-            except (KeyError, ImportError, WrongFileTypeError):
-                logger.info(f'Cannot read image data for {filenames}')
-                continue
-
-            try:
-                analyser = analysers[image_type]
-            except KeyError:
-                logger.info(f'Cannot analyse image data for {filenames}')
-                continue
-
-            logger.info(f"Processing image data for {filenames}")
-
-            analyser.multi_image = multi_image
-            databases = runner.run_analysis(analyser)
-
-            yield databases

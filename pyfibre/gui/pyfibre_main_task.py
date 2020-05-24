@@ -24,10 +24,18 @@ from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.io.database_io import save_database
 from pyfibre.core.i_multi_image_factory import IMultiImageFactory
-from pyfibre.cli.app.pyfibre_runner import (
-    PyFibreRunner, analysis_generator)
+from pyfibre.core.pyfibre_runner import (
+    PyFibreRunner)
 
 logger = logging.getLogger(__name__)
+
+
+def run_analysis(dictionary, runner, analysers, readers):
+
+    for image_type, inner_dict in dictionary.items():
+        analyser = analysers[image_type]
+        reader = readers[image_type]
+        list(runner.run(inner_dict, analyser, reader))
 
 
 class PyFibreMainTask(Task):
@@ -57,7 +65,7 @@ class PyFibreMainTask(Task):
     current_futures = List(Instance(HasStrictTraits))
 
     #: Maximum number of workers
-    n_proc = Int(2)
+    n_proc = Int(1)
 
     #: The menu bar for this task.
     menu_bar = Instance(SMenuBar)
@@ -269,7 +277,7 @@ class PyFibreMainTask(Task):
                 save_figures=self.options_pane.save_figures)
 
             future = self.traits_executor.submit_iteration(
-                analysis_generator, batch_dict, runner,
+                run_analysis, batch_dict, runner,
                 self.supported_analysers, self.supported_readers
             )
             self.current_futures.append(future)

@@ -3,7 +3,7 @@ from tempfile import TemporaryDirectory
 
 from pandas import DataFrame, Series
 
-from pyfibre.cli.app.pyfibre_runner import PyFibreRunner
+from pyfibre.core.pyfibre_runner import PyFibreRunner
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 from pyfibre.tests.probe_classes.objects import (
     ProbeFibreNetwork, ProbeFibreSegment, ProbeCellSegment)

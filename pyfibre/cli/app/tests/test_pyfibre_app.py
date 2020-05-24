@@ -7,13 +7,13 @@ import pandas as pd
 from pyfibre.cli.app.pyfibre_app import PyFibreApplication
 from pyfibre.core.core_pyfibre_plugin import CorePyFibrePlugin
 from pyfibre.tests.probe_classes.plugins import ProbePyFibrePlugin
+from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 
 
-ITERATOR_PATH = 'pyfibre.cli.app.pyfibre_app.analysis_generator'
+ITERATOR_PATH = 'pyfibre.cli.app.pyfibre_app.PyFibreRunner.run'
 
 
-def dummy_iterate_images(dictionary, runner, analysers, reader):
-
+def dummy_iterate_images(dictionary, analyser, reader):
     for key, value in dictionary.items():
         yield [
             pd.Series(dtype=object),
@@ -45,9 +45,9 @@ class TestPyFibreApplication(TestCase):
         self.assertEqual(1, len(self.pyfibre_app.supported_analysers))
         self.assertEqual(1, len(self.pyfibre_app.supported_readers))
 
-    def test_save_database(self):
+    def test_run(self):
 
-        self.pyfibre_app.file_paths = ["some/file/path"]
+        self.pyfibre_app.file_paths = [test_shg_pl_trans_image_path]
 
         with NamedTemporaryFile() as tmp_file:
             self.pyfibre_app.database_name = tmp_file.name

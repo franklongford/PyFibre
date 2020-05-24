@@ -15,7 +15,7 @@ from traits.api import Instance, Str, List, File
 from pyfibre.io.database_io import save_database
 from pyfibre.io.utilities import parse_file_path
 from pyfibre.ids import MULTI_IMAGE_FACTORIES
-from .pyfibre_runner import PyFibreRunner, analysis_generator
+from pyfibre.core.pyfibre_runner import PyFibreRunner
 
 logger = logging.getLogger(__name__)
 
@@ -79,28 +79,34 @@ class PyFibreApplication(Application):
 
             logger.info(f"Analysing {tag} images: \n{formatted_images}")
 
-        global_database = pd.DataFrame()
-        fibre_database = pd.DataFrame()
-        network_database = pd.DataFrame()
-        cell_database = pd.DataFrame()
+            image_databases = []
 
-        generator = analysis_generator(
-            image_dictionary, self.runner,
-            self.supported_analysers, self.supported_readers)
+            generator = self.runner.run(
+                inner_dict,
+                self.supported_analysers[tag],
+                self.supported_readers[tag])
 
-        for databases in generator:
-            global_database = global_database.append(
-                databases[0], ignore_index=True)
+            for databases in generator:
+                if not image_databases:
+                    image_databases = [pd.DataFrame() for _ in databases]
 
-            fibre_database = pd.concat([fibre_database, databases[1]])
-            network_database = pd.concat([network_database, databases[2]])
-            cell_database = pd.concat([cell_database, databases[3]])
+                for index, database in enumerate(databases):
+                    if isinstance(database, pd.Series):
+                        image_databases[index] = image_databases[index].append(
+                            database, ignore_index=True)
+                    elif isinstance(database, pd.DataFrame):
+                        image_databases[index] = pd.concat(
+                            [image_databases[index], database])
 
-        if self.database_name:
-            save_database(global_database, self.database_name)
-            save_database(fibre_database, self.database_name, 'fibre')
-            save_database(network_database, self.database_name, 'network')
-            save_database(cell_database, self.database_name, 'cell')
+            if self.database_name and image_databases:
+                save_database(
+                    image_databases[0], self.database_name)
+                save_database(
+                    image_databases[1], self.database_name, 'fibre')
+                save_database(
+                    image_databases[2], self.database_name, 'network')
+                save_database(
+                    image_databases[3], self.database_name, 'cell')
 
     def run(self):
 

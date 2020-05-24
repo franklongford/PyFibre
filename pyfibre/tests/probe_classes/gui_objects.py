@@ -53,6 +53,7 @@ class ProbeSegmentImageTab(SegmentImageTab):
 class ProbeTableRow(TableRow):
 
     def __init__(self, *args, **kwargs):
+        kwargs['name'] = 'probe'
         kwargs['tag'] = 'SHG-PL-Trans'
         kwargs['file_names'] = [test_shg_pl_trans_image_path]
         super().__init__(*args, **kwargs)
