@@ -25,12 +25,6 @@ class PyFibreRunner(HasStrictTraits):
     #: Metric for hysterisis segmentation
     alpha = Float(0.5)
 
-    #: Parameters used for FIRE algorithm
-    fire_parameters = Dict()
-
-    #: Parameters used for segmentation
-    segment_parameters = Dict()
-
     #: Toggles force overwrite of existing fibre network
     ow_network = Bool(False)
 
@@ -42,23 +36,6 @@ class PyFibreRunner(HasStrictTraits):
 
     #: Toggles creation of figures
     save_figures = Bool(False)
-
-    def _fire_parameters_default(self):
-        return {
-            'nuc_thresh': 2,
-            'nuc_radius': 11,
-            'lmp_thresh': 0.15,
-            'angle_thresh': 70,
-            'r_thresh': 7
-        }
-
-    def _segment_parameters_default(self):
-        return {
-            'min_fibre_size': 100,
-            'min_fibre_frac': 0.1,
-            'min_cell_size': 200,
-            'min_cell_frac': 0.01,
-        }
 
     def run_analysis(self, analyser):
         """
@@ -101,15 +78,19 @@ def analysis_generator(dictionary, runner, analysers, readers):
         try:
             multi_image = readers[image_type].load_multi_image(
                 filenames, prefix)
-            analyser = analysers[image_type]
-
         except (KeyError, ImportError, WrongFileTypeError):
-            logger.info(f'Cannot process image data for {filenames}')
+            logger.info(f'Cannot read image data for {filenames}')
+            continue
 
-        else:
-            logger.info(f"Processing image data for {filenames}")
+        try:
+            analyser = analysers[image_type]
+        except KeyError:
+            logger.info(f'Cannot analyser image data for {filenames}')
+            continue
 
-            analyser.multi_image = multi_image
-            databases = runner.run_analysis(analyser)
+        logger.info(f"Processing image data for {filenames}")
 
-            yield databases
+        analyser.multi_image = multi_image
+        databases = runner.run_analysis(analyser)
+
+        yield databases

@@ -183,6 +183,14 @@ class TestSHGAnalyser(PyFibreTestCase):
 
     def test_network_analysis(self):
 
+        self.assertDictEqual(
+            {'nuc_thresh': 2,
+             'nuc_radius': 11,
+             'lmp_thresh': 0.15,
+             'angle_thresh': 70,
+             'r_thresh': 7},
+            self.analyser.fire_parameters)
+
         self.multi_image.shg_image = self.multi_image.shg_image[:50, :50]
         self.multi_image.preprocess_images()
 
@@ -190,13 +198,21 @@ class TestSHGAnalyser(PyFibreTestCase):
             sigma=self.runner.sigma,
             alpha=self.runner.alpha,
             scale=self.runner.scale,
-            p_denoise=self.runner.p_denoise,
-            fire_parameters=self.runner.fire_parameters
+            p_denoise=self.runner.p_denoise
         )
 
         self.assertEqual(38, self.analyser._network.number_of_nodes())
         self.assertEqual(37, self.analyser._network.number_of_edges())
         self.assertEqual(2, len(self.analyser._fibre_networks))
+
+    def test_segment_analysis(self):
+
+        self.assertDictEqual(
+            {'min_fibre_size': 100,
+             'min_fibre_frac': 0.1,
+             'min_cell_size': 200,
+             'min_cell_frac': 0.01},
+            self.analyser.segment_parameters)
 
     def test_create_metrics(self):
         self.analyser._fibre_networks = self.fibre_networks
