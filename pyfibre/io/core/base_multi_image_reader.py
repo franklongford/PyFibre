@@ -13,15 +13,6 @@ class WrongFileTypeError(Exception):
     pass
 
 
-def lookup_page(tiff_page):
-    """Obtain relevant information from a TiffPage object"""
-
-    xy_dim = (tiff_page.image_width, tiff_page.image_length)
-    description = tiff_page.image_description.decode('utf-8')
-
-    return xy_dim, description
-
-
 class BaseMultiImageReader(ABCHasTraits):
     """File reader that loads a stack of Tiff images, represented
     by a BaseMultiImage subclass"""
@@ -71,6 +62,17 @@ class BaseMultiImageReader(ABCHasTraits):
         multi_image.preprocess_images()
 
         return multi_image
+
+    @abstractmethod
+    def collate_files(self, filenames):
+        """Returns a dictionary of file sets that can be loaded
+        in as an image stack
+
+        Returns
+        -------
+        image_dict: dict(str, list of str)
+            Dictionary containing file references as keys and a list of
+            files able to be loaded in as an image stack as values"""
 
     @abstractmethod
     def create_image_stack(self, filenames):
