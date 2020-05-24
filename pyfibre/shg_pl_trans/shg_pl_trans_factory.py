@@ -1,7 +1,7 @@
 from pyfibre.model.core.base_multi_image_factory import BaseMultiImageFactory
 
 from .shg_pl_trans_analyser import SHGPLTransAnalyser
-from .shg_pl_reader import SHGPLTransReader
+from pyfibre.shg_pl_trans.shg_pl_trans_reader import SHGPLTransReader
 
 
 class SHGPLTransFactory(BaseMultiImageFactory):

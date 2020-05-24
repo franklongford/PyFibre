@@ -355,8 +355,7 @@ class SHGAnalyser(BaseMultiImageAnalyser):
                 sigma=runner.sigma,
                 alpha=runner.alpha,
                 scale=runner.scale,
-                p_denoise=runner.p_denoise,
-                fire_parameters=runner.fire_parameters)
+                p_denoise=runner.p_denoise)
             self._save_networks()
         else:
             self._load_networks()
@@ -364,8 +363,7 @@ class SHGAnalyser(BaseMultiImageAnalyser):
         # Load or create lists of FibreSegments
         if segment:
             self.segmentation_analysis(
-                scale=runner.scale,
-                segment_parameters=runner.segment_parameters)
+                scale=runner.scale)
             self._save_segments()
         else:
             self._load_segments()

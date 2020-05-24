@@ -1,134 +1,27 @@
 import copy
 import json
 import logging
-import os
 
 import numpy as np
 from skimage.util import img_as_float
 from skimage.external.tifffile import TiffFile
 
 from pyfibre.io.core.base_multi_image_reader import (
-    BaseMultiImageReader, lookup_page)
+    BaseMultiImageReader)
 
 from .shg_image import SHGImage
-from .shg_pl_trans_image import SHGPLTransImage
+from .utils import filter_input_files, create_image_dictionary
 
 logger = logging.getLogger(__name__)
 
 
-def get_image_type(image_path):
-    """Get type of image (PL, SHG or SHG-PL-Trans) from file name"""
+def lookup_page(tiff_page):
+    """Obtain relevant information from a TiffPage object"""
 
-    image_name = os.path.basename(image_path)
+    xy_dim = (tiff_page.image_width, tiff_page.image_length)
+    description = tiff_page.image_description.decode('utf-8')
 
-    if '-pl-shg' in image_name.lower():
-        image_type = 'SHG-PL-Trans'
-    elif '-pl' in image_name.lower():
-        image_type = 'PL-Trans'
-    elif '-shg' in image_name.lower():
-        image_type = 'SHG'
-    else:
-        image_type = 'Unknown'
-
-    return image_type
-
-
-def extract_prefix(image_name, label):
-    """Extract the prefix of image_name, before label"""
-    directory = os.path.dirname(image_name)
-    filename = os.path.basename(image_name)
-    filename_copy = filename.lower()
-
-    index = filename_copy.index(label.lower())
-    prefix = os.path.join(directory, filename[: index])
-
-    return prefix
-
-
-def get_files_prefixes(input_files, label):
-    """Get the file path and file prefix of all files
-    containing label"""
-    files = [filename for filename in input_files
-             if label in os.path.basename(filename).lower()]
-    prefixes = [extract_prefix(filename, label) for filename in files]
-
-    return files, prefixes
-
-
-def filter_input_files(input_files):
-
-    removed_files = []
-
-    for filename in input_files:
-        if not filename.endswith('.tif'):
-            removed_files.append(filename)
-        elif filename.find('display') != -1:
-            removed_files.append(filename)
-        elif filename.find('virada') != -1:
-            removed_files.append(filename)
-        elif filename.find('asterisco') != -1:
-            removed_files.append(filename)
-
-    for filename in removed_files:
-        input_files.remove(filename)
-
-    return input_files
-
-
-def populate_image_dictionary(input_files, image_dictionary, label, tag):
-    """Populate image_dictionary argument using prefixes and filenames
-    of input_files list"""
-
-    files, prefixes = get_files_prefixes(input_files, f"-{tag.lower()}")
-
-    for filename, prefix in zip(files, prefixes):
-
-        if prefix not in image_dictionary:
-            image_dictionary[prefix] = {}
-
-        image_dictionary[prefix][label] = filename
-        input_files.remove(filename)
-
-
-def collate_image_dictionary(input_files):
-    """"Automatically find all combined PL-SHG files or match
-    up individual images if seperate"""
-
-    input_files = filter_input_files(copy.copy(input_files))
-
-    image_dictionary = {}
-
-    populate_image_dictionary(
-        input_files, image_dictionary, 'SHG-PL-Trans', 'pl-shg')
-
-    populate_image_dictionary(
-        input_files, image_dictionary, 'SHG', 'shg')
-
-    populate_image_dictionary(
-        input_files, image_dictionary, 'PL-Trans', 'pl')
-
-    return image_dictionary
-
-
-def assign_images(image_dictionary):
-    """Assign images from an image_dictionary to
-    the SHG-PL, PL and SHG file names"""
-
-    filenames = []
-    image_type = 'Unknown'
-
-    if 'SHG-PL-Trans' in image_dictionary:
-        filenames = [image_dictionary['SHG-PL-Trans']]
-        image_type = 'SHG-PL-Trans'
-
-    elif 'SHG' in image_dictionary:
-        filenames = [image_dictionary['SHG']]
-        image_type = 'SHG'
-        if 'PL-Trans' in image_dictionary:
-            filenames.append(image_dictionary['PL-Trans'])
-            image_type = 'SHG-PL-Trans'
-
-    return filenames, image_type
+    return xy_dim, description
 
 
 def get_fluoview_param(description, xy_dim, shape):
@@ -259,6 +152,15 @@ class SHGReader(BaseMultiImageReader):
 
         return img_as_float(image)
 
+    def collate_files(self, input_files):
+
+        input_files = filter_input_files(copy.copy(input_files))
+
+        image_dictionary = create_image_dictionary(
+            input_files, 'shg')
+
+        return image_dictionary
+
     def load_image(self, filename):
 
         with TiffFile(filename) as tiff_file:
@@ -305,27 +207,5 @@ class SHGReader(BaseMultiImageReader):
         """Return a list of numpy arrays suitable for a
         SHGImage"""
         image_stack = self._load_images(filenames)
-
-        return image_stack
-
-
-class SHGPLTransReader(SHGReader):
-    """Reader class for a combined PL/Transmission
-    file"""
-
-    _tag = 'SHG-PL-Trans'
-
-    _multi_image_class = SHGPLTransImage
-
-    def create_image_stack(self, filenames):
-
-        images = self._load_images(filenames)
-
-        if len(images) == 1:
-            image_stack = [
-                images[0][0], images[0][1], images[0][2]]
-        else:
-            image_stack = [
-                images[0], images[1][0], images[1][1]]
 
         return image_stack
