@@ -1,4 +1,4 @@
-from pyfibre.model.core.base_multi_image_factory import BaseMultiImageFactory
+from pyfibre.core.base_multi_image_factory import BaseMultiImageFactory
 
 from .analyser import ProbeAnalyser
 from .readers import ProbeMultiImageReader

@@ -7,7 +7,7 @@ from skimage.exposure import equalize_adapthist
 
 from traits.api import Instance, List, Any, Tuple, Dict
 
-from pyfibre.model.core.base_multi_image_analyser import (
+from pyfibre.core.base_multi_image_analyser import (
     BaseMultiImageAnalyser)
 from pyfibre.model.objects.segments import (
     FibreSegment, CellSegment)

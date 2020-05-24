@@ -12,7 +12,7 @@ from traitsui.api import (
 )
 
 from pyfibre.io.utilities import parse_file_path
-from pyfibre.io.core.base_multi_image_reader import BaseMultiImageReader
+from pyfibre.core.base_multi_image_reader import BaseMultiImageReader
 
 
 def horizontal_centre(item_or_group):

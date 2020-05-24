@@ -5,7 +5,7 @@ from tempfile import NamedTemporaryFile
 import pandas as pd
 
 from pyfibre.cli.app.pyfibre_app import PyFibreApplication
-from pyfibre.model.core.core_pyfibre_plugin import CorePyFibrePlugin
+from pyfibre.core.core_pyfibre_plugin import CorePyFibrePlugin
 from pyfibre.tests.probe_classes.plugins import ProbePyFibrePlugin
 
 

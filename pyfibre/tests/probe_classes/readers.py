@@ -1,6 +1,6 @@
 import numpy as np
 
-from pyfibre.io.core.base_multi_image_reader import BaseMultiImageReader
+from pyfibre.core.base_multi_image_reader import BaseMultiImageReader
 
 from .multi_images import ProbeFixedStackImage
 

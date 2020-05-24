@@ -1,6 +1,6 @@
 from pyfibre.gui.pyfibre_main_task import PyFibreMainTask
 from pyfibre.gui.pyfibre_plugin import PyFibreGUIPlugin
-from pyfibre.model.core.base_pyfibre_plugin import BasePyFibrePlugin
+from pyfibre.core.base_pyfibre_plugin import BasePyFibrePlugin
 
 from .factories import ProbeMultiImageFactory
 

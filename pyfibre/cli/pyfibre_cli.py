@@ -18,7 +18,7 @@ from ..version import __version__
 
 from pyfibre.cli.app.pyfibre_app import PyFibreApplication
 from pyfibre.shg_pl_trans.shg_pl_trans_plugin import SHGPLTransPlugin
-from pyfibre.model.core.core_pyfibre_plugin import CorePyFibrePlugin
+from pyfibre.core.core_pyfibre_plugin import CorePyFibrePlugin
 
 
 @click.command()

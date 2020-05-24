@@ -6,7 +6,7 @@ from envisage.ui.tasks.tasks_plugin import TasksPlugin
 from traits.api import push_exception_handler
 
 from pyfibre.version import __version__
-from pyfibre.model.core.core_pyfibre_plugin import CorePyFibrePlugin
+from pyfibre.core.core_pyfibre_plugin import CorePyFibrePlugin
 from pyfibre.shg_pl_trans.shg_pl_trans_plugin import SHGPLTransPlugin
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
 from pyfibre.gui.pyfibre_plugin import PyFibreGUIPlugin

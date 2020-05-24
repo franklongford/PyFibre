@@ -4,7 +4,7 @@ import logging
 from traits.api import ABCHasTraits, Type
 
 from pyfibre.io.utilities import get_file_names
-from pyfibre.model.core.base_multi_image import BaseMultiImage
+from pyfibre.core.base_multi_image import BaseMultiImage
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,7 @@ from envisage.core_plugin import CorePlugin
 from traits.trait_types import List
 
 from pyfibre.ids import MULTI_IMAGE_FACTORIES
-from pyfibre.model.core.i_multi_image_factory import IMultiImageFactory
+from pyfibre.core.i_multi_image_factory import IMultiImageFactory
 
 
 class CorePyFibrePlugin(CorePlugin):

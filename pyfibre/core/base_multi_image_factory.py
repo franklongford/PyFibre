@@ -2,7 +2,7 @@ from abc import abstractmethod
 
 from traits.api import ABCHasStrictTraits, Type, Str, provides
 
-from pyfibre.io.core.base_multi_image_reader import BaseMultiImageReader
+from pyfibre.core.base_multi_image_reader import BaseMultiImageReader
 
 from .base_multi_image_analyser import BaseMultiImageAnalyser
 from .i_multi_image_factory import IMultiImageFactory

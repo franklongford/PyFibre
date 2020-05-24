@@ -1,4 +1,4 @@
-from pyfibre.model.core.base_pyfibre_plugin import BasePyFibrePlugin
+from pyfibre.core.base_pyfibre_plugin import BasePyFibrePlugin
 
 from .shg_pl_trans_factory import SHGPLTransFactory
 

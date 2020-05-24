@@ -5,8 +5,8 @@ from pyfibre.cli.app.pyfibre_app import PyFibreApplication
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
 from pyfibre.model.core.base_graph import BaseGraph
 from pyfibre.model.core.base_graph_segment import BaseGraphSegment
-from pyfibre.model.core.base_multi_image import BaseMultiImage
-from pyfibre.model.core.base_multi_image_analyser import BaseMultiImageAnalyser
+from pyfibre.core.base_multi_image import BaseMultiImage
+from pyfibre.core.base_multi_image_analyser import BaseMultiImageAnalyser
 
 
 class DummyMultiImage(BaseMultiImage):

@@ -3,7 +3,7 @@ import logging
 from traits.api import (
     HasStrictTraits, Bool, Float, Tuple)
 
-from pyfibre.io.core.base_multi_image_reader import WrongFileTypeError
+from pyfibre.core.base_multi_image_reader import WrongFileTypeError
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,4 @@
-from pyfibre.model.core.base_multi_image_analyser import BaseMultiImageAnalyser
+from pyfibre.core.base_multi_image_analyser import BaseMultiImageAnalyser
 
 from .multi_images import ProbeMultiImage
 

@@ -1,7 +1,7 @@
 import numpy as np
 from skimage.external.tifffile import TiffFile
 
-from pyfibre.io.core.base_multi_image_reader import WrongFileTypeError
+from pyfibre.core.base_multi_image_reader import WrongFileTypeError
 from pyfibre.tests.fixtures import (
     directory, test_shg_image_path, test_shg_pl_trans_image_path)
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase

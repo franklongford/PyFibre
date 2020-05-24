@@ -23,7 +23,7 @@ from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.io.database_io import save_database
-from pyfibre.model.core.i_multi_image_factory import IMultiImageFactory
+from pyfibre.core.i_multi_image_factory import IMultiImageFactory
 from pyfibre.cli.app.pyfibre_runner import (
     PyFibreRunner, analysis_generator)
 

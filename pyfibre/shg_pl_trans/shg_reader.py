@@ -6,7 +6,7 @@ import numpy as np
 from skimage.util import img_as_float
 from skimage.external.tifffile import TiffFile
 
-from pyfibre.io.core.base_multi_image_reader import (
+from pyfibre.core.base_multi_image_reader import (
     BaseMultiImageReader)
 
 from .shg_image import SHGImage

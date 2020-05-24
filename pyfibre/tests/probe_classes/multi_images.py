@@ -1,4 +1,4 @@
-from pyfibre.model.core.base_multi_image import BaseMultiImage
+from pyfibre.core.base_multi_image import BaseMultiImage
 from pyfibre.model.multi_image.fixed_stack_image import FixedStackImage
 
 from .utilities import generate_image
