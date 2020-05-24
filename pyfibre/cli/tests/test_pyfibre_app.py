@@ -4,13 +4,13 @@ from tempfile import NamedTemporaryFile
 
 import pandas as pd
 
-from pyfibre.cli.app.pyfibre_app import PyFibreApplication
+from pyfibre.cli.app import PyFibreApplication
 from pyfibre.core.core_pyfibre_plugin import CorePyFibrePlugin
 from pyfibre.tests.probe_classes.plugins import ProbePyFibrePlugin
 from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 
 
-ITERATOR_PATH = 'pyfibre.cli.app.pyfibre_app.PyFibreRunner.run'
+ITERATOR_PATH = 'pyfibre.cli.app.PyFibreRunner.run'
 
 
 def dummy_iterate_images(dictionary, analyser, reader):

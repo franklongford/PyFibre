@@ -1,7 +1,7 @@
 from envisage.core_plugin import CorePlugin
 from envisage.ui.tasks.tasks_plugin import TasksPlugin
 
-from pyfibre.cli.app.pyfibre_app import PyFibreApplication
+from pyfibre.cli.app import PyFibreApplication
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
 from pyfibre.model.core.base_graph import BaseGraph
 from pyfibre.model.core.base_graph_segment import BaseGraphSegment
