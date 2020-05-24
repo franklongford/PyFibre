@@ -9,83 +9,113 @@ import logging
 
 import pandas as pd
 
+from envisage.api import Application
+from traits.api import Instance, Str, List, File
+
 from pyfibre.io.database_io import save_database
-from pyfibre.io.shg_pl_reader import (
-    collate_image_dictionary,
-    SHGPLTransReader
-)
-from pyfibre.model.analysers.shg_pl_trans_analyser import (
-    SHGPLTransAnalyser)
 from pyfibre.io.utilities import parse_file_path
-from pyfibre.pyfibre_runner import PyFibreRunner, analysis_generator
+from pyfibre.ids import MULTI_IMAGE_FACTORIES
+from pyfibre.core.pyfibre_runner import PyFibreRunner
 
 logger = logging.getLogger(__name__)
 
 
-class PyFibreCLI:
+class PyFibreApplication(Application):
 
-    id = 'pyfibre.pyfibre_cli'
+    id = 'pyfibre.application'
 
     name = 'PyFibre CLI'
 
-    def __init__(self, sigma=0.5, alpha=0.5, key=None,
-                 database_name=None, ow_metric=False,
-                 ow_segment=False, ow_network=False,
-                 save_figures=False):
+    runner = Instance(PyFibreRunner)
 
-        self.database_name = database_name
-        self.key = key
+    key = Str
 
-        self.runner = PyFibreRunner(
+    database_name = Str
+
+    file_paths = List(File)
+
+    def __init__(self, sigma=0.5, alpha=0.5,
+                 ow_metric=False, ow_segment=False,
+                 ow_network=False, save_figures=False,
+                 **traits):
+
+        runner = PyFibreRunner(
             sigma=sigma, alpha=alpha,
             ow_metric=ow_metric, ow_segment=ow_segment,
             ow_network=ow_network, save_figures=save_figures
         )
-        self.supported_readers = {
-            'SHG-PL-Trans': SHGPLTransReader()
+
+        super(PyFibreApplication, self).__init__(
+            runner=runner,
+            **traits)
+
+        factories = self.get_extensions(MULTI_IMAGE_FACTORIES)
+        self.supported_readers = {}
+        self.supported_analysers = {}
+
+        for factory in factories:
+            self.supported_readers[factory.tag] = factory.create_reader()
+            self.supported_analysers[factory.tag] = factory.create_analyser()
+
+    def _run_pyfibre(self):
+
+        image_dictionary = {
+            tag: {} for tag, _ in self.supported_readers.items()
         }
-        self.supported_analysers = {
-            'SHG-PL-Trans': SHGPLTransAnalyser()
-        }
 
-    def run(self, file_paths):
-
-        image_dictionary = {}
-
-        if isinstance(file_paths, str):
-            file_paths = [file_paths]
-
-        for file_path in file_paths:
+        for file_path in self.file_paths:
             input_files = parse_file_path(file_path, self.key)
-            image_dictionary.update(collate_image_dictionary(input_files))
+            for tag, reader in self.supported_readers.items():
+                image_dictionary[tag].update(
+                    reader.collate_files(input_files)
+                )
 
-        formatted_images = '\n'.join([
-            f'\t{key}: {value}'
-            for key, value in image_dictionary.items()
-        ])
+        for tag, inner_dict in image_dictionary.items():
 
-        logger.info(f"Analysing images: \n{formatted_images}")
+            formatted_images = '\n'.join([
+                f'\t{key}: {value}'
+                for key, value in inner_dict.items()
+            ])
 
-        global_database = pd.DataFrame()
-        fibre_database = pd.DataFrame()
-        network_database = pd.DataFrame()
-        cell_database = pd.DataFrame()
+            logger.info(f"Analysing {tag} images: \n{formatted_images}")
 
-        generator = analysis_generator(
-            image_dictionary, self.runner,
-            self.supported_analysers, self.supported_readers)
+            image_databases = []
 
-        for databases in generator:
+            generator = self.runner.run(
+                inner_dict,
+                self.supported_analysers[tag],
+                self.supported_readers[tag])
 
-            global_database = global_database.append(
-                databases[0], ignore_index=True)
+            for databases in generator:
+                if not image_databases:
+                    image_databases = [pd.DataFrame() for _ in databases]
 
-            fibre_database = pd.concat([fibre_database, databases[1]])
-            network_database = pd.concat([network_database, databases[2]])
-            cell_database = pd.concat([cell_database, databases[3]])
+                for index, database in enumerate(databases):
+                    if isinstance(database, pd.Series):
+                        image_databases[index] = image_databases[index].append(
+                            database, ignore_index=True)
+                    elif isinstance(database, pd.DataFrame):
+                        image_databases[index] = pd.concat(
+                            [image_databases[index], database])
 
-        if self.database_name:
-            save_database(global_database, self.database_name)
-            save_database(fibre_database, self.database_name, 'fibre')
-            save_database(network_database, self.database_name, 'network')
-            save_database(cell_database, self.database_name, 'cell')
+            if self.database_name and image_databases:
+                save_database(
+                    image_databases[0], self.database_name)
+                save_database(
+                    image_databases[1], self.database_name, 'fibre')
+                save_database(
+                    image_databases[2], self.database_name, 'network')
+                save_database(
+                    image_databases[3], self.database_name, 'cell')
+
+    def run(self):
+
+        if self.start():
+
+            try:
+                self._run_pyfibre()
+            except Exception:
+                logger.info('Error in PyFibre runner')
+                raise
+
+        self.stop()

@@ -10,7 +10,7 @@ from traits.api import (
     List, Int, Property, Str, Any, Dict, Enum)
 from traitsui.api import Item, View, EnumEditor
 
-from pyfibre.model.core.base_multi_image import BaseMultiImage
+from pyfibre.core.base_multi_image import BaseMultiImage
 from pyfibre.model.tools.figures import (
     create_tensor_image, create_network_image)
 

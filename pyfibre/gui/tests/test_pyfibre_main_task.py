@@ -2,21 +2,31 @@ import contextlib
 import threading
 from unittest import mock, TestCase
 
+import pandas as pd
+
 from pyface.api import FileDialog, CANCEL
 from pyface.tasks.api import TaskWindow
 from traits_futures.toolkit_support import toolkit
 
+from pyfibre.core.pyfibre_runner import PyFibreRunner
 from pyfibre.tests.dummy_classes import DummyPyFibreGUI
 from pyfibre.tests.probe_classes.gui_objects import ProbeTableRow
-from pyfibre.gui.pyfibre_main_task import PyFibreMainTask
+from pyfibre.gui.pyfibre_main_task import PyFibreMainTask, run_analysis
 from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
+from pyfibre.shg_pl_trans.shg_pl_trans_factory import SHGPLTransFactory
 
 GuiTestAssistant = toolkit("gui_test_assistant:GuiTestAssistant")
 
 FILE_DIALOG_PATH = "pyfibre.gui.pyfibre_main_task.FileDialog"
 FILE_OPEN_PATH = "pyfibre.io.database_io.save_database"
+ITERATOR_PATH = 'pyfibre.core.pyfibre_runner.PyFibreRunner.run'
+
+
+def dummy_iterate_images(dictionary, analyser, reader):
+    for key, value in dictionary.items():
+        yield pd.DataFrame
 
 
 def mock_run(*args, **kwargs):
@@ -40,7 +50,9 @@ def get_probe_pyfibre_tasks():
 
     pyfibre_gui = DummyPyFibreGUI()
 
-    main_task = PyFibreMainTask()
+    main_task = PyFibreMainTask(
+        multi_image_factories=[SHGPLTransFactory()]
+    )
 
     tasks = [main_task]
     mock_window = mock.Mock(spec=TaskWindow)
@@ -60,6 +72,7 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
     def setUp(self):
         super(GuiTestAssistant, self).setUp()
         self.main_task = get_probe_pyfibre_tasks()
+        self.table_row = ProbeTableRow()
 
     @contextlib.contextmanager
     def long_running_task(self, executor):
@@ -96,8 +109,36 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
         self.assertIsInstance(
             self.main_task.create_dock_panes()[1], OptionsPane
         )
-        self.assertIn('SHG-PL-Trans', self.main_task.multi_image_readers)
-        self.assertIn('SHG-PL-Trans', self.main_task.analysers)
+        self.assertIn('SHG-PL-Trans', self.main_task.supported_readers)
+        self.assertIn('SHG-PL-Trans', self.main_task.supported_analysers)
+
+    def test_run_analysis(self):
+
+        with mock.patch(ITERATOR_PATH) as mock_iterate:
+            mock_iterate.side_effect = dummy_iterate_images
+
+            run_analysis(
+                {}, PyFibreRunner(),
+                self.main_task.supported_analysers,
+                self.main_task.supported_readers)
+
+            mock_iterate.assert_not_called()
+
+            run_analysis(
+                {'SHG-PL-Trans': {'some/file_prefix': ['some/file/path']}},
+                PyFibreRunner(),
+                self.main_task.supported_analysers,
+                self.main_task.supported_readers)
+
+            mock_iterate.assert_called_once()
+
+    def test_run_pyfibre(self):
+
+        with mock.patch(ITERATOR_PATH) as mock_iterate:
+            mock_iterate.side_effect = dummy_iterate_images
+
+            self.main_task._run_pyfibre()
+            self.assertFalse(mock_iterate.called)
 
     def test_run_cancel_enabled(self):
 
@@ -130,8 +171,6 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
 
     def test_select_row(self):
 
-        table_row = ProbeTableRow()
-
         self.assertIsNone(self.main_task.viewer_pane.selected_image)
-        self.main_task.file_display_pane.selected_files = [table_row]
+        self.main_task.file_display_pane.selected_files = [self.table_row]
         self.assertIsNotNone(self.main_task.viewer_pane.selected_image)

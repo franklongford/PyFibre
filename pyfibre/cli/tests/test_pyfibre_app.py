@@ -4,18 +4,16 @@ from tempfile import NamedTemporaryFile
 
 import pandas as pd
 
-from pyfibre.io.shg_pl_reader import SHGPLTransReader
-from pyfibre.pyfibre_runner import PyFibreRunner
+from pyfibre.cli.pyfibre_cli import PyFibreApplication
+from pyfibre.core.core_pyfibre_plugin import CorePyFibrePlugin
+from pyfibre.tests.probe_classes.plugins import ProbePyFibrePlugin
 from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 
-from ..pyfibre_cli import PyFibreCLI
+
+ITERATOR_PATH = 'pyfibre.cli.pyfibre_cli.PyFibreRunner.run'
 
 
-ITERATOR_PATH = 'pyfibre.cli.pyfibre_cli.analysis_generator'
-
-
-def dummy_iterate_images(dictionary, runner, analysers, reader):
-
+def dummy_iterate_images(dictionary, analyser, reader):
     for key, value in dictionary.items():
         yield [
             pd.Series(dtype=object),
@@ -25,24 +23,17 @@ def dummy_iterate_images(dictionary, runner, analysers, reader):
         ]
 
 
-class TestPyFibreCLI(TestCase):
+class TestPyFibreApplication(TestCase):
 
     def setUp(self):
-
-        self.pyfibre_cli = PyFibreCLI()
+        plugins = [CorePyFibrePlugin(), ProbePyFibrePlugin()]
+        self.pyfibre_app = PyFibreApplication(
+            plugins=plugins
+        )
 
     def test_init(self):
 
-        self.assertIsInstance(
-            self.pyfibre_cli.runner, PyFibreRunner)
-        self.assertEqual(1, len(self.pyfibre_cli.supported_readers))
-        self.assertIsInstance(
-            self.pyfibre_cli.supported_readers['SHG-PL-Trans'],
-            SHGPLTransReader)
-
-    def test_init_pyfibre_workflow(self):
-
-        workflow = self.pyfibre_cli.runner
+        workflow = self.pyfibre_app.runner
 
         self.assertEqual(0.5, workflow.sigma)
         self.assertEqual(0.5, workflow.alpha)
@@ -51,15 +42,20 @@ class TestPyFibreCLI(TestCase):
         self.assertFalse(workflow.ow_metric)
         self.assertFalse(workflow.save_figures)
 
-    def test_save_database(self):
+        self.assertEqual(1, len(self.pyfibre_app.supported_analysers))
+        self.assertEqual(1, len(self.pyfibre_app.supported_readers))
+
+    def test_run(self):
+
+        self.pyfibre_app.file_paths = [test_shg_pl_trans_image_path]
 
         with NamedTemporaryFile() as tmp_file:
-            self.pyfibre_cli.database_name = tmp_file.name
+            self.pyfibre_app.database_name = tmp_file.name
 
             with mock.patch(ITERATOR_PATH) as mock_iterate:
                 mock_iterate.side_effect = dummy_iterate_images
 
-                self.pyfibre_cli.run(test_shg_pl_trans_image_path)
+                self.pyfibre_app.run()
                 self.assertTrue(mock_iterate.called)
 
             self.assertTrue(

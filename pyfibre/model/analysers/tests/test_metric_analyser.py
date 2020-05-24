@@ -4,8 +4,9 @@ from pyfibre.model.objects.segments import CellSegment, FibreSegment
 from pyfibre.tests.probe_classes.utilities import (
     generate_regions)
 from pyfibre.tests.probe_classes.objects import ProbeFibreNetwork
-from pyfibre.tests.probe_classes.shg_pl_trans_image import ProbeSHGPLTransImage
-from pyfibre.tests.probe_classes.shg_image import ProbeSHGImage
+from pyfibre.shg_pl_trans.tests.probe_classes import (
+    ProbeSHGImage,
+    ProbeSHGPLTransImage)
 
 from pyfibre.model.analysers.metric_analyser import (
     SHGMetricAnalyser, PLMetricAnalyser)

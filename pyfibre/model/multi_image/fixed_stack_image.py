@@ -1,6 +1,6 @@
 from traits.api import Tuple, Property, Dict, Str, ArrayOrNone
 
-from pyfibre.model.core.base_multi_image import BaseMultiImage
+from pyfibre.core.base_multi_image import BaseMultiImage
 from pyfibre.model.tools.preprocessing import clip_intensities
 
 

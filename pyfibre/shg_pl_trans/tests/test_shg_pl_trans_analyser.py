@@ -4,12 +4,11 @@ from tempfile import TemporaryDirectory
 import numpy as np
 from pandas import DataFrame, Series
 
-from pyfibre.model.analysers.shg_pl_trans_analyser import (
+from pyfibre.core.pyfibre_runner import PyFibreRunner
+from pyfibre.shg_pl_trans.tests.probe_classes import ProbeSHGPLTransImage
+from pyfibre.shg_pl_trans.shg_pl_trans_analyser import (
     SHGPLTransAnalyser)
-from pyfibre.pyfibre_runner import PyFibreRunner
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
-from pyfibre.tests.probe_classes.shg_pl_trans_image import (
-    ProbeSHGPLTransImage)
 from pyfibre.tests.probe_classes.objects import (
     ProbeFibreNetwork, ProbeFibreSegment, ProbeCellSegment)
 from pyfibre.tests.probe_classes.utilities import (

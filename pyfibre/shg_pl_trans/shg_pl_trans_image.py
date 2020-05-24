@@ -2,9 +2,10 @@ import logging
 
 from traits.api import Array, Property
 
-from pyfibre.model.multi_image.shg_image import SHGImage
-from pyfibre.model.tools.figures import create_shg_pl_trans_figures
-from pyfibre.model.tools.segmentation import shg_pl_trans_segmentation
+from .shg_image import SHGImage
+from .tools.figures import create_shg_pl_trans_figures
+
+from .tools.segmentation import shg_pl_trans_segmentation
 
 logger = logging.getLogger(__name__)
 

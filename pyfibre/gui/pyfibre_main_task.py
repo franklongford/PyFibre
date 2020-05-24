@@ -13,8 +13,7 @@ from pyface.tasks.api import (
 )
 from traits.api import (
     Bool, Int, List, Property, Instance, Event, Any,
-    on_trait_change, HasStrictTraits, Dict, Str,
-    File
+    on_trait_change, HasStrictTraits, File
 )
 from traits_futures.api import (
     TraitsExecutor, CANCELLED, COMPLETED,
@@ -24,15 +23,19 @@ from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.io.database_io import save_database
-from pyfibre.io.base_multi_image_reader import BaseMultiImageReader
-from pyfibre.io.shg_pl_reader import SHGPLTransReader, assign_images
-from pyfibre.model.core.base_analyser import BaseAnalyser
-from pyfibre.model.analysers.shg_pl_trans_analyser import (
-    SHGPLTransAnalyser
-)
-from pyfibre.pyfibre_runner import PyFibreRunner, analysis_generator
+from pyfibre.core.i_multi_image_factory import IMultiImageFactory
+from pyfibre.core.pyfibre_runner import (
+    PyFibreRunner)
 
 logger = logging.getLogger(__name__)
+
+
+def run_analysis(dictionary, runner, analysers, readers):
+
+    for image_type, inner_dict in dictionary.items():
+        analyser = analysers[image_type]
+        reader = readers[image_type]
+        list(runner.run(inner_dict, analyser, reader))
 
 
 class PyFibreMainTask(Task):
@@ -45,11 +48,9 @@ class PyFibreMainTask(Task):
 
     name = 'PyFibre GUI (Main)'
 
-    multi_image_readers = Dict(Str, Instance(BaseMultiImageReader))
-
-    analysers = Dict(Str, Instance(BaseAnalyser))
-
     database_filename = File('pyfibre_database')
+
+    multi_image_factories = List(IMultiImageFactory)
 
     options_pane = Instance(OptionsPane)
 
@@ -64,7 +65,7 @@ class PyFibreMainTask(Task):
     current_futures = List(Instance(HasStrictTraits))
 
     #: Maximum number of workers
-    n_proc = Int(2)
+    n_proc = Int(1)
 
     #: The menu bar for this task.
     menu_bar = Instance(SMenuBar)
@@ -89,7 +90,15 @@ class PyFibreMainTask(Task):
     _progress_bar = Any()
 
     def __init__(self, *args, **kwargs):
+
         super(PyFibreMainTask, self).__init__(*args, **kwargs)
+
+        self.supported_readers = {}
+        self.supported_analysers = {}
+
+        for factory in self.multi_image_factories:
+            self.supported_readers[factory.tag] = factory.create_reader()
+            self.supported_analysers[factory.tag] = factory.create_analyser()
 
         self.global_database = None
         self.fibre_database = None
@@ -108,19 +117,12 @@ class PyFibreMainTask(Task):
                 PaneItem('pyfibre.options_pane'))
         )
 
-    def _multi_image_readers_default(self):
-        return {'SHG-PL-Trans': SHGPLTransReader()}
-
-    def _analysers_default(self):
-        return {'SHG-PL-Trans': SHGPLTransAnalyser()}
-
     def _options_pane_default(self):
         return OptionsPane()
 
     def _file_display_pane_default(self):
-        supported_readers = list(self.multi_image_readers.keys())
         return FileDisplayPane(
-            supported_readers=supported_readers)
+            supported_readers=self.supported_readers)
 
     def _viewer_pane_default(self):
         return ViewerPane()
@@ -196,11 +198,11 @@ class PyFibreMainTask(Task):
         selected_row = (
             self.file_display_pane.selected_files[0])
 
-        file_names, image_type = assign_images(
-            selected_row._dictionary)
+        image_type = selected_row.tag
+        file_names = selected_row.file_names
 
         try:
-            reader = self.multi_image_readers[image_type]
+            reader = self.supported_readers[image_type]
             multi_image = reader.load_multi_image(
                 file_names, selected_row.name)
         except (KeyError, ImportError):
@@ -258,8 +260,11 @@ class PyFibreMainTask(Task):
 
         for indices in index_split:
             batch_rows = [file_table[index] for index in indices]
-            batch_dict = {row.name: row._dictionary
-                          for row in batch_rows}
+            batch_dict = {tag: {} for tag in self.supported_readers.keys()}
+
+            for row in batch_rows:
+                batch_dict[row.tag].update(
+                    {row.name: row.file_names})
 
             runner = PyFibreRunner(
                 p_denoise=(self.options_pane.n_denoise,
@@ -272,8 +277,8 @@ class PyFibreMainTask(Task):
                 save_figures=self.options_pane.save_figures)
 
             future = self.traits_executor.submit_iteration(
-                analysis_generator, batch_dict, runner,
-                self.analysers, self.multi_image_readers
+                run_analysis, batch_dict, runner,
+                self.supported_analysers, self.supported_readers
             )
             self.current_futures.append(future)
 
@@ -299,24 +304,18 @@ class PyFibreMainTask(Task):
         network_database = pd.DataFrame()
         cell_database = pd.DataFrame()
 
-        image_dictionary = {
-            row.name: row._dictionary
-            for row in self.file_display_pane.file_table
-        }
-
-        for prefix, data in image_dictionary.items():
-
-            filenames, image_type = assign_images(data)
+        for row in self.file_display_pane.file_table:
+            image_type = row.tag
 
             try:
-                reader = self.multi_image_readers[image_type]
-                analyser = self.analysers[image_type]
+                reader = self.supported_readers[image_type]
+                analyser = self.supported_analysers[image_type]
             except KeyError:
                 continue
 
             try:
                 analyser.multi_image = reader.load_multi_image(
-                    filenames, prefix)
+                    row.filenames, row.name)
                 databases = analyser.load_databases()
 
                 global_database = global_database.append(
@@ -329,7 +328,7 @@ class PyFibreMainTask(Task):
                     [cell_database, databases[3]], sort=True)
             except Exception:
                 logger.info(
-                    f"{prefix} databases not imported"
+                    f"{row.name} databases not imported"
                     f" - skipping")
             finally:
                 analyser.multi_image = None

@@ -7,7 +7,9 @@ from click.testing import CliRunner
 import pyfibre.cli.app
 from pyfibre.version import __version__
 
-from pyfibre.tests.dummy_classes import DummyPyFibreCLI
+
+def mock_run_pyfibre():
+    pass
 
 
 def mock_run_constructor(*args, **kwargs):
@@ -22,7 +24,7 @@ class TestClickRun(TestCase):
         clirunner.invoke(pyfibre.cli.app.pyfibre,
                          args="--version")
 
-    def test_click_gui_main(self):
+    def test_click_cli_main(self):
 
         with mock.patch('pyfibre.cli.app') as mock_run:
             mock_run.side_effect = mock_run_constructor
@@ -32,11 +34,13 @@ class TestClickRun(TestCase):
             self.assertTrue(mock_run.pyfibre.called)
 
     def test_run(self):
-        with mock.patch('pyfibre.cli.app.PyFibreCLI') as mock_pyfibre:
-            mock_pyfibre.return_value = DummyPyFibreCLI()
+        with mock.patch(
+                'pyfibre.cli.pyfibre_cli'
+                '.PyFibreApplication._run_pyfibre') as mock_pyfibre:
+            mock_pyfibre.side_effect = mock_run_pyfibre
             pyfibre.cli.app.run(
-                file_path=None, key=None, sigma=None, alpha=None,
-                log_name='pyfibre', database_name=None, debug=False,
+                file_path='', key='', sigma=0.5, alpha=0.5,
+                log_name='pyfibre', database_name='', debug=False,
                 profile=False, ow_metric=False, ow_segment=False,
                 ow_network=False, save_figures=False, test=False
             )
@@ -47,11 +51,13 @@ class TestClickRun(TestCase):
                 os.remove('pyfibre.log')
 
     def test_run_with_profile(self):
-        with mock.patch('pyfibre.cli.app.PyFibreCLI') as mock_pyfibre:
-            mock_pyfibre.return_value = DummyPyFibreCLI()
+        with mock.patch(
+                'pyfibre.cli.pyfibre_cli'
+                '.PyFibreApplication._run_pyfibre') as mock_pyfibre:
+            mock_pyfibre.side_effect = mock_run_pyfibre
             pyfibre.cli.app.run(
-                file_path=None, key=None, sigma=None, alpha=None,
-                log_name='pyfibre', database_name=None, debug=False,
+                file_path='', key='', sigma=0.5, alpha=0.5,
+                log_name='pyfibre', database_name='', debug=False,
                 profile=True, ow_metric=False, ow_segment=False,
                 ow_network=False, save_figures=False, test=False
             )

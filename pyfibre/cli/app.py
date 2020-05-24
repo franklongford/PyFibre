@@ -12,11 +12,13 @@ import logging
 import click
 
 from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
+from pyfibre.shg_pl_trans.shg_pl_trans_plugin import SHGPLTransPlugin
+from pyfibre.core.core_pyfibre_plugin import CorePyFibrePlugin
 
 from ..utilities import logo
 from ..version import __version__
 
-from .pyfibre_cli import PyFibreCLI
+from .pyfibre_cli import PyFibreApplication
 
 
 @click.command()
@@ -52,7 +54,7 @@ from .pyfibre_cli import PyFibreCLI
 )
 @click.option(
     '--key', help='Keywords to filter file names',
-    default=None
+    default=''
 )
 @click.option(
     '--sigma', help='Gaussian smoothing standard deviation',
@@ -112,14 +114,21 @@ def run(file_path, key, sigma, alpha, log_name,
 
     logging.info(logo(__version__))
 
-    pyfibre_app = PyFibreCLI(
+    if isinstance(file_path, str):
+        file_path = [file_path]
+
+    plugins = [CorePyFibrePlugin(), SHGPLTransPlugin()]
+
+    pyfibre_app = PyFibreApplication(
+        file_paths=file_path,
         sigma=sigma, alpha=alpha, key=key,
         database_name=database_name,
         ow_metric=ow_metric, ow_segment=ow_segment,
-        ow_network=ow_network, save_figures=save_figures
+        ow_network=ow_network, save_figures=save_figures,
+        plugins=plugins
     )
 
-    pyfibre_app.run(file_path)
+    pyfibre_app.run()
 
     if profile:
         profiler.disable()

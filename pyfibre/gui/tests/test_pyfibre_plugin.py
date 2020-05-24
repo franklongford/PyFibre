@@ -2,7 +2,7 @@ from unittest import mock, TestCase
 
 from envisage.api import Application
 
-from pyfibre.gui.pyfibre_plugin import PyFibrePlugin
+from pyfibre.gui.pyfibre_plugin import PyFibreGUIPlugin
 
 MAIN_TASK = ("pyfibre.gui.pyfibre_main_task"
              ".PyFibreMainTask")
@@ -16,7 +16,7 @@ def mock_return_none(*args, **kwargs):
 class TestWfManagerPlugin(TestCase):
 
     def setUp(self):
-        self.pyfibre_plugin = PyFibrePlugin()
+        self.pyfibre_plugin = PyFibreGUIPlugin()
         self.pyfibre_plugin.application = mock.Mock(spec=Application)
 
     def test_init(self):

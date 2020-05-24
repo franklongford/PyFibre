@@ -1,10 +1,10 @@
 from unittest import TestCase
 
-from pyfibre.tests.probe_classes.shg_pl_trans_image import ProbeSHGPLTransImage
+from pyfibre.shg_pl_trans.tests.probe_classes import ProbeSHGPLTransImage
 from pyfibre.tests.probe_classes.objects import (
     ProbeFibreNetwork, ProbeFibreSegment, ProbeCellSegment)
 
-from pyfibre.pyfibre_runner import PyFibreRunner
+from pyfibre.core.pyfibre_runner import PyFibreRunner
 
 
 LOAD_NETWORK_PATH = "networkx.read_gpickle"
@@ -35,13 +35,6 @@ class TestPyFibreRunner(TestCase):
 
     def test_defaults(self):
         self.assertEqual((5, 35), self.runner.p_denoise)
-        self.assertDictEqual(
-            {'nuc_thresh': 2,
-             'nuc_radius': 11,
-             'lmp_thresh': 0.15,
-             'angle_thresh': 70,
-             'r_thresh': 7},
-            self.runner.fire_parameters)
 
     def test_run_analysis(self):
         pass

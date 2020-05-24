@@ -4,7 +4,7 @@ from pyfibre.gui.viewer_pane import (
     ViewerPane
 )
 from pyfibre.tests.probe_classes.gui_objects import ProbeTableRow
-from pyfibre.tests.probe_classes.shg_pl_trans_image import ProbeSHGPLTransImage
+from pyfibre.shg_pl_trans.tests.probe_classes import ProbeSHGPLTransImage
 
 
 class TestViewerPane(TestCase):

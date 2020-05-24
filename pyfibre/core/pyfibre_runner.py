@@ -1,10 +1,9 @@
 import logging
 
 from traits.api import (
-    HasStrictTraits, Bool, Float, Tuple, Dict)
+    HasStrictTraits, Bool, Float, Tuple)
 
-from pyfibre.io.base_multi_image_reader import WrongFileTypeError
-from pyfibre.io.shg_pl_reader import assign_images
+from pyfibre.core.base_multi_image_reader import WrongFileTypeError
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +24,6 @@ class PyFibreRunner(HasStrictTraits):
     #: Metric for hysterisis segmentation
     alpha = Float(0.5)
 
-    #: Parameters used for FIRE algorithm
-    fire_parameters = Dict()
-
-    #: Parameters used for segmentation
-    segment_parameters = Dict()
-
     #: Toggles force overwrite of existing fibre network
     ow_network = Bool(False)
 
@@ -43,22 +36,28 @@ class PyFibreRunner(HasStrictTraits):
     #: Toggles creation of figures
     save_figures = Bool(False)
 
-    def _fire_parameters_default(self):
-        return {
-            'nuc_thresh': 2,
-            'nuc_radius': 11,
-            'lmp_thresh': 0.15,
-            'angle_thresh': 70,
-            'r_thresh': 7
-        }
+    def run(self, dictionary, analyser, reader):
+        """Generator that returns databases of metrics from each image in
+        dictionary"""
 
-    def _segment_parameters_default(self):
-        return {
-            'min_fibre_size': 100,
-            'min_fibre_frac': 0.1,
-            'min_cell_size': 200,
-            'min_cell_frac': 0.01,
-        }
+        for prefix, filenames in dictionary.items():
+
+            try:
+                multi_image = reader.load_multi_image(filenames, prefix)
+            except (ImportError, WrongFileTypeError):
+                logger.info(f'Cannot read image data for {filenames}')
+                continue
+
+            analyser.multi_image = multi_image
+
+            try:
+                logger.info(f"Processing image data for {filenames}")
+                databases = self.run_analysis(analyser)
+            except Exception:
+                logger.info(f'Cannot analyse image data for {filenames}')
+                continue
+
+            yield databases
 
     def run_analysis(self, analyser):
         """
@@ -90,26 +89,3 @@ class PyFibreRunner(HasStrictTraits):
         databases = analyser.image_analysis(self)
 
         return databases
-
-
-def analysis_generator(dictionary, runner, analysers, readers):
-
-    for prefix, data in dictionary.items():
-
-        filenames, image_type = assign_images(data)
-
-        try:
-            multi_image = readers[image_type].load_multi_image(
-                filenames, prefix)
-            analyser = analysers[image_type]
-
-        except (KeyError, ImportError, WrongFileTypeError):
-            logger.info(f'Cannot process image data for {filenames}')
-
-        else:
-            logger.info(f"Processing image data for {filenames}")
-
-            analyser.multi_image = multi_image
-            databases = runner.run_analysis(analyser)
-
-            yield databases

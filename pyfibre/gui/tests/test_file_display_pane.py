@@ -2,6 +2,7 @@ import os
 from unittest import TestCase
 
 from pyfibre.gui.file_display_pane import FileDisplayPane
+from pyfibre.shg_pl_trans.shg_pl_trans_reader import SHGPLTransReader
 from pyfibre.tests.fixtures import (
     directory, test_shg_pl_trans_image_path, test_shg_image_path)
 
@@ -14,7 +15,7 @@ class TestFileDisplayPane(TestCase):
     def setUp(self):
 
         self.file_display = FileDisplayPane(
-            supported_readers=['SHG-PL-Trans']
+            supported_readers={'SHG-PL-Trans': SHGPLTransReader()}
         )
         self.file_path = test_shg_pl_trans_image_path
 
@@ -27,8 +28,10 @@ class TestFileDisplayPane(TestCase):
         self.assertEqual(
             directory + '/test-pyfibre',
             table_row.name)
-        self.assertTrue(table_row.shg)
-        self.assertTrue(table_row.pl)
+        self.assertEqual('SHG-PL-Trans', table_row.tag)
+        self.assertListEqual(
+            [test_shg_pl_trans_image_path],
+            table_row.file_names)
 
         self.file_display.add_files(test_shg_image_path)
         self.assertEqual(1, len(self.file_display.file_table))
@@ -42,8 +45,10 @@ class TestFileDisplayPane(TestCase):
         self.assertEqual(
             directory + '/test-pyfibre',
             table_row.name)
-        self.assertTrue(table_row.shg)
-        self.assertTrue(table_row.pl)
+        self.assertEqual('SHG-PL-Trans', table_row.tag)
+        self.assertListEqual(
+            [test_shg_pl_trans_image_path],
+            table_row.file_names)
 
     def test_remove_file(self):
 
