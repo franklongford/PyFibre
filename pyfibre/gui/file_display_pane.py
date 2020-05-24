@@ -154,23 +154,23 @@ class FileDisplayPane(TraitsDockPane):
 
     def add_files(self, file_path):
 
-        image_dictionary = {}
         input_prefixes = [row.name for row in self.file_table]
 
         input_files = parse_file_path(file_path)
         for tag, reader in self.supported_readers.items():
-            image_dictionary.update(
-                {tag: reader.collate_files(input_files)}
-            )
+            image_dictionary = reader.collate_files(input_files)
 
-        for tag, data in image_dictionary.items():
-            for prefix, file_names in data.items():
+            for prefix, file_names in image_dictionary.items():
                 if prefix not in input_prefixes:
-                    table_row = TableRow(
-                        name=prefix,
-                        tag=tag,
-                        file_names=file_names)
-                    self.file_table.append(table_row)
+                    try:
+                        reader.create_image_stack(file_names)
+                        table_row = TableRow(
+                            name=prefix,
+                            tag=tag,
+                            file_names=file_names)
+                        self.file_table.append(table_row)
+                    except Exception:
+                        pass
 
     def remove_file(self, selected_rows):
         for selected_row in selected_rows:

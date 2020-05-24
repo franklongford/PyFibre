@@ -252,7 +252,7 @@ class PyFibreMainTask(Task):
 
         for indices in index_split:
             batch_rows = [file_table[index] for index in indices]
-            batch_dict = {tag: {} for tag, _ in self.supported_readers}
+            batch_dict = {tag: {} for tag in self.supported_readers.keys()}
 
             for row in batch_rows:
                 batch_dict[row.tag].update(
