@@ -9,6 +9,9 @@ class ProbeMultiImageReader(BaseMultiImageReader):
 
     _multi_image_class = ProbeFixedStackImage
 
+    def collate_files(self, filenames):
+        return {'probe-file': filename for filename in filenames}
+
     def can_load(self, filename):
         return True
 

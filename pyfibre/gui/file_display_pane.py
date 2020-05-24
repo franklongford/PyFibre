@@ -3,7 +3,7 @@ from pyface.api import ImageResource
 
 from traits.api import (
     HasTraits, List, Unicode, Button, File, Dict,
-    Bool, Int, Property, Str
+    Int, Property, Str
 )
 from traitsui.api import (
     View, Item, Group, TableEditor, ObjectColumn,
@@ -11,9 +11,8 @@ from traitsui.api import (
     TextEditor
 )
 
-from pyfibre.shg_pl_trans.shg_pl_reader import (
-    assign_images, collate_image_dictionary)
 from pyfibre.io.utilities import parse_file_path
+from pyfibre.io.core.base_multi_image_reader import BaseMultiImageReader
 
 
 def horizontal_centre(item_or_group):
@@ -24,21 +23,9 @@ class TableRow(HasTraits):
 
     name = Unicode()
 
-    _dictionary = Dict(Str, File)
+    tag = Str()
 
-    shg = Property(Bool, depends_on='_dictionary')
-
-    pl = Property(Bool, depends_on='_dictionary')
-
-    def _get_shg(self):
-        return (
-            'SHG-PL-Trans' in self._dictionary
-            or 'SHG' in self._dictionary)
-
-    def _get_pl(self):
-        return (
-            'SHG-PL-Trans' in self._dictionary
-            or 'PL-Trans' in self._dictionary)
+    file_names = List(File)
 
 
 class FileDisplayPane(TraitsDockPane):
@@ -71,7 +58,7 @@ class FileDisplayPane(TraitsDockPane):
 
     key = Unicode()
 
-    supported_readers = List(Str)
+    supported_readers = Dict(Str, BaseMultiImageReader)
 
     #: The PyFibre logo. Stored at images/icon.ico
     image = ImageResource('icon.ico')
@@ -95,11 +82,8 @@ class FileDisplayPane(TraitsDockPane):
                 ObjectColumn(name="name",
                              label="name",
                              resize_mode="stretch"),
-                ObjectColumn(name="shg",
-                             label="shg",
-                             resize_mode="fixed"),
-                ObjectColumn(name="pl",
-                             label="pl",
+                ObjectColumn(name="tag",
+                             label="File Type",
                              resize_mode="fixed")
             ],
             auto_size=False,
@@ -170,18 +154,22 @@ class FileDisplayPane(TraitsDockPane):
 
     def add_files(self, file_path):
 
-        input_files = parse_file_path(file_path)
-        image_dictionary = collate_image_dictionary(input_files)
-
+        image_dictionary = {}
         input_prefixes = [row.name for row in self.file_table]
 
-        for key, data in image_dictionary.items():
-            _, image_type = assign_images(data)
-            if image_type in self.supported_readers:
-                if key not in input_prefixes:
+        input_files = parse_file_path(file_path)
+        for tag, reader in self.supported_readers.items():
+            image_dictionary.update(
+                {tag: reader.collate_files(input_files)}
+            )
+
+        for tag, data in image_dictionary.items():
+            for prefix, file_names in data.items():
+                if prefix not in input_prefixes:
                     table_row = TableRow(
-                        name=key,
-                        _dictionary=data)
+                        name=prefix,
+                        tag=tag,
+                        file_names=file_names)
                     self.file_table.append(table_row)
 
     def remove_file(self, selected_rows):

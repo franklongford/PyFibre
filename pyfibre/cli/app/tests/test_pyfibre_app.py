@@ -5,6 +5,8 @@ from tempfile import NamedTemporaryFile
 import pandas as pd
 
 from pyfibre.cli.app.pyfibre_app import PyFibreApplication
+from pyfibre.model.core.core_pyfibre_plugin import CorePyFibrePlugin
+from pyfibre.tests.probe_classes.plugins import ProbePyFibrePlugin
 
 
 ITERATOR_PATH = 'pyfibre.cli.app.pyfibre_app.analysis_generator'
@@ -24,10 +26,12 @@ def dummy_iterate_images(dictionary, runner, analysers, reader):
 class TestPyFibreApplication(TestCase):
 
     def setUp(self):
+        plugins = [CorePyFibrePlugin(), ProbePyFibrePlugin()]
+        self.pyfibre_app = PyFibreApplication(
+            plugins=plugins
+        )
 
-        self.pyfibre_app = PyFibreApplication()
-
-    def test_init_pyfibre_workflow(self):
+    def test_init(self):
 
         workflow = self.pyfibre_app.runner
 
@@ -37,6 +41,9 @@ class TestPyFibreApplication(TestCase):
         self.assertFalse(workflow.ow_segment)
         self.assertFalse(workflow.ow_metric)
         self.assertFalse(workflow.save_figures)
+
+        self.assertEqual(1, len(self.pyfibre_app.supported_analysers))
+        self.assertEqual(1, len(self.pyfibre_app.supported_readers))
 
     def test_save_database(self):
 

@@ -24,7 +24,6 @@ from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.io.database_io import save_database
 from pyfibre.model.core.i_multi_image_factory import IMultiImageFactory
-from pyfibre.shg_pl_trans.shg_pl_reader import assign_images
 from pyfibre.cli.app.pyfibre_runner import (
     PyFibreRunner, analysis_generator)
 
@@ -114,9 +113,8 @@ class PyFibreMainTask(Task):
         return OptionsPane()
 
     def _file_display_pane_default(self):
-        readers = list(self.supported_readers.keys())
         return FileDisplayPane(
-            supported_readers=readers)
+            supported_readers=self.supported_readers)
 
     def _viewer_pane_default(self):
         return ViewerPane()
@@ -192,8 +190,8 @@ class PyFibreMainTask(Task):
         selected_row = (
             self.file_display_pane.selected_files[0])
 
-        file_names, image_type = assign_images(
-            selected_row._dictionary)
+        image_type = selected_row.tag
+        file_names = selected_row.file_names
 
         try:
             reader = self.supported_readers[image_type]
@@ -254,8 +252,11 @@ class PyFibreMainTask(Task):
 
         for indices in index_split:
             batch_rows = [file_table[index] for index in indices]
-            batch_dict = {row.name: row._dictionary
-                          for row in batch_rows}
+            batch_dict = {tag: {} for tag, _ in self.supported_readers}
+
+            for row in batch_rows:
+                batch_dict[row.tag].update(
+                    {row.name: row.file_names})
 
             runner = PyFibreRunner(
                 p_denoise=(self.options_pane.n_denoise,
@@ -295,14 +296,8 @@ class PyFibreMainTask(Task):
         network_database = pd.DataFrame()
         cell_database = pd.DataFrame()
 
-        image_dictionary = {
-            row.name: row._dictionary
-            for row in self.file_display_pane.file_table
-        }
-
-        for prefix, data in image_dictionary.items():
-
-            filenames, image_type = assign_images(data)
+        for row in self.file_display_pane.file_table:
+            image_type = row.tag
 
             try:
                 reader = self.supported_readers[image_type]
@@ -312,7 +307,7 @@ class PyFibreMainTask(Task):
 
             try:
                 analyser.multi_image = reader.load_multi_image(
-                    filenames, prefix)
+                    row.filenames, row.name)
                 databases = analyser.load_databases()
 
                 global_database = global_database.append(
@@ -325,7 +320,7 @@ class PyFibreMainTask(Task):
                     [cell_database, databases[3]], sort=True)
             except Exception:
                 logger.info(
-                    f"{prefix} databases not imported"
+                    f"{row.name} databases not imported"
                     f" - skipping")
             finally:
                 analyser.multi_image = None

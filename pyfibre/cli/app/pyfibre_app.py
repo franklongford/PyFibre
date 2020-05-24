@@ -13,9 +13,6 @@ from envisage.api import Application
 from traits.api import Instance, Str, List, File
 
 from pyfibre.io.database_io import save_database
-from pyfibre.shg_pl_trans.shg_pl_reader import (
-    collate_image_dictionary
-)
 from pyfibre.io.utilities import parse_file_path
 from pyfibre.ids import MULTI_IMAGE_FACTORIES
 from .pyfibre_runner import PyFibreRunner, analysis_generator
@@ -62,18 +59,25 @@ class PyFibreApplication(Application):
 
     def _run_pyfibre(self):
 
-        image_dictionary = {}
+        image_dictionary = {
+            tag: {} for tag, _ in self.supported_readers.items()
+        }
 
         for file_path in self.file_paths:
             input_files = parse_file_path(file_path, self.key)
-            image_dictionary.update(collate_image_dictionary(input_files))
+            for tag, reader in self.supported_readers.items():
+                image_dictionary[tag].update(
+                    reader.collate_files(input_files)
+                )
 
-        formatted_images = '\n'.join([
-            f'\t{key}: {value}'
-            for key, value in image_dictionary.items()
-        ])
+        for tag, inner_dict in image_dictionary.items():
 
-        logger.info(f"Analysing images: \n{formatted_images}")
+            formatted_images = '\n'.join([
+                f'\t{key}: {value}'
+                for key, value in inner_dict.items()
+            ])
+
+            logger.info(f"Analysing {tag} images: \n{formatted_images}")
 
         global_database = pd.DataFrame()
         fibre_database = pd.DataFrame()
