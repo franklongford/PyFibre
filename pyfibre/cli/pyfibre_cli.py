@@ -4,142 +4,118 @@ MAIN ROUTINE
 
 Created by: Frank Longford
 Created on: 16/08/2018
-
-Last Modified: 18/02/2019
 """
-
 import logging
-import click
 
-from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
+import pandas as pd
 
-from ..utilities import logo
-from ..version import __version__
+from envisage.api import Application
+from traits.api import Instance, Str, List, File
 
-from pyfibre.cli.app import PyFibreApplication
-from pyfibre.shg_pl_trans.shg_pl_trans_plugin import SHGPLTransPlugin
-from pyfibre.core.core_pyfibre_plugin import CorePyFibrePlugin
+from pyfibre.io.database_io import save_database
+from pyfibre.io.utilities import parse_file_path
+from pyfibre.ids import MULTI_IMAGE_FACTORIES
+from pyfibre.core.pyfibre_runner import PyFibreRunner
 
-
-@click.command()
-@click.version_option(version=__version__)
-@click.option(
-    '--debug', is_flag=True, default=False,
-    help="Prints extra debug information in pyfibre.log"
-)
-@click.option(
-    '--profile', is_flag=True, default=False,
-    help="Run GUI under cProfile, creating .prof and .pstats "
-         "files in the current directory."
-)
-@click.option(
-    '--ow_metric', is_flag=True, default=False,
-    help='Toggles overwrite analytic metrics'
-)
-@click.option(
-    '--ow_segment', is_flag=True, default=False,
-    help='Toggles overwrite image segmentation'
-)
-@click.option(
-    '--ow_network', is_flag=True, default=False,
-    help='Toggles overwrite network extraction'
-)
-@click.option(
-    '--save_figures', is_flag=True, default=False,
-    help='Toggles saving of figures'
-)
-@click.option(
-    '--test', is_flag=True, default=False,
-    help='Perform run on test image'
-)
-@click.option(
-    '--key', help='Keywords to filter file names',
-    default=''
-)
-@click.option(
-    '--sigma', help='Gaussian smoothing standard deviation',
-    default=0.5
-)
-@click.option(
-    '--alpha', help='Alpha network coefficient',
-    default=0.5
-)
-@click.option(
-    '--database_name', help='Output database filename',
-    default='pyfibre_database'
-)
-@click.option(
-    '--log_name', help='Pyfibre log filename',
-    default='pyfibre'
-)
-@click.argument(
-    'file_path', nargs=-1, type=click.Path(exists=True),
-    required=False
-)
-def pyfibre(file_path, key, sigma, alpha, log_name,
-            database_name, debug, profile, ow_metric, ow_segment,
-            ow_network, save_figures, test):
-    """Launches the PyFibre command line app"""
-
-    run(file_path, key, sigma, alpha, log_name,
-        database_name, debug, profile, ow_metric, ow_segment,
-        ow_network, save_figures, test)
+logger = logging.getLogger(__name__)
 
 
-def run(file_path, key, sigma, alpha, log_name,
-        database_name, debug, profile,
-        ow_metric, ow_segment,
-        ow_network, save_figures, test):
+class PyFibreApplication(Application):
 
-    if test:
-        file_path = test_shg_pl_trans_image_path
-        debug = True
-        profile = True
-        ow_network = True
-        save_figures = True
+    id = 'pyfibre.application'
 
-    if debug:
-        level = logging.DEBUG
-    else:
-        level = logging.INFO
+    name = 'PyFibre CLI'
 
-    logging.basicConfig(filename=f"{log_name}.log", filemode="w",
-                        level=level)
+    runner = Instance(PyFibreRunner)
 
-    if profile:
-        import cProfile
-        import pstats
-        profiler = cProfile.Profile()
-        profiler.enable()
+    key = Str
 
-    logging.info(logo(__version__))
+    database_name = Str
 
-    if isinstance(file_path, str):
-        file_path = [file_path]
+    file_paths = List(File)
 
-    plugins = [CorePyFibrePlugin(), SHGPLTransPlugin()]
+    def __init__(self, sigma=0.5, alpha=0.5,
+                 ow_metric=False, ow_segment=False,
+                 ow_network=False, save_figures=False,
+                 **traits):
 
-    pyfibre_app = PyFibreApplication(
-        file_paths=file_path,
-        sigma=sigma, alpha=alpha, key=key,
-        database_name=database_name,
-        ow_metric=ow_metric, ow_segment=ow_segment,
-        ow_network=ow_network, save_figures=save_figures,
-        plugins=plugins
-    )
+        runner = PyFibreRunner(
+            sigma=sigma, alpha=alpha,
+            ow_metric=ow_metric, ow_segment=ow_segment,
+            ow_network=ow_network, save_figures=save_figures
+        )
 
-    pyfibre_app.run()
+        super(PyFibreApplication, self).__init__(
+            runner=runner,
+            **traits)
 
-    if profile:
-        profiler.disable()
-        from sys import version_info
-        fname = 'pyfibre-{}-{}.{}.{}'.format(__version__,
-                                             version_info.major,
-                                             version_info.minor,
-                                             version_info.micro)
+        factories = self.get_extensions(MULTI_IMAGE_FACTORIES)
+        self.supported_readers = {}
+        self.supported_analysers = {}
 
-        profiler.dump_stats(fname + '.prof')
-        with open(fname + '.pstats', 'w') as fp:
-            stats = pstats.Stats(
-                profiler, stream=fp).sort_stats('cumulative')
-            stats.print_stats()
+        for factory in factories:
+            self.supported_readers[factory.tag] = factory.create_reader()
+            self.supported_analysers[factory.tag] = factory.create_analyser()
+
+    def _run_pyfibre(self):
+
+        image_dictionary = {
+            tag: {} for tag, _ in self.supported_readers.items()
+        }
+
+        for file_path in self.file_paths:
+            input_files = parse_file_path(file_path, self.key)
+            for tag, reader in self.supported_readers.items():
+                image_dictionary[tag].update(
+                    reader.collate_files(input_files)
+                )
+
+        for tag, inner_dict in image_dictionary.items():
+
+            formatted_images = '\n'.join([
+                f'\t{key}: {value}'
+                for key, value in inner_dict.items()
+            ])
+
+            logger.info(f"Analysing {tag} images: \n{formatted_images}")
+
+            image_databases = []
+
+            generator = self.runner.run(
+                inner_dict,
+                self.supported_analysers[tag],
+                self.supported_readers[tag])
+
+            for databases in generator:
+                if not image_databases:
+                    image_databases = [pd.DataFrame() for _ in databases]
+
+                for index, database in enumerate(databases):
+                    if isinstance(database, pd.Series):
+                        image_databases[index] = image_databases[index].append(
+                            database, ignore_index=True)
+                    elif isinstance(database, pd.DataFrame):
+                        image_databases[index] = pd.concat(
+                            [image_databases[index], database])
+
+            if self.database_name and image_databases:
+                save_database(
+                    image_databases[0], self.database_name)
+                save_database(
+                    image_databases[1], self.database_name, 'fibre')
+                save_database(
+                    image_databases[2], self.database_name, 'network')
+                save_database(
+                    image_databases[3], self.database_name, 'cell')
+
+    def run(self):
+
+        if self.start():
+
+            try:
+                self._run_pyfibre()
+            except Exception:
+                logger.info('Error in PyFibre runner')
+                raise
+
+        self.stop()
