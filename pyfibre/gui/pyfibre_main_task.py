@@ -100,10 +100,10 @@ class PyFibreMainTask(Task):
             self.supported_readers[factory.tag] = factory.create_reader()
             self.supported_analysers[factory.tag] = factory.create_analyser()
 
-        self.global_database = None
-        self.fibre_database = None
-        self.network_database = None
-        self.cell_database = None
+        self.image_databases = {
+            tag: [None for _ in analyser.database_names]
+            for tag, analyser in self.supported_analysers.items()
+        }
 
     # ------------------
     #     Defaults
@@ -299,10 +299,10 @@ class PyFibreMainTask(Task):
 
     def create_databases(self):
 
-        global_database = pd.DataFrame()
-        fibre_database = pd.DataFrame()
-        network_database = pd.DataFrame()
-        cell_database = pd.DataFrame()
+        image_databases = {
+            tag:  [pd.DataFrame() for _ in analyser.database_names]
+            for tag, analyser in self.supported_analysers.items()
+        }
 
         for row in self.file_display_pane.file_table:
             image_type = row.tag
@@ -318,14 +318,18 @@ class PyFibreMainTask(Task):
                     row.filenames, row.name)
                 databases = analyser.load_databases()
 
-                global_database = global_database.append(
-                    databases[0], ignore_index=True)
-                fibre_database = pd.concat(
-                    [fibre_database, databases[1]], sort=True)
-                network_database = pd.concat(
-                    [network_database, databases[2]], sort=True)
-                cell_database = pd.concat(
-                    [cell_database, databases[3]], sort=True)
+                for index, database in enumerate(databases):
+                    if isinstance(database, pd.Series):
+                        image_databases[image_type][index] = (
+                            image_databases[image_type][index].append(
+                                database, ignore_index=True)
+                        )
+                    elif isinstance(database, pd.DataFrame):
+                        image_databases[image_type][index] = (
+                            pd.concat([image_databases[image_type][index],
+                                       database], sort=True)
+                        )
+
             except Exception:
                 logger.info(
                     f"{row.name} databases not imported"
@@ -333,22 +337,22 @@ class PyFibreMainTask(Task):
             finally:
                 analyser.multi_image = None
 
-        self.global_database = global_database
-        self.fibre_database = fibre_database
-        self.network_database = network_database
-        self.cell_database = cell_database
+        self.image_databases = image_databases
 
     def save_database(self, filename):
 
-        try:
-            save_database(self.global_database, filename)
-            save_database(self.fibre_database, filename, 'fibre')
-            save_database(self.network_database, filename, 'network')
-            save_database(self.cell_database, filename, 'cell')
-        except IOError:
-            logger.exception("Error when saving databases")
-            return False
-        return True
+        for tag, analyser in self.supported_analysers.items():
+            for index, name in enumerate(analyser.database_names):
+                try:
+                    save_database(
+                        self.image_databases[tag][index],
+                        filename,
+                        name
+                    )
+                except IOError:
+                    logger.exception("Error when saving databases")
+                    return False
+                return True
 
     def save_database_as(self):
         """ Shows a dialog to save the databases"""

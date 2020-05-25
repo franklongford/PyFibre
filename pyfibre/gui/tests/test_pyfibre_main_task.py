@@ -11,11 +11,11 @@ from traits_futures.toolkit_support import toolkit
 from pyfibre.core.pyfibre_runner import PyFibreRunner
 from pyfibre.tests.dummy_classes import DummyPyFibreGUI
 from pyfibre.tests.probe_classes.gui_objects import ProbeTableRow
+from pyfibre.tests.probe_classes.factories import ProbeMultiImageFactory
 from pyfibre.gui.pyfibre_main_task import PyFibreMainTask, run_analysis
 from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
-from pyfibre.shg_pl_trans.shg_pl_trans_factory import SHGPLTransFactory
 
 GuiTestAssistant = toolkit("gui_test_assistant:GuiTestAssistant")
 
@@ -26,7 +26,7 @@ ITERATOR_PATH = 'pyfibre.core.pyfibre_runner.PyFibreRunner.run'
 
 def dummy_iterate_images(dictionary, analyser, reader):
     for key, value in dictionary.items():
-        yield pd.DataFrame
+        yield [pd.DataFrame] * len(analyser.database_names)
 
 
 def mock_run(*args, **kwargs):
@@ -51,7 +51,7 @@ def get_probe_pyfibre_tasks():
     pyfibre_gui = DummyPyFibreGUI()
 
     main_task = PyFibreMainTask(
-        multi_image_factories=[SHGPLTransFactory()]
+        multi_image_factories=[ProbeMultiImageFactory()]
     )
 
     tasks = [main_task]
@@ -109,8 +109,8 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
         self.assertIsInstance(
             self.main_task.create_dock_panes()[1], OptionsPane
         )
-        self.assertIn('SHG-PL-Trans', self.main_task.supported_readers)
-        self.assertIn('SHG-PL-Trans', self.main_task.supported_analysers)
+        self.assertIn('Probe', self.main_task.supported_readers)
+        self.assertIn('Probe', self.main_task.supported_analysers)
 
     def test_run_analysis(self):
 
@@ -125,7 +125,7 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
             mock_iterate.assert_not_called()
 
             run_analysis(
-                {'SHG-PL-Trans': {'some/file_prefix': ['some/file/path']}},
+                {'Probe': {'some/file_prefix': ['some/file/path']}},
                 PyFibreRunner(),
                 self.main_task.supported_analysers,
                 self.main_task.supported_readers)

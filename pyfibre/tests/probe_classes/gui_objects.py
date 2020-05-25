@@ -54,6 +54,6 @@ class ProbeTableRow(TableRow):
 
     def __init__(self, *args, **kwargs):
         kwargs['name'] = 'probe'
-        kwargs['tag'] = 'SHG-PL-Trans'
+        kwargs['tag'] = 'Probe'
         kwargs['file_names'] = [test_shg_pl_trans_image_path]
         super().__init__(*args, **kwargs)
