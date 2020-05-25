@@ -6,10 +6,10 @@ from pyfibre.model.tools.metrics import (
     region_shape_metrics, region_texture_metrics)
 from pyfibre.utilities import NotSupportedError
 
-from .abc_pyfibre_object import ABCPyFibreObject
+from .base_pyfibre_object import BasePyFibreObject
 
 
-class BaseSegment(ABCPyFibreObject):
+class BaseSegment(BasePyFibreObject):
     """Container for a scikit-image regionprops object
     representing a segmented area of an image"""
 

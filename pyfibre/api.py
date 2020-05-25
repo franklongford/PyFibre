@@ -3,7 +3,7 @@ from pyfibre.core.base_multi_image_factory import BaseMultiImageFactory
 from pyfibre.core.base_multi_image_reader import BaseMultiImageReader
 from pyfibre.core.base_multi_image import BaseMultiImage
 
-from pyfibre.model.core.abc_pyfibre_object import ABCPyFibreObject
+from pyfibre.model.core.base_pyfibre_object import BasePyFibreObject
 from pyfibre.model.core.base_graph import BaseGraph
 from pyfibre.model.core.base_segment import BaseSegment
 from pyfibre.model.core.base_graph_segment import BaseGraphSegment
