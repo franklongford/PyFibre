@@ -177,12 +177,12 @@ class SHGAnalyser(BaseMultiImageAnalyser):
         if not os.path.exists(self.fig_path):
             os.mkdir(self.fig_path)
 
-    def get_analysis_options(self, workflow):
+    def get_analysis_options(self, runner):
         """Get image-specific options for analysis"""
 
-        network = workflow.ow_network
-        segment = network or workflow.ow_segment
-        metric = segment or workflow.ow_metric
+        network = runner.ow_network
+        segment = network or runner.ow_segment
+        metric = segment or runner.ow_metric
 
         try:
             self._load_networks()
@@ -207,6 +207,12 @@ class SHGAnalyser(BaseMultiImageAnalyser):
             logger.info(
                 f"Cannot load metrics for {self.multi_image.name}")
             metric = True
+
+        logger.debug(f"Analysis options:\n "
+                     f"Extract Network = {network}\n "
+                     f"Segment Image = {segment}\n "
+                     f"Generate Metrics = {metric}\n "
+                     f"Save Figures = {runner.save_figures}")
 
         return network, segment, metric
 
