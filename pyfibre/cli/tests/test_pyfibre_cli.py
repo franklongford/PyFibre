@@ -7,7 +7,6 @@ import pandas as pd
 from pyfibre.cli.pyfibre_cli import PyFibreApplication
 from pyfibre.core.core_pyfibre_plugin import CorePyFibrePlugin
 from pyfibre.tests.probe_classes.plugins import ProbePyFibrePlugin
-from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 
 
 ITERATOR_PATH = 'pyfibre.cli.pyfibre_cli.PyFibreRunner.run'
@@ -42,7 +41,7 @@ class TestPyFibreApplication(TestCase):
 
     def test_run(self):
 
-        self.pyfibre_app.file_paths = [test_shg_pl_trans_image_path]
+        self.pyfibre_app.file_paths = ['/path/to/some/image']
 
         with NamedTemporaryFile() as tmp_file:
             self.pyfibre_app.database_name = tmp_file.name

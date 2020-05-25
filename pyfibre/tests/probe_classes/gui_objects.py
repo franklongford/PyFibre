@@ -9,8 +9,6 @@ from pyfibre.tests.probe_classes.multi_images import ProbeMultiImage
 from pyfibre.tests.probe_classes.plugins import ProbePyFibreGUIPlugin
 from pyfibre.tests.probe_classes.objects import ProbeFibreNetwork, ProbeSegment
 
-from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
-
 
 class ProbePyFibreGUI(PyFibreGUI):
 
@@ -55,5 +53,5 @@ class ProbeTableRow(TableRow):
     def __init__(self, *args, **kwargs):
         kwargs['name'] = 'probe'
         kwargs['tag'] = 'Probe'
-        kwargs['file_names'] = [test_shg_pl_trans_image_path]
+        kwargs['file_names'] = ['/path/to/some/file']
         super().__init__(*args, **kwargs)
