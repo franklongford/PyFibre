@@ -15,12 +15,7 @@ ITERATOR_PATH = 'pyfibre.cli.pyfibre_cli.PyFibreRunner.run'
 
 def dummy_iterate_images(dictionary, analyser, reader):
     for key, value in dictionary.items():
-        yield [
-            pd.Series(dtype=object),
-            pd.Series(dtype=object),
-            pd.Series(dtype=object),
-            pd.Series(dtype=object)
-        ]
+        yield [pd.Series(dtype=object)] * len(analyser.database_names)
 
 
 class TestPyFibreApplication(TestCase):
@@ -59,10 +54,4 @@ class TestPyFibreApplication(TestCase):
                 self.assertTrue(mock_iterate.called)
 
             self.assertTrue(
-                os.path.exists(tmp_file.name + '.xls'))
-            self.assertTrue(
-                os.path.exists(tmp_file.name + '_fibre.xls'))
-            self.assertTrue(
-                os.path.exists(tmp_file.name + '_network.xls'))
-            self.assertTrue(
-                os.path.exists(tmp_file.name + '_cell.xls'))
+                os.path.exists(tmp_file.name + '_probe.xls'))

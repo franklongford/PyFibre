@@ -79,17 +79,15 @@ class PyFibreApplication(Application):
 
             logger.info(f"Analysing {tag} images: \n{formatted_images}")
 
-            image_databases = []
+            analyser = self.supported_analysers[tag]
+            reader = self.supported_readers[tag]
+
+            image_databases = [pd.DataFrame() for _ in analyser.database_names]
 
             generator = self.runner.run(
-                inner_dict,
-                self.supported_analysers[tag],
-                self.supported_readers[tag])
+                inner_dict, analyser, reader)
 
             for databases in generator:
-                if not image_databases:
-                    image_databases = [pd.DataFrame() for _ in databases]
-
                 for index, database in enumerate(databases):
                     if isinstance(database, pd.Series):
                         image_databases[index] = image_databases[index].append(
@@ -98,15 +96,10 @@ class PyFibreApplication(Application):
                         image_databases[index] = pd.concat(
                             [image_databases[index], database])
 
-            if self.database_name and image_databases:
-                save_database(
-                    image_databases[0], self.database_name)
-                save_database(
-                    image_databases[1], self.database_name, 'fibre')
-                save_database(
-                    image_databases[2], self.database_name, 'network')
-                save_database(
-                    image_databases[3], self.database_name, 'cell')
+            if self.database_name:
+                for index, name in enumerate(analyser.database_names):
+                    save_database(
+                        image_databases[index], self.database_name, name)
 
     def run(self):
 
