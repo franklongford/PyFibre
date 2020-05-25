@@ -1,7 +1,7 @@
 from abc import abstractmethod
 import os
 
-from traits.api import ABCHasTraits, Instance
+from traits.api import ABCHasTraits, Instance, List, Str
 
 from .base_multi_image import BaseMultiImage
 
@@ -12,6 +12,8 @@ class BaseMultiImageAnalyser(ABCHasTraits):
 
     #: Reference to multi image under analysis
     multi_image = Instance(BaseMultiImage)
+
+    database_names = []
 
     @abstractmethod
     def image_analysis(self, *args, **kwargs):

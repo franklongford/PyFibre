@@ -35,6 +35,8 @@ class SHGAnalyser(BaseMultiImageAnalyser):
     #: Reference to multi image under analysis
     multi_image = Instance(SHGImage)
 
+    database_names = ['global', 'fibre', 'network', 'cell']
+
     #: Parameters used for FIRE algorithm
     fire_parameters = Dict()
 
@@ -155,21 +157,16 @@ class SHGAnalyser(BaseMultiImageAnalyser):
 
     def save_databases(self, databases):
         """Save pandas DataFrame instances created during the analysis"""
-        save_database(databases[0], self._data_file, 'global_metric')
-        save_database(databases[1], self._data_file, 'fibre_metric')
-        save_database(databases[2], self._data_file, 'network_metric')
-        save_database(databases[3], self._data_file, 'cell_metric')
+        for index, name in enumerate(self.database_names):
+            save_database(databases[index], self._data_file, f'{name}_metric')
 
     def load_databases(self):
         """Load pandas DataFrame instances created during the analysis"""
-        global_metrics = load_database(self._data_file, 'global_metric')
-        fibre_metrics = load_database(self._data_file, 'fibre_metric')
-        network_metrics = load_database(self._data_file, 'network_metric')
-        cell_metrics = load_database(self._data_file, 'cell_metric')
-        return tuple(
-            [global_metrics, fibre_metrics,
-             network_metrics, cell_metrics]
-        )
+        databases = [
+            load_database(self._data_file, f'{name}_metric')
+            for name in self.database_names
+        ]
+        return tuple(databases)
 
     def make_directories(self):
         """Creates additional directories for analysis"""

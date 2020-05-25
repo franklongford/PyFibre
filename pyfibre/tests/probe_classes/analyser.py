@@ -5,6 +5,8 @@ from .multi_images import ProbeMultiImage
 
 class ProbeAnalyser(BaseMultiImageAnalyser):
 
+    database_names = ['probe']
+
     def __init__(self, *args, **kwargs):
         kwargs['multi_image'] = ProbeMultiImage()
         super().__init__(*args, **kwargs)
