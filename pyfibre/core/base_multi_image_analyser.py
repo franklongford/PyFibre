@@ -1,7 +1,7 @@
 from abc import abstractmethod
 import os
 
-from traits.api import ABCHasTraits, Instance, List, Str
+from traits.api import ABCHasTraits, Instance
 
 from .base_multi_image import BaseMultiImage
 
