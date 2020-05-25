@@ -13,6 +13,8 @@ class BaseMultiImageAnalyser(ABCHasTraits):
     #: Reference to multi image under analysis
     multi_image = Instance(BaseMultiImage)
 
+    database_names = []
+
     @abstractmethod
     def image_analysis(self, *args, **kwargs):
         """Perform analysis on data"""

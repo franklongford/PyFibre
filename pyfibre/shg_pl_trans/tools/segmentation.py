@@ -2,12 +2,28 @@ import numpy as np
 from scipy.ndimage import binary_dilation, binary_closing
 from skimage.exposure import equalize_adapthist
 from skimage.filters import threshold_mean
+from skimage.morphology import remove_small_holes
 
 from pyfibre.model.objects.segments import FibreSegment, CellSegment
 from pyfibre.model.tools.convertors import binary_to_segments
 from pyfibre.model.tools.segmentation import (
-    create_fibre_filter, rgb_segmentation, fibre_cell_region_swap)
-from pyfibre.model.tools.utilities import mean_binary
+    create_fibre_filter, rgb_segmentation)
+from pyfibre.model.tools.utilities import mean_binary, region_swap
+
+
+def fibre_cell_region_swap(multi_image, fibre_mask, cell_mask):
+    """Obtain segments from masks and swap over any incorrectly
+    assigned segments"""
+
+    region_swap(
+        [cell_mask, fibre_mask],
+        [multi_image.pl_image, multi_image.shg_image],
+        [250, 150], [0.01, 0.1])
+
+    fibre_mask = remove_small_holes(fibre_mask)
+    cell_mask = remove_small_holes(cell_mask)
+
+    return fibre_mask, cell_mask
 
 
 def shg_segmentation(

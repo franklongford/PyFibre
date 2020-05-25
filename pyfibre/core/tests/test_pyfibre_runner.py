@@ -35,6 +35,3 @@ class TestPyFibreRunner(TestCase):
 
     def test_defaults(self):
         self.assertEqual((5, 35), self.runner.p_denoise)
-
-    def test_run_analysis(self):
-        pass

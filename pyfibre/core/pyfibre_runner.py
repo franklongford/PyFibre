@@ -36,11 +36,29 @@ class PyFibreRunner(HasStrictTraits):
     #: Toggles creation of figures
     save_figures = Bool(False)
 
-    def run(self, dictionary, analyser, reader):
-        """Generator that returns databases of metrics from each image in
-        dictionary"""
+    def run(self, image_dictionary, analyser, reader):
+        """Generator that returns databases of metrics from each image
+        in dictionary. Analyses input image by calculating metrics and
+        segmenting via FIRE algorithm
 
-        for prefix, filenames in dictionary.items():
+        Parameters
+        ----------
+        image_dictionary: dict
+            Contains file sets corresponding to each BaseMultiImage to
+            be analyses
+        analyser: BaseAnalyser
+            Contains reference to MultiImage and analysis script
+            to be performed
+        reader: BaseMultiImageReader
+            Contains loading routines for a BaseMultiImage class
+
+        Yields
+        ------
+        databases: list of pd.DataFrame
+            Calculated metrics for further analysis
+        """
+
+        for prefix, filenames in image_dictionary.items():
 
             try:
                 multi_image = reader.load_multi_image(filenames, prefix)
@@ -52,40 +70,9 @@ class PyFibreRunner(HasStrictTraits):
 
             try:
                 logger.info(f"Processing image data for {filenames}")
-                databases = self.run_analysis(analyser)
+                databases = analyser.image_analysis(self)
             except Exception:
                 logger.info(f'Cannot analyse image data for {filenames}')
                 continue
 
             yield databases
-
-    def run_analysis(self, analyser):
-        """
-        Analyse input image by calculating metrics and
-        segmenting via FIRE algorithm
-
-        Parameters
-        ----------
-        analyser: BaseAnalyser
-            Contains reference to MultiImage and analysis script
-            to be performed
-
-        Returns
-        -------
-        databases: list of pd.DataFrame
-            Calculated metrics for further analysis
-        """
-
-        network, segment, metric = analyser.get_analysis_options(
-            self
-        )
-
-        logger.debug(f"Analysis options:\n "
-                     f"Extract Network = {network}\n "
-                     f"Segment Image = {segment}\n "
-                     f"Generate Metrics = {metric}\n "
-                     f"Save Figures = {self.save_figures}")
-
-        databases = analyser.image_analysis(self)
-
-        return databases
