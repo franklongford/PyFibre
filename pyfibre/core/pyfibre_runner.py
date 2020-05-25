@@ -36,14 +36,14 @@ class PyFibreRunner(HasStrictTraits):
     #: Toggles creation of figures
     save_figures = Bool(False)
 
-    def run(self, dictionary, analyser, reader):
+    def run(self, image_dictionary, analyser, reader):
         """Generator that returns databases of metrics from each image
         in dictionary. Analyses input image by calculating metrics and
         segmenting via FIRE algorithm
 
         Parameters
         ----------
-        dictionary: dict
+        image_dictionary: dict
             Contains file sets corresponding to each BaseMultiImage to
             be analyses
         analyser: BaseAnalyser
@@ -58,7 +58,7 @@ class PyFibreRunner(HasStrictTraits):
             Calculated metrics for further analysis
         """
 
-        for prefix, filenames in dictionary.items():
+        for prefix, filenames in image_dictionary.items():
 
             try:
                 multi_image = reader.load_multi_image(filenames, prefix)
