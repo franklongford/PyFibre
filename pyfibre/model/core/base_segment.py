@@ -1,3 +1,5 @@
+from abc import abstractmethod
+
 import pandas as pd
 import numpy as np
 from skimage.measure import label, regionprops
@@ -13,16 +15,20 @@ class BaseSegment(BasePyFibreObject):
     """Container for a scikit-image regionprops object
     representing a segmented area of an image"""
 
-    _tag = None
-
     def __init__(self, region=None):
         self.region = region
 
     @property
     def _shape_tag(self):
-        if self._tag is None:
-            return 'Segment'
-        return f'{self._tag} Segment'
+        return ' '.join([self.tag, 'Segment'])
+
+    @property
+    def tag(self):
+        return self.get_tag()
+
+    @abstractmethod
+    def get_tag(self):
+        """String representing class type"""
 
     @classmethod
     def from_json(cls, data):
