@@ -2,9 +2,10 @@ import numpy as np
 from skimage.measure import regionprops
 
 from pyfibre.model.tools.utilities import (
-    draw_network, region_check, region_swap,
+    region_check, region_swap,
     mean_binary
 )
+from pyfibre.model.tools.figures import draw_network
 from pyfibre.tests.probe_classes.utilities import (
     generate_image, generate_probe_graph
 )

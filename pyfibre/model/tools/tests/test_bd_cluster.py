@@ -2,8 +2,8 @@ import numpy as np
 from skimage.io import imread
 
 from pyfibre.model.tools.bd_cluster import (
-    cluster_colours, cluster_mask,
-    BDFilter
+    nonzero_mean, spherical_coords, cluster_colours,
+    cluster_mask, BDFilter
 )
 from pyfibre.tests.probe_classes.utilities import (
     generate_image, generate_probe_graph
@@ -28,11 +28,35 @@ class TestBDCluster(PyFibreTestCase):
 
         self.bd_filter = BDFilter()
 
-    def test_create_scaled_image(self):
-        image_scaled = self.bd_filter._scale_image(self.image)
+    def test_nonzero_mean(self):
 
-        self.assertEqual(image_scaled.shape, self.image.shape)
-        self.assertAlmostEqual(130.66309166, image_scaled.mean())
+        array = np.zeros(10)
+        array[3] = 2
+        array[7] = 4
+
+        self.assertEqual(3, nonzero_mean(array))
+
+    def test_spherical_coords(self):
+        array = np.linspace(0, 1, 10).repeat(3).reshape(10, 3)
+
+        x, y, z = spherical_coords(array)
+
+        self.assertArrayAlmostEqual(
+            x,
+            np.array([0.,  0.11134101, 0.22409309,
+                      0.33983691, 0.46055399, 0.58903097,
+                      0.72972766, 0.89112251, 1.09491408,
+                      1.57079633])
+        )
+        self.assertArrayAlmostEqual(x, y)
+        self.assertArrayAlmostEqual(
+            z,
+            np.array([1.57079633, 1.45945531, 1.34670323,
+                      1.23095942, 1.11024234, 0.98176536,
+                      0.84106867, 0.67967382, 0.47588225,
+                      0.]
+            )
+        )
 
     def test_cluster_mask(self):
 
@@ -47,7 +71,13 @@ class TestBDCluster(PyFibreTestCase):
 
         self.assertArrayAlmostEqual(
             np.zeros(1), clusters)
-        self.assertAlmostEqual(0.855886886, cost)
+        self.assertAlmostEqual(0.762825597, cost)
+
+    def test_create_scaled_image(self):
+        image_scaled = self.bd_filter._scale_image(self.image)
+
+        self.assertEqual(image_scaled.shape, self.image.shape)
+        self.assertAlmostEqual(130.66309166, image_scaled.mean())
 
     def test_cluster_colours(self):
         labels, centres = cluster_colours(self.image)

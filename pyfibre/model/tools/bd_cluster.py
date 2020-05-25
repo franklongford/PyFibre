@@ -30,20 +30,63 @@ def nonzero_mean(array):
     return array.sum() / np.count_nonzero(array)
 
 
-def cluster_mask(centres, intensities, param):
+def spherical_coords(coords):
+    """Transform cartesian coordinates to spherical
+
+    Parameters
+    ----------
+    coords: array_like, shape=(..., 3)
+        Values in 3D cartesian coordinates
+
+    Returns
+    -------
+    x, y, z: array-like, shape=(...)
+        Spherical coordinate system in 3D
+    """
+    x = np.arcsin(coords[..., 0])
+    y = np.arcsin(coords[..., 1])
+    z = np.arccos(coords[..., 2])
+
+    return x, y, z
+
+
+def cluster_mask(centres, intensities, boundary=(0.65, 1.1, 1.40, 0.92)):
     """Create new clusters from results of KMeans.
-    Attempts to add regularisation parameters"""
+    Attempts to add regularisation parameters
+
+    Parameters
+    ----------
+    centres: array-like
+        Centres of each cluster identified by K-means filter
+    intensities: array-like
+        Mean image intensity values for each centre
+    boundary: tuple, optional
+        Minimum values for the boundary between fibre and cell
+        regions.
+
+    Returns
+    -------
+    clusters: array-like
+        Indices of centres in cellular regions
+    cost:
+        Cost associated with segmentation
+    """
+
+    # Normalise centroids
+    magnitudes = np.sqrt(np.sum(centres ** 2, axis=-1))
+    magnitudes = np.repeat(magnitudes, centres.shape[-1])
+    centres = centres / magnitudes.reshape(centres.shape)
 
     # Convert RGB centroids to spherical coordinates
-    x = np.arcsin(centres[:, 0])
-    y = np.arcsin(centres[:, 1])
-    z = np.arccos(centres[:, 2])
+    x, y, z = spherical_coords(centres)
 
-    mask = (x <= param[0]) * (y <= param[1])
-    mask *= (z <= param[2]) * (intensities <= param[3])
-
+    # Identify centroids in segmentation mask
+    mask = (x <= boundary[0]) * (y <= boundary[1])
+    mask *= (z <= boundary[2]) * (intensities <= boundary[3])
     clusters = np.argwhere(mask).flatten()
 
+    # Calculate cost function associated with segmentation, based on
+    # distance between boundary
     cost = (
         x[clusters].mean() + y[clusters].mean()
         + z[clusters].mean() + intensities[clusters].mean()
@@ -67,6 +110,8 @@ def cluster_colours(image, **kwargs):
     clusterer = MiniBatchKMeans(**kwargs)
     clusterer.fit(values)
 
+    # Extract cluster labels for each pixel and centroids
+    # corresponding to each cluster
     labels = clusterer.labels_.reshape(image_shape)
     centres = clusterer.cluster_centers_
 
@@ -79,14 +124,19 @@ class BDFilter:
     Adapted from CurveAlign BDcreationHE routine"""
 
     def __init__(self, n_runs=2, n_clusters=10, p_intensity=(2, 98),
-                 sm_size=5, min_size=20, param=(0.65, 1.1, 1.40, 0.92)):
+                 sm_size=5, min_size=20, boundary=(0.65, 1.1, 1.40, 0.92),
+                 init_size=10000, reassignment_ratio=0.99,
+                 max_no_improvement=15):
 
         self.n_runs = n_runs
         self.n_clusters = n_clusters
         self.p_intensity = p_intensity
         self.sm_size = sm_size
         self.min_size = min_size
-        self.param = param
+        self.boundary = boundary
+        self.init_size = init_size
+        self.reassignment_ratio = reassignment_ratio
+        self.max_no_improvement = max_no_improvement
 
     def _scale_image(self, image):
         """Create a scaled image with enhanced and smoothed RGB
@@ -122,89 +172,81 @@ class BDFilter:
 
         return image_scaled
 
-    def _cluster_generator(self, rgb_image, greyscale):
+    def _cluster_generator(self, rgb_image):
+        """Identify pixel clusters in RGB image that correspond
+        to cellular regions
 
-        image_channels = rgb_image.shape[-1]
+        Parameters
+        ----------
+        rgb_image: array-like, shape=(N, M, 3)
+            RGB image to cluster
+
+        Yields
+        ------
+        labels: array-like, shape=(N, M)
+        clusters: array-like
+        cost: float
+        """
+
+        # Generate greyscale image of RGB
+        greyscale = rgb2grey(rgb_image.astype(np.float64))
+        greyscale /= greyscale.max()
 
         for run in range(self.n_runs):
 
-            labels, centres = cluster_colours(
-                rgb_image, n_clusters=self.n_clusters,
-                init_size=10000, reassignment_ratio=0.99,
-                max_no_improvement=15)
+            label_image, centres = cluster_colours(
+                rgb_image,
+                n_clusters=self.n_clusters,
+                init_size=self.init_size,
+                reassignment_ratio=self.reassignment_ratio,
+                max_no_improvement=self.max_no_improvement
+            )
 
-            "Reorder labels to represent average intensity"
+            # Calculate average intensity of each labelled region
             intensities = np.zeros(self.n_clusters)
-
             for index in range(self.n_clusters):
-                cluster_values = greyscale[np.where(labels == index)]
-                intensities[index] = nonzero_mean(cluster_values)
+                cluster_values = greyscale[np.where(label_image == index)]
+                intensities[index] += nonzero_mean(cluster_values)
 
-            magnitudes = np.sqrt(np.sum(centres ** 2, axis=-1))
-            magnitudes = np.repeat(magnitudes, image_channels)
-            centres = centres / magnitudes.reshape(centres.shape)
-
+            # Create cluster mask based on centre proximity to boundary
             clusters, cost = cluster_mask(
-                centres, intensities, self.param)
+                centres, intensities, self.boundary)
 
-            yield labels, centres, clusters, cost
+            yield label_image, clusters, cost
 
     def filter_image(self, image):
 
         image_scaled = self._scale_image(image)
 
-        # Generate greyscale image of RGB
-        greyscale = rgb2grey(image_scaled.astype(np.float64))
-        greyscale /= greyscale.max()
-
         tot_labels = []
-        tot_centres = []
         tot_clusters = []
         cost_func = []
 
-        for results in self._cluster_generator(
-                image_scaled, greyscale):
-            labels, centres, clusters, cost = results
+        # Perform multiple runs of K-means clustering algorithm
+        for results in self._cluster_generator(image_scaled):
+            labels, clusters, cost = results
 
             tot_labels.append(labels)
-            tot_centres.append(centres)
             tot_clusters.append(clusters)
             cost_func.append(cost)
 
+        # Identify segmentation with lowest cost (best separation)
         min_cost = np.argmin(cost_func)
         labels = tot_labels[min_cost]
-        centres = tot_centres[min_cost]
         clusters = tot_clusters[min_cost]
 
-        logger.info(f"BDFilter centroids: {centres}")
-
-        intensities = np.zeros(self.n_clusters)
-        segmented_image = np.zeros(
-            (self.n_clusters,) + image.shape,
-            dtype=int)
-        for label in range(self.n_clusters):
-            indices = np.where(labels == label)
-            segmented_image[label][indices] += image_scaled[indices]
-            intensities[label] = greyscale[indices].sum() / indices[0].size
-
-        # Select blue regions to extract epithelial cells
-        epith_cell = np.zeros(image.shape)
+        # Create binary stack corresponding to each cluster region
+        binary_mask = np.zeros(image.shape[:-1], dtype=bool)
         for cluster in clusters:
-            epith_cell += segmented_image[cluster]
-        epith_grey = rgb2grey(epith_cell)
+            indices = np.where(labels == cluster)
+            binary_mask[indices] = True
 
         # Dilate binary image to smooth regions and remove
         # small holes / objects
-        epith_cell_binary = np.where(epith_grey, True, False)
-        epith_cell_binary = binary_opening(
-            epith_cell_binary, iterations=2)
+        binary_mask = binary_opening(binary_mask, iterations=2)
+        binary_mask = binary_fill_holes(binary_mask)
+        for _ in range(2):
+            binary_mask = remove_small_objects(
+                ~binary_mask, min_size=self.min_size)
 
-        binary_x = binary_fill_holes(epith_cell_binary)
-        binary_y = remove_small_objects(
-            ~binary_x, min_size=self.min_size)
-
-        # Return binary mask for cell identification
-        mask_image = remove_small_objects(
-            ~binary_y, min_size=self.min_size)
-
-        return mask_image
+        return binary_mask

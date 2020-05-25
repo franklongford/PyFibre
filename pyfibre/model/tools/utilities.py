@@ -14,10 +14,8 @@ import numpy as np
 from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.morphology import binary_dilation
 
-from skimage import measure, draw
+from skimage import measure
 from skimage.morphology import remove_small_objects, remove_small_holes
-
-from .fibre_utilities import get_node_coord_array
 
 logger = logging.getLogger(__name__)
 
@@ -109,15 +107,3 @@ def mean_binary(binaries, image, iterations=1, min_intensity=0,
     return binary.astype(int)
 
 
-def draw_network(network, label_image, index=1):
-
-    nodes_coord = get_node_coord_array(network)
-    label_image[nodes_coord[:, 0], nodes_coord[:, 1]] = index
-
-    for edge in list(network.edges):
-        start = list(network.nodes[edge[1]]['xy'])
-        end = list(network.nodes[edge[0]]['xy'])
-        line = draw.line(*(start+end))
-        label_image[line] = index
-
-    return label_image
