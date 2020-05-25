@@ -14,12 +14,10 @@ import numpy as np
 from scipy.ndimage import (
     gaussian_filter)
 from skimage.transform import rescale, resize
-from skimage.morphology import remove_small_holes
 
 from .bd_cluster import BDFilter
 from .convertors import (
     regions_to_binary, networks_to_regions)
-from .utilities import region_swap
 
 logger = logging.getLogger(__name__)
 
@@ -62,21 +60,6 @@ def rgb_segmentation(image_stack, scale=1.0):
     # Create cell and fibre global image masks
     cell_mask = np.array(mask_image, dtype=bool)
     fibre_mask = np.where(mask_image, False, True)
-
-    return fibre_mask, cell_mask
-
-
-def fibre_cell_region_swap(multi_image, fibre_mask, cell_mask):
-    """Obtain segments from masks and swap over any incorrectly
-    assigned segments"""
-
-    region_swap(
-        [cell_mask, fibre_mask],
-        [multi_image.pl_image, multi_image.shg_image],
-        [250, 150], [0.01, 0.1])
-
-    fibre_mask = remove_small_holes(fibre_mask)
-    cell_mask = remove_small_holes(cell_mask)
 
     return fibre_mask, cell_mask
 
