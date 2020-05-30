@@ -12,6 +12,6 @@ from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.segments import CellSegment
 from pyfibre.model.objects.fibre_network import FibreNetwork
 
-from pyfibre.model.tools.bd_cluster import BDFilter
+from pyfibre.model.tools.base_bd_filter import BaseBDFilter
 from pyfibre.model.tools.fibre_assigner import FibreAssigner
 from pyfibre.model.tools.fire_algorithm import FIREAlgorithm

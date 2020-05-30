@@ -15,7 +15,7 @@ from scipy.ndimage import (
     gaussian_filter)
 from skimage.transform import rescale, resize
 
-from .bd_cluster import BDFilter
+from .base_bd_filter import BaseBDFilter
 from .convertors import (
     regions_to_binary, networks_to_regions)
 
@@ -49,13 +49,15 @@ def normalise_stack(image_stack):
     return image_stack
 
 
-def rgb_segmentation(image_stack, scale=1.0):
+def rgb_segmentation(image_stack, bd_filter, scale=1.0):
     """Return binary filter for cellular identification
 
     Parameters
     ----------
     image_stack: array-like, shape=(N, I, J)
         Stack of images
+    bd_filter: BaseBDFilter
+        Instance of filtering algorithm to be used
     scale: float, optional
         Ratio to rescale size of image to
 
@@ -83,7 +85,6 @@ def rgb_segmentation(image_stack, scale=1.0):
 
     # Form mask using Kmeans Background filter
     logger.debug(f"Performing BD Filter")
-    bd_filter = BDFilter()
     mask_image = bd_filter.filter_image(image_stack)
 
     # Reducing image to original size
