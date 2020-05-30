@@ -105,5 +105,3 @@ def mean_binary(binaries, image, iterations=1, min_intensity=0,
     smooth_binary(binary, sigma)
 
     return binary.astype(int)
-
-

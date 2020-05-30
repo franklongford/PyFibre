@@ -48,8 +48,7 @@ class TestBDCluster(PyFibreTestCase):
             np.array([1.57079633, 1.45945531, 1.34670323,
                       1.23095942, 1.11024234, 0.98176536,
                       0.84106867, 0.67967382, 0.47588225,
-                      0.]
-            )
+                      0.])
         )
 
     def test_binary_classifier_spherical(self):

@@ -15,7 +15,6 @@ from scipy.ndimage import (
     gaussian_filter)
 from skimage.transform import rescale, resize
 
-from .base_bd_filter import BaseBDFilter
 from .convertors import (
     regions_to_binary, networks_to_regions)
 
