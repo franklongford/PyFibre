@@ -6,7 +6,7 @@ from pyfibre.shg_pl_trans.shg_pl_trans_reader import SHGPLTransReader
 
 class SHGPLTransFactory(BaseMultiImageFactory):
 
-    def get_tag(self):
+    def get_label(self):
         return 'SHG-PL-Trans'
 
     def get_reader(self):

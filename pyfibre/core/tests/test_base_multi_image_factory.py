@@ -14,7 +14,7 @@ class TestBaseMultiImageFactory(TestCase):
         self.factory = ProbeMultiImageFactory()
 
     def test_init(self):
-        self.assertEqual('Probe', self.factory.tag)
+        self.assertEqual('Probe', self.factory.label)
 
     def test_create_reader(self):
         reader = self.factory.create_reader()

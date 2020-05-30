@@ -29,15 +29,9 @@ class ProbeMultiImage(BaseMultiImage):
                   for image in image_stack]
         return all(shapes)
 
-    def segmentation_algorithm(self, *args, **kwargs):
-        pass
-
 
 class ProbeFixedStackImage(FixedStackImage):
 
     _stack_len = 1
 
     _allowed_dim = [2]
-
-    def segmentation_algorithm(self, *args, **kwargs):
-        pass

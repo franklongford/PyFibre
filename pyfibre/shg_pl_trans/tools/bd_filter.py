@@ -34,7 +34,7 @@ def distance_sum(vector, boundary):
 
     # Cost function, based on separation of all clusters
     # from boundary
-    cost = np.sum([
+    cost = np.nansum([
         np.abs(vec - boundary) for vec in vector
     ])
 

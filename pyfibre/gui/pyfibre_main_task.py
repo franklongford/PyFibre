@@ -97,8 +97,8 @@ class PyFibreMainTask(Task):
         self.supported_analysers = {}
 
         for factory in self.multi_image_factories:
-            self.supported_readers[factory.tag] = factory.create_reader()
-            self.supported_analysers[factory.tag] = factory.create_analyser()
+            self.supported_readers[factory.label] = factory.create_reader()
+            self.supported_analysers[factory.label] = factory.create_analyser()
 
         self.image_databases = {
             tag: [None for _ in analyser.database_names]

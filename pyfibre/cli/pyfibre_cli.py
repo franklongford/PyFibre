@@ -54,8 +54,8 @@ class PyFibreApplication(Application):
         self.supported_analysers = {}
 
         for factory in factories:
-            self.supported_readers[factory.tag] = factory.create_reader()
-            self.supported_analysers[factory.tag] = factory.create_analyser()
+            self.supported_readers[factory.label] = factory.create_reader()
+            self.supported_analysers[factory.label] = factory.create_analyser()
 
     def _run_pyfibre(self):
 
@@ -65,24 +65,26 @@ class PyFibreApplication(Application):
 
         for file_path in self.file_paths:
             input_files = parse_file_path(file_path, self.key)
-            for tag, reader in self.supported_readers.items():
-                image_dictionary[tag].update(
+            for label, reader in self.supported_readers.items():
+                image_dictionary[label].update(
                     reader.collate_files(input_files)
                 )
 
-        for tag, inner_dict in image_dictionary.items():
+        for label, inner_dict in image_dictionary.items():
 
             formatted_images = '\n'.join([
                 f'\t{key}: {value}'
                 for key, value in inner_dict.items()
             ])
 
-            logger.info(f"Analysing {tag} images: \n{formatted_images}")
+            logger.info(
+                f"Analysing {label} images: \n{formatted_images}")
 
-            analyser = self.supported_analysers[tag]
-            reader = self.supported_readers[tag]
+            analyser = self.supported_analysers[label]
+            reader = self.supported_readers[label]
 
-            image_databases = [pd.DataFrame() for _ in analyser.database_names]
+            image_databases = [
+                pd.DataFrame() for _ in analyser.database_names]
 
             generator = self.runner.run(
                 inner_dict, analyser, reader)

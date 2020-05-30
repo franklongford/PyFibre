@@ -10,28 +10,37 @@ from .i_multi_image_factory import IMultiImageFactory
 
 @provides(IMultiImageFactory)
 class BaseMultiImageFactory(ABCHasStrictTraits):
+    """Main component contributed by plugins to allow expansion
+    of the software. Represents a multi-channel image that can be
+    loaded from a single or multiple files, with an analysis
+    routine.
+    """
 
-    tag = Str
+    #: Label to be displayed in UI
+    label = Str
 
+    #: Reader class, used to load a BaseMultiImage from file
     reader_class = Type(BaseMultiImageReader)
 
+    #: Analyser class, used to perform an analysis script on
+    #: a specific image type
     analyser_class = Type(BaseMultiImageAnalyser)
 
     def __init__(self, **traits):
 
-        tag = self.get_tag()
+        label = self.get_label()
         reader = self.get_reader()
         analyser = self.get_analyser()
 
         super(BaseMultiImageFactory, self).__init__(
-            tag=tag,
+            label=label,
             reader_class=reader,
             analyser_class=analyser,
             **traits
         )
 
     @abstractmethod
-    def get_tag(self):
+    def get_label(self):
         """Returns key associated with this factory"""
 
     @abstractmethod
@@ -45,7 +54,11 @@ class BaseMultiImageFactory(ABCHasStrictTraits):
         the BaseMultiImage class created by this factory"""
 
     def create_reader(self, **kwargs):
+        """Public method used to return an instance of
+        BaseMultiImageReader"""
         return self.reader_class(**kwargs)
 
     def create_analyser(self, **kwargs):
+        """Public method used to return an instance of
+        BaseMultiImageAnalyser"""
         return self.analyser_class(**kwargs)

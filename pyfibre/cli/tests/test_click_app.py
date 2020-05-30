@@ -39,7 +39,7 @@ class TestClickRun(TestCase):
                 '.PyFibreApplication._run_pyfibre') as mock_pyfibre:
             mock_pyfibre.side_effect = mock_run_pyfibre
             pyfibre.cli.app.run(
-                file_path='', key='', sigma=0.5, alpha=0.5,
+                file_path=[''], key='', sigma=0.5, alpha=0.5,
                 log_name='pyfibre', database_name='', debug=False,
                 profile=False, ow_metric=False, ow_segment=False,
                 ow_network=False, save_figures=False, test=False
@@ -56,7 +56,7 @@ class TestClickRun(TestCase):
                 '.PyFibreApplication._run_pyfibre') as mock_pyfibre:
             mock_pyfibre.side_effect = mock_run_pyfibre
             pyfibre.cli.app.run(
-                file_path='', key='', sigma=0.5, alpha=0.5,
+                file_path=[''], key='', sigma=0.5, alpha=0.5,
                 log_name='pyfibre', database_name='', debug=False,
                 profile=True, ow_metric=False, ow_segment=False,
                 ow_network=False, save_figures=False, test=False

@@ -74,7 +74,7 @@ class TestBDCluster(PyFibreTestCase):
 
         self.assertArrayAlmostEqual(
             np.array([1, 0, 0]), mask)
-        self.assertAlmostEqual(0.855886887, cost)
+        self.assertAlmostEqual(-6.038093407, cost)
 
     def test_cellular_classifier(self):
 
@@ -86,7 +86,7 @@ class TestBDCluster(PyFibreTestCase):
 
         self.assertArrayAlmostEqual(
             np.array([False, True, False]), mask)
-        self.assertAlmostEqual(2.494128145, cost)
+        self.assertAlmostEqual(-3.6870816, cost)
 
     def test_cluster_colours(self):
         labels, centres = self.bd_filter._kmeans_cluster_colours(

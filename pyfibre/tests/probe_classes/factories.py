@@ -6,7 +6,7 @@ from .readers import ProbeMultiImageReader
 
 class ProbeMultiImageFactory(BaseMultiImageFactory):
 
-    def get_tag(self):
+    def get_label(self):
         return 'Probe'
 
     def get_reader(self):
