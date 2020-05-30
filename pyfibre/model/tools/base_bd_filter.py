@@ -122,9 +122,10 @@ class BaseBDFilter(ABC):
 
         Yields
         ------
-        labels: array-like, shape=(N, M)
-        clusters: array-like
+        binary_mask: array-like, shape=(N, M)
+            Binary array representing mask for each pixel
         cost: float
+            Objective function that determines cost of separation
         """
 
         for run in range(self.n_runs):
@@ -132,38 +133,55 @@ class BaseBDFilter(ABC):
             label_image, centres = self._kmeans_cluster_colours(
                 image)
 
-            mask, cost = self.cellular_classifier(
+            label_mask, cost = self.cellular_classifier(
                 label_image, centres,
                 **kwargs
             )
 
             # Create binary stack corresponding to each cluster region
             binary_mask = np.zeros(label_image.shape, dtype=bool)
-            for label in np.argwhere(mask):
+            for label in np.argwhere(label_mask):
                 indices = np.where(label_image == label)
                 binary_mask[indices] = True
 
             yield binary_mask, cost
 
-    def filter_image(self, image, **kwargs):
-        """Performs BD filtering on image"""
+    def _minimise_mask(self, image, **kwargs):
+        """Returns binary mask that returns lowest objective
+        function cost of separation.
 
-        image_scaled = self._scale_image(image)
+        Parameters
+        ----------
+        image: array-like, shape=(N, M, 3)
+            RGB image to cluster
+
+        Returns
+        -------
+        binary_mask: array-like, shape=(N, M)
+            Binary array representing mask for each pixel
+        """
 
         tot_masks = []
         cost_func = []
 
         # Perform multiple runs of K-means clustering algorithm
-        for results in self._cluster_generator(
-                image_scaled, **kwargs):
-            mask, cost = results
-
+        for mask, cost in self._cluster_generator(image, **kwargs):
             tot_masks.append(mask)
             cost_func.append(cost)
 
         # Identify segmentation with lowest cost (best separation)
         min_cost = np.argmin(cost_func)
         binary_mask = tot_masks[min_cost]
+
+        return binary_mask
+
+    def filter_image(self, image, **kwargs):
+        """Performs BD filtering on image"""
+
+        image_scaled = self._scale_image(image)
+
+        # Obtain best binary mask for cellular regions
+        binary_mask = self._minimise_mask(image_scaled)
 
         # Dilate binary image to smooth regions and remove
         # small holes / objects

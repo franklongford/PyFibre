@@ -28,6 +28,19 @@ def spherical_coords(coords):
     return x, y, z
 
 
+def distance_sum(vector, boundary):
+
+    boundary = np.array(boundary)
+
+    # Cost function, based on separation of all clusters
+    # from boundary
+    cost = np.sum([
+        np.abs(vec - boundary) for vec in vector
+    ])
+
+    return cost
+
+
 def binary_classifier_spherical(centres, intensities, boundary):
     """Create new clusters from results of KMeans.
     Attempts to add regularisation parameters
@@ -49,20 +62,21 @@ def binary_classifier_spherical(centres, intensities, boundary):
         Cost associated with segmentation
     """
 
+    boundary = np.array(boundary)
+
     # Convert RGB centroids to spherical coordinates
     x, y, z = spherical_coords(centres)
 
-    # Identify centroids in segmentation mask
-    mask = (x <= boundary[0]) * (y <= boundary[1])
-    mask *= (z <= boundary[2]) * (intensities <= boundary[3])
+    # Calculate mask and cost function associated with segmentation
+    # based on distance between boundary
+    vector = np.stack([x, y, z, intensities], axis=-1)
 
-    # Calculate cost function associated with segmentation, based on
-    # distance between boundary
-    indices = np.argwhere(mask).flatten()
-    cost = (
-        x[indices].mean() + y[indices].mean()
-        + z[indices].mean() + intensities[indices].mean()
-    )
+    # Identify centroids in segmentation mask
+    mask = [
+        all(vec <= boundary) for vec in vector
+    ]
+
+    cost = -distance_sum(vector, boundary)
 
     return mask, cost
 

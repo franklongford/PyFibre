@@ -4,6 +4,7 @@ from skimage.io import imread
 from pyfibre.shg_pl_trans.tools.bd_filter import (
     nonzero_mean, spherical_coords,
     binary_classifier_spherical,
+    distance_sum,
     SHGPLTransBDFilter
 )
 from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
@@ -29,6 +30,15 @@ class TestBDCluster(PyFibreTestCase):
         array[7] = 4
 
         self.assertEqual(3, nonzero_mean(array))
+
+    def test_distance_sum(self):
+
+        vector = np.ones((4, 4))
+        vector[0, 1] *= 3
+
+        cost = distance_sum(vector, (0, 1, 2, 3))
+
+        self.assertEqual(18.0, cost)
 
     def test_spherical_coords(self):
         array = np.linspace(0, 1, 10).repeat(3).reshape(10, 3)
