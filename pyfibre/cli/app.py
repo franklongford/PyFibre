@@ -81,7 +81,7 @@ def pyfibre(file_path, key, sigma, alpha, log_name,
             ow_network, save_figures, test):
     """Launches the PyFibre command line app"""
 
-    run(file_path, key, sigma, alpha, log_name,
+    run(list(file_path), key, sigma, alpha, log_name,
         database_name, debug, profile, ow_metric, ow_segment,
         ow_network, save_figures, test)
 
@@ -92,7 +92,7 @@ def run(file_path, key, sigma, alpha, log_name,
         ow_network, save_figures, test):
 
     if test:
-        file_path = test_shg_pl_trans_image_path
+        file_path = [test_shg_pl_trans_image_path]
         debug = True
         profile = True
         ow_network = True
@@ -113,9 +113,6 @@ def run(file_path, key, sigma, alpha, log_name,
         profiler.enable()
 
     logging.info(logo(__version__))
-
-    if isinstance(file_path, str):
-        file_path = [file_path]
 
     plugins = [CorePyFibrePlugin(), SHGPLTransPlugin()]
 
