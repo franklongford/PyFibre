@@ -8,8 +8,9 @@ Created on: 01/11/2015
 Last Modified: 12/04/2018
 """
 from functools import wraps
-import time
 import logging
+import time
+from stevedore import ExtensionManager
 
 import numpy as np
 
@@ -163,6 +164,19 @@ def matrix_split(matrix, nrows, ncols):
         grid += np.array_split(item, nrows, axis=-1)
 
     return grid
+
+
+def load_plugins():
+    """Load PyFibre plugins via Stevedore. """
+
+    mgr = ExtensionManager(
+        namespace='pyfibre.plugins',
+        invoke_on_load=True
+    )
+
+    plugins = [ext.obj for ext in mgr]
+
+    return plugins
 
 
 def log_time(message):
