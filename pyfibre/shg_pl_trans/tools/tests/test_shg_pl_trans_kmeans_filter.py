@@ -7,7 +7,8 @@ from pyfibre.shg_pl_trans.tools.shg_pl_trans_kmeans_filter import (
     distance_sum,
     SHGPLTransKmeansFilter
 )
-from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
+from pyfibre.shg_pl_trans.tests.fixtures import (
+    test_shg_pl_trans_image_path)
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 

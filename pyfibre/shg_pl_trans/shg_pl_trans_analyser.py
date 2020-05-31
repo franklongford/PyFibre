@@ -4,9 +4,9 @@ from traits.api import Instance
 
 from pyfibre.io.object_io import (
     load_fibre_segments, load_cell_segments)
-from pyfibre.model.analysers.metric_analyser import PLMetricAnalyser
 from pyfibre.utilities import log_time
 
+from .metric_analysers import PLMetricAnalyser
 from .shg_analyser import SHGAnalyser
 from .shg_pl_trans_image import SHGPLTransImage
 

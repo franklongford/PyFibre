@@ -10,7 +10,9 @@ class ProbeMultiImageReader(BaseMultiImageReader):
     _multi_image_class = ProbeFixedStackImage
 
     def collate_files(self, filenames):
-        return {'probe-file': filename for filename in filenames}
+        return {'probe-file': [filename]
+                for filename in filenames
+                if '.tif' in filename}
 
     def can_load(self, filename):
         return True

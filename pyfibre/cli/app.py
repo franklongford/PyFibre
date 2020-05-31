@@ -11,7 +11,8 @@ Last Modified: 18/02/2019
 import logging
 import click
 
-from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
+from pyfibre.shg_pl_trans.tests.fixtures import (
+    test_shg_pl_trans_image_path)
 from pyfibre.shg_pl_trans.shg_pl_trans_plugin import SHGPLTransPlugin
 from pyfibre.core.core_pyfibre_plugin import CorePyFibrePlugin
 
