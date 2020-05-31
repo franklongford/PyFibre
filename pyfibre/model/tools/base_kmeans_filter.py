@@ -26,10 +26,13 @@ from .preprocessing import clip_intensities
 logger = logging.getLogger(__name__)
 
 
-class BaseBDFilter(ABC):
+class BaseKmeansFilter(ABC):
     """Performs segmentation filtering using k-means clustering
     on RGB colour channels.
-    Adapted from CurveAlign BDcreationHE routine"""
+    Adapted from CurveAlign BDcreationHE routine.
+
+    Developers need to implement a cellular_classifier method
+    that processes raw Kmeans clusters"""
 
     def __init__(self, n_runs=2, n_clusters=10, p_intensity=(2, 98),
                  sm_size=5, min_size=20,

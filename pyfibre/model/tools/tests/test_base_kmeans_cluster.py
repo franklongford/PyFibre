@@ -3,11 +3,11 @@ import numpy as np
 from pyfibre.tests.probe_classes.utilities import (
     generate_image, generate_probe_graph
 )
-from pyfibre.tests.probe_classes.filters import ProbeBDFilter
+from pyfibre.tests.probe_classes.filters import ProbeKmeansFilter
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 
-class TestBDCluster(PyFibreTestCase):
+class TestKmeansFilter(PyFibreTestCase):
 
     def setUp(self):
         (self.image, self.labels,
@@ -17,7 +17,7 @@ class TestBDCluster(PyFibreTestCase):
         self.image = np.stack(
             [self.image] * 3, axis=-1)
 
-        self.bd_filter = ProbeBDFilter(
+        self.bd_filter = ProbeKmeansFilter(
             n_runs=2,
             n_clusters=2
         )

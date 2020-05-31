@@ -4,7 +4,7 @@ from pyfibre.model.tools.segmentation import (
 from pyfibre.tests.probe_classes.utilities import (
     generate_image, generate_probe_graph)
 from pyfibre.tests.probe_classes.objects import ProbeFibreNetwork
-from pyfibre.tests.probe_classes.filters import ProbeBDFilter
+from pyfibre.tests.probe_classes.filters import ProbeKmeansFilter
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 
@@ -16,7 +16,7 @@ class TestSegmentation(PyFibreTestCase):
         self.network = generate_probe_graph()
 
         self.fibre_networks = [ProbeFibreNetwork()]
-        self.bd_filter = ProbeBDFilter()
+        self.bd_filter = ProbeKmeansFilter()
 
     def test_rgb_segmentation(self):
 

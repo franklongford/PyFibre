@@ -1,6 +1,6 @@
 import numpy as np
 
-from pyfibre.model.tools.base_bd_filter import BaseBDFilter
+from pyfibre.model.tools.base_kmeans_filter import BaseKmeansFilter
 
 
 def nonzero_mean(array):
@@ -81,7 +81,7 @@ def binary_classifier_spherical(centres, intensities, boundary):
     return mask, cost
 
 
-class SHGPLTransBDFilter(BaseBDFilter):
+class SHGPLTransKmeansFilter(BaseKmeansFilter):
 
     def cellular_classifier(
             self, label_image, centres,

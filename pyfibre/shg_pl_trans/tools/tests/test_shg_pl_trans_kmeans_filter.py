@@ -1,17 +1,17 @@
 import numpy as np
 from skimage.io import imread
 
-from pyfibre.shg_pl_trans.tools.bd_filter import (
+from pyfibre.shg_pl_trans.tools.shg_pl_trans_kmeans_filter import (
     nonzero_mean, spherical_coords,
     binary_classifier_spherical,
     distance_sum,
-    SHGPLTransBDFilter
+    SHGPLTransKmeansFilter
 )
 from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 
-class TestBDCluster(PyFibreTestCase):
+class TestSHGPLTransKmeansFilter(PyFibreTestCase):
 
     def setUp(self):
         self.image_stack = imread(
@@ -21,7 +21,7 @@ class TestBDCluster(PyFibreTestCase):
         for index, image in enumerate(self.image_stack):
             self.image[..., index] = image / image.max()
 
-        self.bd_filter = SHGPLTransBDFilter()
+        self.bd_filter = SHGPLTransKmeansFilter()
 
     def test_nonzero_mean(self):
 
