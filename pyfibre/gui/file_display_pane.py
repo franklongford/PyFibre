@@ -153,13 +153,20 @@ class FileDisplayPane(TraitsDockPane):
         self.filter_files(self.key)
 
     def add_files(self, file_path):
+        """Adds a single file or directory to display
+
+        Parameters
+        ----------
+        file_path: str
+            Path to either a file or directory
+        """
 
         input_prefixes = [row.name for row in self.file_table]
 
         input_files = parse_file_path(file_path)
+
         for tag, reader in self.supported_readers.items():
             image_dictionary = reader.collate_files(input_files)
-
             for prefix, file_names in image_dictionary.items():
                 if prefix not in input_prefixes:
                     try:
@@ -170,7 +177,7 @@ class FileDisplayPane(TraitsDockPane):
                             file_names=file_names)
                         self.file_table.append(table_row)
                     except Exception:
-                        pass
+                        raise
 
     def remove_file(self, selected_rows):
         for selected_row in selected_rows:

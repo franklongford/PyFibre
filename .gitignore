@@ -15,7 +15,6 @@ __pycache__/
 # Distribution / packaging
 .DS_Store/
 .Python
-pyfibre/tests/fixtures/*/
 build/
 develop-eggs/
 dist/
@@ -54,6 +53,8 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+pyfibre/tests/fixtures/*/
+pyfibre/shg_pl_trans/tests/fixtures/*/
 
 # Translations
 *.mo

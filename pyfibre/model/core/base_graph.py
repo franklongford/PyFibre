@@ -8,10 +8,10 @@ from pyfibre.io.utilities import (
 from pyfibre.model.tools.fibre_utilities import get_node_coord_array
 from pyfibre.utilities import NotSupportedError
 
-from pyfibre.model.core.abc_pyfibre_object import ABCPyFibreObject
+from .base_pyfibre_object import BasePyFibreObject
 
 
-class BaseGraph(ABCPyFibreObject):
+class BaseGraph(BasePyFibreObject):
     """Container for a Networkx Graph representing a connected
      fibrous region on an image"""
 

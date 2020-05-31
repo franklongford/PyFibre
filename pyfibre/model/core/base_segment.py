@@ -1,3 +1,5 @@
+from abc import abstractmethod
+
 import pandas as pd
 import numpy as np
 from skimage.measure import label, regionprops
@@ -6,23 +8,27 @@ from pyfibre.model.tools.metrics import (
     region_shape_metrics, region_texture_metrics)
 from pyfibre.utilities import NotSupportedError
 
-from .abc_pyfibre_object import ABCPyFibreObject
+from .base_pyfibre_object import BasePyFibreObject
 
 
-class BaseSegment(ABCPyFibreObject):
+class BaseSegment(BasePyFibreObject):
     """Container for a scikit-image regionprops object
     representing a segmented area of an image"""
-
-    _tag = None
 
     def __init__(self, region=None):
         self.region = region
 
     @property
     def _shape_tag(self):
-        if self._tag is None:
-            return 'Segment'
-        return f'{self._tag} Segment'
+        return ' '.join([self.tag, 'Segment'])
+
+    @property
+    def tag(self):
+        return self.get_tag()
+
+    @abstractmethod
+    def get_tag(self):
+        """String representing class type"""
 
     @classmethod
     def from_json(cls, data):

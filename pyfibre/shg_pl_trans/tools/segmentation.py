@@ -10,6 +10,8 @@ from pyfibre.model.tools.segmentation import (
     create_fibre_filter, rgb_segmentation)
 from pyfibre.model.tools.utilities import mean_binary, region_swap
 
+from .shg_pl_trans_kmeans_filter import SHGPLTransKmeansFilter
+
 
 def fibre_cell_region_swap(multi_image, fibre_mask, cell_mask):
     """Obtain segments from masks and swap over any incorrectly
@@ -69,12 +71,17 @@ def shg_pl_trans_segmentation(
     original_binary = np.where(
         fibre_filter >= threshold_mean(fibre_filter),
         1, 0)
+
+    # Create composite RGB image from SHG, PL and transmission
     stack = (multi_image.shg_image * fibre_filter,
              np.sqrt(multi_image.pl_image * multi_image.trans_image),
              equalize_adapthist(multi_image.trans_image))
 
     # Segment the PL image using k-means clustering
-    fibre_mask, cell_mask = rgb_segmentation(stack, scale=scale)
+    fibre_mask, cell_mask = rgb_segmentation(
+        stack, SHGPLTransKmeansFilter(), scale=scale)
+
+    # Swap over any pixel areas that may have been wrongly assigned
     fibre_mask, cell_mask = fibre_cell_region_swap(
         multi_image, fibre_mask, cell_mask)
 

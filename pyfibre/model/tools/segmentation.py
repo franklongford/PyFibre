@@ -15,28 +15,65 @@ from scipy.ndimage import (
     gaussian_filter)
 from skimage.transform import rescale, resize
 
-from .bd_cluster import BDFilter
 from .convertors import (
     regions_to_binary, networks_to_regions)
 
 logger = logging.getLogger(__name__)
 
 
-def rgb_segmentation(image_stack, scale=1.0):
-    """Return binary filter for cellular identification"""
+def normalise_stack(image_stack):
+    """Normalise intensity values for each image in stack
+
+    Parameters
+    ----------
+    image_stack: array-like, shape=(I, J, N)
+        Stack of N images
+
+    Returns
+    -------
+    image_stack: array-like, shape=(I, J, N)
+        Stack of images, with intensity values normalised
+        across each image
+    """
+
+    n_channels = image_stack.shape[-1]
+
+    magnitudes = np.sqrt(np.sum(image_stack ** 2, axis=-1))
+    indices = np.nonzero(magnitudes)
+
+    image_stack[indices] /= np.repeat(
+        magnitudes[indices], n_channels).reshape(
+        indices[0].shape + (n_channels,))
+
+    return image_stack
+
+
+def rgb_segmentation(image_stack, bd_filter, scale=1.0):
+    """Return binary filter for cellular identification
+
+    Parameters
+    ----------
+    image_stack: array-like, shape=(N, I, J)
+        Stack of images
+    bd_filter: BaseBDFilter
+        Instance of filtering algorithm to be used
+    scale: float, optional
+        Ratio to rescale size of image to
+
+    Returns
+    -------
+    fibre_mask, cell_mask: array-like, shape=(I, J)
+        Binary masks that identify pixels in fibrous and
+        cellular regions
+    """
 
     if not isinstance(image_stack, np.ndarray):
         image_stack = np.stack(image_stack, axis=-1)
 
-    n_channels = image_stack.shape[-1]
     shape = image_stack.shape[:-1]
 
-    # Create composite RGB image from SHG, PL and transmission
-    magnitudes = np.sqrt(np.sum(image_stack**2, axis=-1))
-    indices = np.nonzero(magnitudes)
-    image_stack[indices] /= np.repeat(
-        magnitudes[indices], n_channels).reshape(
-        indices[0].shape + (n_channels,))
+    # Normalise the intensity values of each channel
+    image_stack = normalise_stack(image_stack)
 
     # Up-scale image to improve accuracy of clustering
     logger.debug(f"Rescaling by {scale}")
@@ -47,7 +84,6 @@ def rgb_segmentation(image_stack, scale=1.0):
 
     # Form mask using Kmeans Background filter
     logger.debug(f"Performing BD Filter")
-    bd_filter = BDFilter()
     mask_image = bd_filter.filter_image(image_stack)
 
     # Reducing image to original size

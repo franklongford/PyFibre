@@ -6,13 +6,13 @@ from pyfibre.core.base_multi_image_reader import BaseMultiImageReader
 
 class IMultiImageFactory(Interface):
 
-    tag = Str
+    label = Str
 
     reader_class = Type(BaseMultiImageReader)
 
     analyser_class = Type(BaseMultiImageAnalyser)
 
-    def get_tag(self):
+    def get_label(self):
         """Returns key associated with this factory"""
 
     def get_reader(self):

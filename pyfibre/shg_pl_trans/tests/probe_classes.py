@@ -3,7 +3,7 @@ from skimage.io import imread
 
 from pyfibre.shg_pl_trans.shg_image import SHGImage
 from pyfibre.shg_pl_trans.shg_pl_trans_image import SHGPLTransImage
-from pyfibre.tests.fixtures import (
+from pyfibre.shg_pl_trans.tests.fixtures import (
     test_shg_pl_trans_image_path,
     test_shg_image_path
 )

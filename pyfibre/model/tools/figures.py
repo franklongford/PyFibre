@@ -14,6 +14,7 @@ from skimage import draw
 from skimage.transform import rotate
 from skimage.color import label2rgb, grey2rgb, rgb2hsv, hsv2rgb
 
+from pyfibre.model.tools.fibre_utilities import get_node_coord_array
 from pyfibre.model.tools.filters import form_structure_tensor
 from pyfibre.model.tools.analysis import tensor_analysis
 
@@ -186,3 +187,17 @@ def create_network_image(image, networks, c_mode=0):
                     rgb_image[rr, cc, i] = c * val * 255.9999
 
     return rgb_image
+
+
+def draw_network(network, label_image, index=1):
+
+    nodes_coord = get_node_coord_array(network)
+    label_image[nodes_coord[:, 0], nodes_coord[:, 1]] = index
+
+    for edge in list(network.edges):
+        start = list(network.nodes[edge[1]]['xy'])
+        end = list(network.nodes[edge[0]]['xy'])
+        line = draw.line(*(start + end))
+        label_image[line] = index
+
+    return label_image

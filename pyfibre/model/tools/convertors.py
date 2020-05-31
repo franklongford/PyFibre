@@ -20,7 +20,8 @@ from skimage.measure import regionprops
 
 from pyfibre.utilities import label_set
 
-from .utilities import region_check, draw_network
+from .utilities import region_check
+from pyfibre.model.tools.figures import draw_network
 
 logger = logging.getLogger(__name__)
 

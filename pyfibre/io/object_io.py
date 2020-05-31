@@ -2,7 +2,7 @@ from functools import partial
 
 import numpy as np
 
-from pyfibre.model.core.abc_pyfibre_object import ABCPyFibreObject
+from pyfibre.model.core.base_pyfibre_object import BasePyFibreObject
 from pyfibre.model.objects.segments import CellSegment, FibreSegment
 from pyfibre.model.objects.fibre import Fibre
 from pyfibre.model.objects.fibre_network import FibreNetwork
@@ -40,7 +40,7 @@ def load_pyfibre_object(file_name, klass, mode,
                         file_type=None, **kwargs):
     """Load an ABCPyFibreObject subclass"""
 
-    if not issubclass(klass, ABCPyFibreObject):
+    if not issubclass(klass, BasePyFibreObject):
         raise TypeError(
             'klass argument must be of type ABCPyFibreObject')
 
@@ -98,7 +98,7 @@ def save_pyfibre_objects(pyfibre_objects, file_name, mode,
 def load_pyfibre_objects(file_name, klass, mode,
                          file_type=None, **kwargs):
     """Load a list of ABCPyFibreObject subclass"""
-    if not issubclass(klass, ABCPyFibreObject):
+    if not issubclass(klass, BasePyFibreObject):
         raise TypeError(
             'klass argument must be of type ABCPyFibreObject')
 

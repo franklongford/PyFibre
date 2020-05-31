@@ -3,9 +3,10 @@ from skimage.io import imread
 from pyfibre.tests.probe_classes.utilities import (
     generate_image, generate_probe_graph)
 from pyfibre.tests.probe_classes.objects import ProbeFibreNetwork
-from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 from pyfibre.shg_pl_trans.tests.probe_classes import ProbeSHGPLTransImage
+from pyfibre.shg_pl_trans.tests.fixtures import (
+    test_shg_pl_trans_image_path)
 
 from ..segmentation import (
     shg_segmentation, shg_pl_trans_segmentation)

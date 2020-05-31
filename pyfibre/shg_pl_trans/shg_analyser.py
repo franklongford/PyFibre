@@ -18,13 +18,13 @@ from pyfibre.io.object_io import (
     save_cell_segments, load_cell_segments)
 from pyfibre.io.network_io import save_network, load_network
 from pyfibre.io.database_io import save_database, load_database
-from pyfibre.model.analysers.metric_analyser import SHGMetricAnalyser
 from pyfibre.model.tools.network_extraction import (
     build_network, fibre_network_assignment
 )
 from pyfibre.model.tools.preprocessing import nl_means
 from pyfibre.utilities import flatten_list, log_time
 
+from .metric_analysers import SHGMetricAnalyser
 from .shg_image import SHGImage
 
 logger = logging.getLogger(__name__)

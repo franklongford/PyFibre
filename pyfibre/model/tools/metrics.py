@@ -224,9 +224,9 @@ def segment_metrics(segments, image, image_tag=None, sigma=0.0001):
             image_tag=image_tag)
 
         if image_tag is not None:
-            tensor_tag = ' '.join([segment._tag, 'Segment', image_tag])
+            tensor_tag = ' '.join([segment.tag, 'Segment', image_tag])
         else:
-            tensor_tag = ' '.join([segment._tag, 'Segment'])
+            tensor_tag = ' '.join([segment.tag, 'Segment'])
 
         minr, minc, maxr, maxc = segment.region.bbox
         indices = np.mgrid[minr:maxr, minc:maxc]

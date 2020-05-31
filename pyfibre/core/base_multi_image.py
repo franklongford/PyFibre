@@ -104,8 +104,3 @@ class BaseMultiImage(ABCHasTraits):
     def preprocess_images(self):
         """Implement operations that are used to pre-process
         the image_stack before analysis"""
-
-    @abstractmethod
-    def segmentation_algorithm(self, *args, **kwargs):
-        """Implement segmentation algorithm to be used for this
-        multi-image type"""

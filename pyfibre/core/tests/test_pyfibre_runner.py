@@ -1,8 +1,10 @@
 from unittest import TestCase
 
-from pyfibre.shg_pl_trans.tests.probe_classes import ProbeSHGPLTransImage
+from pyfibre.model.objects.segments import (
+    FibreSegment, CellSegment
+)
 from pyfibre.tests.probe_classes.objects import (
-    ProbeFibreNetwork, ProbeFibreSegment, ProbeCellSegment)
+    ProbeFibreNetwork, generate_probe_segment)
 
 from pyfibre.core.pyfibre_runner import PyFibreRunner
 
@@ -26,12 +28,13 @@ class TestPyFibreRunner(TestCase):
 
     def setUp(self):
 
-        self.multi_image = ProbeSHGPLTransImage()
         self.runner = PyFibreRunner()
         self.fibre_networks = [ProbeFibreNetwork()]
 
-        self.fibre_segments = [ProbeFibreSegment()]
-        self.cell_segments = [ProbeCellSegment()]
+        self.fibre_segments = [
+            generate_probe_segment(FibreSegment)]
+        self.cell_segments = [
+            generate_probe_segment(CellSegment)]
 
     def test_defaults(self):
         self.assertEqual((5, 35), self.runner.p_denoise)

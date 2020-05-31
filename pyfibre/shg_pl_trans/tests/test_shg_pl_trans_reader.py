@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from pyfibre.shg_pl_trans.shg_pl_trans_reader import SHGPLTransReader
-from pyfibre.tests.fixtures import (
+from pyfibre.shg_pl_trans.tests.fixtures import (
     directory,
     test_shg_pl_trans_image_path,
     test_shg_image_path,

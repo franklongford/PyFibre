@@ -5,12 +5,15 @@ import numpy as np
 from pandas import DataFrame, Series
 
 from pyfibre.core.pyfibre_runner import PyFibreRunner
+from pyfibre.model.objects.segments import (
+    FibreSegment, CellSegment
+)
 from pyfibre.shg_pl_trans.tests.probe_classes import ProbeSHGPLTransImage
 from pyfibre.shg_pl_trans.shg_pl_trans_analyser import (
     SHGPLTransAnalyser)
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 from pyfibre.tests.probe_classes.objects import (
-    ProbeFibreNetwork, ProbeFibreSegment, ProbeCellSegment)
+    ProbeFibreNetwork, generate_probe_segment)
 from pyfibre.tests.probe_classes.utilities import (
     generate_image, generate_probe_graph)
 
@@ -21,8 +24,10 @@ class TestSHGPLTransAnalyser(PyFibreTestCase):
         self.image, _, _, _ = generate_image()
         self.network = generate_probe_graph()
         self.fibre_networks = [ProbeFibreNetwork()]
-        self.fibre_segments = [ProbeFibreSegment()]
-        self.cell_segments = [ProbeCellSegment()]
+        self.fibre_segments = [
+            generate_probe_segment(FibreSegment)]
+        self.cell_segments = [
+            generate_probe_segment(CellSegment)]
 
         self.multi_image = ProbeSHGPLTransImage(
         )

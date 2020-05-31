@@ -5,8 +5,9 @@ from tempfile import NamedTemporaryFile
 import networkx as nx
 import numpy as np
 
-from pyfibre.tests.fixtures import test_shg_pl_trans_image_path
-from pyfibre.tests.probe_classes.utilities import generate_probe_graph
+from pyfibre.tests.fixtures import test_image_path
+from pyfibre.tests.probe_classes.utilities import (
+    generate_probe_graph)
 
 from .. utilities import (
     parse_file_path, pop_under_recursive,
@@ -20,9 +21,9 @@ from .. utilities import (
 class TestUtilities(TestCase):
 
     def setUp(self):
-        self.file_name = test_shg_pl_trans_image_path
+        self.file_name = test_image_path
         self.directory = os.path.dirname(self.file_name)
-        self.key = 'shg'
+        self.key = 'Stack'
         self.test_dict = {
             '__traits_version__': '4.6.0',
             'some_important_data':
@@ -46,7 +47,7 @@ class TestUtilities(TestCase):
 
         input_files = parse_file_path(
             self.directory, key=self.key)
-        self.assertEqual(2, len(input_files))
+        self.assertEqual(1, len(input_files))
         self.assertIn(self.file_name, input_files)
 
         input_files = parse_file_path(
