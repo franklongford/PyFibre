@@ -7,6 +7,12 @@ from .factories import ProbeMultiImageFactory
 
 class ProbePyFibrePlugin(BasePyFibrePlugin):
 
+    def get_name(self):
+        return 'probe'
+
+    def get_version(self):
+        return 0
+
     def get_multi_image_factories(self):
         return [ProbeMultiImageFactory]
 
