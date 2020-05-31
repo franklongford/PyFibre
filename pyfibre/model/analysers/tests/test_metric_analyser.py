@@ -14,4 +14,3 @@ class TestMetricAnalyser(TestCase):
 
     def setUp(self):
         self.metric_analyser = ProbeMetricAnalyser()
-
