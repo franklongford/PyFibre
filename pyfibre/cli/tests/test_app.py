@@ -18,11 +18,6 @@ def cd(dir):
 
 class TestCLIApp(TestCase):
 
-    def setUp(self):
-        self.name = 'file-shg.tif,/a/path/to/some/file-pl-shg.tif'
-        self.directory = ''
-        self.key = 'shg'
-
     def test_plain_invocation_mco(self):
         with cd(fixtures.directory):
             try:

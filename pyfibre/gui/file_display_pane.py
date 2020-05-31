@@ -177,7 +177,7 @@ class FileDisplayPane(TraitsDockPane):
                             file_names=file_names)
                         self.file_table.append(table_row)
                     except Exception:
-                        raise
+                        pass
 
     def remove_file(self, selected_rows):
         for selected_row in selected_rows:
