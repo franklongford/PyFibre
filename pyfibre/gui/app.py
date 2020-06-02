@@ -7,10 +7,9 @@ from traits.api import push_exception_handler
 
 from pyfibre.version import __version__
 from pyfibre.core.core_pyfibre_plugin import CorePyFibrePlugin
-from pyfibre.shg_pl_trans.shg_pl_trans_plugin import SHGPLTransPlugin
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
 from pyfibre.gui.pyfibre_plugin import PyFibreGUIPlugin
-from pyfibre.utilities import logo
+from pyfibre.utilities import logo, load_plugins
 
 push_exception_handler(lambda *args: None,
                        reraise_exceptions=True)
@@ -55,7 +54,8 @@ def run(debug, profile):
     logger.info(logo(__version__))
 
     plugins = [CorePyFibrePlugin(), TasksPlugin(),
-               PyFibreGUIPlugin(), SHGPLTransPlugin()]
+               PyFibreGUIPlugin()]
+    plugins += load_plugins()
 
     pyfibre_gui = PyFibreGUI(plugins=plugins)
 

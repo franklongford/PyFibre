@@ -13,10 +13,9 @@ import click
 
 from pyfibre.shg_pl_trans.tests.fixtures import (
     test_shg_pl_trans_image_path)
-from pyfibre.shg_pl_trans.shg_pl_trans_plugin import SHGPLTransPlugin
 from pyfibre.core.core_pyfibre_plugin import CorePyFibrePlugin
+from pyfibre.utilities import logo, load_plugins
 
-from ..utilities import logo
 from ..version import __version__
 
 from .pyfibre_cli import PyFibreApplication
@@ -115,7 +114,8 @@ def run(file_path, key, sigma, alpha, log_name,
 
     logging.info(logo(__version__))
 
-    plugins = [CorePyFibrePlugin(), SHGPLTransPlugin()]
+    plugins = [CorePyFibrePlugin()]
+    plugins += load_plugins()
 
     pyfibre_app = PyFibreApplication(
         file_paths=file_path,
