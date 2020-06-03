@@ -8,11 +8,9 @@ def filter_input_files(input_files):
     for filename in input_files:
         if not filename.endswith('.tif'):
             removed_files.append(filename)
-        elif filename.find('display') != -1:
+        elif 'display' in filename:
             removed_files.append(filename)
-        elif filename.find('virada') != -1:
-            removed_files.append(filename)
-        elif filename.find('asterisco') != -1:
+        elif 'virada' in filename != -1:
             removed_files.append(filename)
 
     for filename in removed_files:
