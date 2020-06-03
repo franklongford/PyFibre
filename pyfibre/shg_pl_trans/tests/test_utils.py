@@ -64,7 +64,8 @@ class TestReader(TestCase):
         filtered_files = filter_input_files(input_files)
 
         self.assertListEqual(
-            ['/directory/prefix2-pl-shg-test.tif'], filtered_files)
+            ['/directory/prefix2-pl-shg-test.tif',
+             '/directory/prefix-shg-asterisco.tif'], filtered_files)
 
     def test_create_image_dictionary(self):
         input_files = ['/directory/prefix-pl-shg-test.tif',

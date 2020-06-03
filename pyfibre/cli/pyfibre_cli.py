@@ -63,12 +63,14 @@ class PyFibreApplication(Application):
             tag: {} for tag, _ in self.supported_readers.items()
         }
 
+        input_files = []
         for file_path in self.file_paths:
-            input_files = parse_file_path(file_path, self.key)
-            for label, reader in self.supported_readers.items():
-                image_dictionary[label].update(
-                    reader.collate_files(input_files)
-                )
+            input_files += parse_file_path(file_path, self.key)
+
+        for label, reader in self.supported_readers.items():
+            image_dictionary[label].update(
+                reader.collate_files(input_files)
+            )
 
         for label, inner_dict in image_dictionary.items():
 
