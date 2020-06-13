@@ -31,7 +31,7 @@ Kmeans Clustering
 ~~~~~~~~~~~~~~~~~
 
 Segmentation of the image is performed by clustering of each pixel's RGB components, independent of its location.
-Considering that a typical biopsy image contains $512\times512=262144$ pixels and therefore $512\times512\times3=786432$
+Considering that a typical biopsy image contains $512\times512=262144$ pixels and therefore :math:`512\times512\times3=786432`
 data points, a batch implementation of any clustering algorithm needs to be used for computational efficiency.
 We use the ``MiniBatchKMeans`` function as `implemented <https://scikit-learn.org/stable/modules/generated/sklearn.cluster.MiniBatchKMeans.html>`_
 in scikit-learn, which has been shown to achieve very similar performance to its full KMeans implementation :cite:`Sculley2010`.
