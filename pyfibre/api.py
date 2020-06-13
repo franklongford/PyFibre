@@ -2,6 +2,11 @@ from pyfibre.core.base_multi_image_analyser import BaseMultiImageAnalyser
 from pyfibre.core.base_multi_image_factory import BaseMultiImageFactory
 from pyfibre.core.base_multi_image_reader import BaseMultiImageReader
 from pyfibre.core.base_multi_image import BaseMultiImage
+from pyfibre.core.i_multi_image import IMultiImage
+from pyfibre.core.i_multi_image_factory import IMultiImageFactory
+from pyfibre.core.i_multi_image_reader import IMultiImageReader
+from pyfibre.core.i_multi_image_analyser import IMultiImageAnalyser
+from pyfibre.core.base_pyfibre_plugin import BasePyFibrePlugin
 
 from pyfibre.model.core.base_pyfibre_object import BasePyFibreObject
 from pyfibre.model.core.base_graph import BaseGraph

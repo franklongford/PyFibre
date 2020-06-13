@@ -1,5 +1,5 @@
 from traits.api import (
-    Interface, ArrayOrNone, List, Dict, Str, Directory,
+    Interface, ArrayOrNone, List, Dict, Str,
     Int, Tuple
 )
 
