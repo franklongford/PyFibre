@@ -45,6 +45,7 @@ mock_modules()
 
 extensions = [
     'sphinxcontrib.apidoc',
+    'sphinxcontrib.bibtex',
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
@@ -73,3 +74,4 @@ apidoc_module_dir = '../../pyfibre'
 apidoc_output_dir = 'api'
 apidoc_excluded_paths = ['*tests*', '*cli', '*gui*']
 apidoc_separate_modules = True
+numfig = True
