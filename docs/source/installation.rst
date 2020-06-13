@@ -23,3 +23,4 @@ This will install all required libraries and create the local `PyFibre` and `PyF
 To make sure the installation has been successful, please run the unit tests::
 
     python -m ci test
+
