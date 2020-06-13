@@ -181,8 +181,7 @@ def test(python_version, verbose):
 def shell(python_version):
     env_name = get_env_name(python_version)
 
-    check_call(["edm", "shell", "-e", env_name]
-    )
+    check_call(["edm", "shell", "-e", env_name])
 
 
 if __name__ == "__main__":

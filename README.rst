@@ -40,3 +40,7 @@ To make sure the installation has been successful, please run the unit tests::
 
     python -m ci test
 
+To enter a bash shell running the edm development environment, with all packages installed, run::
+
+    python -m ci shell
+
