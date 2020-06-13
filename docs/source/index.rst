@@ -22,9 +22,9 @@ User Manual
    :maxdepth: 2
 
    Installation instructions <installation>
-   PyFibre CLI <pyfibre_cli>
-   PyFibre GUI <pyfibre_gui>
+   Running PyFibre <pyfibre_apps>
    Core Features <core/core_features>
+   Extending PyFibre <plugins>
    SHG-PL Analysis <shg_pl_analysis>
 
 

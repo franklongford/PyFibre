@@ -5,14 +5,11 @@ from traits.api import (
 
 
 class IMultiImage(Interface):
-    """Base class representing an image with multiple channels,
+    """Interface class representing an image with multiple channels,
     expected to be more complex than just RGB"""
 
-    #: Name of BaseMultiImage
+    #: Name of MultiImage
     name = Str()
-
-    #: File path for images
-    path = Directory()
 
     #: List of images in stack
     image_stack = List(ArrayOrNone)
@@ -39,16 +36,9 @@ class IMultiImage(Interface):
         """Removes an image with index from the image_stack"""
 
     @classmethod
-    def from_array(cls, array):
-        """Create instance from either a 2D or 3D numpy array"""
-
-    def to_array(self):
-        """Returns a numpy array containing all images in stack"""
-
-    @classmethod
     def verify_stack(cls, image_stack):
         """Perform verification that image_stack is allowed by
-        subclass of BaseMultiImage"""
+        subclass of IMultiImage"""
 
     def preprocess_images(self):
         """Implement operations that are used to pre-process

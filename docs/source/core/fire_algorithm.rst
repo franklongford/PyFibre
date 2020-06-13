@@ -20,7 +20,7 @@ successful candidate then a new child node will be created at its location, with
 
 .. _fire-figure:
 
-.. figure:: FIRE_lmp.pdf
+.. figure:: _images/FIRE_lmp.pdf
 
     Figure taken from :cite:`Stein2008_463` representing propagation of LMP nodes from a nucleation node.
 
@@ -89,4 +89,4 @@ child node and rebuilds a fibre based on a set of rules.
                 next_child = child.connected_nodes[np.argmin(angles)]
                 parent.children.append(next_child)
 
-.. bibliography:: fire-refs.bib
+.. bibliography:: _bibs/fire-refs.bib

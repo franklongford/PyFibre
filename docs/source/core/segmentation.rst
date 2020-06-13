@@ -20,18 +20,18 @@ microscope-stained HE images in software packages such as CurveAlign :cite:`Liu2
 yields cellular regions of a standard pigment.
 
 In order to enhance the clustering of colours and yield smooth segments we apply some smoothing techniques on the
-raw RGB image. These techniques mimic those carried out by the CurveAlign software BDcreationHE algorithm.
+raw RGB image. These techniques mimic those carried out by the CurveAlign software ``BDcreationHE`` algorithm.
 To begin with we apply a contrast stretching routine to each channel in order to maximise their differences.
 The channels are then padded around the outside with a region of zeroed pixels and a intensity histogram equalisation
 algorithm is applied, as detailed in section \ref{section:equalisation}. Finally, a median filter is used to smooth
 the image, before the extra padded pixels are removed. The effect of this procedure is demonstrated in figure
 \ref{fig:composite}.
 
-Kmeans Clustering
-~~~~~~~~~~~~~~~~~
+K-Means Clustering
+~~~~~~~~~~~~~~~~~~
 
 Segmentation of the image is performed by clustering of each pixel's RGB components, independent of its location.
-Considering that a typical biopsy image contains $512\times512=262144$ pixels and therefore :math:`512\times512\times3=786432`
+Considering that a typical biopsy image contains :math:`512\times512=262144` pixels and therefore :math:`512\times512\times3=786432`
 data points, a batch implementation of any clustering algorithm needs to be used for computational efficiency.
 We use the ``MiniBatchKMeans`` function as `implemented <https://scikit-learn.org/stable/modules/generated/sklearn.cluster.MiniBatchKMeans.html>`_
 in scikit-learn, which has been shown to achieve very similar performance to its full KMeans implementation :cite:`Sculley2010`.
@@ -53,4 +53,4 @@ For all segmentations:
 #. Generate binary mask of all image pixels in cellular regions
 
 
-.. bibliography:: seg-refs.bib
+.. bibliography:: _bibs/seg-refs.bib

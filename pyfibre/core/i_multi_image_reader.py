@@ -5,7 +5,7 @@ from .i_multi_image import IMultiImage
 
 class IMultiImageReader(Interface):
     """File reader that loads a stack of Tiff images, represented
-    by a BaseMultiImage subclass"""
+    by a IMultiImage subclass"""
 
     _multi_image_class = Type(IMultiImage)
 
@@ -24,7 +24,7 @@ class IMultiImageReader(Interface):
 
     def create_image_stack(self, filenames):
         """Return a list of numpy arrays suitable for the
-        loader's BaseMultiImage type"""
+        loader's IMultiImage type"""
 
     def load_image(self, filename):
         """Load a single image from a file"""
