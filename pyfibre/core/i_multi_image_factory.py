@@ -1,16 +1,16 @@
 from traits.api import Interface, Type, Str
 
-from .base_multi_image_analyser import BaseMultiImageAnalyser
-from pyfibre.core.base_multi_image_reader import BaseMultiImageReader
+from .i_multi_image_analyser import IMultiImageAnalyser
+from .i_multi_image_reader import IMultiImageReader
 
 
 class IMultiImageFactory(Interface):
 
     label = Str
 
-    reader_class = Type(BaseMultiImageReader)
+    reader_class = Type(IMultiImageReader)
 
-    analyser_class = Type(BaseMultiImageAnalyser)
+    analyser_class = Type(IMultiImageAnalyser)
 
     def get_label(self):
         """Returns key associated with this factory"""
