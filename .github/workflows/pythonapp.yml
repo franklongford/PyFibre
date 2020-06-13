@@ -51,4 +51,5 @@ jobs:
         edm run -- python -m ci flake8
     - name: Perform integration test
       run: |
-        edm run -e PyFibre-py36 -- PyFibre --test
+        python -m ci shell
+        PyFibre --test
