@@ -1,9 +1,13 @@
 Running the PyFibre CLI
 -----------------------
 
+Once installed, enter the PyFibre deployment environment using::
+
+    python -m ci shell
+
 Calling the executable ``PyFibre`` from the command line will initiate the terminal based version of PyFibre::
 
-	Usage: PyFibre [OPTIONS] [FILE_PATH]
+	Usage: PyFibre [OPTIONS] [FILE_PATHS]
 
     Options:
       --version             Show the version and exit.
@@ -22,3 +26,9 @@ Calling the executable ``PyFibre`` from the command line will initiate the termi
       --database_name TEXT  Output database filename
       --log_name TEXT       Pyfibre log filename
       --help                Show this message and exit.
+
+Multiple file paths can be included as arguments, including directories. The user may also include also use
+wildcard assignments, for example::
+
+    PyFibre some-images/ other-images/some-file-path.tif more-images/other-files*
+

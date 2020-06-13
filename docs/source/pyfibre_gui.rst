@@ -1,9 +1,9 @@
 Running the PyFibre GUI
 -----------------------
 
-Once installed, enter the deployment environment using::
+Once installed, enter the PyFibre deployment environment using::
 
-    edm shell -e PyFibre-py36
+    python -m ci shell
 
 and call the executable ``PyFibre_GUI`` from the command line to initiate the graphical user interface.
 
@@ -13,7 +13,7 @@ and call the executable ``PyFibre_GUI`` from the command line to initiate the gr
 File Viewer
 ~~~~~~~~~~~
 
-PyFibre is set by default to detect Tagged Image Format (tif) files. To load in individual files to analyse, use the
+PyFibre is set by default to detect Tagged Image Format (TIF) files. To load in individual files to analyse, use the
 file window to navigate through your file tree and the 'Add Files' button to load in files or folders into the
 software.
 
