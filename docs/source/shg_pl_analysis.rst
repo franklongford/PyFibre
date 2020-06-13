@@ -16,7 +16,7 @@ The files will then appear as::
 
 
 Composite RGB Image
--------------------
+~~~~~~~~~~~~~~~~~~~
 Both SHG and PL imaging techniques produce greyscale images, so a way to combine them into a composite RGB data format
 must be developed first.
 
@@ -27,7 +27,7 @@ to show up as unit vectors with large red components, whereas cellular features 
 prominently large green and blue components.
 
 Colour Clustering
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
 
 After identification of the main 8 colour clusters present in our RGB composite image, we then proceed to assign whether these
 clusters should be considered either cellular or fibrous, based on their centroid unit vector :math:`\mathbf{c}` and

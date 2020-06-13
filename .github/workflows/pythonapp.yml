@@ -52,4 +52,4 @@ jobs:
     - name: Perform integration test
       run: |
         edm run -- python -m ci shell
-        PyFibre --test
+        edm run -e pyfibre-py36 -- PyFibre --test
