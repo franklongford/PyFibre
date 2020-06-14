@@ -203,10 +203,3 @@ class SHGReader(BaseMultiImageReader):
             return False
 
         return True
-
-    def create_image_stack(self, filenames):
-        """Return a list of numpy arrays suitable for a
-        SHGImage"""
-        image_stack = self._load_images(filenames)
-
-        return image_stack

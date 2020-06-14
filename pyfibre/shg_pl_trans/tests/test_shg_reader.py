@@ -120,15 +120,6 @@ class TestSHGReader(PyFibreTestCase):
             image
         )
 
-    def test_load_images(self):
-
-        images = self.reader._load_images(self.filenames)
-        self.assertEqual(1, len(images))
-        self.assertEqual((200, 200), images[0].shape)
-
-        with self.assertRaises(WrongFileTypeError):
-            self.reader._load_images(['not a file'])
-
     def test_collate_files(self):
         image_dict = self.reader.collate_files(self.filenames)
 
@@ -136,12 +127,6 @@ class TestSHGReader(PyFibreTestCase):
             {f'{directory}/test-pyfibre': [test_shg_image_path]},
             image_dict
         )
-
-    def test_create_image_stack(self):
-
-        image_stack = self.reader.create_image_stack(self.filenames)
-        self.assertEqual(1, len(image_stack))
-        self.assertEqual((200, 200), image_stack[0].shape)
 
     def test_load_multi_image(self):
 

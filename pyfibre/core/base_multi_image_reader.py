@@ -26,16 +26,19 @@ class BaseMultiImageReader(ABCHasTraits):
     def __init__(self, *args, **kwargs):
         """Overloads the super class to set private traits"""
         super(BaseMultiImageReader, self).__init__(*args, **kwargs)
-
         self._multi_image_class = self.get_multi_image_class()
 
-    def _load_images(self, filenames):
-        """Load each TIFF image in turn and perform
-        averaging over each stack component if required"""
+    def create_image_stack(self, filenames):
+        """From a list of file names, return a list of numpy arrays
+        suitable for the loader's BaseMultiImage type. Load each TIFF
+        image in turn and perform averaging over each stack component
+        if required
+        """
+
         if isinstance(filenames, str):
             filenames = [filenames]
 
-        images = []
+        image_stack = []
         for filename in filenames:
 
             logger.info(f'Loading {filename}')
@@ -46,9 +49,9 @@ class BaseMultiImageReader(ABCHasTraits):
             image = self.load_image(filename)
 
             # Add file image to stack
-            images.append(image)
+            image_stack.append(image)
 
-        return images
+        return image_stack
 
     def load_multi_image(self, filenames, prefix):
         """Image loader for MultiImage classes"""
@@ -79,19 +82,44 @@ class BaseMultiImageReader(ABCHasTraits):
 
     @abstractmethod
     def collate_files(self, filenames):
-        """Returns a dictionary of file sets that can be loaded
-        in as an image stack
+        """From a given list of file names, returns a dictionary where each entry
+        represents the files required to create an instance of a multi image.
+        Each key will be passed on as the name of the multi image, used during
+        further PyFibre operations. Each value could be passed in as the `filenames`
+        argument to the class `create_image_stack` method.
 
         Returns
         -------
         image_dict: dict(str, list of str)
             Dictionary containing file references as keys and a list of
-            files able to be loaded in as an image stack as values"""
+            files able to be loaded in as an image stack as values
 
-    @abstractmethod
-    def create_image_stack(self, filenames):
-        """Return a list of numpy arrays suitable for the
-        loader's BaseMultiImage type"""
+        Examples
+        --------
+        For a given list of files and multi image reader:
+
+        >>> file_list = ['/path/to/an/image',
+        ...              '/path/to/another/image',
+        ...              '/path/to/nothing']
+        >>> reader = MyMultiImageReader()
+
+        If each "image" file path could be loaded in as a separate MultiImage,
+        the return value of `collate_files` would be:
+
+        >>> image_dict = reader.collate_files(file_list)
+        >>> print(image_dict)
+        ... {"a file name": ['/path/to/an/image'],
+        ...  "another file name": ['/path/to/another/image']}
+
+        Alternatively, if both "image" file paths were required to load
+        a single MultiImage, then a return value could be:
+
+        >>> image_dict = reader.collate_files(file_list)
+        >>> print(image_dict)
+        ... {"a file name": ['/path/to/an/image',
+        ...                  '/path/to/another/image']}
+
+        """
 
     @abstractmethod
     def load_image(self, filename):
