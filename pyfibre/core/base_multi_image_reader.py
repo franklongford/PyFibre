@@ -1,10 +1,12 @@
 from abc import abstractmethod
 import logging
 
-from traits.api import ABCHasTraits, Type
+from traits.api import ABCHasTraits, Type, provides
 
 from pyfibre.io.utilities import get_file_names
-from pyfibre.core.base_multi_image import BaseMultiImage
+
+from .i_multi_image import IMultiImage
+from .i_multi_image_reader import IMultiImageReader
 
 logger = logging.getLogger(__name__)
 
@@ -13,11 +15,19 @@ class WrongFileTypeError(Exception):
     pass
 
 
+@provides(IMultiImageReader)
 class BaseMultiImageReader(ABCHasTraits):
     """File reader that loads a stack of Tiff images, represented
     by a BaseMultiImage subclass"""
 
-    _multi_image_class = Type(BaseMultiImage)
+    #: Reference to the IMultiImage class associated with this reader
+    _multi_image_class = Type(IMultiImage)
+
+    def __init__(self, *args, **kwargs):
+        """Overloads the super class to set private traits"""
+        super(BaseMultiImageReader, self).__init__(*args, **kwargs)
+
+        self._multi_image_class = self.get_multi_image_class()
 
     def _load_images(self, filenames):
         """Load each TIFF image in turn and perform
@@ -62,6 +72,10 @@ class BaseMultiImageReader(ABCHasTraits):
         multi_image.preprocess_images()
 
         return multi_image
+
+    @abstractmethod
+    def get_multi_image_class(self):
+        """Returns class of IMultiImage that will be loaded."""
 
     @abstractmethod
     def collate_files(self, filenames):

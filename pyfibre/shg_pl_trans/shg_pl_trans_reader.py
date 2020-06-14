@@ -9,7 +9,8 @@ class SHGPLTransReader(SHGReader):
     """Reader class for a combined PL/Transmission
     file"""
 
-    _multi_image_class = SHGPLTransImage
+    def get_multi_image_class(self):
+        return SHGPLTransImage
 
     def collate_files(self, input_files):
 

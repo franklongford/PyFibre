@@ -7,7 +7,8 @@ from .multi_images import ProbeFixedStackImage
 
 class ProbeMultiImageReader(BaseMultiImageReader):
 
-    _multi_image_class = ProbeFixedStackImage
+    def get_multi_image_class(self):
+        return ProbeFixedStackImage
 
     def collate_files(self, filenames):
         return {'probe-file': [filename]

@@ -1,17 +1,19 @@
 from abc import abstractmethod
 import os
 
-from traits.api import ABCHasTraits, Instance
+from traits.api import ABCHasTraits, Instance, provides
 
-from .base_multi_image import BaseMultiImage
+from .i_multi_image import IMultiImage
+from .i_multi_image_analyser import IMultiImageAnalyser
 
 
+@provides(IMultiImageAnalyser)
 class BaseMultiImageAnalyser(ABCHasTraits):
     """Class that provides analysis instructions for a particular
     BaseMultiImage class"""
 
     #: Reference to multi image under analysis
-    multi_image = Instance(BaseMultiImage)
+    multi_image = Instance(IMultiImage)
 
     database_names = []
 

@@ -133,7 +133,8 @@ def get_tiff_param(tiff_file):
 class SHGReader(BaseMultiImageReader):
     """Reader class for a combined SHG file"""
 
-    _multi_image_class = SHGImage
+    def get_multi_image_class(self):
+        return SHGImage
 
     def _format_image(self, image, minor_axis=None):
         """Transform image to normalised float array and average
