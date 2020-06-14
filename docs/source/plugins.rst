@@ -26,41 +26,41 @@ and requires the following methods to be implemented:
 
     @classmethod
     def verify_stack(cls, image_stack):
-        """Perform verification that image_stack is allowed by
-        subclass of IMultiImage"""
+        """Perform verification that image_stack is allowed by this
+        subclass of BaseMultiImage. Returns either True or False, depending
+        on whether the image_stack argument is correctly formatted.
+        """
 
     def preprocess_images(self):
         """Implement operations that are used to pre-process
-        the image_stack before analysis"""
+        the image_stack before analysis.
+        """
 
 ``BaseMultiImageReader``
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Provides the ``IMultiImageReader`` interface, requires the following methods to be implemented
+Is able to load an image file or a set of images files as a ``BaseMultiImage`` object. Provides the ``IMultiImageReader``
+interface, and requires the following methods to be implemented
 
 .. code-block:: python
 
-    @abstractmethod
     def collate_files(self, filenames):
-        """Returns a dictionary of file sets that can be loaded
-        in as an image stack
+        """From a given list of file names, returns a dictionary where each entry
+        represents the files required to create an instance of a multi image.
+        Each key will be passed on as the name of the multi image, used during
+        further PyFibre operations. Each value could be passed in as the `filenames`
+        argument to the class `create_image_stack` method.
 
         Returns
         -------
         image_dict: dict(str, list of str)
             Dictionary containing file references as keys and a list of
-            files able to be loaded in as an image stack as values"""
+            files able to be loaded in as an image stack as values
+        """
 
-    @abstractmethod
-    def create_image_stack(self, filenames):
-        """Return a list of numpy arrays suitable for the
-        loader's BaseMultiImage type"""
-
-    @abstractmethod
     def load_image(self, filename):
         """Load a single image from a file"""
 
-    @abstractmethod
     def can_load(self, filename):
         """Perform check to see whether file is formatted
         correctly to be loaded"""
@@ -69,20 +69,18 @@ Provides the ``IMultiImageReader`` interface, requires the following methods to 
 ``BaseMultiImageAnalyser``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Provides the ``IMultiImageAnalysis`` interface, requires the following methods to be implemented
+Contains analysis scripts for a specific ``BaseMultiImage`` class. Provides the ``IMultiImageAnalysis`` interface,
+and requires the following methods to be implemented
 
 .. code-block:: python
 
-    @abstractmethod
     def image_analysis(self, *args, **kwargs):
         """Perform analysis on data"""
 
-    @abstractmethod
     def create_metrics(self, *args, **kwargs):
         """Create metrics from multi-image components that can be
         generated upon end of analysis"""
 
-    @abstractmethod
     def create_figures(self, *args, **kwargs):
         """Create figures from multi-image components that can be
         generated upon end of analysis"""

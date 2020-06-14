@@ -4,10 +4,10 @@ Metrics
 PyFibre calculates properties for the global images and each segmented region. The resultant databases for
 each section are then labelled::
 
-    {directory}/data/{prefix}_global.h5 = global image output (also in .xls format)
-    {directory}/data/{prefix}_fibre.h5 = fibre segmented image output (also in .xls format)
-    {directory}/data/{prefix}_network.h5 = fibre networks output (also in .xls format)
-    {directory}/data/{prefix}_cell.h5 = cell segmented image output (also in .xls format)
+``{directory}/data/{prefix}_global.h5`` = global image output (also in .xls format)
+``{directory}/data/{prefix}_fibre.h5`` = fibre segmented image output (also in .xls format)
+``{directory}/data/{prefix}_network.h5`` = fibre networks output (also in .xls format)
+``{directory}/data/{prefix}_cell.h5`` = cell segmented image output (also in .xls format)
 
 The database metrics have the following columns:
 
