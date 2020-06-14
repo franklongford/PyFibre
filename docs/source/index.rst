@@ -9,19 +9,25 @@ Welcome to PyFibre documentation!
     :target: https://pyfibre-docs.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-PyFibre is an open source image analysis toolkit for fibrous tissue that can be run either in a terminal or GUI. It is designed to make the quantification of fibrous tissue automated, standardised and efficient whilst remaining as transparent as possible for non-technical users.
+PyFibre (Python Fibrous Image Analysis Toolkit) is an open source, extensible image analysis toolkit for fibrous tissue
+that can be run either in a terminal or GUI. It is designed to be as automated as possible so that it can easily be applied to
+multiple image sets in order to generate databases of properties for further large-scale analysis.
 
+PyFibre has been designed to work with the Tagged Image File Format (TIFF), and is shipped with a plugin that provides
+automated analysis routines for a multi-channel image format containing Second Harmonic Generation (SHG) and
+Phospholuminescene (PL) signals.
 
 User Manual
 ===========
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    Installation instructions <installation>
-   PyFibre CLI <pyfibre_cli>
-   PyFibre GUI <pyfibre_gui>
-   Core Features <core_features>
+   Running PyFibre <pyfibre_apps>
+   Core Features <core/core_features>
+   Extending PyFibre <plugins>
+   SHG-PL Analysis <shg_pl_analysis>
 
 
 API Reference

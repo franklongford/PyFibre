@@ -6,12 +6,12 @@ PyFibre is deployed using Enthought Deployment Manager,
 Please download and install
 the latest version prior to continuing further.
 
-Once installed, simply create a default environment using the command line::
+Once installed, simply create a "bootstrap" environment using the command line::
 
-    edm install --version 3.6 -y click setuptools
-    edm shell
+    edm install -e bootstrap --version 3.6 -y click setuptools
+    edm shell -e bootstrap
 
-Then build the deployment `PyFibre-py36` environment using the following command::
+Then build the deployment `pyfibre-py36` environment using the following command::
 
     python -m ci build-env
 
@@ -23,3 +23,4 @@ This will install all required libraries and create the local `PyFibre` and `PyF
 To make sure the installation has been successful, please run the unit tests::
 
     python -m ci test
+

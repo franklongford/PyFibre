@@ -17,12 +17,6 @@ class TestSHGPLTransReader(TestCase):
                           test_shg_image_path,
                           test_pl_image_path]
 
-    def test_load_images(self):
-
-        images = self.reader._load_images(self.filenames[:1])
-        self.assertEqual(1, len(images))
-        self.assertEqual((3, 200, 200), images[0].shape)
-
     def test_collate_files(self):
         image_dict = self.reader.collate_files(self.filenames)
 

@@ -6,10 +6,11 @@ from .utils import filter_input_files, create_image_dictionary
 
 
 class SHGPLTransReader(SHGReader):
-    """Reader class for a combined PL/Transmission
+    """Reader class for a combined SHG + PL/Transmission
     file"""
 
-    _multi_image_class = SHGPLTransImage
+    def get_multi_image_class(self):
+        return SHGPLTransImage
 
     def collate_files(self, input_files):
 
@@ -28,8 +29,11 @@ class SHGPLTransReader(SHGReader):
         return multi_file_dictionary
 
     def create_image_stack(self, filenames):
-
-        images = self._load_images(filenames)
+        """Overloads parent method to ensure ordering
+        of images in the stack is suitable for a
+        SHGPLTransImage"""
+        images = super(SHGPLTransReader, self).create_image_stack(
+            filenames)
 
         if len(images) == 1:
             image_stack = [

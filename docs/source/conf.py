@@ -45,6 +45,7 @@ mock_modules()
 
 extensions = [
     'sphinxcontrib.apidoc',
+    'sphinxcontrib.bibtex',
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
@@ -64,7 +65,7 @@ copyright = u'2018, PyFibre Project'
 version = ".".join(RELEASE.split(".")[0:3])
 release = RELEASE
 pygments_style = 'sphinx'
-html_theme = 'classic'
+html_theme = 'nature'
 html_static_path = ['_static']
 html_logo = '_static/icon.ico'
 htmlhelp_basename = 'PyFibredoc'
@@ -73,3 +74,4 @@ apidoc_module_dir = '../../pyfibre'
 apidoc_output_dir = 'api'
 apidoc_excluded_paths = ['*tests*', '*cli', '*gui*']
 apidoc_separate_modules = True
+numfig = True

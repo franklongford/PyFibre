@@ -1,24 +1,24 @@
 from traits.api import Interface, Type, Str
 
-from .base_multi_image_analyser import BaseMultiImageAnalyser
-from pyfibre.core.base_multi_image_reader import BaseMultiImageReader
+from .i_multi_image_analyser import IMultiImageAnalyser
+from .i_multi_image_reader import IMultiImageReader
 
 
 class IMultiImageFactory(Interface):
 
     label = Str
 
-    reader_class = Type(BaseMultiImageReader)
+    reader_class = Type(IMultiImageReader)
 
-    analyser_class = Type(BaseMultiImageAnalyser)
+    analyser_class = Type(IMultiImageAnalyser)
 
     def get_label(self):
         """Returns key associated with this factory"""
 
     def get_reader(self):
-        """Returns list of BaseMultiImageReader classes able to load
-        the BaseMultiImage class created by this factory"""
+        """Returns list of IMultiImageReader classes able to load
+        the IMultiImage class created by this factory"""
 
     def get_analyser(self):
-        """Returns list of BaseMultiImageAnalyser classes able to analyse
-        the BaseMultiImage class created by this factory"""
+        """Returns list of IMultiImageAnalyser classes able to analyse
+        the IMultiImage class created by this factory"""

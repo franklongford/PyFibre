@@ -31,10 +31,9 @@ EDM_DEV_DEPS = ["flake8==3.7.7-1",
                 "coverage==4.3.4-1",
                 "mock==2.0.0-3"]
 
-EDM_DOCS_DEPS = [
-    "sphinx==2.3.1-2",
-    "docutils==0.16-2"
-]
+with open('docs/requirements.txt', 'r') as infile:
+    PIP_DOCS_DEPS = infile.readlines()
+
 
 # We pin to a version of Traits Futures with updated GuiTestAssistant
 PIP_DEPS = [
@@ -48,7 +47,7 @@ def remove_dot(python_version):
 
 
 def get_env_name(python_version):
-    return f"PyFibre-py{remove_dot(python_version)}"
+    return f"pyfibre-py{remove_dot(python_version)}"
 
 
 def edm_run(env_name, command, cwd=None):
@@ -89,7 +88,7 @@ def build_env(python_version):
 
     check_call(
         ["edm", "install", "-e", env_name, "--yes"]
-        + EDM_CORE_DEPS + EDM_DEV_DEPS + EDM_DOCS_DEPS
+        + EDM_CORE_DEPS + EDM_DEV_DEPS
     )
 
 
@@ -102,7 +101,7 @@ def install(python_version):
 
     env_name = get_env_name(python_version)
 
-    edm_run(env_name, ['pip', 'install'] + PIP_DEPS)
+    edm_run(env_name, ['pip', 'install'] + PIP_DEPS + PIP_DOCS_DEPS)
 
     print('Installing PyFibre to edm environment')
     edm_run(env_name, ['pip', 'install', '-e', '.'])
@@ -172,6 +171,17 @@ def test(python_version, verbose):
 
     if returncode:
         raise click.ClickException("There were test failures.")
+
+
+@cli.command(
+    name="shell",
+    help="Enters the edm deployment environment"
+)
+@python_version_option
+def shell(python_version):
+    env_name = get_env_name(python_version)
+
+    check_call(["edm", "shell", "-e", env_name])
 
 
 if __name__ == "__main__":

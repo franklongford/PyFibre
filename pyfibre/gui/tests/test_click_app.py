@@ -5,13 +5,13 @@ from unittest import mock, TestCase
 
 from click.testing import CliRunner
 
-import pyfibre.gui.app
+import pyfibre.gui.__main__
 from pyfibre.version import __version__
 from pyfibre.tests.dummy_classes import DummyPyFibreGUI
 
 
 def mock_run_constructor(*args, **kwargs):
-    mock_pyfibre_app = mock.Mock(spec=pyfibre.gui.app)
+    mock_pyfibre_app = mock.Mock(spec=pyfibre.gui.__main__)
     mock_pyfibre_app.run = lambda: None
 
 
@@ -19,26 +19,26 @@ class TestClickRun(TestCase):
 
     def test_click_gui_version(self):
         clirunner = CliRunner()
-        clirunner.invoke(pyfibre.gui.app.pyfibre,
-                         args="--version")
+        clirunner.invoke(
+            pyfibre.gui.__main__.pyfibre, args="--version")
 
-    def test_click_gui_main(self):
+    def test_click_cli_main(self):
 
-        with mock.patch('pyfibre.gui.app') as mock_run:
+        with mock.patch('pyfibre.gui.__main__') as mock_run:
             mock_run.side_effect = mock_run_constructor
 
-            pyfibre.gui.app.pyfibre()
+            pyfibre.gui.__main__.pyfibre()
 
             self.assertTrue(mock_run.pyfibre.called)
 
     def test_run_with_debug(self):
-        with mock.patch('pyfibre.gui.app.PyFibreGUI') as mock_pyfibre:
+        with mock.patch('pyfibre.gui.__main__.PyFibreGUI') as mock_pyfibre:
             mock_pyfibre.return_value = DummyPyFibreGUI()
-            pyfibre.gui.app.run(
+            pyfibre.gui.__main__.run(
                 debug=True,
                 profile=False
             )
-            self.log = pyfibre.gui.app.logging.getLogger(__name__)
+            self.log = pyfibre.gui.__main__.logging.getLogger(__name__)
             # This test seems to be broken at the moment
             # self.assertEqual(10, self.log.getEffectiveLevel())
 
@@ -46,9 +46,9 @@ class TestClickRun(TestCase):
             os.remove('pyfibre.log')
 
     def test_run_with_profile(self):
-        with mock.patch('pyfibre.gui.app.PyFibreGUI') as mock_pyfibre:
+        with mock.patch('pyfibre.gui.__main__.PyFibreGUI') as mock_pyfibre:
             mock_pyfibre.return_value = DummyPyFibreGUI()
-            pyfibre.gui.app.run(
+            pyfibre.gui.__main__.run(
                 debug=False,
                 profile=True
             )

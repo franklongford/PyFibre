@@ -7,7 +7,8 @@ from .multi_images import ProbeFixedStackImage
 
 class ProbeMultiImageReader(BaseMultiImageReader):
 
-    _multi_image_class = ProbeFixedStackImage
+    def get_multi_image_class(self):
+        return ProbeFixedStackImage
 
     def collate_files(self, filenames):
         return {'probe-file': [filename]
@@ -15,10 +16,7 @@ class ProbeMultiImageReader(BaseMultiImageReader):
                 if '.tif' in filename}
 
     def can_load(self, filename):
-        return True
+        return filename != 'WRONG'
 
     def load_image(self, filename):
         return np.ones((100, 100))
-
-    def create_image_stack(self, filenames):
-        return [self.load_image(filename) for filename in filenames]

@@ -2,9 +2,8 @@ from abc import abstractmethod
 
 from traits.api import ABCHasStrictTraits, Type, Str, provides
 
-from pyfibre.core.base_multi_image_reader import BaseMultiImageReader
-
-from .base_multi_image_analyser import BaseMultiImageAnalyser
+from .i_multi_image_analyser import IMultiImageAnalyser
+from .i_multi_image_reader import IMultiImageReader
 from .i_multi_image_factory import IMultiImageFactory
 
 
@@ -20,11 +19,11 @@ class BaseMultiImageFactory(ABCHasStrictTraits):
     label = Str
 
     #: Reader class, used to load a BaseMultiImage from file
-    reader_class = Type(BaseMultiImageReader)
+    reader_class = Type(IMultiImageReader)
 
     #: Analyser class, used to perform an analysis script on
     #: a specific image type
-    analyser_class = Type(BaseMultiImageAnalyser)
+    analyser_class = Type(IMultiImageAnalyser)
 
     def __init__(self, **traits):
 

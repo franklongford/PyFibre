@@ -3,12 +3,16 @@ from abc import abstractmethod
 import numpy as np
 
 from traits.api import (
-    ABCHasTraits, ArrayOrNone, List, Dict, Str, Directory
+    ABCHasTraits, ArrayOrNone, List, Dict, Str, Directory,
+    provides
 )
 
 from pyfibre.utilities import NotSupportedError
 
+from .i_multi_image import IMultiImage
 
+
+@provides(IMultiImage)
 class BaseMultiImage(ABCHasTraits):
     """Base class representing an image with multiple channels,
     expected to be more complex than just RGB"""
