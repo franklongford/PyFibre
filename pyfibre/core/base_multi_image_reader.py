@@ -85,8 +85,8 @@ class BaseMultiImageReader(ABCHasTraits):
         """From a given list of file names, returns a dictionary where each entry
         represents the files required to create an instance of a multi image.
         Each key will be passed on as the name of the multi image, used during
-        further PyFibre operations. Each value could be passed in as the `filenames`
-        argument to the class `create_image_stack` method.
+        further PyFibre operations. Each value could be passed in as the
+        `filenames` argument to the class `create_image_stack` method.
 
         Returns
         -------
