@@ -34,8 +34,8 @@ setup(
     long_description=README_TEXT,
     packages=find_packages(),
     entry_points={
-        'gui_scripts': ['PyFibre = pyfibre.cli.app:pyfibre',
-                        'PyFibre_GUI = pyfibre.gui.app:pyfibre'],
+        'gui_scripts': ['PyFibre = pyfibre.cli.__main__:pyfibre',
+                        'PyFibre_GUI = pyfibre.gui.__main__:pyfibre'],
         "pyfibre.plugins": [
                     "shg_pl_trans = "
                     "pyfibre.shg_pl_trans.shg_pl_trans_plugin"

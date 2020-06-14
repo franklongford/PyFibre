@@ -45,7 +45,7 @@ class PyFibreRunner(HasStrictTraits):
         ----------
         image_dictionary: dict
             Contains file sets corresponding to each BaseMultiImage to
-            be analyses
+            be analysed
         analyser: BaseAnalyser
             Contains reference to MultiImage and analysis script
             to be performed

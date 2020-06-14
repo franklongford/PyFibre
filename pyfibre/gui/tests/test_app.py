@@ -1,7 +1,7 @@
 from unittest import mock, TestCase
 import os
 
-from pyfibre.gui.app import run
+from pyfibre.gui.__main__ import run
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
 
 
@@ -16,7 +16,7 @@ class TestRun(TestCase):
     def test_main(self):
 
         try:
-            with mock.patch('pyfibre.gui.app.PyFibreGUI') as mock_pyfibre:
+            with mock.patch('pyfibre.gui.__main__.PyFibreGUI') as mock_pyfibre:
                 mock_pyfibre.side_effect = mock_pyfibre_constructor
 
                 run(debug=False,
