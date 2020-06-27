@@ -2,12 +2,13 @@ import logging
 import os
 
 from envisage.ui.tasks.api import TasksApplication
+from pyface.image_resource import ImageResource
 from pyface.tasks.api import TaskWindowLayout
+from pyface.api import SplashScreen
 from traits.api import (
     Tuple, Int, List, Bool
 )
 
-from pyfibre.gui.pyfibre_main_task import PyFibreMainTask
 
 BACKGROUND_COLOUR = '#d8baa9'
 logger = logging.getLogger(__name__)
@@ -20,6 +21,8 @@ class PyFibreGUI(TasksApplication):
     name = 'PyFibre GUI'
 
     window_size = Tuple((1680, 1050))
+
+    splash_screen = SplashScreen(image=ImageResource("images/splash"))
 
     # The default window-level layout for the application.
     default_layout = List(TaskWindowLayout)
@@ -37,31 +40,6 @@ class PyFibreGUI(TasksApplication):
             active_task='pyfibre.pyfibre_main_task',
             size=self.window_size
         )]
-
-    # FIXME: This isn't needed if the bug in traitsui/qt4/ui_panel.py is fixed
-    def _application_exiting_fired(self):
-        self._remove_tasks()
-
-    def _remove_tasks(self):
-        """Removes the task elements from all windows in the application.
-        Part of a workaround for a bug in traitsui/qt4/ui_panel.py where
-        sizeHint() would be called, even when a Widget was already destroyed"""
-        for window in self.windows:
-            tasks = window.tasks
-            for task in tasks:
-                if isinstance(task, PyFibreMainTask):
-                    task.exit_task()
-                window.remove_task(task)
-
-    # FIXME: If the underlying envisage TasksApplication function is fixed to
-    #        work correctly, this will not be needed.
-    def create_window(self, layout, restore, **traits):
-        """ Creates a new TaskWindow.
-        """
-        window = super(PyFibreGUI, self).create_window(
-            layout, not restore, **traits
-        )
-        return window
 
     def _load_state(self):
         super(PyFibreGUI, self)._load_state()
