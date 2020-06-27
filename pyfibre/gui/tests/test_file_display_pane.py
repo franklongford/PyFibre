@@ -17,8 +17,8 @@ class TestFileDisplayPane(TestCase):
     def setUp(self):
 
         self.file_display = FileDisplayPane(
-            supported_readers={'Probe': ProbeMultiImageReader(),},
-            supported_parsers={'Probe': ProbeParser(),}
+            supported_readers={'Probe': ProbeMultiImageReader()},
+            supported_parsers={'Probe': ProbeParser()}
         )
         self.file_path = test_image_path
 

@@ -135,7 +135,7 @@ class SHGReader(BaseMultiImageReader):
     def get_multi_image_class(self):
         return SHGImage
 
-    def get_file_sets(self):
+    def get_supported_file_sets(self):
         """Returns class of IFileSets that will be supported."""
         return [SHGPLTransFileSet]
 

@@ -67,7 +67,7 @@ class PyFibreApplication(Application):
 
         file_sets = []
         for label, parser in self.supported_parsers.items():
-            file_sets += parser.get_file_sets(input_files)
+            file_sets += parser.get_supported_file_sets(input_files)
 
         for label, reader in self.supported_readers.items():
 

@@ -350,8 +350,6 @@ class SHGAnalyser(BaseMultiImageAnalyser):
         self._clear_attr()
         self.make_directories()
 
-        self.multi_image.preprocess_images()
-
         # Load or create list of FibreNetwork instances
         if network:
             self.network_analysis(

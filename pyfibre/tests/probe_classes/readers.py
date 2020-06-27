@@ -11,7 +11,7 @@ class ProbeMultiImageReader(BaseMultiImageReader):
     def get_multi_image_class(self):
         return ProbeFixedStackImage
 
-    def get_file_sets(self):
+    def get_supported_file_sets(self):
         return [ProbeFileSet]
 
     def get_filenames(self, file_set):

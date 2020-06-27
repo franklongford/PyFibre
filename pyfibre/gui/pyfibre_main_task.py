@@ -97,7 +97,7 @@ class PyFibreMainTask(Task):
         self.supported_analysers = {}
 
         for factory in self.multi_image_factories:
-            self.supported_readers[factory.label] = factory.create_parser()
+            self.supported_parsers[factory.label] = factory.create_parser()
             self.supported_readers[factory.label] = factory.create_reader()
             self.supported_analysers[factory.label] = factory.create_analyser()
 
@@ -123,7 +123,8 @@ class PyFibreMainTask(Task):
 
     def _file_display_pane_default(self):
         return FileDisplayPane(
-            supported_readers=self.supported_readers)
+            supported_readers=self.supported_readers,
+            supported_parsers=self.supported_parsers)
 
     def _viewer_pane_default(self):
         return ViewerPane()

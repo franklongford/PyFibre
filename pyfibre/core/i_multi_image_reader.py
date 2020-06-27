@@ -15,6 +15,9 @@ class IMultiImageReader(Interface):
     def load_multi_image(self, file_set):
         """Image loader for MultiImage classes"""
 
+    def get_supported_file_sets(self):
+        """Returns class of IFileSets that will be supported."""
+
     def get_filenames(self, file_set):
         """From a collection of files in a FileSet, yield each file that
         should be used

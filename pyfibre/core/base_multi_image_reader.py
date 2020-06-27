@@ -34,7 +34,7 @@ class BaseMultiImageReader(ABCHasTraits):
         """Overloads the super class to set private traits"""
         super(BaseMultiImageReader, self).__init__(*args, **kwargs)
         self._multi_image_class = self.get_multi_image_class()
-        self._supported_file_sets = self.get_file_sets()
+        self._supported_file_sets = self.get_supported_file_sets()
 
     def create_image_stack(self, filenames):
         """From a list of file names, return a list of numpy arrays
@@ -90,7 +90,7 @@ class BaseMultiImageReader(ABCHasTraits):
         """Returns class of IMultiImage that will be loaded."""
 
     @abstractmethod
-    def get_file_sets(self):
+    def get_supported_file_sets(self):
         """Returns class of IFileSets that will be supported."""
 
     @abstractmethod
