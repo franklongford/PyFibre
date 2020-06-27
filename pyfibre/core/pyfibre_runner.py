@@ -36,14 +36,14 @@ class PyFibreRunner(HasStrictTraits):
     #: Toggles creation of figures
     save_figures = Bool(False)
 
-    def run(self, image_dictionary, analyser, reader):
+    def run(self, file_sets, analyser, reader):
         """Generator that returns databases of metrics from each image
         in dictionary. Analyses input image by calculating metrics and
         segmenting via FIRE algorithm
 
         Parameters
         ----------
-        image_dictionary: dict
+        file_sets: list of IFileSet
             Contains file sets corresponding to each BaseMultiImage to
             be analysed
         analyser: BaseAnalyser
@@ -58,21 +58,21 @@ class PyFibreRunner(HasStrictTraits):
             Calculated metrics for further analysis
         """
 
-        for prefix, filenames in image_dictionary.items():
+        for file_set in file_sets:
 
             try:
-                multi_image = reader.load_multi_image(filenames, prefix)
+                multi_image = reader.load_multi_image(file_set)
             except (ImportError, WrongFileTypeError):
-                logger.info(f'Cannot read image data for {filenames}')
+                logger.info(f'Cannot read image data for {file_set}')
                 continue
 
             analyser.multi_image = multi_image
 
             try:
-                logger.info(f"Processing image data for {filenames}")
+                logger.info(f"Processing image data for {file_set}")
                 databases = analyser.image_analysis(self)
             except Exception:
-                logger.info(f'Cannot analyse image data for {filenames}')
+                logger.info(f'Cannot analyse image data for {file_set}')
                 continue
 
             yield databases

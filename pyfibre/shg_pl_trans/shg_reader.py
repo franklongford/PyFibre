@@ -1,4 +1,3 @@
-import copy
 import json
 import logging
 
@@ -10,7 +9,7 @@ from pyfibre.core.base_multi_image_reader import (
     BaseMultiImageReader)
 
 from .shg_image import SHGImage
-from .utils import filter_input_files, create_image_dictionary
+from .shg_pl_trans_parser import SHGPLTransFileSet
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +135,13 @@ class SHGReader(BaseMultiImageReader):
     def get_multi_image_class(self):
         return SHGImage
 
+    def get_file_sets(self):
+        """Returns class of IFileSets that will be supported."""
+        return [SHGPLTransFileSet]
+
+    def get_filenames(self, file_set):
+        yield file_set.registry['SHG']
+
     def _format_image(self, image, minor_axis=None):
         """Transform image to normalised float array and average
         over any stack"""
@@ -152,15 +158,6 @@ class SHGReader(BaseMultiImageReader):
                 image[index] = channel / channel.max()
 
         return img_as_float(image)
-
-    def collate_files(self, input_files):
-
-        input_files = filter_input_files(copy.copy(input_files))
-
-        image_dictionary = create_image_dictionary(
-            input_files, 'shg')
-
-        return image_dictionary
 
     def load_image(self, filename):
 

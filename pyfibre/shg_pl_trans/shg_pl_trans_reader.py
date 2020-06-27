@@ -1,8 +1,5 @@
-import copy
-
 from .shg_pl_trans_image import SHGPLTransImage
 from .shg_reader import SHGReader
-from .utils import filter_input_files, create_image_dictionary
 
 
 class SHGPLTransReader(SHGReader):
@@ -12,21 +9,12 @@ class SHGPLTransReader(SHGReader):
     def get_multi_image_class(self):
         return SHGPLTransImage
 
-    def collate_files(self, input_files):
-
-        input_files = filter_input_files(copy.copy(input_files))
-
-        single_file_dictionary = create_image_dictionary(
-            input_files, 'pl-shg')
-
-        multi_file_dictionary = create_image_dictionary(
-            input_files, 'shg')
-        create_image_dictionary(
-            input_files, 'pl', multi_file_dictionary)
-
-        multi_file_dictionary.update(single_file_dictionary)
-
-        return multi_file_dictionary
+    def get_filenames(self, file_set):
+        try:
+            yield file_set.registry['SHG-PL-Trans']
+        except KeyError:
+            for image_type in ['SHG', 'PL-Trans']:
+                yield file_set.registry[image_type]
 
     def create_image_stack(self, filenames):
         """Overloads parent method to ensure ordering

@@ -2,6 +2,7 @@ import numpy as np
 from skimage.external.tifffile import TiffFile
 
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
+from pyfibre.shg_pl_trans.shg_pl_trans_parser import SHGPLTransFileSet
 from pyfibre.shg_pl_trans.tests.fixtures import (
     directory,
     test_shg_image_path,
@@ -75,6 +76,10 @@ class TestSHGReader(PyFibreTestCase):
     def setUp(self):
         self.reader = SHGReader()
         self.filenames = [test_shg_image_path]
+        self.file_set = SHGPLTransFileSet(
+            prefix='/some/path/test-shg',
+            registry={'SHG': test_shg_image_path}
+        )
 
     def test_can_load(self):
 
@@ -119,18 +124,9 @@ class TestSHGReader(PyFibreTestCase):
             image
         )
 
-    def test_collate_files(self):
-        image_dict = self.reader.collate_files(self.filenames)
-
-        self.assertDictEqual(
-            {f'{directory}/test-pyfibre': [test_shg_image_path]},
-            image_dict
-        )
-
     def test_load_multi_image(self):
 
-        multi_image = self.reader.load_multi_image(
-            self.filenames, '/some/path/test-shg')
+        multi_image = self.reader.load_multi_image(self.file_set)
         self.assertEqual('test-shg', multi_image.name)
         self.assertEqual('/some/path', multi_image.path)
         self.assertEqual((200, 200), multi_image.shape)

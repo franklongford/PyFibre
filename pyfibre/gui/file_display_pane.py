@@ -2,8 +2,8 @@ from pyface.tasks.api import TraitsDockPane
 from pyface.api import ImageResource
 
 from traits.api import (
-    HasTraits, List, Unicode, Button, File, Dict,
-    Int, Property, Str
+    HasTraits, List, Button, File, Dict,
+    Int, Property, Str, Instance
 )
 from traitsui.api import (
     View, Item, Group, TableEditor, ObjectColumn,
@@ -13,6 +13,8 @@ from traitsui.api import (
 
 from pyfibre.io.utilities import parse_file_path
 from pyfibre.core.base_multi_image_reader import BaseMultiImageReader
+from pyfibre.core.base_file_parser import BaseFileParser
+from pyfibre.core.i_file_parser import IFileSet
 
 
 def horizontal_centre(item_or_group):
@@ -21,11 +23,16 @@ def horizontal_centre(item_or_group):
 
 class TableRow(HasTraits):
 
-    name = Unicode()
+    name = Property(Str)
 
     tag = Str()
 
-    file_names = List(File)
+    file_set = Instance(IFileSet)
+
+    def _get_name(self):
+        if self.file_set is not None:
+            return self.file_set.prefix
+        return ''
 
 
 class FileDisplayPane(TraitsDockPane):
@@ -56,9 +63,11 @@ class FileDisplayPane(TraitsDockPane):
 
     file_search = File()
 
-    key = Unicode()
+    key = Str()
 
     supported_readers = Dict(Str, BaseMultiImageReader)
+
+    supported_parsers = Dict(Str, BaseFileParser)
 
     #: The PyFibre logo. Stored at images/icon.ico
     image = ImageResource('icon.ico')
@@ -162,19 +171,18 @@ class FileDisplayPane(TraitsDockPane):
         """
 
         input_prefixes = [row.name for row in self.file_table]
-
         input_files = parse_file_path(file_path)
 
-        for tag, reader in self.supported_readers.items():
-            image_dictionary = reader.collate_files(input_files)
-            for prefix, file_names in image_dictionary.items():
-                if prefix not in input_prefixes:
+        for tag, parser in self.supported_parsers.items():
+            file_sets = parser.get_file_sets(input_files)
+            for file_set in file_sets:
+                if file_set.prefix not in input_prefixes:
                     try:
-                        reader.create_image_stack(file_names)
+                        reader = self.supported_readers[tag]
+                        reader.load_multi_image(file_set)
                         table_row = TableRow(
-                            name=prefix,
-                            tag=tag,
-                            file_names=file_names)
+                            file_set=file_set,
+                            tag=tag)
                         self.file_table.append(table_row)
                     except Exception:
                         pass
