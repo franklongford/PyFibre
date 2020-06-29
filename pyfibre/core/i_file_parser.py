@@ -1,4 +1,4 @@
-from traits.api import Interface, Str, Dict, File
+from traits.api import Interface, Str
 
 
 class IFileSet(Interface):
@@ -6,8 +6,6 @@ class IFileSet(Interface):
     image files"""
 
     prefix = Str
-
-    registry = Dict(Str, File)
 
 
 class IFileParser(Interface):
@@ -35,10 +33,10 @@ class IFileParser(Interface):
         >>> file_parser = MyFileParser()
 
         If each "image" file path could be loaded in as a separate MultiImage,
-        the return value of `collate_files` would be:
+        the return value of `collate_files` could be:
 
         >>> file_sets = file_parser.get_supported_file_sets(file_list)
-        >>> print(file_sets)
+        >>> print(file_sets.registry)
         ... {"a file name": ['/path/to/an/image'],
         ...  "another file name": ['/path/to/another/image']}
 
@@ -46,7 +44,7 @@ class IFileParser(Interface):
         a single MultiImage, then a return value could be:
 
         >>> file_sets = file_parser.get_supported_file_sets(file_list)
-        >>> print(file_sets)
+        >>> print(file_sets.registry)
         ... {"a file name": ['/path/to/an/image',
         ...                  '/path/to/another/image']}
 

@@ -1,6 +1,6 @@
 import copy
 
-from traits.api import Dict, Str
+from traits.api import Dict, Str, File
 
 from pyfibre.core.base_file_parser import BaseFileParser, FileSet
 
@@ -8,7 +8,9 @@ from .utils import filter_input_files, get_files_prefixes
 
 
 class SHGPLTransFileSet(FileSet):
-    pass
+
+    #: Collection of file paths with labels
+    registry = Dict(Str, File)
 
 
 class SHGPLTransParser(BaseFileParser):

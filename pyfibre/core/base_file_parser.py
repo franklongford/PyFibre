@@ -1,8 +1,7 @@
 from abc import abstractmethod
 
 from traits.api import (
-    ABCHasStrictTraits, HasStrictTraits, Str, Dict, File,
-    provides)
+    ABCHasStrictTraits, HasStrictTraits, Str, provides)
 
 from .i_file_parser import IFileParser, IFileSet
 
@@ -15,13 +14,9 @@ class FileSet(HasStrictTraits):
     # Reference name for MultiImage
     prefix = Str
 
-    #: Collection of file paths with labels
-    registry = Dict(Str, File)
-
     def __repr__(self):
         return (f"{self.__class__.__name__}("
-                f"prefix='{self.prefix}', "
-                f"registry={self.registry})")
+                f"prefix='{self.prefix}')")
 
 
 @provides(IFileParser)
