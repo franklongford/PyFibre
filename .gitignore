@@ -3,6 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.pkl
+*.h5
+*.xls
+*.DS_Store
+*.prof
+*.pstats
 
 # C extensions
 *.so
@@ -48,6 +53,8 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+pyfibre/tests/fixtures/*/
+pyfibre/shg_pl_trans/tests/fixtures/*/
 
 # Translations
 *.mo
@@ -66,7 +73,8 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+docs/build/
+docs/source/api
 
 # PyBuilder
 target/
@@ -104,3 +112,9 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# git
+.idea/
+
+# installation
+version.py
