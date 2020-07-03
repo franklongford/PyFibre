@@ -9,13 +9,14 @@ from pyface.tasks.api import TaskWindow
 from traits_futures.toolkit_support import toolkit
 
 from pyfibre.core.pyfibre_runner import PyFibreRunner
-from pyfibre.tests.dummy_classes import DummyPyFibreGUI
-from pyfibre.tests.probe_classes.gui_objects import ProbeTableRow
-from pyfibre.tests.probe_classes.factories import ProbeMultiImageFactory
 from pyfibre.gui.pyfibre_main_task import PyFibreMainTask, run_analysis
 from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
+from pyfibre.tests.dummy_classes import DummyPyFibreGUI
+from pyfibre.tests.probe_classes.gui_objects import ProbeTableRow
+from pyfibre.tests.probe_classes.factories import ProbeMultiImageFactory
+from pyfibre.tests.probe_classes.parsers import ProbeFileSet
 
 GuiTestAssistant = toolkit("gui_test_assistant:GuiTestAssistant")
 
@@ -24,8 +25,8 @@ FILE_OPEN_PATH = "pyfibre.io.database_io.save_database"
 ITERATOR_PATH = 'pyfibre.core.pyfibre_runner.PyFibreRunner.run'
 
 
-def dummy_iterate_images(dictionary, analyser, reader):
-    for key, value in dictionary.items():
+def dummy_iterate_images(file_sets, analyser, reader):
+    for _ in file_sets:
         yield [pd.DataFrame] * len(analyser.database_names)
 
 
@@ -73,6 +74,7 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
         super(GuiTestAssistant, self).setUp()
         self.main_task = get_probe_pyfibre_tasks()
         self.table_row = ProbeTableRow()
+        self.file_sets = [ProbeFileSet()]
 
     @contextlib.contextmanager
     def long_running_task(self, executor):
@@ -118,14 +120,7 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
             mock_iterate.side_effect = dummy_iterate_images
 
             run_analysis(
-                {}, PyFibreRunner(),
-                self.main_task.supported_analysers,
-                self.main_task.supported_readers)
-
-            mock_iterate.assert_not_called()
-
-            run_analysis(
-                {'Probe': {'some/file_prefix': ['some/file/path']}},
+                self.file_sets,
                 PyFibreRunner(),
                 self.main_task.supported_analysers,
                 self.main_task.supported_readers)

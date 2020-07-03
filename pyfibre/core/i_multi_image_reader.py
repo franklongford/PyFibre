@@ -1,5 +1,6 @@
-from traits.api import Interface, Type
+from traits.api import Interface, Type, List
 
+from .i_file_parser import IFileSet
 from .i_multi_image import IMultiImage
 
 
@@ -7,20 +8,20 @@ class IMultiImageReader(Interface):
     """File reader that loads a stack of Tiff images, represented
     by a IMultiImage subclass"""
 
+    _supported_file_sets = List(IFileSet)
+
     _multi_image_class = Type(IMultiImage)
 
-    def load_multi_image(self, filenames, prefix):
+    def load_multi_image(self, file_set):
         """Image loader for MultiImage classes"""
 
-    def collate_files(self, filenames):
-        """Returns a dictionary of file sets that can be loaded
-        in as an image stack
+    def get_supported_file_sets(self):
+        """Returns class of IFileSets that will be supported."""
 
-        Returns
-        -------
-        image_dict: dict(str, list of str)
-            Dictionary containing file references as keys and a list of
-            files able to be loaded in as an image stack as values"""
+    def get_filenames(self, file_set):
+        """From a collection of files in a FileSet, yield each file that
+        should be used
+        """
 
     def create_image_stack(self, filenames):
         """Return a list of numpy arrays suitable for the

@@ -3,6 +3,7 @@ from abc import abstractmethod
 from traits.api import ABCHasStrictTraits, Type, Str, provides
 
 from .i_multi_image_analyser import IMultiImageAnalyser
+from .i_file_parser import IFileParser
 from .i_multi_image_reader import IMultiImageReader
 from .i_multi_image_factory import IMultiImageFactory
 
@@ -25,16 +26,21 @@ class BaseMultiImageFactory(ABCHasStrictTraits):
     #: a specific image type
     analyser_class = Type(IMultiImageAnalyser)
 
+    #: Parser class, used to collate files into sets
+    parser_class = Type(IFileParser)
+
     def __init__(self, **traits):
 
         label = self.get_label()
         reader = self.get_reader()
         analyser = self.get_analyser()
+        parser = self.get_parser()
 
         super(BaseMultiImageFactory, self).__init__(
             label=label,
             reader_class=reader,
             analyser_class=analyser,
+            parser_class=parser,
             **traits
         )
 
@@ -44,13 +50,18 @@ class BaseMultiImageFactory(ABCHasStrictTraits):
 
     @abstractmethod
     def get_reader(self):
-        """Returns list of BaseMultiImageReader classes able to load
+        """Returns BaseMultiImageReader class able to load
         the BaseMultiImage class created by this factory"""
 
     @abstractmethod
     def get_analyser(self):
-        """Returns list of BaseMultiImageAnalyser classes able to analyse
+        """Returns BaseMultiImageAnalyser class able to analyse
         the BaseMultiImage class created by this factory"""
+
+    @abstractmethod
+    def get_parser(self):
+        """Returns BaseFileParser class able to collate image files
+        together"""
 
     def create_reader(self, **kwargs):
         """Public method used to return an instance of
@@ -61,3 +72,8 @@ class BaseMultiImageFactory(ABCHasStrictTraits):
         """Public method used to return an instance of
         BaseMultiImageAnalyser"""
         return self.analyser_class(**kwargs)
+
+    def create_parser(self, **kwargs):
+        """Public method used to return an instance of
+        BaseFileParser"""
+        return self.parser_class(**kwargs)

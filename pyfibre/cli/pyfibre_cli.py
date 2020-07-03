@@ -50,46 +50,35 @@ class PyFibreApplication(Application):
             **traits)
 
         factories = self.get_extensions(MULTI_IMAGE_FACTORIES)
+        self.supported_parsers = {}
         self.supported_readers = {}
         self.supported_analysers = {}
 
         for factory in factories:
+            self.supported_parsers[factory.label] = factory.create_parser()
             self.supported_readers[factory.label] = factory.create_reader()
             self.supported_analysers[factory.label] = factory.create_analyser()
 
     def _run_pyfibre(self):
 
-        image_dictionary = {
-            tag: {} for tag, _ in self.supported_readers.items()
-        }
-
         input_files = []
         for file_path in self.file_paths:
             input_files += parse_file_path(file_path, self.key)
 
+        file_sets = []
+        for label, parser in self.supported_parsers.items():
+            file_sets += parser.get_file_sets(input_files)
+
         for label, reader in self.supported_readers.items():
-            image_dictionary[label].update(
-                reader.collate_files(input_files)
-            )
 
-        for label, inner_dict in image_dictionary.items():
-
-            formatted_images = '\n'.join([
-                f'\t{key}: {value}'
-                for key, value in inner_dict.items()
-            ])
-
-            logger.info(
-                f"Analysing {label} images: \n{formatted_images}")
-
+            logger.info(f"Analysing {label} images")
             analyser = self.supported_analysers[label]
-            reader = self.supported_readers[label]
 
             image_databases = [
                 pd.DataFrame() for _ in analyser.database_names]
 
             generator = self.runner.run(
-                inner_dict, analyser, reader)
+                file_sets, analyser, reader)
 
             for databases in generator:
                 for index, database in enumerate(databases):

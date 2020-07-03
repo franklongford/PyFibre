@@ -12,8 +12,8 @@ from pyfibre.tests.probe_classes.plugins import ProbePyFibrePlugin
 ITERATOR_PATH = 'pyfibre.cli.pyfibre_cli.PyFibreRunner.run'
 
 
-def dummy_iterate_images(dictionary, analyser, reader):
-    for key, value in dictionary.items():
+def dummy_iterate_images(file_sets, analyser, reader):
+    for file_set in file_sets:
         yield [pd.Series(dtype=object)] * len(analyser.database_names)
 
 

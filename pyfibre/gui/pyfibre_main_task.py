@@ -30,12 +30,11 @@ from pyfibre.core.pyfibre_runner import (
 logger = logging.getLogger(__name__)
 
 
-def run_analysis(dictionary, runner, analysers, readers):
+def run_analysis(file_sets, runner, analysers, readers):
 
-    for image_type, inner_dict in dictionary.items():
+    for image_type, reader in readers.items():
         analyser = analysers[image_type]
-        reader = readers[image_type]
-        list(runner.run(inner_dict, analyser, reader))
+        list(runner.run(file_sets, analyser, reader))
 
 
 class PyFibreMainTask(Task):
@@ -93,10 +92,12 @@ class PyFibreMainTask(Task):
 
         super(PyFibreMainTask, self).__init__(*args, **kwargs)
 
+        self.supported_parsers = {}
         self.supported_readers = {}
         self.supported_analysers = {}
 
         for factory in self.multi_image_factories:
+            self.supported_parsers[factory.label] = factory.create_parser()
             self.supported_readers[factory.label] = factory.create_reader()
             self.supported_analysers[factory.label] = factory.create_analyser()
 
@@ -122,7 +123,8 @@ class PyFibreMainTask(Task):
 
     def _file_display_pane_default(self):
         return FileDisplayPane(
-            supported_readers=self.supported_readers)
+            supported_readers=self.supported_readers,
+            supported_parsers=self.supported_parsers)
 
     def _viewer_pane_default(self):
         return ViewerPane()
@@ -195,20 +197,18 @@ class PyFibreMainTask(Task):
     def update_selected_row(self):
         """Opens corresponding to the first item in
         selected_rows"""
-        selected_row = (
-            self.file_display_pane.selected_files[0])
+        selected_row = (self.file_display_pane.selected_files[0])
 
         image_type = selected_row.tag
-        file_names = selected_row.file_names
+        file_set = selected_row.file_set
 
         try:
             reader = self.supported_readers[image_type]
-            multi_image = reader.load_multi_image(
-                file_names, selected_row.name)
+            multi_image = reader.load_multi_image(file_set)
         except (KeyError, ImportError):
-            logger.debug(f'Cannot display image data for {file_names}')
+            logger.debug(f'Cannot display image data for {selected_row.name}')
         else:
-            logger.info(f"Displaying image data for {file_names}")
+            logger.info(f"Displaying image data for {selected_row.name}")
             self.viewer_pane.update_viewer(
                 multi_image, selected_row.name)
 
@@ -260,11 +260,7 @@ class PyFibreMainTask(Task):
 
         for indices in index_split:
             batch_rows = [file_table[index] for index in indices]
-            batch_dict = {tag: {} for tag in self.supported_readers.keys()}
-
-            for row in batch_rows:
-                batch_dict[row.tag].update(
-                    {row.name: row.file_names})
+            batch_file_sets = [row.file_set for row in batch_rows]
 
             runner = PyFibreRunner(
                 p_denoise=(self.options_pane.n_denoise,
@@ -277,7 +273,7 @@ class PyFibreMainTask(Task):
                 save_figures=self.options_pane.save_figures)
 
             future = self.traits_executor.submit_iteration(
-                run_analysis, batch_dict, runner,
+                run_analysis, batch_file_sets, runner,
                 self.supported_analysers, self.supported_readers
             )
             self.current_futures.append(future)

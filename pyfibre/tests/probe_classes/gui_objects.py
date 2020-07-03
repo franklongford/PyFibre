@@ -5,9 +5,12 @@ from pyfibre.gui.image_tab import ImageTab, NetworkImageTab
 from pyfibre.gui.segment_image_tab import SegmentImageTab
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
 from pyfibre.gui.file_display_pane import TableRow
-from pyfibre.tests.probe_classes.multi_images import ProbeMultiImage
-from pyfibre.tests.probe_classes.plugins import ProbePyFibreGUIPlugin
-from pyfibre.tests.probe_classes.objects import ProbeFibreNetwork, ProbeSegment
+
+
+from .multi_images import ProbeMultiImage
+from .parsers import ProbeFileSet
+from .plugins import ProbePyFibreGUIPlugin
+from .objects import ProbeFibreNetwork, ProbeSegment
 
 
 class ProbePyFibreGUI(PyFibreGUI):
@@ -51,7 +54,6 @@ class ProbeSegmentImageTab(SegmentImageTab):
 class ProbeTableRow(TableRow):
 
     def __init__(self, *args, **kwargs):
-        kwargs['name'] = 'probe'
         kwargs['tag'] = 'Probe'
-        kwargs['file_names'] = ['/path/to/some/file']
+        kwargs['file_set'] = ProbeFileSet()
         super().__init__(*args, **kwargs)

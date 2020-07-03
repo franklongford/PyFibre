@@ -1,6 +1,11 @@
 import os
 
 
+IMAGE_TYPES = {'SHG': '-shg',
+               'PL-Trans': '-pl',
+               'SHG-PL-Trans': '-pl-shg'}
+
+
 def filter_input_files(input_files):
 
     removed_files = []
@@ -31,11 +36,14 @@ def extract_prefix(image_name, label):
     return prefix
 
 
-def get_files_prefixes(input_files, label):
+def get_files_prefixes(input_files, image_type):
     """Get the file path and file prefix of all files
     containing label"""
+
+    label = IMAGE_TYPES[image_type]
+
     files = [filename for filename in input_files
-             if label in os.path.basename(filename).lower()]
+             if image_type == get_image_type(filename)]
     prefixes = [extract_prefix(filename, label) for filename in files]
 
     return files, prefixes
@@ -56,23 +64,3 @@ def get_image_type(image_path):
         image_type = 'Unknown'
 
     return image_type
-
-
-def create_image_dictionary(input_files, tag, image_dictionary=None):
-    """Populate image_dictionary argument using prefixes and filenames
-    of input_files list"""
-
-    if image_dictionary is None:
-        image_dictionary = {}
-
-    files, prefixes = get_files_prefixes(input_files, f"-{tag.lower()}")
-
-    for filename, prefix in zip(files, prefixes):
-
-        if prefix not in image_dictionary:
-            image_dictionary[prefix] = []
-
-        image_dictionary[prefix].append(filename)
-        input_files.remove(filename)
-
-    return image_dictionary

@@ -1,14 +1,19 @@
 from abc import abstractmethod
 import logging
 
-from traits.api import ABCHasTraits, Type, provides
+from traits.api import ABCHasTraits, List, Type, provides
 
 from pyfibre.io.utilities import get_file_names
 
+from .i_file_parser import IFileSet
 from .i_multi_image import IMultiImage
 from .i_multi_image_reader import IMultiImageReader
 
 logger = logging.getLogger(__name__)
+
+
+class WrongFileSetError(Exception):
+    pass
 
 
 class WrongFileTypeError(Exception):
@@ -20,6 +25,8 @@ class BaseMultiImageReader(ABCHasTraits):
     """File reader that loads a stack of Tiff images, represented
     by a BaseMultiImage subclass"""
 
+    _supported_file_sets = List(Type(IFileSet))
+
     #: Reference to the IMultiImage class associated with this reader
     _multi_image_class = Type(IMultiImage)
 
@@ -27,6 +34,7 @@ class BaseMultiImageReader(ABCHasTraits):
         """Overloads the super class to set private traits"""
         super(BaseMultiImageReader, self).__init__(*args, **kwargs)
         self._multi_image_class = self.get_multi_image_class()
+        self._supported_file_sets = self.get_supported_file_sets()
 
     def create_image_stack(self, filenames):
         """From a list of file names, return a list of numpy arrays
@@ -34,10 +42,6 @@ class BaseMultiImageReader(ABCHasTraits):
         image in turn and perform averaging over each stack component
         if required
         """
-
-        if isinstance(filenames, str):
-            filenames = [filenames]
-
         image_stack = []
         for filename in filenames:
 
@@ -53,8 +57,13 @@ class BaseMultiImageReader(ABCHasTraits):
 
         return image_stack
 
-    def load_multi_image(self, filenames, prefix):
+    def load_multi_image(self, file_set):
         """Image loader for MultiImage classes"""
+
+        if type(file_set) not in self._supported_file_sets:
+            raise WrongFileSetError
+
+        filenames = self.get_filenames(file_set)
 
         image_stack = self.create_image_stack(filenames)
 
@@ -64,7 +73,7 @@ class BaseMultiImageReader(ABCHasTraits):
                 f"for type {self._multi_image_class}"
             )
 
-        name, path = get_file_names(prefix)
+        name, path = get_file_names(file_set.prefix)
 
         multi_image = self._multi_image_class(
             name=name,
@@ -81,44 +90,13 @@ class BaseMultiImageReader(ABCHasTraits):
         """Returns class of IMultiImage that will be loaded."""
 
     @abstractmethod
-    def collate_files(self, filenames):
-        """From a given list of file names, returns a dictionary where each entry
-        represents the files required to create an instance of a multi image.
-        Each key will be passed on as the name of the multi image, used during
-        further PyFibre operations. Each value could be passed in as the
-        `filenames` argument to the class `create_image_stack` method.
+    def get_supported_file_sets(self):
+        """Returns class of IFileSets that will be supported."""
 
-        Returns
-        -------
-        image_dict: dict(str, list of str)
-            Dictionary containing file references as keys and a list of
-            files able to be loaded in as an image stack as values
-
-        Examples
-        --------
-        For a given list of files and multi image reader:
-
-        >>> file_list = ['/path/to/an/image',
-        ...              '/path/to/another/image',
-        ...              '/path/to/nothing']
-        >>> reader = MyMultiImageReader()
-
-        If each "image" file path could be loaded in as a separate MultiImage,
-        the return value of `collate_files` would be:
-
-        >>> image_dict = reader.collate_files(file_list)
-        >>> print(image_dict)
-        ... {"a file name": ['/path/to/an/image'],
-        ...  "another file name": ['/path/to/another/image']}
-
-        Alternatively, if both "image" file paths were required to load
-        a single MultiImage, then a return value could be:
-
-        >>> image_dict = reader.collate_files(file_list)
-        >>> print(image_dict)
-        ... {"a file name": ['/path/to/an/image',
-        ...                  '/path/to/another/image']}
-
+    @abstractmethod
+    def get_filenames(self, file_set):
+        """From a collection of files in a FileSet, yield each file that
+        should be used
         """
 
     @abstractmethod
