@@ -36,26 +36,48 @@ and requires the following methods to be implemented:
         the image_stack before analysis.
         """
 
+
+``BaseFileParser``
+^^^^^^^^^^^^^^^^^^
+
+Collates sets of image files together into ``FileSet`` objects, which can be used to
+create ``BaseMultiImage`` objects by loading single or multiple files.
+
+.. code-block:: python
+
+    def get_file_sets(self, filenames):
+        """From a given list of file names, returns a dictionary where each entry
+        represents the files required to create an instance of a multi image.
+        Each key will be passed on as the name of the multi image, used during
+        further PyFibre operations. Each value could be passed in as the
+        `filenames` argument to the class `create_image_stack` method.
+
+        Returns
+        -------
+        file_sets: list of FileSet
+            List containing FileSet objects that hold a collection of files to
+            be loaded in as a single image
+        """
+
+
 ``BaseMultiImageReader``
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Is able to load an image file or a set of images files as a ``BaseMultiImage`` object. Provides the ``IMultiImageReader``
+Is able to take a ``FileSet`` object and use it to load an image file or a set of
+images files as a ``BaseMultiImage`` object. Provides the ``IMultiImageReader``
 interface, and requires the following methods to be implemented
 
 .. code-block:: python
 
-    def collate_files(self, filenames):
-        """From a given list of file names, returns a dictionary where each entry
-        represents the files required to create an instance of a multi image.
-        Each key will be passed on as the name of the multi image, used during
-        further PyFibre operations. Each value could be passed in as the `filenames`
-        argument to the class `create_image_stack` method.
+    def get_multi_image_class(self):
+        """Returns class of IMultiImage that will be loaded."""
 
-        Returns
-        -------
-        image_dict: dict(str, list of str)
-            Dictionary containing file references as keys and a list of
-            files able to be loaded in as an image stack as values
+    def get_supported_file_sets(self):
+        """Returns class of IFileSets that will be supported."""
+
+    def get_filenames(self, file_set):
+        """From a collection of files in a FileSet, yield each file that
+        should be used
         """
 
     def load_image(self, filename):
@@ -84,6 +106,23 @@ and requires the following methods to be implemented
     def create_figures(self, *args, **kwargs):
         """Create figures from multi-image components that can be
         generated upon end of analysis"""
+
+
+``BaseMultiImageViewer``
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Contributes UI objects that can be used to display ``BaseMultiImage``s and the results of their analysis
+in the PyFibre GUI.
+
+.. code-block:: python
+
+    def create_display_tabs(self):
+        """Returns a list of objects providing the IDisplayTab
+        interface"""
+
+    def update_display_tabs(self):
+        """Updates each display tab when called"""
+
 
 Creating a Plugin
 ~~~~~~~~~~~~~~~~~
