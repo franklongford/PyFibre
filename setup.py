@@ -23,9 +23,6 @@ def write_version_py():
 
 write_version_py()
 
-with open('requirements.txt', 'r') as infile:
-    REQUIREMENTS = infile.readlines()
-
 setup(
     name='PyFibre',
     version=VERSION,
@@ -40,6 +37,5 @@ setup(
                     "shg_pl_trans = "
                     "pyfibre.shg_pl_trans.shg_pl_trans_plugin"
                     ":SHGPLTransPlugin"]
-    },
-    install_requires=REQUIREMENTS
+    }
 )
