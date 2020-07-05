@@ -60,3 +60,6 @@ class ViewerPane(TraitsTaskPane):
             viewer = self._basic_viewer
         viewer.update_viewer(self.selected_image)
         return viewer
+
+    def update(self):
+        self.selected_viewer.update_viewer(self.selected_image)

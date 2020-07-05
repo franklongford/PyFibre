@@ -218,7 +218,7 @@ class PyFibreMainTask(Task):
     @on_trait_change('run_enabled')
     def update_ui(self):
         if self.run_enabled:
-            self.viewer_pane.update_image()
+            self.viewer_pane.update()
 
     @on_trait_change('current_futures:result_event')
     def _report_result(self, result):

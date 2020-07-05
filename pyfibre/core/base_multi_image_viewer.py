@@ -81,6 +81,10 @@ class BaseMultiImageViewer(ABCHasStrictTraits):
     def _display_tabs_default(self):
         return self.create_display_tabs()
 
+    def _selected_tab_default(self):
+        if self.display_tabs:
+            return self.display_tabs[0]
+
     def update_viewer(self, multi_image):
         """Sets the multi_image attribute and updates all display tabs"""
 
