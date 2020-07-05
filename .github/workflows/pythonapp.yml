@@ -51,5 +51,7 @@ jobs:
         edm run -- python -m ci flake8
     - name: Perform integration test
       run: |
+        sudo /usr/bin/X :0&
+        export DISPLAY=:0
         edm run -- python -m ci shell
         edm run -e pyfibre-py36 -- PyFibre --test
