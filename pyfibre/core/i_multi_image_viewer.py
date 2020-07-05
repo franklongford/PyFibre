@@ -1,5 +1,5 @@
 from chaco.api import Plot
-from traits.api import Interface, Instance, List, Type, Str
+from traits.api import Interface, Instance, List, Str
 
 from .base_multi_image import BaseMultiImage
 

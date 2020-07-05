@@ -29,4 +29,3 @@ class TestViewerPane(TestCase):
         self.assertEqual(
             self.viewer_pane.selected_image,
             self.viewer.multi_image)
-
