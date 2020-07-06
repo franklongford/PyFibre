@@ -1,14 +1,14 @@
 from unittest import TestCase
 
-from pyfibre.gui.viewer_pane import (
-    ViewerPane
-)
+from traits.testing.unittest_tools import UnittestTools
+
+from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.tests.probe_classes.gui_objects import ProbeTableRow
 from pyfibre.tests.probe_classes.multi_images import ProbeMultiImage
 from pyfibre.tests.probe_classes.viewers import ProbeMultiImageViewer
 
 
-class TestViewerPane(TestCase):
+class TestViewerPane(UnittestTools, TestCase):
 
     def setUp(self):
 
@@ -29,3 +29,10 @@ class TestViewerPane(TestCase):
         self.assertEqual(
             self.viewer_pane.selected_image,
             self.viewer.multi_image)
+
+    def test_update(self):
+        display_tab = self.viewer.display_tabs[0]
+        self.viewer_pane.selected_image = self.multi_image
+
+        with self.assertTraitChanges(display_tab, "updated"):
+            self.viewer_pane.update()

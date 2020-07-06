@@ -212,7 +212,7 @@ class PyFibreMainTask(Task):
         except (KeyError, ImportError):
             logger.debug(f'Cannot display image data for {selected_row.name}')
         else:
-            logger.info(f"Displaying image data for {selected_row.name}")
+            logger.info(f"Displaying image data for {multi_image.name}")
             self.viewer_pane.selected_image = multi_image
 
     @on_trait_change('run_enabled')
