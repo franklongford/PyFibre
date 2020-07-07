@@ -6,7 +6,8 @@ from chaco.tools.pan_tool import PanTool
 from chaco.default_colormaps import binary, reverse
 from enable.component_editor import ComponentEditor
 from traits.api import (
-    Instance, Function, List, Int, Property, Str, Dict, Enum)
+    Instance, Function, List, Int, Property, Str, Dict, Enum,
+    cached_property)
 from traitsui.api import Item, View, EnumEditor
 
 from pyfibre.core.base_multi_image import BaseMultiImage
@@ -55,6 +56,7 @@ class ImageTab(BaseDisplayTab):
             resizable=True
         )
 
+    @cached_property
     def _get_plot(self):
         return super(ImageTab, self)._get_plot()
 

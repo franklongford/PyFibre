@@ -109,7 +109,7 @@ class SHGPLTransViewer(BaseMultiImageViewer):
 
     @on_trait_change('selected_tab')
     def update_tab(self, object, name, old, new):
-        self.selected_tab.multi_image = self.selected_image
+        self.selected_tab.multi_image = self.multi_image
         self.selected_tab.selected_label = old.selected_label
 
     def create_display_tabs(self):
@@ -132,3 +132,4 @@ class SHGPLTransViewer(BaseMultiImageViewer):
 
         self._update_shg_image_tabs(filename, image_name)
         self._update_pl_image_tabs(filename, image_name)
+        self.selected_tab.multi_image = self.multi_image
