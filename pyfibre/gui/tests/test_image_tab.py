@@ -7,6 +7,8 @@ from pyfibre.tests.probe_classes.gui_objects import (
     ProbeImageTab, ProbeNetworkImageTab, ProbeSegmentImageTab)
 from pyfibre.tests.probe_classes.multi_images import (
     ProbeMultiImage)
+from pyfibre.tests.probe_classes.objects import (
+    ProbeFibreNetwork, ProbeSegment)
 
 
 class TestImageTab(UnittestTools, TestCase):
@@ -46,7 +48,7 @@ class TestImageTab(UnittestTools, TestCase):
             image_tab.multi_image = self.multi_image
 
 
-class TestNetworkImageTab(TestCase):
+class TestNetworkImageTab(UnittestTools, TestCase):
 
     def setUp(self):
 
@@ -56,8 +58,14 @@ class TestNetworkImageTab(TestCase):
 
         self.assertIsNotNone(self.image_tab.networks)
 
+    def test_plot_data(self):
+        new_networks = [ProbeFibreNetwork().graph]
 
-class TestSegmentImageTab(TestCase):
+        with self.assertTraitChanges(self.image_tab, "plot_data"):
+            self.image_tab.networks = new_networks
+
+
+class TestSegmentImageTab(UnittestTools, TestCase):
 
     def setUp(self):
 
@@ -70,3 +78,9 @@ class TestSegmentImageTab(TestCase):
             len(self.image_tab.segments),
             len(self.image_tab.regions)
         )
+
+    def test_plot_data(self):
+        new_segments = [ProbeSegment()]
+
+        with self.assertTraitChanges(self.image_tab, "plot_data"):
+            self.image_tab.segments = new_segments

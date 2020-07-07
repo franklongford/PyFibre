@@ -5,7 +5,7 @@ from pyfibre.tests.probe_classes.readers import ProbeMultiImageReader
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
 
-class TestMultiImageReader(PyFibreTestCase):
+class TestBaseMultiImageReader(PyFibreTestCase):
 
     def setUp(self):
         self.reader = ProbeMultiImageReader()

@@ -95,11 +95,14 @@ class PyFibreMainTask(Task):
         self.supported_parsers = {}
         self.supported_readers = {}
         self.supported_analysers = {}
+        self.supported_viewers = {}
 
         for factory in self.multi_image_factories:
             self.supported_parsers[factory.label] = factory.create_parser()
             self.supported_readers[factory.label] = factory.create_reader()
             self.supported_analysers[factory.label] = factory.create_analyser()
+            key = factory.multi_image_class
+            self.supported_viewers[key] = factory.create_viewer()
 
         self.image_databases = {
             tag: [None for _ in analyser.database_names]
@@ -127,7 +130,8 @@ class PyFibreMainTask(Task):
             supported_parsers=self.supported_parsers)
 
     def _viewer_pane_default(self):
-        return ViewerPane()
+        return ViewerPane(
+            supported_viewers=self.supported_viewers)
 
     def _menu_bar_default(self):
         """A menu bar with functions relevant to the Setup task.
@@ -208,14 +212,13 @@ class PyFibreMainTask(Task):
         except (KeyError, ImportError):
             logger.debug(f'Cannot display image data for {selected_row.name}')
         else:
-            logger.info(f"Displaying image data for {selected_row.name}")
-            self.viewer_pane.update_viewer(
-                multi_image, selected_row.name)
+            logger.info(f"Displaying image data for {multi_image.name}")
+            self.viewer_pane.selected_image = multi_image
 
     @on_trait_change('run_enabled')
     def update_ui(self):
         if self.run_enabled:
-            self.viewer_pane.update_image()
+            self.viewer_pane.update()
 
     @on_trait_change('current_futures:result_event')
     def _report_result(self, result):
