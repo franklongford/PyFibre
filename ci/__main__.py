@@ -10,21 +10,22 @@ PYFIBRE_REPO = os.path.abspath('.')
 
 EDM_CORE_DEPS = [
     'Click==7.0-1',
-    "chaco==4.8.0-2",
-    "enable==4.8.1-1",
-    "envisage==4.9.0-1",
-    'pytables==3.5.1-1',
-    'traits==5.2.0-1',
-    'traitsui==6.1.3-4',
-    "pyface==6.1.2-4",
-    "pygments==2.2.0-1",
-    "pyqt>=4.11.4-7",
-    "qt>=4.8.7-10",
-    "sip>=4.18.1-1",
-    "pyzmq==16.0.0-7",
-    "swig==3.0.11-2",
+    "envisage==4.9.2-3",
     "stevedore==1.29.0-7",
-    "traits_futures==0.1.0-16"]
+    'pytables==3.5.1-4',
+    'traits==6.1.0-1',
+    'traitsui==7.0.0-2',
+    "pyface==7.0.0-3",
+    "pygments>=2.2.0-1",
+    "pyqt5>=5.14.2-3",
+    "chaco==4.8.0-4",
+    "traits_futures==0.1.0-20",
+    "scikits.image==0.16.2-3",
+    "xlwt==1.2.0-1",
+    "xlrd==1.2.0-1",
+    "matplotlib==3.2.1-2",
+    "networkx>=2.2-2"
+]
 
 EDM_DEV_DEPS = ["flake8==3.7.7-1",
                 "testfixtures==4.10.0-1",
@@ -37,6 +38,8 @@ with open('docs/requirements.txt', 'r') as infile:
 
 # We pin to a version of Traits Futures with updated GuiTestAssistant
 PIP_DEPS = [
+    "scikit-learn==0.23.0",
+    "pandas>=1.0.0",
     "git+https://github.com/enthought/traits-futures.git"
     "@9f5973f330bcf5bf7d813439bb817c3e7eadd6ad"
 ]
@@ -91,6 +94,9 @@ def build_env(python_version):
         + EDM_CORE_DEPS + EDM_DEV_DEPS
     )
 
+    edm_run(
+        env_name, ['pip', 'install'] + PIP_DEPS + PIP_DOCS_DEPS)
+
 
 @cli.command(
     name="install",
@@ -100,8 +106,6 @@ def build_env(python_version):
 def install(python_version):
 
     env_name = get_env_name(python_version)
-
-    edm_run(env_name, ['pip', 'install'] + PIP_DEPS + PIP_DOCS_DEPS)
 
     print('Installing PyFibre to edm environment')
     edm_run(env_name, ['pip', 'install', '-e', '.'])
