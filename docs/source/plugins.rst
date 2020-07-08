@@ -111,7 +111,7 @@ and requires the following methods to be implemented
 ``BaseMultiImageViewer``
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Contributes UI objects that can be used to display ``BaseMultiImage``s and the results of their analysis
+Contributes UI objects that can be used to display ``BaseMultiImage`` objects and the results of their analysis
 in the PyFibre GUI.
 
 .. code-block:: python
