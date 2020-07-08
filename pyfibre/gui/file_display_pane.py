@@ -117,13 +117,6 @@ class FileDisplayPane(TraitsDockPane):
                           editor=image_editor
                           )
                 ),
-                HGroup(
-                    Item('key',
-                         editor=TextEditor(),
-                         style='simple'),
-                    Item('filter_file_button',
-                         label='Filter'),
-                ),
                 Group(
                     Item('file_search',
                          editor=file_editor,
@@ -131,6 +124,13 @@ class FileDisplayPane(TraitsDockPane):
                     Item('add_file_button',
                          label='Add File'),
                     show_labels=False
+                ),
+                HGroup(
+                    Item('key',
+                         editor=TextEditor(),
+                         style='simple'),
+                    Item('filter_file_button',
+                         label='Filter'),
                 ),
                 Group(
                     Item('file_table',
