@@ -46,6 +46,11 @@ jobs:
       run: |
         export DISPLAY=:0
         edm run -- python -m ci coverage
+    - name: Archive code coverage results
+        uses: actions/upload-artifact@v1
+        with:
+          name: code-coverage-report
+          path: .coverage
     - name: Lint with flake8
       run: |
         edm run -- python -m ci flake8

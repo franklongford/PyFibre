@@ -138,9 +138,6 @@ def coverage(python_version):
         env_name, ["coverage", "report", "-m"]
     )
 
-    if os.path.exists('.coverage'):
-        os.remove('.coverage')
-
 
 @cli.command(help="Builds the documentation")
 @python_version_option
