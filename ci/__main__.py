@@ -135,7 +135,7 @@ def coverage(python_version):
         raise click.ClickException("There were test failures.")
 
     edm_run(
-        env_name, ["coverage", "report", "-m"]
+        env_name, ["coverage", "html"]
     )
 
 
