@@ -67,13 +67,13 @@ jobs:
         edm run -- python -m ci test
 
     - name: Run coverage
-      if: ${{ runner.os == "Linux" }}
+      if: runner.os == 'Linux'
       run: |
         edm run -- python -m ci coverage
 
     - name: Archive code coverage results
       uses: actions/upload-artifact@v2
-      if: ${{ runner.os == "Linux" }}
+      if: runner.os == 'Linux'
       with:
         name: code-coverage-report
         path: htmlcov/
