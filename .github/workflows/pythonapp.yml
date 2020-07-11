@@ -62,7 +62,7 @@ jobs:
         $EDM_INSTALLER = "edm_${env:EDM_FULL}_x86_64.msi"
         $EDM_URL = "https://package-data.enthought.com/edm/win_x86_64/${env:EDM_X_Y}/${EDM_INSTALLER}"
         Invoke-WebRequest $EDM_URL -O $EDM_INSTALLER
-        Start-Process msiexec.exe -Wait /qr /l*vm install.log /i $EDM_INSTALLER EDMAPPDIR=`"c:\Program Files\edm`" ALLUSERS=1
+        Start-Process msiexec.exe -Wait -ArgumentList '/qr /l*vm install.log /i $EDM_INSTALLER EDMAPPDIR=`"c:\Program Files\edm`" ALLUSERS=1'
 
     - name: Build EDM environment
       run: |
