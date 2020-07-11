@@ -19,13 +19,23 @@ jobs:
       run: |
         echo "::set-env name=EDM_FULL::2.5.0"
         echo "::set-env name=EDM_X_Y::2.5"
-        echo "::set-env name=EDM_OS::rh6_x86_64"
         echo "::set-env name=EDM_INSTALLER_PREFIX::edm_cli_"
-        echo "::set-env name=EDM_INSTALLER_SUFFIX::_linux_x86_64.sh"
+        if [ runner.os == "Linux" ]; then
+          echo "::set-env name=EDM_OS::rh6_x86_64"
+          echo "::set-env name=EDM_INSTALLER_SUFFIX::_linux_x86_64.sh"
+        elif [ runner.os == "macOS" ]; then
+          echo "::set-env name=EDM_OS::osx_x86_64"
+          echo "::set-env name=EDM_INSTALLER_SUFFIX::_osx_x86_64.sh"
+        fi
+
     - name: Install X-Server and LibGLU
       run: |
-        sudo apt-get update
-        sudo apt-get install --yes xserver-xorg libglu1-mesa-dev mesa-common-dev libxcb-icccm4 libxkbcommon-x11-0
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          sudo apt-get update
+          sudo apt-get install --yes xserver-xorg libglu1-mesa-dev mesa-common-dev libxcb-icccm4 libxkbcommon-x11-0
+        sudo /usr/bin/X :0&
+        export DISPLAY=:0
+
     - name: Install EDM
       run: |
         export EDM_INSTALLER=${EDM_INSTALLER_PREFIX}${EDM_FULL}${EDM_INSTALLER_SUFFIX}
@@ -33,33 +43,36 @@ jobs:
         bash ./${EDM_INSTALLER} -b -f -p $HOME
         echo "::add-path::/home/runner/bin"
         echo "::set-env name=ETS_TOOLKIT::qt4"
+
     - name: Build EDM environment
       run: |
         edm install --version 3.6 -y click setuptools
         edm run -- python -m ci build-env
+
     - name: Install dependencies and package
       run: |
         edm run -- python -m ci install
+
     - name: Test with unittest
       run: |
-        sudo /usr/bin/X :0&
-        export DISPLAY=:0
+
         edm run -- python -m ci test
+
     - name: Run coverage
       run: |
-        export DISPLAY=:0
         edm run -- python -m ci coverage
+
     - name: Archive code coverage results
       uses: actions/upload-artifact@v1
       with:
         name: code-coverage-report
         path: htmlcov/
+
     - name: Lint with flake8
       run: |
         edm run -- python -m ci flake8
+
     - name: Perform integration test
       run: |
-        sudo /usr/bin/X :0&
-        export DISPLAY=:0
         edm run -- python -m ci shell
         edm run -e pyfibre-py36 -- PyFibre --test
