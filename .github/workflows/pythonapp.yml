@@ -12,6 +12,7 @@ jobs:
     env:
       EDM_FULL: '2.5.0'
       EDM_X_Y: '2.5'
+      EDM_NAME: 'edm_cli_'
       DISPLAY: ':0'
 
     steps:
@@ -26,6 +27,7 @@ jobs:
       if: runner.os != 'Windows'
       run: |
         echo "::set-env name=ETS_TOOLKIT::qt4"
+        echo "::add-path::/home/runner/bin"
 
     - name: Set Windows environment variables
       if: runner.os == 'Windows'
@@ -42,26 +44,25 @@ jobs:
     - name: Install Linux EDM
       if: runner.os == 'Linux'
       run: |
-        export EDM_INSTALLER=edm_cli_${EDM_FULL}_linux_x86_64.sh
+        export EDM_INSTALLER=${EDM_NAME}${EDM_FULL}_linux_x86_64.sh
         wget https://package-data.enthought.com/edm/rh6_x86_64/${EDM_X_Y}/${EDM_INSTALLER}
         bash ./${EDM_INSTALLER} -b -f -p $HOME
-        echo "::add-path::/home/runner/bin"
 
     - name: Install macOS EDM
       if: runner.os == 'macOS'
       run: |
-        export EDM_INSTALLER=edm_${EDM_FULL}.pkg
+        export EDM_INSTALLER=${EDM_NAME}${EDM_FULL}.pkg
         wget https://package-data.enthought.com/edm/osx_x86_64/${EDM_X_Y}/${EDM_INSTALLER}
         sudo installer -pkg ./${EDM_INSTALLER} -target $HOME
-        echo "::add-path::/home/runner/bin"
 
     - name: Install Windows EDM
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        $EDM_INSTALLER = "edm_${env:EDM_FULL}_x86_64.msi"
+        $EDM_INSTALLER = "${env:EDM_NAME}${env:EDM_FULL}_x86_64.msi"
         $EDM_URL = "https://package-data.enthought.com/edm/win_x86_64/${env:EDM_X_Y}/${EDM_INSTALLER}"
-        (New-Object System.Net.WebClient).DownloadFile($EDM_URL, $EDM_INSTALLER)
+        echo $EDM_URL
+        Invoke-WebRequest -URI $EDM_URL -O $EDM_INSTALLER
         msiexec /qr /l*vm install.log /i $EDM_INSTALLER EDMAPPDIR=`"c:\Program Files\edm`"
 
     - name: Build EDM environment
