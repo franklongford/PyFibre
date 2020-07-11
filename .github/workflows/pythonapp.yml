@@ -57,12 +57,23 @@ jobs:
 
     - name: Install Windows EDM
       if: runner.os == 'Windows'
-      shell: pwsh
+      shell: cmd
       run: |
-        $EDM_INSTALLER = "edm_${env:EDM_FULL}_x86_64.msi"
-        $EDM_URL = "https://package-data.enthought.com/edm/win_x86_64/${env:EDM_X_Y}/${EDM_INSTALLER}"
-        Invoke-WebRequest $EDM_URL -O $EDM_INSTALLER
-        Start-Process msiexec.exe -Wait -ArgumentList '/qr /l*vm install.log /i $EDM_INSTALLER EDMAPPDIR=`"c:\Program Files\edm`" ALLUSERS=1'
+        @ECHO OFF
+
+        SET COMMAND="(new-object net.webclient).DownloadFile('https://package-data.enthought.com/edm/win_x86_64/%EDM_X_Y%/%EDM_INSTALLER%', '%EDM_INSTALLER%')"
+
+        IF NOT EXIST %EDM_INSTALLER% CALL powershell.exe -Command %COMMAND% || GOTO error
+        CALL msiexec /qn /i %EDM_INSTALLER% EDMAPPDIR=C:\Program Files\edm || GOTO error
+
+        ENDLOCAL
+        @ECHO.DONE
+        EXIT
+
+        :error:
+        ENDLOCAL
+        @ECHO.ERROR
+        EXIT /b %ERRORLEVEL%
 
     - name: Build EDM environment
       run: |
