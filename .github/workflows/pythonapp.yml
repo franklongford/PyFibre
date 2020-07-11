@@ -34,7 +34,7 @@ jobs:
       run: |
         md ${env:HOMEDRIVE}${env:HOMEPATH}\.cache
         echo "::set-env name=ETS_TOOLKIT::wx"
-        echo "::add-path::C:\Program Files\edm"
+        md C:\Program Files\edm
 
     - name: Install X-Server and LibGLU
       if: runner.os == 'Linux'
