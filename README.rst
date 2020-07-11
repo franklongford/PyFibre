@@ -27,13 +27,13 @@ Once installed, simply create a "bootstrap" environment using the command line::
     edm install -e bootstrap --version 3.6 -y click setuptools
     edm shell -e bootstrap
 
-To begin with, either clone or download the latest release of Pyfibre (currently 2.0.0) and change working
+To begin with, either clone or download the latest release of PyFibre (currently 2.0.0) and change working
 directory into the repository::
 
-    git clone https://github.com/franklongford/PyFibre.git -b 2.0.0
+    git clone --branch '2.0.0' --depth 1 https://github.com/franklongford/PyFibre.git
     cd PyFibre
 
-Then build the deployment `pyfibre-py36` environment using the following command::
+Then build the deployment ``pyfibre-py36`` environment using the following command::
 
     python -m ci build-env
 
@@ -49,4 +49,4 @@ and run the integration test provided::
     PyFibre --test
 
 Further documentation on both command line and GUI programs can be found on the relevant
-`ReadTheDocs <https://pyfibre-docs.readthedocs.io/en/latest/pyfibre_apps.html>`_ pages.
+`ReadTheDocs pages <https://pyfibre-docs.readthedocs.io/en/latest/pyfibre_apps.html>`_.
