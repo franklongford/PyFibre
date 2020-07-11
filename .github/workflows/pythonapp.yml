@@ -16,26 +16,32 @@ jobs:
       with:
         python-version: 3.6
 
-    - name: Set environment variables
+    - name: Set Linux environment variables
+      if: runner.os == 'Linux'
       run: |
         echo "::set-env name=EDM_FULL::2.5.0"
         echo "::set-env name=EDM_X_Y::2.5"
-        if [ runner.os == 'Linux' ]; then
-          echo "::set-env name=EDM_INSTALLER_PREFIX::edm_cli_"
-          echo "::set-env name=EDM_OS::rh6_x86_64"
-          echo "::set-env name=EDM_INSTALLER_SUFFIX::_linux_x86_64.sh"
-        elif [ runner.os == 'macOS' ]; then
+        echo "::set-env name=EDM_INSTALLER_PREFIX::edm_cli_"
+        echo "::set-env name=EDM_OS::rh6_x86_64"
+        echo "::set-env name=EDM_INSTALLER_SUFFIX::_linux_x86_64.sh"
+
+    - name: Set MacOS environment variables
+        if: runner.os == 'macOS'
+        run: |
+          echo "::set-env name=EDM_FULL::2.5.0"
+          echo "::set-env name=EDM_X_Y::2.5"
           echo "::set-env name=EDM_INSTALLER_PREFIX::edm_"
           echo "::set-env name=EDM_OS::osx_x86_64"
           echo "::set-env name=EDM_INSTALLER_SUFFIX::_osx_x86_64.pkg"
-        fi
 
     - name: Install X-Server and LibGLU
+      if: runner.os == 'Linux'
       run: |
-        if [ runner.os == 'Linux' ]; then
-          sudo apt-get update
-          sudo apt-get install --yes xserver-xorg libglu1-mesa-dev mesa-common-dev libxcb-icccm4 libxkbcommon-x11-0
-        fi
+        sudo apt-get update
+        sudo apt-get install --yes xserver-xorg libglu1-mesa-dev mesa-common-dev libxcb-icccm4 libxkbcommon-x11-0
+
+    - name: Set up X-Server
+      run: |
         sudo /usr/bin/X :0&
         export DISPLAY=:0
 
