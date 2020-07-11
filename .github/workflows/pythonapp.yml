@@ -28,7 +28,7 @@ jobs:
       run: |
         echo "::set-env name=EDM_INSTALLER_PREFIX::edm_"
         echo "::set-env name=EDM_OS::osx_x86_64"
-        echo "::set-env name=EDM_INSTALLER_SUFFIX::_osx_x86_64.pkg"
+        echo "::set-env name=EDM_INSTALLER_SUFFIX::.pkg"
 
     - name: Set environment variables
       run: |
