@@ -15,6 +15,7 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.6
+
     - name: Set environment variables
       run: |
         echo "::set-env name=EDM_FULL::2.5.0"
@@ -26,12 +27,12 @@ jobs:
         elif [ runner.os == "macOS" ]; then
           echo "::set-env name=EDM_INSTALLER_PREFIX::edm_"
           echo "::set-env name=EDM_OS::osx_x86_64"
-          echo "::set-env name=EDM_INSTALLER_SUFFIX::_osx_x86_64.sh"
+          echo "::set-env name=EDM_INSTALLER_SUFFIX::_osx_x86_64.pkg"
         fi
 
     - name: Install X-Server and LibGLU
       run: |
-        if [ "$RUNNER_OS" == "Linux" ]; then
+        if [ runner.os == "Linux" ]; then
           sudo apt-get update
           sudo apt-get install --yes xserver-xorg libglu1-mesa-dev mesa-common-dev libxcb-icccm4 libxkbcommon-x11-0
         fi
@@ -42,7 +43,13 @@ jobs:
       run: |
         export EDM_INSTALLER=${EDM_INSTALLER_PREFIX}${EDM_FULL}${EDM_INSTALLER_SUFFIX}
         wget https://package-data.enthought.com/edm/${EDM_OS}/${EDM_X_Y}/${EDM_INSTALLER}
-        bash ./${EDM_INSTALLER} -b -f -p $HOME
+        if [ runner.os == "Linux" ]; then
+          bash ./${EDM_INSTALLER} -b -f -p $HOME
+          export PATH=${HOME}/edm/bin:${PATH}
+        elif [ runner.os == "macOS" ]; then
+          sudo installer -pkg ./${EDM_INSTALLER} -target
+          export PATH="${PATH}:/usr/local/bin"
+        fi
         echo "::add-path::/home/runner/bin"
         echo "::set-env name=ETS_TOOLKIT::qt4"
 
@@ -57,15 +64,16 @@ jobs:
 
     - name: Test with unittest
       run: |
-
         edm run -- python -m ci test
 
     - name: Run coverage
+      if: ${{ runner.os == "Linux" }}
       run: |
         edm run -- python -m ci coverage
 
     - name: Archive code coverage results
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
+      if: ${{ runner.os == "Linux" }}
       with:
         name: code-coverage-report
         path: htmlcov/
