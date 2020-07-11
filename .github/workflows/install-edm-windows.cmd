@@ -17,7 +17,7 @@ ECHO %EDM_INSTALLER_PATH%
 ECHO %EDM_URL%
 
 IF NOT EXIST %EDM_INSTALLER_PATH% CALL powershell.exe -Command %COMMAND% || GOTO error
-CALL msiexec /qn /i %EDM_INSTALLER_PATH% EDMAPPDIR=C:\Enthought\edm || GOTO error
+CALL msiexec /qn /i %EDM_INSTALLER_PATH% EDMAPPDIR=C:\Program Files\edm || GOTO error
 
 ENDLOCAL
 @ECHO.DONE
