@@ -45,6 +45,7 @@ jobs:
         sudo /usr/bin/X :0&
 
     - name: Install Linux EDM
+      if: runner.os == 'Linux'
       run: |
         export EDM_INSTALLER=edm_cli_${EDM_FULL}_linux_x86_64.sh
         wget https://package-data.enthought.com/edm/rh6_x86_64/${EDM_X_Y}/${EDM_INSTALLER}
@@ -52,6 +53,7 @@ jobs:
         echo "::add-path::/home/runner/bin"
 
     - name: Install macOS EDM
+      if: runner.os == 'macOS'
       run: |
         export EDM_INSTALLER=edm_${EDM_FULL}.pkg
         wget https://package-data.enthought.com/edm/osx_x86_64/${EDM_X_Y}/${EDM_INSTALLER}
