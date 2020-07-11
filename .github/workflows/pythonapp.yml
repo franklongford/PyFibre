@@ -33,6 +33,7 @@ jobs:
         if [ "$RUNNER_OS" == "Linux" ]; then
           sudo apt-get update
           sudo apt-get install --yes xserver-xorg libglu1-mesa-dev mesa-common-dev libxcb-icccm4 libxkbcommon-x11-0
+        fi
         sudo /usr/bin/X :0&
         export DISPLAY=:0
 
