@@ -49,10 +49,8 @@ jobs:
         wget https://package-data.enthought.com/edm/${EDM_OS}/${EDM_X_Y}/${EDM_INSTALLER}
         if [ "$RUNNER_OS" == "Linux" ]; then
           bash ./${EDM_INSTALLER} -b -f -p $HOME
-#          export PATH=${HOME}/edm/bin:${PATH}
         elif [ "$RUNNER_OS" == "macOS" ]; then
           sudo installer -pkg ./${EDM_INSTALLER} -target
-#          export PATH="${PATH}:/usr/local/bin"
         fi
         echo "::add-path::/home/runner/bin"
 
