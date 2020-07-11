@@ -35,6 +35,7 @@ jobs:
         echo "::set-env name=EDM_FULL::2.5.0"
         echo "::set-env name=EDM_X_Y::2.5"
         echo "::set-env name=ETS_TOOLKIT::qt4"
+        echo "::set-env name=DISPLAY:::0"
 
     - name: Install X-Server and LibGLU
       if: runner.os == 'Linux'
@@ -50,7 +51,7 @@ jobs:
         if [ "$RUNNER_OS" == "Linux" ]; then
           bash ./${EDM_INSTALLER} -b -f -p $HOME
         elif [ "$RUNNER_OS" == "macOS" ]; then
-          sudo installer -pkg ./${EDM_INSTALLER} -target /
+          sudo installer -pkg ./${EDM_INSTALLER} -target $HOME
         fi
         echo "::add-path::/home/runner/bin"
 
@@ -69,11 +70,13 @@ jobs:
 
     - name: Test with unittest
       run: |
+        export DISPLAY=:0
         edm run -- python -m ci test
 
     - name: Run coverage
       if: runner.os == 'Linux'
       run: |
+        export DISPLAY=:0
         edm run -- python -m ci coverage
 
     - name: Archive code coverage results
@@ -89,5 +92,6 @@ jobs:
 
     - name: Perform integration test
       run: |
+        export DISPLAY=:0
         edm run -- python -m ci shell
         edm run -e pyfibre-py36 -- PyFibre --test
