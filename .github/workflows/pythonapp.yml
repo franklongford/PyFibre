@@ -65,7 +65,6 @@ jobs:
 
     - name: Build EDM environment
       run: |
-        $Env:path = "C:\Program Files\edm;" + $Env:path
         edm install --version 3.6 -y click setuptools
         edm run -- python -m ci build-env
 
