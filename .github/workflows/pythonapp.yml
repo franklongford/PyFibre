@@ -60,7 +60,8 @@ jobs:
       shell: pwsh
       run: |
         $EDM_URL = "https://package-data.enthought.com/edm/win_x86_64/${EDM_X_Y}/${EDM_INSTALLER}"
-        $client.DownloadFile($EDM_URL)
+        echo $EDM_URL
+        $client.DownloadFile("https://package-data.enthought.com/edm/win_x86_64/${EDM_X_Y}/${EDM_INSTALLER}")
         msiexec.exe /qr /l*vm install.log /i $EDM_INSTALLER EDMAPPDIR=$HOME ALLUSERS=1
 
     - name: Build EDM environment
