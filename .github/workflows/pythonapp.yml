@@ -50,7 +50,7 @@ jobs:
         if [ "$RUNNER_OS" == "Linux" ]; then
           bash ./${EDM_INSTALLER} -b -f -p $HOME
         elif [ "$RUNNER_OS" == "macOS" ]; then
-          sudo installer -pkg ./${EDM_INSTALLER} -target
+          sudo installer -pkg ./${EDM_INSTALLER} -target /
         fi
         echo "::add-path::/home/runner/bin"
 
