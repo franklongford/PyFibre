@@ -35,7 +35,6 @@ jobs:
         echo "::set-env name=EDM_FULL::2.5.0"
         echo "::set-env name=EDM_X_Y::2.5"
         echo "::set-env name=ETS_TOOLKIT::qt4"
-        echo "::set-env name=EDM_INSTALLER::${EDM_INSTALLER_PREFIX}${EDM_FULL}${EDM_INSTALLER_SUFFIX}"
 
     - name: Install X-Server and LibGLU
       if: runner.os == 'Linux'
@@ -46,6 +45,7 @@ jobs:
 
     - name: Install EDM
       run: |
+        export EDM_INSTALLER=${EDM_INSTALLER_PREFIX}${EDM_FULL}${EDM_INSTALLER_SUFFIX}"
         wget https://package-data.enthought.com/edm/${EDM_OS}/${EDM_X_Y}/${EDM_INSTALLER}
         if [ "$RUNNER_OS" == "Linux" ]; then
           bash ./${EDM_INSTALLER} -b -f -p $HOME
