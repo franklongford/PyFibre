@@ -58,9 +58,22 @@ jobs:
 
     - name: Install Windows EDM
       if: runner.os == 'Windows'
-      shell: cmd
+      shell: pwsh
       run: |
-        d:\a\PyFibre\PyFibre\.github\workflows\install-edm-windows.cmd
+        $EDM_INSTALLER = "${env:EDM_NAME}${env:EDM_FULL}_x86_64.msi"
+        $EDM_URL = "https://package-data.enthought.com/edm/win_x86_64/${env:EDM_X_Y}/${EDM_INSTALLER}"
+        echo $EDM_URL
+        try {
+          Invoke-WebRequest -URI $EDM_URL -O $EDM_INSTALLER
+        }
+        catch [System.Net.WebException] {
+          if ($_.Exception.InnerException) {
+            Write-Error $_.Exception.InnerException.Message
+          } else {
+            Write-Error $_.Exception.Message
+          }
+        }
+        msiexec /qr /l*vm install.log /i $EDM_INSTALLER EDMAPPDIR=`"c:\Program Files\edm`"
 
     - name: Build EDM environment
       run: |
