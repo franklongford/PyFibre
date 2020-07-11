@@ -59,7 +59,7 @@ jobs:
     - name: Install Windows EDM
       if: runner.os == 'Windows'
       run: |
-        d:\a\PyFibre\PyFibre\.gitignore\workflows\install-edm-windows.cmd
+        d:\a\PyFibre\PyFibre\.github\workflows\install-edm-windows.cmd
 
     - name: Build EDM environment
       run: |
