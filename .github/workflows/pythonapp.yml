@@ -34,6 +34,7 @@ jobs:
       run: |
         md ${env:HOMEDRIVE}${env:HOMEPATH}\.cache
         echo "::set-env name=ETS_TOOLKIT::wx"
+        $Env:path = "C:\Program Files\edm;" + $Env:path
 
     - name: Install X-Server and LibGLU
       if: runner.os == 'Linux'
@@ -64,6 +65,7 @@ jobs:
 
     - name: Build EDM environment
       run: |
+        $Env:path = "C:\Program Files\edm;" + $Env:path
         edm install --version 3.6 -y click setuptools
         edm run -- python -m ci build-env
 
