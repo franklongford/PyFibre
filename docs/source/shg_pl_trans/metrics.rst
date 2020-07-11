@@ -1,13 +1,40 @@
 Metrics
 ~~~~~~~
 
-PyFibre calculates properties for the global images and each segmented region. The resultant databases for
-each section are then labelled::
+PyFibre will create a folder with relevant analysis for each multi image that is loaded into the software. These
+contain data base files containing all metrics for each identified object in the SHG-PL-Trans images
+in both ``hdf5`` and ``xls`` formatting. PNG images displaying the analysis are also created if the
+``--save_figures`` option is selected::
 
-``{directory}/data/{prefix}_global.h5`` = global image output (also in .xls format)
-``{directory}/data/{prefix}_fibre.h5`` = fibre segmented image output (also in .xls format)
-``{directory}/data/{prefix}_network.h5`` = fibre networks output (also in .xls format)
-``{directory}/data/{prefix}_cell.h5`` = cell segmented image output (also in .xls format)
+    file-name-shg.tif
+    file-name-pl.tif
+    file-name-pyfibre-analysis/
+    │
+    ├── data
+    │    │
+    │    ├── file-name_global_metric.h5
+    │    ├── file-name_global_metric.xls
+    │    ├── file-name_cell_metric.h5
+    │    ├── file-name_cell_metric.xls
+    │    ├── file-name_fibre_metric.h5
+    │    ├── file-name_fibre_metric.xls
+    │    ├── file-name_network_metric.h5
+    │    ├── file-name_network_metric.xls
+    │    ├── file-name_network.pkl
+    │    ├── file-name_fibre_segments.npy
+    │    └── file-name_cell_segments.npy
+    │
+    │
+    └── fig
+         ├── file-name_cell_seg.png
+         ├── file-name_fibre_seg.png
+         ├── file-name_fibre.png
+         ├── file-name_network.png
+         ├── file-name_tensor.png
+         ├── file-name_PL.png
+         ├── file-name_SHG.png
+         └── file-name_trans.png
+
 
 The database metrics have the following columns:
 
