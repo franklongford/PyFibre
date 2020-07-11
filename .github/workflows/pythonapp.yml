@@ -7,7 +7,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     env:
       EDM_FULL: '2.5.0'
@@ -16,8 +16,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python 3.6
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.6
 
@@ -59,6 +60,13 @@ jobs:
         wget https://package-data.enthought.com/edm/osx_x86_64/${EDM_X_Y}/${EDM_INSTALLER}
         sudo installer -pkg ./${EDM_INSTALLER} -target $HOME
         echo "::add-path::/home/runner/bin"
+
+    - name: Install Windows EDM
+      if: runner.os == 'Windows'
+      run: |
+        $Env:EDM_INSTALLER = "edm_" + $Env:EDM_FULL + "_x86_64.msi"
+        wget https://package-data.enthought.com/edm/win_x86_64/${EDM_X_Y}/${EDM_INSTALLER}
+        msiexec.exe /qr /l*vm install.log /i $Env:EDM_INSTALLER EDMAPPDIR=$Env:HOME ALLUSERS=1
 
     - name: Build EDM environment
       run: |
