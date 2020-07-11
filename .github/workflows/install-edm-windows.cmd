@@ -9,10 +9,12 @@ FOR /F "tokens=1,2,3 delims=." %%a in ("%EDM_FULL%") do (
 SET EDM_MAJOR_MINOR=%MAJOR%.%MINOR%
 SET EDM_PACKAGE=edm_cli_%EDM_FULL%_x86_64.msi
 SET EDM_INSTALLER_PATH=%HOMEDRIVE%%HOMEPATH%\.cache\%EDM_PACKAGE%
-SET COMMAND="(new-object net.webclient).DownloadFile('https://package-data.enthought.com/edm/win_x86_64/%EDM_MAJOR_MINOR%/%EDM_PACKAGE%', '%EDM_INSTALLER_PATH%')"
+SET EDM_URL='https://package-data.enthought.com/edm/win_x86_64/%EDM_MAJOR_MINOR%/%EDM_PACKAGE%'
+SET COMMAND="(new-object net.webclient).DownloadFile('%EDM_URL%', '%EDM_INSTALLER_PATH%')"
 
 ECHO %EDM_PACKAGE%
 ECHO %EDM_INSTALLER_PATH%
+ECHO %EDM_URL%
 
 IF NOT EXIST %EDM_INSTALLER_PATH% CALL powershell.exe -Command %COMMAND% || GOTO error
 CALL msiexec /qn /i %EDM_INSTALLER_PATH% EDMAPPDIR=C:\Enthought\edm || GOTO error
