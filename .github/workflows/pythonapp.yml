@@ -32,8 +32,7 @@ jobs:
     - name: Set Windows environment variables
       if: runner.os == 'Windows'
       run: |
-        md ${HOMEDRIVE}${HOMEPATH}\.cache
-        echo ${HOMEDRIVE}${HOMEPATH}\.cache
+        md ${env:HOMEDRIVE}${env:HOMEPATH}\.cache
         echo "::set-env name=ETS_TOOLKIT::wx"
 
     - name: Install X-Server and LibGLU
