@@ -23,12 +23,20 @@ class TestAnalysis(TestCase):
         self.fibres = [ProbeFibre(), ProbeFibre(), ProbeFibre()]
 
     def test_nematic_tensor_metrics(self):
+        tensor = np.array(
+            [[[[0, 1], [1, 0]],
+              [[0, 0], [0, 1]]],
+             [[[1, 0], [0, -1]],
+              [[1, 0], [0, 0]]]])
 
         metrics = structure_tensor_metrics(
-            np.ones((10, 10, 2, 2)), 'test')
+            tensor, 'test')
 
         self.assertIsInstance(metrics, pd.Series)
         self.assertEqual(3, len(metrics))
+
+        self.assertAlmostEqual(2, metrics['test Anisotropy'])
+        self.assertAlmostEqual(0.5, metrics['test Local Anisotropy'])
 
         for metric in STRUCTURE_METRICS:
             self.assertIn(f'test {metric}', metrics)
