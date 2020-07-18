@@ -318,8 +318,7 @@ class PyFibreMainTask(Task):
                 continue
 
             try:
-                analyser.multi_image = reader.load_multi_image(
-                    row.file_names, row.name)
+                analyser.multi_image = reader.load_multi_image(row.file_set)
                 databases = analyser.load_databases()
 
                 for index, database in enumerate(databases):
@@ -334,7 +333,7 @@ class PyFibreMainTask(Task):
                                        database], sort=True)
                         )
 
-            except Exception:
+            except (IOError, ImportError):
                 logger.info(
                     f"{row.name} databases not imported"
                     f" - skipping")
