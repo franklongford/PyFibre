@@ -35,7 +35,7 @@ class TestAnalysis(TestCase):
         self.assertIsInstance(metrics, pd.Series)
         self.assertEqual(3, len(metrics))
 
-        self.assertAlmostEqual(2, metrics['test Anisotropy'])
+        self.assertAlmostEqual(np.sqrt(2), metrics['test Anisotropy'])
         self.assertAlmostEqual(0.5, metrics['test Local Anisotropy'])
 
         for metric in STRUCTURE_METRICS:
