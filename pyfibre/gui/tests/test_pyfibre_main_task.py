@@ -1,4 +1,5 @@
 import contextlib
+from testfixtures import LogCapture
 import threading
 from unittest import mock, TestCase
 
@@ -14,6 +15,7 @@ from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.tests.dummy_classes import DummyPyFibreGUI
+from pyfibre.tests.fixtures import test_image_path
 from pyfibre.tests.probe_classes.gui_objects import ProbeTableRow
 from pyfibre.tests.probe_classes.factories import ProbeMultiImageFactory
 from pyfibre.tests.probe_classes.parsers import ProbeFileSet
@@ -22,6 +24,8 @@ GuiTestAssistant = toolkit("gui_test_assistant:GuiTestAssistant")
 
 FILE_DIALOG_PATH = "pyfibre.gui.pyfibre_main_task.FileDialog"
 FILE_OPEN_PATH = "pyfibre.io.database_io.save_database"
+LOAD_DATABASE = ("pyfibre.tests.probe_classes.analyser.ProbeAnalyser"
+                 ".load_databases")
 ITERATOR_PATH = 'pyfibre.core.pyfibre_runner.PyFibreRunner.run'
 
 
@@ -169,3 +173,49 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
         self.assertIsNone(self.main_task.viewer_pane.selected_image)
         self.main_task.file_display_pane.selected_files = [self.table_row]
         self.assertIsNotNone(self.main_task.viewer_pane.selected_image)
+
+    def test_create_databases(self):
+
+        def mock_error():
+            raise ImportError
+
+        self.main_task.file_display_pane.file_table = [self.table_row]
+
+        with LogCapture() as capture:
+            self.main_task.create_databases()
+            capture.check(
+                ('pyfibre.core.base_multi_image_reader',
+                 'INFO',
+                 f'Loading {test_image_path}'),
+                ('pyfibre.model.tools.preprocessing',
+                 'DEBUG',
+                 'Preprocessing images using clipped intensity '
+                 'percentages (1, 99)')
+            )
+
+            capture.clear()
+            with mock.patch(LOAD_DATABASE, side_effect=mock_error):
+                self.main_task.create_databases()
+                capture.check(
+                    ('pyfibre.core.base_multi_image_reader',
+                     'INFO',
+                     f'Loading {test_image_path}'),
+                    ('pyfibre.model.tools.preprocessing',
+                     'DEBUG',
+                     'Preprocessing images using clipped intensity '
+                     'percentages (1, 99)'),
+                    ('pyfibre.gui.pyfibre_main_task',
+                     'INFO',
+                     '/path/to/some/file databases not imported '
+                     '- skipping'),
+                )
+
+            capture.clear()
+            self.main_task.supported_readers = {}
+            self.main_task.create_databases()
+            capture.check(
+                ('pyfibre.gui.pyfibre_main_task',
+                 'INFO',
+                 '/path/to/some/file analyser / reader not found '
+                 '- skipping'),
+            )
