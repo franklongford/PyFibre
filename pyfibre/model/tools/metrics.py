@@ -30,8 +30,11 @@ def structure_tensor_metrics(structure_tensor, tag=''):
      segment_angle_map,
      segment_angle_map) = tensor_analysis(structure_tensor)
 
-    segment_anis, _, _ = tensor_analysis(
-        np.mean(structure_tensor, axis=(0, 1)))
+    # Calculate mean structure tensor elements
+    axis = tuple(range(structure_tensor.ndim - 2))
+    mean_tensor = np.mean(structure_tensor, axis=axis)
+
+    segment_anis, _, _ = tensor_analysis(mean_tensor)
 
     database[f"{tag} Angle SDI"], _ = angle_analysis(
         segment_angle_map, segment_anis_map)
@@ -152,7 +155,7 @@ def fibre_metrics(tot_fibres):
     -------
     database : DataFrame
         Metrics calculated from networkx Graph and scikit-image
-        regionrrops objects
+        regionprops objects
     """
 
     database = pd.DataFrame()
@@ -198,6 +201,28 @@ def fibre_network_metrics(fibre_networks):
     return database
 
 
+def _segment_structure_tensor(segment, structure_tensor):
+    """Extract structure tensors for pixels within segment
+
+    Parameters
+    ----------
+    segment: BaseSegment
+        Segment defining pixels within image to analyse
+    structure_tensor: array-like
+        Structure tensor for all pixels in image to be analysed
+    """
+
+    # Identify structure tensors for pixels within bounding box
+    minr, minc, maxr, maxc = segment.region.bbox
+    indices = np.mgrid[minr:maxr, minc:maxc]
+    segment_tensor = structure_tensor[(indices[0], indices[1])]
+
+    # Return structure tensors for pixels within segment
+    indices = np.where(segment.region.image)
+
+    return segment_tensor[indices]
+
+
 def segment_metrics(segments, image, image_tag=None, sigma=0.0001):
     """Analysis of a list of `BaseSegment` objects
 
@@ -228,9 +253,9 @@ def segment_metrics(segments, image, image_tag=None, sigma=0.0001):
         else:
             tensor_tag = ' '.join([segment.tag, 'Segment'])
 
-        minr, minc, maxr, maxc = segment.region.bbox
-        indices = np.mgrid[minr:maxr, minc:maxc]
-        segment_tensor = structure_tensor[(indices[0], indices[1])]
+        # Only use pixel tensors in segment
+        segment_tensor = _segment_structure_tensor(
+            segment, structure_tensor)
 
         nematic_metrics = structure_tensor_metrics(
             segment_tensor, tensor_tag)
