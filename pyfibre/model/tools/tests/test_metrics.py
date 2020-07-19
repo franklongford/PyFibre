@@ -7,7 +7,7 @@ from pyfibre.model.tools.metrics import (
     SHAPE_METRICS, TEXTURE_METRICS, FIBRE_METRICS,
     NETWORK_METRICS, STRUCTURE_METRICS,
     fibre_metrics, fibre_network_metrics,
-    _segment_structure_tensor,
+    _region_sample,
     structure_tensor_metrics, region_shape_metrics,
     region_texture_metrics, network_metrics,
     segment_metrics)
@@ -27,6 +27,15 @@ class TestAnalysis(TestCase):
         self.segment = ProbeSegment()
         self.segments = [self.segment]
         self.image, _, _, _ = generate_image()
+
+    def test_region_sample(self):
+
+        structure_tensor = np.ones((10, 10, 2, 2))
+
+        region_tensor = _region_sample(
+            self.regions[0], structure_tensor)
+
+        self.assertEqual((9, 2, 2), region_tensor.shape)
 
     def test_structure_tensor_metrics(self):
         tensor_1d = np.array(
@@ -85,6 +94,10 @@ class TestAnalysis(TestCase):
         for metric in TEXTURE_METRICS:
             self.assertIn(f'test {metric}', metrics)
 
+        self.assertAlmostEqual(3.55555555, metrics['test Mean'])
+        self.assertAlmostEqual(1.83249138, metrics['test STD'])
+        self.assertAlmostEqual(1.35164411, metrics['test Entropy'])
+
         metrics = region_texture_metrics(
             self.regions[0], tag='test', glcm=True)
 
@@ -96,6 +109,10 @@ class TestAnalysis(TestCase):
 
         self.assertIsInstance(metrics, pd.Series)
         self.assertEqual(3, len(metrics))
+
+        self.assertAlmostEqual(1, metrics['test Mean'])
+        self.assertAlmostEqual(0, metrics['test STD'])
+        self.assertAlmostEqual(0, metrics['test Entropy'])
 
     def test_fibre_metrics(self):
 
@@ -137,16 +154,6 @@ class TestAnalysis(TestCase):
 
         for metric in NETWORK_METRICS:
             self.assertIn(f'Fibre Network {metric}', metrics)
-
-    def test_segment_structure_tensor(self):
-
-        segment = ProbeSegment()
-        structure_tensor = np.ones((10, 10, 2, 2))
-
-        segment_tensor = _segment_structure_tensor(
-            segment, structure_tensor)
-
-        self.assertEqual((9, 2, 2), segment_tensor.shape)
 
     def test_segment_metrics(self):
 

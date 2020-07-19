@@ -18,10 +18,10 @@ from skimage import measure
 from skimage.morphology import remove_small_holes
 from skimage.measure import regionprops
 
+from pyfibre.model.tools.figures import draw_network
 from pyfibre.utilities import label_set
 
-from .utilities import region_check
-from pyfibre.model.tools.figures import draw_network
+from .utilities import region_check, bbox_indices
 
 logger = logging.getLogger(__name__)
 
@@ -65,10 +65,10 @@ def regions_to_stack(regions, shape):
         (len(regions),) + shape, dtype=int)
 
     for index, region in enumerate(regions):
-        minr, minc, maxr, maxc = region.bbox
-        indices = np.mgrid[minr:maxr, minc:maxc]
         binary_image = np.zeros(shape, dtype=int)
-        binary_image[(indices[0], indices[1])] += region.image
+        indices = bbox_indices(region)
+
+        binary_image[indices] += region.image
         stack[index] += binary_image
 
     stack = np.where(stack, 1, 0)
@@ -101,9 +101,8 @@ def regions_to_binary(regions, shape):
     binary_image = np.zeros(shape, dtype=int)
 
     for region in regions:
-        minr, minc, maxr, maxc = region.bbox
-        indices = np.mgrid[minr:maxr, minc:maxc]
-        binary_image[(indices[0], indices[1])] += region.image
+        indices = bbox_indices(region)
+        binary_image[indices] += region.image
 
     binary_image = np.where(binary_image, 1, 0)
 

@@ -7,6 +7,7 @@ from skimage.measure import label, regionprops
 from pyfibre.model.tools.metrics import (
     region_shape_metrics, region_texture_metrics)
 from pyfibre.utilities import NotSupportedError
+from pyfibre.model.tools.utilities import bbox_indices
 
 from .base_pyfibre_object import BasePyFibreObject
 
@@ -55,12 +56,11 @@ class BaseSegment(BasePyFibreObject):
     def to_array(self, shape=None):
         """Return the object state in a form that can be
         serialised as a numpy array"""
-        minr, minc, maxr, maxc = self.region.bbox
+        indices = bbox_indices(self.region)
         if shape is None:
-            shape = (maxr, maxc)
-        indices = np.mgrid[minr:maxr, minc:maxc]
+            shape = self.region.bbox[2:]
         array = np.zeros(shape, dtype=np.int)
-        array[(indices[0], indices[1])] += self.region.image
+        array[indices] += self.region.image
 
         return array
 

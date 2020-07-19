@@ -3,11 +3,11 @@ from skimage.measure import regionprops
 
 from pyfibre.model.tools.utilities import (
     region_check, region_swap,
-    mean_binary
+    mean_binary, bbox_sample, bbox_indices
 )
 from pyfibre.model.tools.figures import draw_network
 from pyfibre.tests.probe_classes.utilities import (
-    generate_image, generate_probe_graph
+    generate_image, generate_probe_graph, generate_regions
 )
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
@@ -18,6 +18,37 @@ class TestSegmentUtilities(PyFibreTestCase):
         (self.image, self.labels,
          self.binary, self.stack) = generate_image()
         self.network = generate_probe_graph()
+        self.regions = generate_regions()
+
+    def test_bbox_indices(self):
+        indices = bbox_indices(self.regions[0])
+        self.assertArrayAlmostEqual(
+            np.array([[0, 0, 0, 0],
+                      [1, 1, 1, 1],
+                      [2, 2, 2, 2],
+                      [3, 3, 3, 3],
+                      [4, 4, 4, 4],
+                      [5, 5, 5, 5]]),
+            indices[0]
+        )
+        self.assertArrayAlmostEqual(
+            np.array([[4, 5, 6, 7],
+                      [4, 5, 6, 7],
+                      [4, 5, 6, 7],
+                      [4, 5, 6, 7],
+                      [4, 5, 6, 7],
+                      [4, 5, 6, 7]]),
+            indices[1]
+        )
+
+    def test_bbox_sample(self):
+
+        global_image = np.ones((10, 10))
+
+        region_image = bbox_sample(
+            self.regions[0], global_image)
+
+        self.assertEqual((6, 4), region_image.shape)
 
     def test_segment_check(self):
         segment = regionprops(
