@@ -115,18 +115,42 @@ in both ``hdf5`` and ``xls`` formatting. PNG images displaying the analysis are 
          ├── file-name_SHG.png
          └── file-name_trans.png
 
+The additional raw data files in the ``data`` directory contain serialised copies of the segment and network
+objects used in the analysis::
 
-Databases are also generated from all SHG-PL-Trans images that are loaded into the ``PyFibre`` software. The names
-of these output files can be customised by setting the ``--database_name`` flag in the CLI or specifying a name
-in the "Save Database" GUI tool::
+    file-name_network.pkl
 
-    <database_name>_global_metric.h5
-    <database_name>_global_metric.xls
-    <database_name>_cell_metric.h5
-    <database_name>_cell_metric.xls
-    <database_name>_fibre_metric.h5
-    <database_name>_fibre_metric.xls
-    <database_name>_network_metric.h5
-    <database_name>_network_metric.xls
+Contains a pickled copy of the NetworkX graph used to represent the fibre networks::
 
+    file-name_fibre_segments.npy
+    file-name_cell_segments.npy
 
+Contain stacks of NumPy arrays representing pixel masks of each fibre and cell segment identified in the
+segmentation process.
+
+Databases
+~~~~~~~~~
+
+Databases are also generated from all SHG-PL-Trans images that are loaded into the ``PyFibre`` software during a
+session. The names of these output files can be customised by setting the ``--database_name`` flag in the CLI or
+specifying a name in the "Save Database" GUI tool::
+
+    <database_name>_global.h5
+    <database_name>_global.xls
+
+Contains a set of global metrics for each image::
+
+    <database_name>_network.h5
+    <database_name>_network.xls
+
+Contains metrics for every fibre network in each image::
+
+    <database_name>_fibre.h5
+    <database_name>_fibre.xls
+
+Contains metrics for every fibre segment in each image::
+
+    <database_name>_cell.h5
+    <database_name>_cell.xls
+
+Contains metrics for every cell segment in each image.
