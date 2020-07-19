@@ -1,6 +1,27 @@
 Change Log
 ==========
 
+Release 2.0.1
+-------------
+
+Date:
+~~~~~
+19/07/2020
+
+Authors:
+~~~~~~~~
+Frank Longford
+
+Description:
+~~~~~~~~~~~~
+Minor patch fix for database generation
+
+Fixes
+^^^^^
+- Fix broken database generation in PyFibre GUI
+- Segment texture and structure tensor metrics are calculated using pixels in segment masks
+
+
 Release 2.0.0
 -------------
 
