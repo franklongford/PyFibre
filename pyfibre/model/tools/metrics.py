@@ -10,6 +10,7 @@ from pyfibre.model.tools.analysis import (
     tensor_analysis, angle_analysis)
 from pyfibre.model.tools.feature import greycoprops_edit
 from pyfibre.model.tools.filters import form_structure_tensor
+from pyfibre.model.tools.utilities import bbox_sample
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,26 @@ NETWORK_METRICS = ['Degree', 'Eigenvalue', 'Connectivity',
                    'Cross-Link Density']
 
 
+def _region_sample(region, metric):
+    """Extract metric values for pixels within segment
+
+    Parameters
+    ----------
+    region: skimage.RegionProperties
+        Region defining pixels within image to analyse
+    metric: array-like
+        Metric for all pixels in image to be analysed
+    """
+
+    # Identify metrics for pixels within bounding box
+    metric = bbox_sample(region, metric)
+
+    # Return metrics only for pixels within segment
+    indices = np.where(region.image)
+
+    return metric[indices]
+
+
 def structure_tensor_metrics(structure_tensor, tag=''):
     """Nematic tensor analysis for a scikit-image region"""
 
@@ -30,8 +51,11 @@ def structure_tensor_metrics(structure_tensor, tag=''):
      segment_angle_map,
      segment_angle_map) = tensor_analysis(structure_tensor)
 
-    segment_anis, _, _ = tensor_analysis(
-        np.mean(structure_tensor, axis=(0, 1)))
+    # Calculate mean structure tensor elements
+    axis = tuple(range(structure_tensor.ndim - 2))
+    mean_tensor = np.mean(structure_tensor, axis=axis)
+
+    segment_anis, _, _ = tensor_analysis(mean_tensor)
 
     database[f"{tag} Angle SDI"], _ = angle_analysis(
         segment_angle_map, segment_anis_map)
@@ -70,18 +94,20 @@ def region_texture_metrics(region, image=None, tag='', glcm=False):
     # Check to see whether intensity_image is present or image argument
     # has been supplied
     if image is not None:
-        minr, minc, maxr, maxc = region.bbox
-        indices = np.mgrid[minr:maxr, minc:maxc]
-        region_image = image[(indices[0], indices[1])]
+        region_image = bbox_sample(region, image)
     else:
         region_image = region.intensity_image
+
+    # Obtain indices of pixels in region mask
+    indices = np.where(region.image)
+    intensity_sample = region_image[indices]
 
     # _, _, database[f"{tag} Fourier SDI"] = (0, 0, 0)
     # fourier_transform_analysis(segment_image)
 
-    database[f"{tag} Mean"] = np.mean(region_image)
-    database[f"{tag} STD"] = np.std(region_image)
-    database[f"{tag} Entropy"] = shannon_entropy(region_image)
+    database[f"{tag} Mean"] = np.mean(intensity_sample)
+    database[f"{tag} STD"] = np.std(intensity_sample)
+    database[f"{tag} Entropy"] = shannon_entropy(intensity_sample)
 
     if glcm:
 
@@ -152,7 +178,7 @@ def fibre_metrics(tot_fibres):
     -------
     database : DataFrame
         Metrics calculated from networkx Graph and scikit-image
-        regionrrops objects
+        regionprops objects
     """
 
     database = pd.DataFrame()
@@ -228,9 +254,9 @@ def segment_metrics(segments, image, image_tag=None, sigma=0.0001):
         else:
             tensor_tag = ' '.join([segment.tag, 'Segment'])
 
-        minr, minc, maxr, maxc = segment.region.bbox
-        indices = np.mgrid[minr:maxr, minc:maxc]
-        segment_tensor = structure_tensor[(indices[0], indices[1])]
+        # Only use pixel tensors in segment
+        segment_tensor = _region_sample(
+            segment.region, structure_tensor)
 
         nematic_metrics = structure_tensor_metrics(
             segment_tensor, tensor_tag)

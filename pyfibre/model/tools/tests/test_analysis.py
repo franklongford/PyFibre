@@ -55,6 +55,29 @@ class TestAnalysis(PyFibreTestCase):
         self.assertArrayAlmostEqual(np.array([45]), tot_angle)
         self.assertArrayAlmostEqual(np.array([0]), tot_energy)
 
+    def test_1d_tensor(self):
+        tensor_1d = np.array(
+            [[[0, 1], [1, 0]],
+             [[0, 0], [0, 1]]])
+
+        tot_anis, tot_angle, tot_energy = tensor_analysis(tensor_1d)
+        self.assertArrayAlmostEqual(np.array([0, 1]), tot_anis)
+        self.assertArrayAlmostEqual(np.array([45, 0]), tot_angle)
+        self.assertArrayAlmostEqual(np.array([0, 1]), tot_energy)
+
+    def test_2d_tensor(self):
+
+        tensor_2d = np.array(
+            [[[[0, 1], [1, 0]],
+              [[0, 0], [0, 1]]],
+             [[[1, 0], [0, -1]],
+              [[1, 0], [0, 0]]]])
+
+        tot_anis, tot_angle, tot_energy = tensor_analysis(tensor_2d)
+        self.assertArrayAlmostEqual(np.array([[0, 1], [0, 1]]), tot_anis)
+        self.assertArrayAlmostEqual(np.array([[45, 0], [90, 90]]), tot_angle)
+        self.assertArrayAlmostEqual(np.array([[0, 1], [2, 1]]), tot_energy)
+
     def test_angle_analysis(self):
         angles = np.array([45, 90, 100,
                            180, 45, 45,
