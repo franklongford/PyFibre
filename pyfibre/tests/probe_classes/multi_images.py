@@ -1,3 +1,5 @@
+import os
+
 from pyfibre.core.base_multi_image import BaseMultiImage
 from pyfibre.model.multi_image.fixed_stack_image import FixedStackImage
 
@@ -11,7 +13,7 @@ class ProbeMultiImage(BaseMultiImage):
             image, _, _, _ = generate_image()
             kwargs['image_stack'] = [image, 2 * image]
         kwargs['name'] = 'probe_multi_image'
-        kwargs['path'] = '/path/to/analysis'
+        kwargs['path'] = os.path.join('path', 'to', 'analysis')
 
         super().__init__(*args, **kwargs)
 

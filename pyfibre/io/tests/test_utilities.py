@@ -76,6 +76,7 @@ class TestUtilities(TestCase):
     def test_numpy_to_python_recursive(self):
 
         test_dict = {
+            'int32': np.int32(0),
             'int64': np.int64(0),
             'array': np.array([0, 1, 2]),
             'nested dict': {
@@ -92,6 +93,7 @@ class TestUtilities(TestCase):
 
         self.assertDictEqual(
             {
+                'int32': 0,
                 'int64': 0,
                 'array': [0, 1, 2],
                 'nested dict': {

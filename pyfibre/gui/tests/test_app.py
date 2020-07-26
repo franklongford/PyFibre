@@ -13,16 +13,16 @@ def mock_pyfibre_constructor(*args, **kwargs):
 
 class TestRun(TestCase):
 
+    def tearDown(self):
+        if os.path.exists('pyfibre.log'):
+            os.remove('pyfibre.log')
+
     def test_main(self):
 
-        try:
-            with mock.patch('pyfibre.gui.__main__.PyFibreGUI') as mock_pyfibre:
-                mock_pyfibre.side_effect = mock_pyfibre_constructor
+        with mock.patch('pyfibre.gui.__main__.PyFibreGUI') as mock_pyfibre:
+            mock_pyfibre.side_effect = mock_pyfibre_constructor
 
-                run(debug=False,
-                    profile=False)
+            run(debug=False,
+                profile=False)
 
-                self.assertTrue(mock_pyfibre.called)
-        finally:
-            if os.path.exists('pyfibre.log'):
-                os.remove('pyfibre.log')
+            self.assertTrue(mock_pyfibre.called)

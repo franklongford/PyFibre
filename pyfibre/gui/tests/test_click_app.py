@@ -17,6 +17,10 @@ def mock_run_constructor(*args, **kwargs):
 
 class TestClickRun(TestCase):
 
+    def tearDown(self):
+        if os.path.exists('pyfibre.log'):
+            os.remove('pyfibre.log')
+
     def test_click_gui_version(self):
         clirunner = CliRunner()
         clirunner.invoke(
@@ -41,9 +45,6 @@ class TestClickRun(TestCase):
             self.log = pyfibre.gui.__main__.logging.getLogger(__name__)
             # This test seems to be broken at the moment
             # self.assertEqual(10, self.log.getEffectiveLevel())
-
-        if os.path.exists('pyfibre.log'):
-            os.remove('pyfibre.log')
 
     def test_run_with_profile(self):
         with mock.patch('pyfibre.gui.__main__.PyFibreGUI') as mock_pyfibre:
