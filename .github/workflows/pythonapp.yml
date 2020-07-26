@@ -34,7 +34,7 @@ jobs:
       run: |
         md ${env:HOMEDRIVE}${env:HOMEPATH}\.cache
         echo "::set-env name=ETS_TOOLKIT::wx"
-        $Env:path = "C:\Enthought\edm;" + $Env:path
+        echo "::add-path::C:\Enthought\edm"
 
     - name: Install X-Server and LibGLU
       if: runner.os == 'Linux'
