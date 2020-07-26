@@ -59,9 +59,13 @@ jobs:
 
     - name: Install Windows EDM
       if: runner.os == 'Windows'
-      shell: cmd
       run: |
-        d:\a\PyFibre\PyFibre\.github\workflows\install-edm-windows.cmd
+        $EDM_INSTALLER = "$($env:EDM_NAME)$($env:EDM_FULL).msi"
+        $EDM_URL = https://package-data.enthought.com/edm/win_x86_64/$($env:EDM_X_Y)/$($env:EDM_INSTALLER)
+
+        $downloader = (New-Object System.Net.WebClient)
+        $downloader.DownloadFile($EDM_URL, $EDM_INSTALLER)
+        $process = (Start-Process -FilePath "msiexec.exe" -ArgumentList "/qn /i $EDM_INSTALLER /quiet EDMAPPDIR=C:\Program Files\edm" -Wait -Passthru)
 
     - name: Build EDM environment
       run: |
