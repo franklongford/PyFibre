@@ -16,7 +16,9 @@ from skimage.color import label2rgb, grey2rgb, rgb2hsv, hsv2rgb
 
 from pyfibre.model.tools.fibre_utilities import get_node_coord_array
 from pyfibre.model.tools.filters import form_structure_tensor
+from pyfibre.model.tools.utilities import bbox_indices
 from pyfibre.model.tools.analysis import tensor_analysis
+
 
 BASE_COLOURS = {
     'b': (0, 0, 1),
@@ -142,10 +144,9 @@ def create_region_image(image, regions):
     label = 1
 
     for region in regions:
-        minr, minc, maxr, maxc = region.bbox
-        indices = np.mgrid[minr:maxr, minc:maxc]
+        indices = bbox_indices(region)
 
-        label_image[(indices[0], indices[1])] += region.image * label
+        label_image[indices] += region.image * label
         label += 1
 
     image_label_overlay = label2rgb(

@@ -20,8 +20,32 @@ from skimage.morphology import remove_small_objects, remove_small_holes
 logger = logging.getLogger(__name__)
 
 
+def bbox_indices(region):
+    """Return indices identifying region bounding box"""
+    minr, minc, maxr, maxc = region.bbox
+    indices = np.mgrid[minr:maxr, minc:maxc]
+    return indices[0], indices[1]
+
+
+def bbox_sample(region, metric):
+    """Extract image that lies within region bounding box
+
+    Parameters
+    ----------
+    region: skimage.RegionProperties
+        Region defining pixels within image to analyse
+    metric: array-like
+        Metric for all pixels in image to be analysed
+    """
+
+    # Identify metrics for pixels within bounding box
+    indices = bbox_indices(region)
+
+    return metric[indices]
+
+
 def smooth_binary(binary, sigma=None):
-    """Smooths binary image based on Guassian filter with
+    """Smooths binary image based on Gaussian filter with
      sigma standard deviation"""
 
     if sigma is not None:
@@ -40,9 +64,9 @@ def region_check(region, min_size=0, min_frac=0,
     intensity checks"""
 
     check = True
-    minr, minc, maxr, maxc = region.bbox
 
     if edges:
+        minr, minc, maxr, maxc = region.bbox
         edge_check = (minr != 0) * (minc != 0)
         edge_check *= (maxr != max_x)
         edge_check *= (maxc != max_y)
@@ -73,13 +97,12 @@ def region_swap(masks, images, min_sizes, min_fracs):
                 labels, intensity_image=images[i]):
 
             if not region_check(region_1, min_sizes[i], min_fracs[i]):
-                minr, minc, maxr, maxc = region_1.bbox
-                indices = np.mgrid[minr:maxr, minc:maxc]
+                intensity_image = bbox_sample(region_1, images[j])
                 masks[i][np.where(labels == region_1.label)] = False
 
                 region_2 = measure.regionprops(
                     np.array(region_1.image, dtype=int),
-                    intensity_image=images[j][(indices[0], indices[1])])[0]
+                    intensity_image=intensity_image)[0]
 
                 if region_check(region_2, 0, min_fracs[j]):
                     masks[j][np.where(labels == region_1.label)] = True

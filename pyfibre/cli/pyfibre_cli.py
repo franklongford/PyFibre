@@ -92,7 +92,9 @@ class PyFibreApplication(Application):
             if self.database_name:
                 for index, name in enumerate(analyser.database_names):
                     save_database(
-                        image_databases[index], self.database_name, name)
+                        image_databases[index],
+                        self.database_name,
+                        name)
 
     def run(self):
 
