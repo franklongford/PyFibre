@@ -34,7 +34,7 @@ jobs:
       run: |
         md ${env:HOMEDRIVE}${env:HOMEPATH}\.cache
         echo "::set-env name=ETS_TOOLKIT::wx"
-        $Env:path = "C:\Program Files\edm;" + $Env:path
+        $Env:path = "C:\Enthought\edm;" + $Env:path
 
     - name: Install X-Server and LibGLU
       if: runner.os == 'Linux'
@@ -68,7 +68,7 @@ jobs:
         $downloader.DownloadFile($EDM_URL, $EDM_INSTALLER)
 
         Write-Output "Installing EDM from $EDM_INSTALLER"
-        $process = (Start-Process -FilePath "msiexec.exe" -ArgumentList "/qn /i $EDM_INSTALLER /quiet EDMAPPDIR=C:\Program Files\edm" -Wait -Passthru)
+        $process = (Start-Process -FilePath "msiexec.exe" -ArgumentList "/qn /i $EDM_INSTALLER EDMAPPDIR=C:\Enthought\edm" -Wait -Passthru)
         $exitCode = $process.ExitCode
 
     - name: Build EDM environment
