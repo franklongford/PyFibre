@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase, mock
 from tempfile import TemporaryDirectory
 import os
 
@@ -9,8 +9,6 @@ from skimage.measure import label, regionprops
 from pyfibre.io.region_io import (
     save_regions, load_regions
 )
-
-SAVE_SEGMENT_PATH = 'pyfibre.io.segment_io.save_segments'
 
 
 class TestSegmentIO(TestCase):
@@ -36,7 +34,7 @@ class TestSegmentIO(TestCase):
             save_regions(self.segments, tmp_file, self.image.shape, 'segment')
             self.assertTrue(os.path.exists(f'{tmp_file}_segment.npy'))
 
-            test_masks = np.load(f'{tmp_file}_segment.npy', mmap_mode='r')
+            test_masks = np.load(f'{tmp_file}_segment.npy')
 
             self.assertEqual(test_masks.dtype, int)
             self.assertEqual(test_masks.shape, (1, self.N, self.N))
@@ -47,13 +45,13 @@ class TestSegmentIO(TestCase):
 
     def test_load_label_image(self):
 
+        def mock_load(*args):
+            return np.array([self.binary])
+
         with TemporaryDirectory() as tmp_dir:
             tmp_file = os.path.join(tmp_dir, 'test')
-
-            save_regions(self.segments, tmp_file, self.image.shape, 'segment')
-            self.assertTrue(os.path.exists(f'{tmp_file}_segment.npy'))
-
-            test_segment = load_regions(tmp_file, 'segment')
+            with mock.patch('numpy.load', mock_load, create=True):
+                test_segment = load_regions(tmp_file, 'segment')
 
             self.assertEqual(len(self.segments), len(test_segment))
 
@@ -67,7 +65,9 @@ class TestSegmentIO(TestCase):
                 np.all(self.segments[0].image == test_segment[0].image)
             )
 
-            test_segment = load_regions(tmp_file, 'segment', image=self.image)
+            with mock.patch('numpy.load', mock_load, create=True):
+                test_segment = load_regions(
+                    tmp_file, 'segment', image=self.image)
 
             self.assertAlmostEqual(
                 0,
