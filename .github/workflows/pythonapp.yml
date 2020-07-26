@@ -33,7 +33,7 @@ jobs:
       if: runner.os == 'Windows'
       run: |
         md ${env:HOMEDRIVE}${env:HOMEPATH}\.cache
-        echo "::set-env name=ETS_TOOLKIT::wx"
+        echo "::set-env name=ETS_TOOLKIT::qt4"
         echo "::add-path::C:\Enthought\edm"
 
     - name: Install X-Server and LibGLU
@@ -76,7 +76,6 @@ jobs:
             Get-Content $logFilePath
             throw "EDM install failed with exit code $exitCode."
         }
-        echo $Env:path
         edm --help
 
     - name: Build EDM environment

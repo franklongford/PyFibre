@@ -34,20 +34,23 @@ class TestSHGAnalyser(PyFibreTestCase):
         self.runner = PyFibreRunner()
 
     def test_file_paths(self):
-        self.multi_image.path = '/path/to/image'
+
+        directory = os.path.join('path', 'to', 'image')
+
+        self.multi_image.path = directory
         self.assertEqual(
-            '/path/to/image/test-shg-pyfibre-analysis/data',
+            os.path.join(directory, 'test-shg-pyfibre-analysis', 'data'),
             self.analyser.data_path)
         self.assertEqual(
-            '/path/to/image/test-shg-pyfibre-analysis/fig',
+            os.path.join(directory, 'test-shg-pyfibre-analysis', 'fig'),
             self.analyser.fig_path)
         self.assertEqual(
-            '/path/to/image/test-shg-pyfibre-analysis/data'
-            '/test-shg',
+            os.path.join(
+                directory, 'test-shg-pyfibre-analysis', 'data', 'test-shg'),
             self.analyser._data_file)
         self.assertEqual(
-            '/path/to/image/test-shg-pyfibre-analysis/fig'
-            '/test-shg',
+            os.path.join(
+                directory, 'test-shg-pyfibre-analysis', 'fig', 'test-shg'),
             self.analyser._fig_file)
 
     def test_get_ow_options(self):
@@ -70,17 +73,28 @@ class TestSHGAnalyser(PyFibreTestCase):
 
             self.assertTrue(
                 os.path.exists(
-                    f"{tmp_dir}/test-shg-pyfibre-analysis"
+                    os.path.join(
+                        tmp_dir,
+                        "test-shg-pyfibre-analysis"
+                    )
                 )
             )
             self.assertTrue(
                 os.path.exists(
-                    f"{tmp_dir}/test-shg-pyfibre-analysis/data"
+                    os.path.join(
+                        tmp_dir,
+                        "test-shg-pyfibre-analysis",
+                        "data"
+                    )
                 )
             )
             self.assertTrue(
                 os.path.exists(
-                    f"{tmp_dir}/test-shg-pyfibre-analysis/fig"
+                    os.path.join(
+                        tmp_dir,
+                        "test-shg-pyfibre-analysis",
+                        "fig"
+                    )
                 )
             )
 
@@ -100,7 +114,13 @@ class TestSHGAnalyser(PyFibreTestCase):
             for network in networks:
                 self.assertIn(
                     network,
-                    os.listdir(f"{tmp_dir}/test-shg-pyfibre-analysis/data")
+                    os.listdir(
+                        os.path.join(
+                            tmp_dir,
+                            "test-shg-pyfibre-analysis",
+                            "data"
+                        )
+                    )
                 )
 
             self.analyser._load_networks()
@@ -137,8 +157,13 @@ class TestSHGAnalyser(PyFibreTestCase):
             for segment in segments:
                 self.assertIn(
                     segment,
-                    os.listdir(f"{tmp_dir}/test-shg-pyfibre-analysis"
-                               f"/data")
+                    os.listdir(
+                        os.path.join(
+                            tmp_dir,
+                            "test-shg-pyfibre-analysis",
+                            "data"
+                        )
+                    )
                 )
 
             self.analyser._load_segments()
@@ -177,7 +202,13 @@ class TestSHGAnalyser(PyFibreTestCase):
             for database in databases:
                 self.assertIn(
                     database,
-                    os.listdir(f"{tmp_dir}/test-shg-pyfibre-analysis/data")
+                    os.listdir(
+                        os.path.join(
+                            tmp_dir,
+                            "test-shg-pyfibre-analysis",
+                            "data"
+                        )
+                    )
                 )
 
             self.analyser._load_databases()
@@ -247,5 +278,11 @@ class TestSHGAnalyser(PyFibreTestCase):
             for figure in figures:
                 self.assertIn(
                     figure,
-                    os.listdir(f"{tmp_dir}/test-shg-pyfibre-analysis/fig")
+                    os.listdir(
+                        os.path.join(
+                            tmp_dir,
+                            "test-shg-pyfibre-analysis",
+                            "fig"
+                        )
+                    )
                 )
