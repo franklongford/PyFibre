@@ -3,6 +3,7 @@ import os
 
 from pyfibre.gui.__main__ import run
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
+from pyfibre.tests.utils import delete_log
 
 
 def mock_pyfibre_constructor(*args, **kwargs):
@@ -13,9 +14,8 @@ def mock_pyfibre_constructor(*args, **kwargs):
 
 class TestRun(TestCase):
 
-    def tearDown(self):
-        if os.path.exists('pyfibre.log'):
-            os.remove('pyfibre.log')
+    def setUp(self):
+        self.addCleanup(delete_log)
 
     def test_main(self):
 

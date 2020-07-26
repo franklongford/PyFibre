@@ -1,11 +1,13 @@
 import sys
 import os
+import logging
 from unittest import mock, TestCase
 
 from click.testing import CliRunner
 
 import pyfibre.cli.__main__
 from pyfibre.version import __version__
+from pyfibre.tests.utils import delete_log
 
 
 def mock_run_pyfibre():
@@ -19,9 +21,8 @@ def mock_run_constructor(*args, **kwargs):
 
 class TestClickRun(TestCase):
 
-    def tearDown(self):
-        if os.path.exists('pyfibre.log'):
-            os.remove('pyfibre.log')
+    def setUp(self):
+        self.addCleanup(delete_log)
 
     def test_click_cli_version(self):
         clirunner = CliRunner()
