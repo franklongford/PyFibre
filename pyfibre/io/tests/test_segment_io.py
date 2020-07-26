@@ -1,4 +1,5 @@
 from unittest import TestCase
+from tempfile import TemporaryDirectory
 import os
 
 import numpy as np
@@ -30,11 +31,12 @@ class TestSegmentIO(TestCase):
 
     def test_save_image(self):
 
-        try:
-            save_regions(self.segments, 'test', self.image.shape, 'segment')
-            self.assertTrue(os.path.exists('test_segment.npy'))
+        with TemporaryDirectory() as tmp_dir:
+            tmp_file = os.path.join(tmp_dir, 'test')
+            save_regions(self.segments, tmp_file, self.image.shape, 'segment')
+            self.assertTrue(os.path.exists(f'{tmp_file}_segment.npy'))
 
-            test_masks = np.load('test_segment.npy', mmap_mode='r')
+            test_masks = np.load(f'{tmp_file}_segment.npy', mmap_mode='r')
 
             self.assertEqual(test_masks.dtype, int)
             self.assertEqual(test_masks.shape, (1, self.N, self.N))
@@ -43,17 +45,15 @@ class TestSegmentIO(TestCase):
                 test_masks
             ))
 
-        finally:
-            if os.path.exists('test_segment.npy'):
-                os.remove('test_segment.npy')
-
     def test_load_label_image(self):
 
-        try:
-            save_regions(self.segments, 'test', self.image.shape, 'segment')
-            self.assertTrue(os.path.exists('test_segment.npy'))
+        with TemporaryDirectory() as tmp_dir:
+            tmp_file = os.path.join(tmp_dir, 'test')
 
-            test_segment = load_regions('test', 'segment')
+            save_regions(self.segments, tmp_file, self.image.shape, 'segment')
+            self.assertTrue(os.path.exists(f'{tmp_file}_segment.npy'))
+
+            test_segment = load_regions(tmp_file, 'segment')
 
             self.assertEqual(len(self.segments), len(test_segment))
 
@@ -67,7 +67,7 @@ class TestSegmentIO(TestCase):
                 np.all(self.segments[0].image == test_segment[0].image)
             )
 
-            test_segment = load_regions('test', 'segment', image=self.image)
+            test_segment = load_regions(tmp_file, 'segment', image=self.image)
 
             self.assertAlmostEqual(
                 0,
@@ -75,9 +75,3 @@ class TestSegmentIO(TestCase):
                        - test_segment[0].intensity_image).sum(),
                 6
             )
-        except Exception as e:
-            raise e
-
-        finally:
-            if os.path.exists('test_segment.npy'):
-                os.remove('test_segment.npy')
