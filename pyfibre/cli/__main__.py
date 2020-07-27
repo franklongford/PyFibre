@@ -103,7 +103,8 @@ def run(file_path, key, sigma, alpha, log_name,
     else:
         level = logging.INFO
 
-    logging.basicConfig(filename=f"{log_name}.log", filemode="w",
+    logging.basicConfig(filename=f"{log_name}.log",
+                        filemode="w",
                         level=level)
 
     if profile:
