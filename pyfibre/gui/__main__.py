@@ -26,21 +26,25 @@ push_exception_handler(lambda *args: None,
     help="Run GUI under cProfile, creating .prof and .pstats "
          "files in the current directory."
 )
-def pyfibre(debug, profile):
+@click.option(
+    '--log_name', help='Pyfibre log filename',
+    default='pyfibre'
+)
+def pyfibre(debug, profile, log_name):
     """Launches the PyFibre graphical UI application"""
 
-    run(debug, profile)
+    run(debug, profile, log_name)
 
 
-def run(debug, profile):
+def run(debug, profile, log_name):
 
     if debug:
         logging.basicConfig(
-            filename="pyfibre.log", filemode="w",
+            filename=f"{log_name}.log", filemode="w",
             level=logging.DEBUG)
     else:
         logging.basicConfig(
-            filename="pyfibre.log", filemode="w",
+            filename=f"{log_name}.log", filemode="w",
             level=logging.INFO)
 
     logger = logging.getLogger(__name__)

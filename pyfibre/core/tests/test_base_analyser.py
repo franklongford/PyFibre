@@ -12,7 +12,10 @@ class TestBaseAnalyser(TestCase):
 
     def test_analysis_path(self):
         self.assertEqual(
-            '/path/to/analysis/probe_multi_image-pyfibre-analysis',
+            os.path.join(
+                'path', 'to', 'analysis',
+                'probe_multi_image-pyfibre-analysis'
+            ),
             self.analyser.analysis_path)
 
     def test_make_directories(self):
@@ -23,6 +26,9 @@ class TestBaseAnalyser(TestCase):
 
             self.assertTrue(
                 os.path.exists(
-                    f"{tmp_dir}/probe_multi_image-pyfibre-analysis"
+                    os.path.join(
+                        tmp_dir,
+                        "probe_multi_image-pyfibre-analysis"
+                    )
                 )
             )

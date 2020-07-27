@@ -1,3 +1,4 @@
+import os
 from unittest import TestCase
 
 from ..utils import (
@@ -10,18 +11,23 @@ from ..utils import (
 class TestReader(TestCase):
 
     def setUp(self):
-        self.image_dictionary = {
-            'SHG-PL-Trans': '/directory/prefix-pl-shg-test.tif',
-            'PL-Trans': '/directory/prefix-pl-test.tif',
-            'SHG': '/directory/prefix-shg-test.tif'}
+        self.input_files = [
+            os.path.join('directory', 'prefix1-pl-shg-test.png'),
+            os.path.join('directory', 'prefix2-pl-shg-test.tif'),
+            os.path.join('directory', 'prefix-pl-test.tif'),
+            os.path.join('directory', 'prefix-shg-test.tif'),
+            os.path.join('directory', 'prefix-display-test.tif'),
+            os.path.join('directory', 'prefix-shg-virada.tif'),
+            os.path.join('directory', 'prefix-shg-asterisco.tif')]
+        self.prefix = os.path.join('directory', 'prefix')
 
     def test_get_image_type(self):
         self.assertEqual(
-            'SHG-PL-Trans', get_image_type('some-pl-shg-test.tif'))
+            'SHG-PL-Trans', get_image_type(self.input_files[0]))
         self.assertEqual(
-            'PL-Trans', get_image_type('some-pl-test.tif'))
+            'PL-Trans', get_image_type(self.input_files[2]))
         self.assertEqual(
-            'SHG', get_image_type('some-shg-test.tif'))
+            'SHG', get_image_type(self.input_files[3]))
 
         # Test failure
         self.assertEqual(
@@ -29,50 +35,46 @@ class TestReader(TestCase):
 
     def test_extract_prefix(self):
         self.assertEqual(
-            '/directory/prefix',
-            extract_prefix(
-                '/directory/prefix-pl-shg-test.tif', '-pl-shg'))
+            f'{self.prefix}1',
+            extract_prefix(self.input_files[0], '-pl-shg'))
         self.assertEqual(
-            '/directory/prefix',
-            extract_prefix(
-                '/directory/prefix-pl-test.tif', '-pl'))
+            self.prefix,
+            extract_prefix(self.input_files[2], '-pl'))
         self.assertEqual(
-            '/directory/prefix',
-            extract_prefix(
-                '/directory/prefix-shg-test.tif', '-shg'))
+            self.prefix,
+            extract_prefix(self.input_files[3], '-shg'))
 
     def test_get_files_prefixes(self):
-        input_files = ['/directory/prefix1-pl-shg-test.tif',
-                       '/directory/prefix-pl-test.tif',
-                       '/directory/prefix-shg-test.tif']
+        input_files = [
+            self.input_files[0],
+            self.input_files[2],
+            self.input_files[3]
+        ]
 
         files, prefixes = get_files_prefixes(input_files, 'SHG')
         self.assertListEqual(
-            ['/directory/prefix-shg-test.tif'], files)
+            [input_files[2]], files)
         self.assertListEqual(
-            ['/directory/prefix'], prefixes)
+            [self.prefix], prefixes)
 
         files, prefixes = get_files_prefixes(input_files, 'PL-Trans')
         self.assertListEqual(
-            ['/directory/prefix-pl-test.tif'], files)
+            [input_files[1]], files)
         self.assertListEqual(
-            ['/directory/prefix'], prefixes)
+            [self.prefix], prefixes)
 
         files, prefixes = get_files_prefixes(input_files, 'SHG-PL-Trans')
         self.assertListEqual(
-            ['/directory/prefix1-pl-shg-test.tif'], files)
+            [input_files[0]], files)
         self.assertListEqual(
-            ['/directory/prefix1'], prefixes)
+            [f'{self.prefix}1'], prefixes)
 
     def test_filter_input_files(self):
-        input_files = ['/directory/prefix1-pl-shg-test.png',
-                       '/directory/prefix2-pl-shg-test.tif',
-                       '/directory/prefix-display-test.tif',
-                       '/directory/prefix-shg-virada.tif',
-                       '/directory/prefix-shg-asterisco.tif']
+        input_files = self.input_files[0:2] + self.input_files[5:]
 
         filtered_files = filter_input_files(input_files)
 
         self.assertListEqual(
-            ['/directory/prefix2-pl-shg-test.tif',
-             '/directory/prefix-shg-asterisco.tif'], filtered_files)
+            [os.path.join('directory', 'prefix2-pl-shg-test.tif'),
+             os.path.join('directory', 'prefix-shg-asterisco.tif')],
+            filtered_files)

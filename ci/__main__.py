@@ -135,11 +135,8 @@ def coverage(python_version):
         raise click.ClickException("There were test failures.")
 
     edm_run(
-        env_name, ["coverage", "report", "-m"]
+        env_name, ["coverage", "html"]
     )
-
-    if os.path.exists('.coverage'):
-        os.remove('.coverage')
 
 
 @cli.command(help="Builds the documentation")

@@ -1,8 +1,11 @@
+from tempfile import NamedTemporaryFile
 from unittest import mock, TestCase
-import os
 
 from pyfibre.gui.__main__ import run
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
+
+
+GUI_PATH = 'pyfibre.gui.__main__.PyFibreGUI'
 
 
 def mock_pyfibre_constructor(*args, **kwargs):
@@ -15,14 +18,12 @@ class TestRun(TestCase):
 
     def test_main(self):
 
-        try:
-            with mock.patch('pyfibre.gui.__main__.PyFibreGUI') as mock_pyfibre:
+        with NamedTemporaryFile() as tmp_file:
+            with mock.patch(GUI_PATH) as mock_pyfibre:
                 mock_pyfibre.side_effect = mock_pyfibre_constructor
 
                 run(debug=False,
-                    profile=False)
+                    profile=False,
+                    log_name=tmp_file.name)
 
                 self.assertTrue(mock_pyfibre.called)
-        finally:
-            if os.path.exists('pyfibre.log'):
-                os.remove('pyfibre.log')

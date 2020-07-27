@@ -135,7 +135,7 @@ def numpy_to_python_recursive(dictionary):
         elif isinstance(value, np.ndarray):
             dictionary[key] = value.tolist()
 
-        elif isinstance(value, np.int64):
+        elif isinstance(value, (np.int32, np.int64)):
             dictionary[key] = int(value)
 
         elif isinstance(value, np.float):

@@ -14,6 +14,12 @@ PyFibre is an open source image analysis toolkit for fibrous tissue that can be 
 It is designed to make the quantification of fibrous tissue automated, standardised and efficient whilst remaining as
 transparent as possible for non-technical users.
 
+Current supported OS:
+
+- Ubuntu 18
+- macOS X
+- Windows 10
+
 Full documentation can be found at the `ReadTheDocs <https://pyfibre-docs.readthedocs.io/en/latest/>`_ page
 
 Installation

@@ -4,54 +4,110 @@ on: [push]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    env:
+      EDM_FULL: '2.5.0'
+      EDM_X_Y: '2.5'
+      EDM_NAME: 'edm_cli_'
+      DISPLAY: ':0'
+      ETS_TOOLKIT: 'qt4'
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python 3.6
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.6
-    - name: Set environment variables
+
+    - name: Set Unix environment variables
+      if: runner.os != 'Windows'
       run: |
-        echo "::set-env name=EDM_FULL::2.5.0"
-        echo "::set-env name=EDM_X_Y::2.5"
-        echo "::set-env name=EDM_OS::rh6_x86_64"
-        echo "::set-env name=EDM_INSTALLER_PREFIX::edm_cli_"
-        echo "::set-env name=EDM_INSTALLER_SUFFIX::_linux_x86_64.sh"
+        echo "::add-path::/home/runner/bin"
+
+    - name: Set Windows environment variables
+      if: runner.os == 'Windows'
+      run: |
+        md ${env:HOMEDRIVE}${env:HOMEPATH}\.cache
+        echo "::add-path::C:\Enthought\edm"
+
     - name: Install X-Server and LibGLU
+      if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install --yes xserver-xorg libglu1-mesa-dev mesa-common-dev libxcb-icccm4 libxkbcommon-x11-0
-    - name: Install EDM
+        sudo /usr/bin/X :0&
+
+    - name: Install Linux EDM
+      if: runner.os == 'Linux'
       run: |
-        export EDM_INSTALLER=${EDM_INSTALLER_PREFIX}${EDM_FULL}${EDM_INSTALLER_SUFFIX}
-        wget https://package-data.enthought.com/edm/${EDM_OS}/${EDM_X_Y}/${EDM_INSTALLER}
+        export EDM_INSTALLER=${EDM_NAME}${EDM_FULL}_linux_x86_64.sh
+        wget https://package-data.enthought.com/edm/rh6_x86_64/${EDM_X_Y}/${EDM_INSTALLER}
         bash ./${EDM_INSTALLER} -b -f -p $HOME
-        echo "::add-path::/home/runner/bin"
-        echo "::set-env name=ETS_TOOLKIT::qt4"
+
+    - name: Install macOS EDM
+      if: runner.os == 'macOS'
+      run: |
+        export EDM_INSTALLER=${EDM_NAME}${EDM_FULL}.pkg
+        wget https://package-data.enthought.com/edm/osx_x86_64/${EDM_X_Y}/${EDM_INSTALLER}
+        sudo installer -pkg ./${EDM_INSTALLER} -target $HOME
+
+    - name: Install Windows EDM
+      if: runner.os == 'Windows'
+      run: |
+        $EDM_INSTALLER = "$($env:EDM_NAME)$($env:EDM_FULL)_x86_64.msi"
+        $EDM_URL = "https://package-data.enthought.com/edm/win_x86_64/$($env:EDM_X_Y)/$($EDM_INSTALLER)"
+
+        Write-Output "Downloading EDM installer from $EDM_URL"
+        $downloader = (New-Object System.Net.WebClient)
+        $downloader.DownloadFile($EDM_URL, $EDM_INSTALLER)
+
+        Write-Output "Installing EDM from $EDM_INSTALLER"
+        $process = (Start-Process -FilePath "msiexec.exe" -ArgumentList "/qn /i $EDM_INSTALLER EDMAPPDIR=C:\Enthought\edm" -Wait -Passthru)
+        $exitCode = $process.ExitCode
+
+        if ($exitCode -ne 0)
+        {
+            Get-Content $logFilePath
+            throw "EDM install failed with exit code $exitCode."
+        }
+        edm --help
+
     - name: Build EDM environment
       run: |
         edm install --version 3.6 -y click setuptools
         edm run -- python -m ci build-env
+
     - name: Install dependencies and package
       run: |
         edm run -- python -m ci install
+
     - name: Test with unittest
       run: |
-        sudo /usr/bin/X :0&
-        export DISPLAY=:0
         edm run -- python -m ci test
+
     - name: Run coverage
+      if: runner.os == 'Linux'
       run: |
-        export DISPLAY=:0
         edm run -- python -m ci coverage
+
+    - name: Archive code coverage results
+      if: runner.os == 'Linux'
+      uses: actions/upload-artifact@v2
+      with:
+        name: code-coverage-report
+        path: htmlcov/
+
     - name: Lint with flake8
+      if: runner.os == 'Linux'
       run: |
         edm run -- python -m ci flake8
+
     - name: Perform integration test
       run: |
-        sudo /usr/bin/X :0&
-        export DISPLAY=:0
         edm run -- python -m ci shell
         edm run -e pyfibre-py36 -- PyFibre --test
