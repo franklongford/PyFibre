@@ -1,6 +1,5 @@
 import sys
 import os
-import logging
 from unittest import mock, TestCase
 
 from click.testing import CliRunner
