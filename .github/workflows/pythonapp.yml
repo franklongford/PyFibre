@@ -14,6 +14,7 @@ jobs:
       EDM_X_Y: '2.5'
       EDM_NAME: 'edm_cli_'
       DISPLAY: ':0'
+      ETS_TOOLKIT: 'qt4'
 
     steps:
     - uses: actions/checkout@v2
@@ -26,14 +27,12 @@ jobs:
     - name: Set Unix environment variables
       if: runner.os != 'Windows'
       run: |
-        echo "::set-env name=ETS_TOOLKIT::qt4"
         echo "::add-path::/home/runner/bin"
 
     - name: Set Windows environment variables
       if: runner.os == 'Windows'
       run: |
         md ${env:HOMEDRIVE}${env:HOMEPATH}\.cache
-        echo "::set-env name=ETS_TOOLKIT::qt4"
         echo "::add-path::C:\Enthought\edm"
 
     - name: Install X-Server and LibGLU
@@ -49,6 +48,13 @@ jobs:
         export EDM_INSTALLER=${EDM_NAME}${EDM_FULL}_linux_x86_64.sh
         wget https://package-data.enthought.com/edm/rh6_x86_64/${EDM_X_Y}/${EDM_INSTALLER}
         bash ./${EDM_INSTALLER} -b -f -p $HOME
+
+    - name: Install macOS EDM
+      if: runner.os == 'macOS'
+      run: |
+        export EDM_INSTALLER=${EDM_NAME}${EDM_FULL}.pkg
+        wget https://package-data.enthought.com/edm/osx_x86_64/${EDM_X_Y}/${EDM_INSTALLER}
+        sudo installer -pkg ./${EDM_INSTALLER} -target $HOME
 
     - name: Install Windows EDM
       if: runner.os == 'Windows'
