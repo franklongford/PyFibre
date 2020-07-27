@@ -1,0 +1,52 @@
+name: PyFibre CI on macOS
+
+on: [pull_request]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    env:
+      EDM_FULL: '2.5.0'
+      EDM_X_Y: '2.5'
+      EDM_NAME: 'edm_cli_'
+      DISPLAY: ':0'
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.6
+
+    - name: Set Unix environment variables
+      if: runner.os != 'Windows'
+      run: |
+        echo "::set-env name=ETS_TOOLKIT::qt4"
+        echo "::add-path::/home/runner/bin"
+
+    - name: Install macOS EDM
+      if: runner.os == 'macOS'
+      run: |
+        export EDM_INSTALLER=${EDM_NAME}${EDM_FULL}.pkg
+        wget https://package-data.enthought.com/edm/osx_x86_64/${EDM_X_Y}/${EDM_INSTALLER}
+        sudo installer -pkg ./${EDM_INSTALLER} -target $HOME
+
+    - name: Build EDM environment
+      run: |
+        edm install --version 3.6 -y click setuptools
+        edm run -- python -m ci build-env
+
+    - name: Install dependencies and package
+      run: |
+        edm run -- python -m ci install
+
+    - name: Test with unittest
+      run: |
+        edm run -- python -m ci test
+
+    - name: Perform integration test
+      run: |
+        edm run -- python -m ci shell
+        edm run -e pyfibre-py36 -- PyFibre --test

@@ -15,9 +15,10 @@ It is designed to make the quantification of fibrous tissue automated, standardi
 transparent as possible for non-technical users.
 
 Current supported OS:
-- Ubuntu (tested 18.04)
-- macOS
-- Windows
+
+- Ubuntu 18
+- macOS X
+- Windows 10
 
 Full documentation can be found at the `ReadTheDocs <https://pyfibre-docs.readthedocs.io/en/latest/>`_ page
 

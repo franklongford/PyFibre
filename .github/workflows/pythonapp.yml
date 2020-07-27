@@ -7,7 +7,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
 
     env:
       EDM_FULL: '2.5.0'
@@ -49,13 +49,6 @@ jobs:
         export EDM_INSTALLER=${EDM_NAME}${EDM_FULL}_linux_x86_64.sh
         wget https://package-data.enthought.com/edm/rh6_x86_64/${EDM_X_Y}/${EDM_INSTALLER}
         bash ./${EDM_INSTALLER} -b -f -p $HOME
-
-    - name: Install macOS EDM
-      if: runner.os == 'macOS'
-      run: |
-        export EDM_INSTALLER=${EDM_NAME}${EDM_FULL}.pkg
-        wget https://package-data.enthought.com/edm/osx_x86_64/${EDM_X_Y}/${EDM_INSTALLER}
-        sudo installer -pkg ./${EDM_INSTALLER} -target $HOME
 
     - name: Install Windows EDM
       if: runner.os == 'Windows'
