@@ -35,7 +35,7 @@ setup(
                         'PyFibre_GUI = pyfibre.gui.__main__:pyfibre'],
         "pyfibre.plugins": [
             "shg_pl_trans = "
-            "pyfibre.shg_pl_trans.shg_pl_trans_plugin"
+            "pyfibre.addons.shg_pl_trans.shg_pl_trans_plugin"
             ":SHGPLTransPlugin"]
     }
 )

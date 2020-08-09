@@ -1,7 +1,8 @@
 import os
 from unittest import TestCase
 
-from pyfibre.shg_pl_trans.shg_pl_trans_parser import SHGPLTransParser
+from pyfibre.addons.shg_pl_trans.shg_pl_trans_parser import (
+    SHGPLTransParser)
 
 
 class TestSHGPLTransParser(TestCase):

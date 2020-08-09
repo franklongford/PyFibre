@@ -2,17 +2,20 @@ import numpy as np
 from skimage.external.tifffile import TiffFile
 
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
-from pyfibre.shg_pl_trans.shg_pl_trans_parser import SHGPLTransFileSet
-from pyfibre.shg_pl_trans.tests.fixtures import (
-    test_shg_image_path,
-    test_shg_pl_trans_image_path)
-
-from ..shg_reader import (
+from pyfibre.addons.shg_pl_trans.shg_pl_trans_parser import (
+    SHGPLTransFileSet)
+from pyfibre.addons.shg_pl_trans.shg_reader import (
     get_fluoview_param,
     get_imagej_param,
     get_tiff_param,
     SHGReader
 )
+
+
+from .fixtures import (
+    test_shg_image_path,
+    test_shg_pl_trans_image_path)
+
 
 
 class TestTiffReader(PyFibreTestCase):
