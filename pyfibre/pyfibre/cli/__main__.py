@@ -76,12 +76,12 @@ from .pyfibre_cli import PyFibreApplication
     'file_path', nargs=-1, type=click.Path(exists=True),
     required=False
 )
-def pyfibre(file_path, key, sigma, alpha, log_name,
+def pyfibre(file_paths, key, sigma, alpha, log_name,
             database_name, debug, profile, ow_metric, ow_segment,
             ow_network, save_figures, test):
     """Launches the PyFibre command line app"""
 
-    run(list(file_path), key, sigma, alpha, log_name,
+    run(list(file_paths), key, sigma, alpha, log_name,
         database_name, debug, profile, ow_metric, ow_segment,
         ow_network, save_figures, test)
 
