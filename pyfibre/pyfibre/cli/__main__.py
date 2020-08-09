@@ -72,7 +72,7 @@ from .pyfibre_cli import PyFibreApplication
     default='pyfibre'
 )
 @click.argument(
-    'file_path', nargs=-1, type=click.Path(exists=True),
+    'file_paths', nargs=-1, type=click.Path(exists=True),
     required=False
 )
 def pyfibre(file_paths, key, sigma, alpha, log_name,
