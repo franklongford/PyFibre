@@ -1,14 +1,14 @@
 
 [run]
 branch = True
-source = pyfibre
+source = pyfibre/pyfibre,pyfibre_shg_pl_trans/pyfibre_shg_pl_trans
 omit = */tests/*
        */bench/*
        */scripts/*
 
 [report]
 # Regexes for lines to exclude from consideration
-omit = pyfibre/api.py
+omit = pyfibre/pyfibre/api.py
        */tests/*
 exclude_lines =
     # Have to re-enable the standard pragma

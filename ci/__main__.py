@@ -108,7 +108,10 @@ def install(python_version):
     env_name = get_env_name(python_version)
 
     print('Installing PyFibre to edm environment')
-    edm_run(env_name, ['pip', 'install', '-e', '.'])
+    edm_run(env_name, ['pip', 'install', '-e', 'pyfibre/'])
+
+    print('Installing SHG-PL-Trans plugin to edm environment')
+    edm_run(env_name, ['pip', 'install', '-e', 'pyfibre_shg_pl_trans/'])
 
 
 @cli.command(help="Run flake")
@@ -165,13 +168,17 @@ def test(python_version, verbose):
     env_name = get_env_name(python_version)
 
     verbosity_args = ["--verbose"] if verbose else []
+    command = ["python", "-m", "unittest", "discover"]
 
-    returncode = edm_run(
-        env_name, ["python", "-m", "unittest", "discover"] + verbosity_args
-    )
+    for package in ['pyfibre', 'pyfibre_shg_pl_trans']:
 
-    if returncode:
-        raise click.ClickException("There were test failures.")
+        returncode = edm_run(
+            env_name,
+            command + ['-f', package] + verbosity_args
+        )
+
+        if returncode:
+            raise click.ClickException("There were test failures.")
 
 
 @cli.command(

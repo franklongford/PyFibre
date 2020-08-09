@@ -70,7 +70,9 @@ html_static_path = ['_static']
 html_logo = '_static/icon.ico'
 htmlhelp_basename = 'PyFibredoc'
 intersphinx_mapping = {'http://docs.python.org/': None}
-apidoc_module_dir = '../../pyfibre'
+apidoc_module_dir = (
+    '../../pyfibre/pyfibre'
+)
 apidoc_output_dir = 'api'
 apidoc_excluded_paths = ['*tests*', '*cli', '*gui*']
 apidoc_separate_modules = True
