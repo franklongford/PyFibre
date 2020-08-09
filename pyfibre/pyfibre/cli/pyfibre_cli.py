@@ -10,7 +10,7 @@ import logging
 import pandas as pd
 
 from envisage.api import Application
-from traits.api import Instance, Str, List, File, Bool
+from traits.api import Instance, Str, List, File
 
 from pyfibre.core.pyfibre_runner import PyFibreRunner
 from pyfibre.io.database_io import save_database
