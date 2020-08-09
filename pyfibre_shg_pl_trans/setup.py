@@ -27,8 +27,9 @@ setup(
     packages=find_packages(),
     entry_points={
         "pyfibre.plugins": [
-                    "pyfibre_shg_pl_trans = "
-                    "pyfibre_shg_pl_trans.shg_pl_trans_plugin"
-                    ":SHGPLTransPlugin"]
+            "pyfibre_shg_pl_trans = "
+            "pyfibre_shg_pl_trans.shg_pl_trans_plugin"
+            ":SHGPLTransPlugin"
+        ]
     }
 )

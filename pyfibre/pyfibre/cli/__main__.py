@@ -14,7 +14,6 @@ import click
 from pyfibre.core.base_pyfibre_plugin import BasePyFibrePlugin
 from pyfibre.core.core_pyfibre_plugin import CorePyFibrePlugin
 from pyfibre.utilities import logo, load_plugins
-from pyfibre.tests.fixtures import test_image_path
 
 from pyfibre.version import __version__
 
