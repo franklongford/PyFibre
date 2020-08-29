@@ -6,7 +6,7 @@ from pyfibre.model.objects.segments import (
 from pyfibre.tests.probe_classes.objects import (
     ProbeFibreNetwork, generate_probe_segment)
 
-from pyfibre.core.pyfibre_runner import PyFibreRunner
+from pyfibre.pyfibre_runner import PyFibreRunner
 
 
 LOAD_NETWORK_PATH = "networkx.read_gpickle"

@@ -24,7 +24,7 @@ from pyfibre.gui.file_display_pane import FileDisplayPane
 from pyfibre.gui.viewer_pane import ViewerPane
 from pyfibre.io.database_io import save_database
 from pyfibre.core.i_multi_image_factory import IMultiImageFactory
-from pyfibre.core.pyfibre_runner import (
+from pyfibre.pyfibre_runner import (
     PyFibreRunner)
 
 logger = logging.getLogger(__name__)

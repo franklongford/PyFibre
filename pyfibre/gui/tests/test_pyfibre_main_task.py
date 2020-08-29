@@ -9,7 +9,7 @@ from pyface.api import FileDialog, CANCEL
 from pyface.tasks.api import TaskWindow
 from traits_futures.toolkit_support import toolkit
 
-from pyfibre.core.pyfibre_runner import PyFibreRunner
+from pyfibre.pyfibre_runner import PyFibreRunner
 from pyfibre.gui.pyfibre_main_task import PyFibreMainTask, run_analysis
 from pyfibre.gui.options_pane import OptionsPane
 from pyfibre.gui.file_display_pane import FileDisplayPane
@@ -26,7 +26,7 @@ FILE_DIALOG_PATH = "pyfibre.gui.pyfibre_main_task.FileDialog"
 FILE_OPEN_PATH = "pyfibre.io.database_io.save_database"
 LOAD_DATABASE = ("pyfibre.tests.probe_classes.analyser.ProbeAnalyser"
                  ".load_databases")
-ITERATOR_PATH = 'pyfibre.core.pyfibre_runner.PyFibreRunner.run'
+ITERATOR_PATH = 'pyfibre.pyfibre_runner.PyFibreRunner.run'
 
 
 def dummy_iterate_images(file_sets, analyser, reader):
