@@ -17,7 +17,6 @@ from .fixtures import (
     test_shg_pl_trans_image_path)
 
 
-
 class TestTiffReader(PyFibreTestCase):
 
     def test_fluoview_param(self):
