@@ -1,13 +1,14 @@
 import os
 from tempfile import NamedTemporaryFile
 
-from pyfibre.shg_pl_trans.tests.probe_classes import (
+from pyfibre.addons.shg_pl_trans.tests.probe_classes import (
     ProbeSHGImage,
     ProbeSHGPLTransImage)
 from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 
-from pyfibre.shg_pl_trans.tools.figures import (
-    create_shg_figures, create_shg_pl_trans_figures)
+from pyfibre.addons.shg_pl_trans.tools.figures import (
+    create_shg_figures,
+    create_shg_pl_trans_figures)
 
 
 class TestFigures(PyFibreTestCase):

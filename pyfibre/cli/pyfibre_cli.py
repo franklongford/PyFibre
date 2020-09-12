@@ -15,7 +15,7 @@ from traits.api import Instance, Str, List, File
 from pyfibre.io.database_io import save_database
 from pyfibre.io.utilities import parse_file_path
 from pyfibre.ids import MULTI_IMAGE_FACTORIES
-from pyfibre.core.pyfibre_runner import PyFibreRunner
+from pyfibre.pyfibre_runner import PyFibreRunner
 
 logger = logging.getLogger(__name__)
 

@@ -54,6 +54,10 @@ class BasePyFibrePlugin(Plugin):
         """Returns version number of plugin"""
         raise NotImplementedError
 
+    def get_test_files(self):
+        """Returns a list of image files to use for integration tests"""
+        return []
+
     def get_multi_image_factories(self):
         """Returns a list of classes that provide an interface
         to IMultiImageFactory"""

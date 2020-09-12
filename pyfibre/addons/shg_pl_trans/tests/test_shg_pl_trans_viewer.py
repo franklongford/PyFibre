@@ -1,6 +1,7 @@
 from unittest import TestCase
 
-from pyfibre.shg_pl_trans.shg_pl_trans_viewer import SHGPLTransViewer
+from pyfibre.addons.shg_pl_trans.shg_pl_trans_viewer import (
+    SHGPLTransViewer)
 
 from .probe_classes import ProbeSHGPLTransImage
 

@@ -11,8 +11,7 @@ Last Modified: 18/02/2019
 import logging
 import click
 
-from pyfibre.shg_pl_trans.tests.fixtures import (
-    test_shg_pl_trans_image_path)
+from pyfibre.core.base_pyfibre_plugin import BasePyFibrePlugin
 from pyfibre.core.core_pyfibre_plugin import CorePyFibrePlugin
 from pyfibre.utilities import logo, load_plugins
 
@@ -73,30 +72,35 @@ from .pyfibre_cli import PyFibreApplication
     default='pyfibre'
 )
 @click.argument(
-    'file_path', nargs=-1, type=click.Path(exists=True),
+    'file_paths', nargs=-1, type=click.Path(exists=True),
     required=False
 )
-def pyfibre(file_path, key, sigma, alpha, log_name,
+def pyfibre(file_paths, key, sigma, alpha, log_name,
             database_name, debug, profile, ow_metric, ow_segment,
             ow_network, save_figures, test):
     """Launches the PyFibre command line app"""
 
-    run(list(file_path), key, sigma, alpha, log_name,
+    run(list(file_paths), key, sigma, alpha, log_name,
         database_name, debug, profile, ow_metric, ow_segment,
         ow_network, save_figures, test)
 
 
-def run(file_path, key, sigma, alpha, log_name,
+def run(file_paths, key, sigma, alpha, log_name,
         database_name, debug, profile,
         ow_metric, ow_segment,
         ow_network, save_figures, test):
 
     if test:
-        file_path = [test_shg_pl_trans_image_path]
         debug = True
         profile = True
         ow_network = True
         save_figures = True
+
+    if profile:
+        import cProfile
+        import pstats
+        profiler = cProfile.Profile()
+        profiler.enable()
 
     if debug:
         level = logging.DEBUG
@@ -107,19 +111,19 @@ def run(file_path, key, sigma, alpha, log_name,
                         filemode="w",
                         level=level)
 
-    if profile:
-        import cProfile
-        import pstats
-        profiler = cProfile.Profile()
-        profiler.enable()
-
     logging.info(logo(__version__))
 
     plugins = [CorePyFibrePlugin()]
     plugins += load_plugins()
 
+    if test:
+        file_paths = []
+        for plugin in plugins:
+            if isinstance(plugin, BasePyFibrePlugin):
+                file_paths += plugin.get_test_files()
+
     pyfibre_app = PyFibreApplication(
-        file_paths=file_path,
+        file_paths=file_paths,
         sigma=sigma, alpha=alpha, key=key,
         database_name=database_name,
         ow_metric=ow_metric, ow_segment=ow_segment,
