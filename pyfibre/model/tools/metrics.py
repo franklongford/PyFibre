@@ -15,7 +15,7 @@ from pyfibre.model.tools.utilities import bbox_sample
 logger = logging.getLogger(__name__)
 
 STRUCTURE_METRICS = ['Angle SDI', 'Anisotropy', 'Local Anisotropy']
-SHAPE_METRICS = ['Area', 'Eccentricity', 'Linearity', 'Coverage']
+SHAPE_METRICS = ['Area', 'Eccentricity', 'Circularity', 'Coverage']
 TEXTURE_METRICS = ['Mean', 'STD', 'Entropy']
 FIBRE_METRICS = ['Waviness', 'Length']
 NETWORK_METRICS = ['Degree', 'Eigenvalue', 'Connectivity',
@@ -72,8 +72,8 @@ def region_shape_metrics(region, tag=''):
 
     # Perform all non-intensity image relevant metrics
     database[f"{tag} Area"] = region.area
-    ratio = region.equivalent_diameter / region.perimeter
-    database[f"{tag} Linearity"] = 1 - np.pi * ratio
+    ratio = (np.pi * region.equivalent_diameter) / region.perimeter
+    database[f"{tag} Circularity"] = ratio
     database[f"{tag} Eccentricity"] = region.eccentricity
     database[f"{tag} Coverage"] = region.extent
 

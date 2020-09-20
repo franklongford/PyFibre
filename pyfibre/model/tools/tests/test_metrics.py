@@ -83,6 +83,11 @@ class TestAnalysis(TestCase):
         for metric in SHAPE_METRICS:
             self.assertIn(f'test {metric}', metrics)
 
+        self.assertAlmostEqual(9, metrics["test Area"])
+        self.assertAlmostEqual(1.77245385, metrics["test Circularity"])
+        self.assertAlmostEqual(0.69584728, metrics["test Eccentricity"])
+        self.assertAlmostEqual(0.375, metrics["test Coverage"])
+
     def test_region_texture_metrics(self):
 
         metrics = region_texture_metrics(

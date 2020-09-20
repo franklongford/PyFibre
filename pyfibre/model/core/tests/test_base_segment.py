@@ -43,7 +43,7 @@ class TestBaseSegment(PyFibreTestCase):
 
     def test_generate_database(self):
 
-        shape_metrics = ['Area', 'Linearity', 'Eccentricity',
+        shape_metrics = ['Area', 'Circularity', 'Eccentricity',
                          'Coverage']
         texture_metrics = ['Mean', 'STD', 'Entropy']
 

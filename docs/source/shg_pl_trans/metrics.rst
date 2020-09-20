@@ -37,7 +37,7 @@ Contain metrics calculated from each fibre segment identified in the segmentatio
 
     "Fibre Segment Area", "Area of fibre segment (in pixels)", "Shape"
     "Fibre Segment Coverage", "Ratio of fibre segment area / bounding box area", "Content"
-    "Fibre Segment Linearity", "Ratio of fibre segment diameter / perimeter ", "Shape"
+    "Fibre Segment Circularity", "Measure of how circular the fibre segment is", "Shape"
     "Fibre Segment Eccentricity", "`Eccentricity <https://en.wikipedia.org/wiki/Eccentricity_(mathematics)>`_ shape metric of fibre segment", "Shape"
     "Fibre Segment SHG Angle SDI", "Angle spectrum SDI (mean / max) for all SHG image pixels in fibre segment", "Texture"
     "Fibre Segment SHG Anisotropy", "Anisotropy of mean structure tensor of all SHG image pixels in fibre segment", "Texture"
@@ -60,14 +60,14 @@ Contain metrics calculated from each cell segment identified in the segmentation
     "No. Cells", "Number of cell segments", Content
     "Cell Segment Area", "Area of cell segment (in pixels)", "Shape"
     "Cell Segment Coverage", "Ratio of cell segment area / bounding box area", "Content"
-    "Cell Segment Linearity", "Ratio of cell segment diameter / perimeter ", "Shape"
+    "Cell Segment Circularity", "Measure of how circular the cell segment is", "Shape"
     "Cell Segment Eccentricity", "`Eccentricity <https://en.wikipedia.org/wiki/Eccentricity_(mathematics)>`_ shape metric of cell segment", "Shape"
     "Cell Segment PL Angle SDI", "Angle spectrum SDI (mean / max) for all PL image pixels in cell segment", "Texture"
     "Cell Segment PL Anisotropy", "Anisotropy of mean structure tensor of all PL image pixels in cell segment", "Texture"
     "Cell Segment PL Local Anisotropy", "Mean anisotropy of structure tensors of all PL image pixels in cell segment", "Texture"
     "Cell Segment PL Mean", "Mean intensity of cell segment pixels in PL image", "Texture"
     "Cell Segment PL STD", "Standard deviation of cell segment pixels in PL image", "Texture"
-    "Cell Segment PL Entropy", "Average Shannon entropy of cell segment pixels in SHG image"
+    "Cell Segment PL Entropy", "Average Shannon entropy of cell segment pixels in PL image"
 
 Global Image
 ^^^^^^^^^^^^
