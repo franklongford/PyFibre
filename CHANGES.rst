@@ -1,6 +1,33 @@
 Change Log
 ==========
 
+Release 2.0.2
+-------------
+
+Date:
+~~~~~
+20/09/2020
+
+Authors:
+~~~~~~~~
+Frank Longford
+
+Description:
+~~~~~~~~~~~~
+Some refactoring to plugins modules and amendments to SHG-PL-Trans metrics
+
+
+Maint
+^^^^^
+- Includes CI testing on Windows (#53)
+- SHG-PL-Trans plugin now contained in pyfibre.addons module (#65)
+
+Fixes
+^^^^^
+- Rename Linearity to Circularity metric (#66)
+- Redefine coverage metrics for global data sets (#66)
+
+
 Release 2.0.1
 -------------
 
