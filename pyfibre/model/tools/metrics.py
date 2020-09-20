@@ -72,7 +72,7 @@ def region_shape_metrics(region, tag=''):
 
     # Perform all non-intensity image relevant metrics
     database[f"{tag} Area"] = region.area
-    ratio = region.perimeter / (np.pi * region.equivalent_diameter)
+    ratio = (np.pi * region.equivalent_diameter) / region.perimeter
     database[f"{tag} Circularity"] = ratio
     database[f"{tag} Eccentricity"] = region.eccentricity
     database[f"{tag} Coverage"] = region.extent

@@ -84,7 +84,7 @@ class TestAnalysis(TestCase):
             self.assertIn(f'test {metric}', metrics)
 
         self.assertAlmostEqual(9, metrics["test Area"])
-        self.assertAlmostEqual(0.56418958, metrics["test Circularity"])
+        self.assertAlmostEqual(1.77245385, metrics["test Circularity"])
         self.assertAlmostEqual(0.69584728, metrics["test Eccentricity"])
         self.assertAlmostEqual(0.375, metrics["test Coverage"])
 
