@@ -1,7 +1,8 @@
 from unittest import TestCase
 
 from pyfibre.model.objects.segments import CellSegment, FibreSegment
-from pyfibre.tests.probe_classes.utilities import generate_regions, generate_image
+from pyfibre.tests.probe_classes.utilities import (
+    generate_regions, generate_image)
 from pyfibre.tests.probe_classes.objects import ProbeFibreNetwork
 from pyfibre.addons.shg_pl_trans.metric_analysers import (
     SHGMetricAnalyser, PLMetricAnalyser)
