@@ -4,7 +4,7 @@ on: [push]
 
 env:
   DISPLAY: ':0'
-  INSTALL_EDM_VERSION: 3.2.1
+  INSTALL_EDM_VERSION: 2.5.0
 
 jobs:
   build:
@@ -22,11 +22,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-
-    - name: Set up Python 3.6
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.6
 
     - name: Install X-Server and LibGLU
       if: runner.os == 'Linux'
@@ -82,5 +77,4 @@ jobs:
       uses: GabrielBB/xvfb-action@v1
       with:
         run: |
-          edm run -- python -m ci shell
           edm run -e pyfibre-py36 -- PyFibre --test
