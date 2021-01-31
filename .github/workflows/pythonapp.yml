@@ -3,6 +3,7 @@ name: Python application
 on: [push]
 
 env:
+  DISPLAY: ':0'
   INSTALL_EDM_VERSION: 3.2.1
 
 jobs:
