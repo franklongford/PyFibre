@@ -123,7 +123,7 @@ def create_tensor_image(image, min_N=50):
 
     # Form structure tensor image
     rgb_image = create_hsb_image(
-        image, hue, saturation, brightness)
+        image, hue, saturation, brightness) * 255.999
 
     return rgb_image
 
@@ -153,11 +153,13 @@ def create_region_image(image, regions):
         label_image, image=image, bg_label=0,
         image_alpha=0.99, alpha=0.25, bg_color=(0, 0, 0))
 
-    return image_label_overlay
+    return image_label_overlay * 255.9999
 
 
 def create_network_image(image, networks, c_mode=0):
     """Create image with overlayed fibre networks"""
+
+    image *= 255.9999 / image.max()
 
     colours = list(BASE_COLOURS.keys())
 
