@@ -40,7 +40,6 @@ jobs:
         sudo apt-get install libxcb-randr0
         sudo apt-get install libxcb-render-util0
         sudo apt-get install libxcb-xinerama0
-        sudo /usr/bin/X :0&
 
     - name: Setup EDM
       uses: enthought/setup-edm-action@v1
@@ -61,9 +60,11 @@ jobs:
         edm run -- python -m ci test
 
     - name: Run coverage
+      uses: GabrielBB/xvfb-action@v1
       if: runner.os == 'Linux'
-      run: |
-        edm run -- python -m ci coverage
+      with:
+        run: edm run -- python -m ci coverage
+        working-directory: ${{ runner.temp }}
 
     - name: Archive code coverage results
       if: runner.os == 'Linux'
@@ -78,6 +79,10 @@ jobs:
         edm run -- python -m ci flake8
 
     - name: Perform integration test
-      run: |
-        edm run -- python -m ci shell
-        edm run -e pyfibre-py36 -- PyFibre --test
+      uses: GabrielBB/xvfb-action@v1
+      with:
+        run: |
+          edm run -- python -m ci shell
+          edm run -e pyfibre-py36 -- PyFibre --test
+        working-directory: ${{ runner.temp }}
+        
