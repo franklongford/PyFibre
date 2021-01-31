@@ -56,8 +56,10 @@ jobs:
         edm run -- python -m ci install
 
     - name: Test with unittest
-      run: |
-        edm run -- python -m ci test
+      uses: GabrielBB/xvfb-action@v1
+      with:
+        run: edm run -- python -m ci test
+        working-directory: ${{ runner.temp }}
 
     - name: Run coverage
       uses: GabrielBB/xvfb-action@v1
