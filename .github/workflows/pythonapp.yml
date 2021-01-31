@@ -56,8 +56,10 @@ jobs:
         run: edm run -- python -m ci test
 
     - name: Run coverage
+      uses: GabrielBB/xvfb-action@v1
       if: runner.os == 'Linux'
-      run: edm run -- python -m ci coverage
+      with:
+        run: edm run -- python -m ci coverage
 
     - name: Archive code coverage results
       if: runner.os == 'Linux'
