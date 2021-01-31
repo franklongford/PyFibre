@@ -70,7 +70,7 @@ jobs:
 
     - name: Lint with flake8
       if: runner.os == 'Windows'
-      run: edm run -- python -m ci flake8
+      run: edm run -e pyfibre-py36 -- python -m flake8 .
 
     - name: Perform integration test
       uses: GabrielBB/xvfb-action@v1
