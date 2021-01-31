@@ -11,6 +11,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
+        toolkit: ['pyqt5']
     env:
       # Set root directory, mainly for Windows, so that the EDM Python
       # environment lives in the same drive as the cloned source. Otherwise
@@ -30,7 +31,14 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install --yes xserver-xorg libglu1-mesa-dev mesa-common-dev libxcb-icccm4 libxkbcommon-x11-0
+        sudo apt-get install qt5-default
+        sudo apt-get install libxkbcommon-x11-0
+        sudo apt-get install libxcb-icccm4
+        sudo apt-get install libxcb-image0
+        sudo apt-get install libxcb-keysyms1
+        sudo apt-get install libxcb-randr0
+        sudo apt-get install libxcb-render-util0
+        sudo apt-get install libxcb-xinerama0
         sudo /usr/bin/X :0&
 
     - name: Setup EDM
