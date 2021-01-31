@@ -61,7 +61,7 @@ class SHGPLTransAnalyser(SHGAnalyser):
         global_database = global_database.append(
             global_metrics, ignore_index=False)
 
-        logger.debug(f" Cell segment analysis complete")
+        logger.debug(" Cell segment analysis complete")
 
         self._databases = tuple(
             [global_database,

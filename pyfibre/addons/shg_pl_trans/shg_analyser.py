@@ -208,7 +208,7 @@ class SHGAnalyser(BaseMultiImageAnalyser):
                 f"Cannot load metrics for {self.multi_image.name}")
             metric = True
 
-        logger.debug(f"Analysis options:\n "
+        logger.debug("Analysis options:\n "
                      f"Extract Network = {network}\n "
                      f"Segment Image = {segment}\n "
                      f"Generate Metrics = {metric}\n "
