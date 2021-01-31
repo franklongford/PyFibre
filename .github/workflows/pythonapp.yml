@@ -59,14 +59,12 @@ jobs:
       uses: GabrielBB/xvfb-action@v1
       with:
         run: edm run -- python -m ci test
-        working-directory: ${{ runner.temp }}
 
     - name: Run coverage
       uses: GabrielBB/xvfb-action@v1
       if: runner.os == 'Linux'
       with:
         run: edm run -- python -m ci coverage
-        working-directory: ${{ runner.temp }}
 
     - name: Archive code coverage results
       if: runner.os == 'Linux'
@@ -86,5 +84,3 @@ jobs:
         run: |
           edm run -- python -m ci shell
           edm run -e pyfibre-py36 -- PyFibre --test
-        working-directory: ${{ runner.temp }}
-        
