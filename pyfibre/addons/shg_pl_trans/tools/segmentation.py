@@ -60,7 +60,7 @@ def shg_segmentation(
 def shg_pl_trans_segmentation(
         multi_image, fibre_networks,
         min_fibre_size=100, min_cell_size=200,
-        min_fibre_frac=100, min_cell_frac=0.001,
+        min_fibre_frac=100, min_cell_frac=0.1,
         scale=1.0, **kwargs):
 
     # Create an image stack for the rgb_segmentation from SHG and PL
@@ -109,7 +109,7 @@ def shg_pl_trans_segmentation(
     # Create a new set of segments for each cell region
     cell_segments = binary_to_segments(
         cell_binary, CellSegment,
-        intensity_image=multi_image.shg_image,
+        intensity_image=multi_image.pl_image,
         min_size=min_cell_size,
         min_frac=min_cell_frac)
 

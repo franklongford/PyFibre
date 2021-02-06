@@ -208,7 +208,7 @@ class SHGAnalyser(BaseMultiImageAnalyser):
                 f"Cannot load metrics for {self.multi_image.name}")
             metric = True
 
-        logger.debug(f"Analysis options:\n "
+        logger.debug("Analysis options:\n "
                      f"Extract Network = {network}\n "
                      f"Segment Image = {segment}\n "
                      f"Generate Metrics = {metric}\n "
@@ -246,7 +246,7 @@ class SHGAnalyser(BaseMultiImageAnalyser):
 
         # Call FIRE algorithm to extract full image network
         logger.debug(
-            f"Calling FIRE algorithm using "
+            "Calling FIRE algorithm using "
             f"image scale {scale}  "
             f"alpha  {alpha}"
         )
@@ -308,7 +308,7 @@ class SHGAnalyser(BaseMultiImageAnalyser):
         global_dataframe = global_dataframe.append(
             global_metrics, ignore_index=False)
 
-        logger.debug(f" Fibre segment analysis complete")
+        logger.debug(" Fibre segment analysis complete")
 
         self._databases = tuple(
             [global_dataframe, segment_merics, network_metrics, None]

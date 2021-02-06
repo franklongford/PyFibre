@@ -83,7 +83,7 @@ def rgb_segmentation(image_stack, bd_filter, scale=1.0):
     )
 
     # Form mask using Kmeans Background filter
-    logger.debug(f"Performing BD Filter")
+    logger.debug("Performing BD Filter")
     mask_image = bd_filter.filter_image(image_stack)
 
     # Reducing image to original size

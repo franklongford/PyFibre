@@ -101,7 +101,7 @@ class ImageTab(BaseDisplayTab):
 class TensorImageTab(ImageTab):
 
     def _tensor_image(self, image):
-        return create_tensor_image(image) * 255.999
+        return create_tensor_image(image)
 
     def _get_plot_data(self):
         """Convert each image into a tensor image"""
@@ -126,7 +126,7 @@ class NetworkImageTab(ImageTab):
         return create_network_image(
             image,
             self.networks,
-            c_mode=self.c_mode) * 255.999
+            c_mode=self.c_mode)
 
     def _get_plot_data(self):
         """Convert each image into a network image"""

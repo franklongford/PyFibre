@@ -87,43 +87,43 @@ def create_angle_reference(size, min_n=50, max_n=120):
     image_rings = image_sine * image_cos
 
     j_tensor = form_structure_tensor(image_rings, sigma=1.0)
-    pix_j_anis, pix_j_angle, pix_j_energy = tensor_analysis(j_tensor)
+    pix_j_coher, pix_j_angle, pix_j_energy = tensor_analysis(j_tensor)
 
     pix_j_angle = rotate(pix_j_angle, 90)[: size // 2]
-    pix_j_anis = pix_j_anis[: size // 2]
+    pix_j_coher = pix_j_coher[: size // 2]
     pix_j_energy = np.where(
         image_radius < (size / 2), pix_j_energy, 0)[: size // 2]
 
-    return pix_j_angle, pix_j_anis, pix_j_energy
+    return pix_j_angle, pix_j_coher, pix_j_energy
 
 
 def create_tensor_image(image, min_N=50):
 
-    # Form nematic and structure tensors for each pixel
+    # Form structure tensors for each pixel
     j_tensor = form_structure_tensor(image, sigma=1.0)
 
-    # Perform anisotropy analysis on each pixel
-    pix_j_anis, pix_j_angle, pix_j_energy = tensor_analysis(j_tensor)
+    # Perform coherence and angle analysis on each pixel
+    pix_j_coher, pix_j_angle, pix_j_energy = tensor_analysis(j_tensor)
 
     hue = (pix_j_angle + 90) / 180
-    saturation = pix_j_anis / pix_j_anis.max()
+    saturation = pix_j_coher / pix_j_coher.max()
     brightness = image / image.max()
 
     size = 0.2 * np.sqrt(image.size)
 
     if size >= min_N:
-        ref_angle, ref_anis, ref_energy = create_angle_reference(size)
+        ref_angle, ref_coher, ref_energy = create_angle_reference(size)
         size = ref_angle.shape[1]
         start = - size // 2
         end = image.shape[0]
 
         hue[start: end, : size] = (ref_angle + 90) / 180
-        saturation[start: end, : size] = ref_anis / ref_anis.max()
+        saturation[start: end, : size] = ref_coher / ref_coher.max()
         brightness[start: end, : size] = ref_energy / ref_energy.max()
 
     # Form structure tensor image
     rgb_image = create_hsb_image(
-        image, hue, saturation, brightness)
+        image, hue, saturation, brightness) * 255.999
 
     return rgb_image
 
@@ -153,11 +153,13 @@ def create_region_image(image, regions):
         label_image, image=image, bg_label=0,
         image_alpha=0.99, alpha=0.25, bg_color=(0, 0, 0))
 
-    return image_label_overlay
+    return image_label_overlay * 255.9999
 
 
 def create_network_image(image, networks, c_mode=0):
     """Create image with overlayed fibre networks"""
+
+    image *= 255.9999 / image.max()
 
     colours = list(BASE_COLOURS.keys())
 

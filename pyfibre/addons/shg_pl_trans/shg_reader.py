@@ -150,13 +150,6 @@ class SHGReader(BaseMultiImageReader):
         if minor_axis is not None:
             image = np.mean(image, axis=minor_axis)
 
-        # If 2D array, simply normalise and return as float
-        if image.ndim == 2:
-            image = image / image.max()
-        elif image.ndim > 2:
-            for index, channel in enumerate(image):
-                image[index] = channel / channel.max()
-
         return img_as_float(image)
 
     def load_image(self, filename):

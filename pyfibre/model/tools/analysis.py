@@ -92,8 +92,8 @@ def tensor_analysis(tensor):
 
     Returns
     -------
-    tot_anis, tot_angle, tot_energy : array_like of floats
-        Anisotropy, angle and energy values of input tensor
+    tot_coher, tot_angle, tot_energy : array_like of floats
+        Coherence, angle and energy values of input tensor
     """
 
     if tensor.ndim == 2:
@@ -105,15 +105,16 @@ def tensor_analysis(tensor):
     eig_sum = eig_val.sum(axis=-1)
     indicies = np.nonzero(eig_sum)
 
-    tot_anis = np.zeros(tensor.shape[:-2])
-    tot_anis[indicies] += eig_diff[indicies] / eig_sum[indicies]
+    # Calculate the coherence for each tensor
+    tot_coher = np.zeros(tensor.shape[:-2])
+    tot_coher[indicies] += (eig_diff[indicies] / eig_sum[indicies]) ** 2
 
     tot_angle = 0.5 * np.arctan2(
         2 * tensor[..., 1, 0],
         (tensor[..., 1, 1] - tensor[..., 0, 0])) / np.pi * 180
     tot_energy = np.trace(np.abs(tensor), axis1=-2, axis2=-1)
 
-    return tot_anis, tot_angle, tot_energy
+    return tot_coher, tot_angle, tot_energy
 
 
 def angle_analysis(angles, weights=None, n_bin=200):

@@ -38,7 +38,10 @@ def clip_intensities(image, p_intensity=(1, 98)):
         f"intensity percentages {p_intensity}")
     low, high = np.percentile(image, p_intensity)
     image = rescale_intensity(
-        image, in_range=(low, high), out_range=(0.0, 1.0))
+        image,
+        in_range=(low, high),
+        out_range=(low, high)
+    )
 
     return image
 
