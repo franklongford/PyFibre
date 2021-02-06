@@ -18,40 +18,40 @@ class TestAnalysis(PyFibreTestCase):
         tensor = np.array([[1, 0],
                            [0, 1]])
 
-        tot_anis, tot_angle, tot_energy = tensor_analysis(tensor)
-        self.assertArrayAlmostEqual(np.array([0]), tot_anis)
+        tot_coher, tot_angle, tot_energy = tensor_analysis(tensor)
+        self.assertArrayAlmostEqual(np.array([0]), tot_coher)
         self.assertArrayAlmostEqual(np.array([0]), tot_angle)
         self.assertArrayAlmostEqual(np.array([2]), tot_energy)
 
         tensor = np.array([[1, 0],
                            [0, -1]])
 
-        tot_anis, tot_angle, tot_energy = tensor_analysis(tensor)
-        self.assertArrayAlmostEqual(np.array([0]), tot_anis)
+        tot_coher, tot_angle, tot_energy = tensor_analysis(tensor)
+        self.assertArrayAlmostEqual(np.array([0]), tot_coher)
         self.assertArrayAlmostEqual(np.array([90]), tot_angle)
         self.assertArrayAlmostEqual(np.array([2]), tot_energy)
 
         tensor = np.array([[1, 0],
                            [0, 0]])
 
-        tot_anis, tot_angle, tot_energy = tensor_analysis(tensor)
-        self.assertArrayAlmostEqual(np.array([1]), tot_anis)
+        tot_coher, tot_angle, tot_energy = tensor_analysis(tensor)
+        self.assertArrayAlmostEqual(np.array([1]), tot_coher)
         self.assertArrayAlmostEqual(np.array([90]), tot_angle)
         self.assertArrayAlmostEqual(np.array([1]), tot_energy)
 
         tensor = np.array([[0, 0],
                            [0, 1]])
 
-        tot_anis, tot_angle, tot_energy = tensor_analysis(tensor)
-        self.assertArrayAlmostEqual(np.array([1]), tot_anis)
+        tot_coher, tot_angle, tot_energy = tensor_analysis(tensor)
+        self.assertArrayAlmostEqual(np.array([1]), tot_coher)
         self.assertArrayAlmostEqual(np.array([0]), tot_angle)
         self.assertArrayAlmostEqual(np.array([1]), tot_energy)
 
         tensor = np.array([[0, 1],
                            [1, 0]])
 
-        tot_anis, tot_angle, tot_energy = tensor_analysis(tensor)
-        self.assertArrayAlmostEqual(np.array([0]), tot_anis)
+        tot_coher, tot_angle, tot_energy = tensor_analysis(tensor)
+        self.assertArrayAlmostEqual(np.array([0]), tot_coher)
         self.assertArrayAlmostEqual(np.array([45]), tot_angle)
         self.assertArrayAlmostEqual(np.array([0]), tot_energy)
 
@@ -60,8 +60,8 @@ class TestAnalysis(PyFibreTestCase):
             [[[0, 1], [1, 0]],
              [[0, 0], [0, 1]]])
 
-        tot_anis, tot_angle, tot_energy = tensor_analysis(tensor_1d)
-        self.assertArrayAlmostEqual(np.array([0, 1]), tot_anis)
+        tot_coher, tot_angle, tot_energy = tensor_analysis(tensor_1d)
+        self.assertArrayAlmostEqual(np.array([0, 1]), tot_coher)
         self.assertArrayAlmostEqual(np.array([45, 0]), tot_angle)
         self.assertArrayAlmostEqual(np.array([0, 1]), tot_energy)
 
@@ -73,8 +73,8 @@ class TestAnalysis(PyFibreTestCase):
              [[[1, 0], [0, -1]],
               [[1, 0], [0, 0]]]])
 
-        tot_anis, tot_angle, tot_energy = tensor_analysis(tensor_2d)
-        self.assertArrayAlmostEqual(np.array([[0, 1], [0, 1]]), tot_anis)
+        tot_coher, tot_angle, tot_energy = tensor_analysis(tensor_2d)
+        self.assertArrayAlmostEqual(np.array([[0, 1], [0, 1]]), tot_coher)
         self.assertArrayAlmostEqual(np.array([[45, 0], [90, 90]]), tot_angle)
         self.assertArrayAlmostEqual(np.array([[0, 1], [2, 1]]), tot_energy)
 
