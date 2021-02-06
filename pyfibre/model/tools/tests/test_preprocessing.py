@@ -16,13 +16,13 @@ class TestPreprocessing(TestCase):
         clipped_image = clip_intensities(self.image,
                                          p_intensity=(1, 95))
 
-        self.assertEqual(clipped_image[2, 2], 1)
-        self.assertEqual(clipped_image[1, 1], 1)
+        self.assertAlmostEqual(clipped_image[2, 2], 4.2)
+        self.assertAlmostEqual(clipped_image[1, 1], 4.2)
 
         clipped_image = clip_intensities(self.image,
                                          p_intensity=(1, 96))
-        self.assertEqual(clipped_image[2, 2], 1)
-        self.assertAlmostEqual(clipped_image[1, 1], 0.9523809, 6)
+        self.assertAlmostEqual(clipped_image[2, 2], 5.2)
+        self.assertAlmostEqual(clipped_image[1, 1], 5.0, 6)
 
     def test_nl_means(self):
 

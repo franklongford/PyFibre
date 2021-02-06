@@ -25,7 +25,7 @@ class SegmentImageTab(ImageTab):
     def _region_image(self, image):
         return create_region_image(
             image,
-            self.regions) * 255.999
+            self.regions)
 
     def _get_plot_data(self):
         """Convert each image into a segment image"""

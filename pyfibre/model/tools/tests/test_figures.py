@@ -65,13 +65,13 @@ class TestFigures(PyFibreTestCase):
         self.assertEqual(
             (10, 10, 3), segment_image.shape)
         self.assertTrue(
-            np.allclose(segment_image[..., 0][indices], 0.0075)
+            np.allclose(segment_image[..., 0][indices], 1.92)
         )
         self.assertTrue(
-            np.allclose(segment_image[..., 1][indices], 0.0075)
+            np.allclose(segment_image[..., 1][indices], 1.92)
         )
         self.assertTrue(
-            np.allclose(segment_image[..., 2][indices], 0.0075)
+            np.allclose(segment_image[..., 2][indices], 1.92)
         )
 
     def test_create_network_image(self):
