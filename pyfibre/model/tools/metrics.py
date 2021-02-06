@@ -14,7 +14,7 @@ from pyfibre.model.tools.utilities import bbox_sample
 
 logger = logging.getLogger(__name__)
 
-STRUCTURE_METRICS = ['Angle SDI', 'Anisotropy', 'Local Anisotropy']
+STRUCTURE_METRICS = ['Angle SDI', 'Coherence', 'Local Coherence']
 SHAPE_METRICS = ['Area', 'Eccentricity', 'Circularity', 'Coverage']
 TEXTURE_METRICS = ['Mean', 'STD', 'Entropy']
 FIBRE_METRICS = ['Waviness', 'Length']
@@ -47,7 +47,7 @@ def structure_tensor_metrics(structure_tensor, tag=''):
 
     database = pd.Series(dtype=object)
 
-    (segment_anis_map,
+    (segment_coher_map,
      segment_angle_map,
      segment_angle_map) = tensor_analysis(structure_tensor)
 
@@ -55,12 +55,12 @@ def structure_tensor_metrics(structure_tensor, tag=''):
     axis = tuple(range(structure_tensor.ndim - 2))
     mean_tensor = np.mean(structure_tensor, axis=axis)
 
-    segment_anis, _, _ = tensor_analysis(mean_tensor)
+    segment_coher, _, _ = tensor_analysis(mean_tensor)
 
     database[f"{tag} Angle SDI"], _ = angle_analysis(
-        segment_angle_map, segment_anis_map)
-    database[f"{tag} Anisotropy"] = segment_anis[0]
-    database[f"{tag} Local Anisotropy"] = np.mean(segment_anis_map)
+        segment_angle_map, segment_coher_map)
+    database[f"{tag} Coherence"] = segment_coher[0]
+    database[f"{tag} Local Coherence"] = np.mean(segment_coher_map)
 
     return database
 

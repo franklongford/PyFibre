@@ -48,8 +48,8 @@ class TestAnalysis(TestCase):
         self.assertIsInstance(metrics, pd.Series)
         self.assertEqual(3, len(metrics))
 
-        self.assertAlmostEqual(2.23606797, metrics['test_1d Anisotropy'])
-        self.assertAlmostEqual(0.5, metrics['test_1d Local Anisotropy'])
+        self.assertAlmostEqual(2.23606797, metrics['test_1d Coherence'])
+        self.assertAlmostEqual(0.5, metrics['test_1d Local Coherence'])
 
         for metric in STRUCTURE_METRICS:
             self.assertIn(f'test_1d {metric}', metrics)
@@ -66,8 +66,8 @@ class TestAnalysis(TestCase):
         self.assertIsInstance(metrics, pd.Series)
         self.assertEqual(3, len(metrics))
 
-        self.assertAlmostEqual(np.sqrt(2), metrics['test_2d Anisotropy'])
-        self.assertAlmostEqual(0.5, metrics['test_2d Local Anisotropy'])
+        self.assertAlmostEqual(np.sqrt(2), metrics['test_2d Coherence'])
+        self.assertAlmostEqual(0.5, metrics['test_2d Local Coherence'])
 
         for metric in STRUCTURE_METRICS:
             self.assertIn(f'test_2d {metric}', metrics)
