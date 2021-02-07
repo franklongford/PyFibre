@@ -4,6 +4,9 @@ sphinxcontrib.apidoc==0.3.0
 sphinxcontrib.bibtex==1.0.0
 stevedore==1.29.0
 numpy>=1.16.1
+scipy
+scikit-image==0.16.2
+scikit-learn==0.23.0
 pandas>=1.0.0
 networkx>=2.2
 traits==6.1.0
