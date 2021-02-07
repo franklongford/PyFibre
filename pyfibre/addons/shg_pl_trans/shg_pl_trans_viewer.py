@@ -5,10 +5,14 @@ from traits.api import Instance, on_trait_change
 
 from pyfibre.core.base_multi_image_viewer import BaseMultiImageViewer
 from pyfibre.gui.image_tab import ImageTab, NetworkImageTab, TensorImageTab
+from pyfibre.gui.metric_tab import MetricTab
 from pyfibre.gui.segment_image_tab import SegmentImageTab
 from pyfibre.io.object_io import (
     load_fibre_segments, load_cell_segments,
     load_fibre_networks, load_fibres)
+from pyfibre.io.database_io import (
+    load_database
+)
 from pyfibre.utilities import flatten_list
 
 
@@ -18,6 +22,8 @@ logger = logging.getLogger(__name__)
 class SHGPLTransViewer(BaseMultiImageViewer):
 
     multi_image_tab = Instance(ImageTab)
+
+    metric_tab = Instance(MetricTab)
 
     tensor_tab = Instance(ImageTab)
 
@@ -33,6 +39,10 @@ class SHGPLTransViewer(BaseMultiImageViewer):
         return ImageTab(
             multi_image=self.multi_image,
             label='Loaded Image')
+
+    def _metric_tab_default(self):
+        return MetricTab(
+            label='Image Metrics')
 
     def _tensor_tab_default(self):
         return TensorImageTab(
@@ -64,6 +74,8 @@ class SHGPLTransViewer(BaseMultiImageViewer):
         networks = []
         fibres = []
         fibre_segments = []
+        fibre_data = []
+        headers = []
 
         try:
             fibre_networks = load_fibre_networks(filename)
@@ -94,6 +106,20 @@ class SHGPLTransViewer(BaseMultiImageViewer):
         self.fibre_tab.networks = fibres
         self.fibre_segment_tab.segments = fibre_segments
 
+        try:
+            fibre_metrics = load_database(
+                filename, file_type='fibre_metric'
+            )
+            headers = [''] + list(fibre_metrics.columns)
+            fibre_data = fibre_metrics.to_records()
+            fibre_data = fibre_data.tolist()
+        except (AttributeError, IOError, EOFError):
+            logger.debug(
+                f"Unable to load fibre metrics for {image_name}")
+
+        self.metric_tab.headers = headers
+        self.metric_tab.data = fibre_data
+
     def _update_pl_image_tabs(self, filename, image_name):
 
         cell_segments = []
@@ -119,7 +145,8 @@ class SHGPLTransViewer(BaseMultiImageViewer):
                 self.network_tab,
                 self.fibre_tab,
                 self.fibre_segment_tab,
-                self.cell_segment_tab]
+                self.cell_segment_tab,
+                self.metric_tab]
 
     def update_display_tabs(self):
 
