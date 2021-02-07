@@ -18,7 +18,7 @@ EDM_CORE_DEPS = [
     "pyface==7.0.1-1",
     "pygments>=2.2.0-1",
     "pyqt5>=5.14.2-3",
-    "chaco==4.8.0-4",
+    "chaco==4.8.0-5",
     "traits_futures==0.1.0-21",
     "scikits.image==0.16.2-3",
     "xlwt==1.2.0-1",
