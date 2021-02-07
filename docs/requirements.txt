@@ -7,4 +7,3 @@ numpy>=1.16.1
 pandas>=1.0.0
 networkx>=2.2
 traits==6.1.0
-chaco
