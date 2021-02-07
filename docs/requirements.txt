@@ -9,4 +9,5 @@ scikit-image==0.16.2
 scikit-learn==0.23.0
 pandas>=1.0.0
 networkx>=2.2
-traits==6.1.0
+traits>=6.1.0
+envisage==4.9.2
