@@ -63,6 +63,11 @@ def shg_pl_trans_segmentation(
         min_fibre_frac=100, min_cell_frac=0.1,
         scale=1.0, **kwargs):
 
+    norm_stack = [
+        rescale_intensity(image)
+        for image in multi_image.preprocess_images()
+    ]
+
     # Create an image stack for the rgb_segmentation from SHG and PL
     # images
     fibre_filter = create_fibre_filter(
@@ -73,14 +78,9 @@ def shg_pl_trans_segmentation(
         1, 0)
 
     # Create composite RGB image from SHG, PL and transmission
-    norm_shg = rescale_intensity(multi_image.shg_image)
-    norm_pl_trans = rescale_intensity(
-        np.sqrt(multi_image.pl_image * multi_image.trans_image)
-    )
-    norm_trans = rescale_intensity(multi_image.trans_image)
-    stack = (norm_shg * fibre_filter,
-             norm_pl_trans,
-             equalize_adapthist(norm_trans))
+    stack = (norm_stack[0],
+             np.sqrt(norm_stack[1] * norm_stack[2]),
+             equalize_adapthist(norm_stack[2]))
 
     # Segment the PL image using k-means clustering
     fibre_mask, cell_mask = rgb_segmentation(
@@ -100,21 +100,21 @@ def shg_pl_trans_segmentation(
     # from both FIRE and k-means algorithms
     fibre_binary = mean_binary(
         np.array([original_binary, new_binary]),
-        multi_image.shg_image,
+        norm_stack[0],
         min_intensity=0.10)
     cell_binary = np.where(fibre_binary, 0, 1)
 
     # Create a new set of segments for each fibre region
     fibre_segments = binary_to_segments(
         fibre_binary, FibreSegment,
-        intensity_image=multi_image.shg_image,
+        intensity_image=norm_stack[0],
         min_size=min_fibre_size,
         min_frac=min_fibre_frac)
 
     # Create a new set of segments for each cell region
     cell_segments = binary_to_segments(
         cell_binary, CellSegment,
-        intensity_image=multi_image.pl_image,
+        intensity_image=norm_stack[1],
         min_size=min_cell_size,
         min_frac=min_cell_frac)
 

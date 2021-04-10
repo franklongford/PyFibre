@@ -236,8 +236,9 @@ class SHGAnalyser(BaseMultiImageAnalyser):
         """
 
         logger.debug("Applying AHE to SHG image")
-        norm_image = rescale_intensity(self.multi_image.shg_image)
-        image_equal = equalize_adapthist(norm_image)
+        norm_stack = self.multi_image.preprocess_images()
+        image_equal = equalize_adapthist(
+            rescale_intensity(norm_stack[0]))
 
         logger.debug(
             "Performing NL Denoise using local windows {} {}".format(

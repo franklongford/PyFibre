@@ -81,8 +81,6 @@ class BaseMultiImageReader(ABCHasTraits):
             image_stack=image_stack,
         )
 
-        multi_image.preprocess_images()
-
         return multi_image
 
     @abstractmethod

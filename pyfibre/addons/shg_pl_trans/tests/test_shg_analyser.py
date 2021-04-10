@@ -226,7 +226,6 @@ class TestSHGAnalyser(PyFibreTestCase):
             self.analyser.fire_parameters)
 
         self.multi_image.shg_image = self.multi_image.shg_image[:50, :50]
-        self.multi_image.preprocess_images()
 
         self.analyser.network_analysis(
             sigma=self.runner.sigma,
