@@ -89,6 +89,13 @@ def nanmean(array_like, weights=None):
     if weights is None:
         weights = np.ones(array_like.shape)
 
+    # Ensure None and NaN objects are filtered out
+    array_like = np.array(
+        np.where(
+            array_like==None, np.nan, array_like
+        ),
+        dtype=float
+    )
     indices = ~np.isnan(array_like)
 
     try:
