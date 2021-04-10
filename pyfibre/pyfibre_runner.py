@@ -72,7 +72,8 @@ class PyFibreRunner(HasStrictTraits):
                 logger.info(f"Processing image data for {file_set}")
                 databases = analyser.image_analysis(self)
             except Exception as err:
-                logger.info(f'Cannot analyse image data for {file_set}: {str(err)}')
+                logger.info(f'Cannot analyse image data for {file_set}:'
+                            f' {str(err)}')
                 continue
 
             yield databases
