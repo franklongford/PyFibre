@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.ndimage import binary_dilation, binary_closing
-from skimage.exposure import equalize_adapthist
+from skimage.exposure import equalize_adapthist, rescale_intensity
 from skimage.filters import threshold_mean
 from skimage.morphology import remove_small_holes
 
@@ -73,9 +73,12 @@ def shg_pl_trans_segmentation(
         1, 0)
 
     # Create composite RGB image from SHG, PL and transmission
-    stack = (multi_image.shg_image * fibre_filter,
-             np.sqrt(multi_image.pl_image * multi_image.trans_image),
-             equalize_adapthist(multi_image.trans_image))
+    norm_shg = rescale_intensity(multi_image.shg_image)
+    norm_pl = rescale_intensity(multi_image.pl_image)
+    norm_trans = rescale_intensity(multi_image.trans_image)
+    stack = (norm_shg * fibre_filter,
+             np.sqrt(norm_pl * norm_trans),
+             equalize_adapthist(norm_trans))
 
     # Segment the PL image using k-means clustering
     fibre_mask, cell_mask = rgb_segmentation(
