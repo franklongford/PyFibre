@@ -74,10 +74,12 @@ def shg_pl_trans_segmentation(
 
     # Create composite RGB image from SHG, PL and transmission
     norm_shg = rescale_intensity(multi_image.shg_image)
-    norm_pl = rescale_intensity(multi_image.pl_image)
+    norm_pl_trans = rescale_intensity(
+        np.sqrt(multi_image.pl_image * multi_image.trans_image)
+    )
     norm_trans = rescale_intensity(multi_image.trans_image)
     stack = (norm_shg * fibre_filter,
-             np.sqrt(norm_pl * norm_trans),
+             norm_pl_trans,
              equalize_adapthist(norm_trans))
 
     # Segment the PL image using k-means clustering
