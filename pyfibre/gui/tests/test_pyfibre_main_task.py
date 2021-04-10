@@ -186,11 +186,7 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
             capture.check(
                 ('pyfibre.core.base_multi_image_reader',
                  'INFO',
-                 f'Loading {test_image_path}'),
-                ('pyfibre.model.tools.preprocessing',
-                 'DEBUG',
-                 'Preprocessing images using clipped intensity '
-                 'percentages (1, 99)')
+                 f'Loading {test_image_path}')
             )
 
             capture.clear()
@@ -200,10 +196,6 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
                     ('pyfibre.core.base_multi_image_reader',
                      'INFO',
                      f'Loading {test_image_path}'),
-                    ('pyfibre.model.tools.preprocessing',
-                     'DEBUG',
-                     'Preprocessing images using clipped intensity '
-                     'percentages (1, 99)'),
                     ('pyfibre.gui.pyfibre_main_task',
                      'INFO',
                      '/path/to/some/file databases not imported '

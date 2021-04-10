@@ -46,6 +46,8 @@ class FixedStackImage(BaseMultiImage):
     def preprocess_images(self):
         """Clip high and low percentile image intensities
         for each image in stack"""
-        for i, image in enumerate(self.image_stack):
-            self.image_stack[i] = clip_intensities(
+        return [
+            clip_intensities(
                 image, p_intensity=self.p_intensity)
+            for image in self.image_stack
+        ]
