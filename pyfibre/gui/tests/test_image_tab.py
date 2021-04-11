@@ -58,10 +58,10 @@ class TestNetworkImageTab(UnittestTools, TestCase):
 
         self.assertIsNotNone(self.image_tab.networks)
 
-    def test_plot_data(self):
+    def test_image_data(self):
         new_networks = [ProbeFibreNetwork().graph]
 
-        with self.assertTraitChanges(self.image_tab, "plot_data"):
+        with self.assertTraitChanges(self.image_tab, "image_data"):
             self.image_tab.networks = new_networks
 
 
@@ -79,8 +79,8 @@ class TestSegmentImageTab(UnittestTools, TestCase):
             len(self.image_tab.regions)
         )
 
-    def test_plot_data(self):
+    def test_image_data(self):
         new_segments = [ProbeSegment()]
 
-        with self.assertTraitChanges(self.image_tab, "plot_data"):
+        with self.assertTraitChanges(self.image_tab, "image_data"):
             self.image_tab.segments = new_segments
