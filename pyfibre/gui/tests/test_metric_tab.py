@@ -32,10 +32,3 @@ class TestMetricTab(UnittestTools, TestCase):
             ['B', 'C'],
             self.metric_tab._display_cols
         )
-
-    def test(self):
-        example_data = pd.DataFrame(
-            {'A': ['l', 'h'], 'B': [2, 1], 'C': [4, 2]}
-        )
-        self.metric_tab.data = example_data
-        self.metric_tab.configure_traits()
