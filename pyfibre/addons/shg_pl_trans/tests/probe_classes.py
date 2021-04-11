@@ -38,7 +38,6 @@ class ProbeSHGPLTransImage(SHGPLTransImage):
         image_stack = []
         for image in images:
             image = np.mean(image, axis=-1)
-            image = image / image.max()
             image_stack.append(image)
 
         kwargs['name'] = 'test-shg-pl-trans'

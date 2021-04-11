@@ -1,6 +1,50 @@
 Change Log
 ==========
 
+Release 2.0.4
+-------------
+
+Date:
+~~~~~
+12/04/2021
+
+Authors:
+~~~~~~~~
+Frank Longford
+
+Description:
+~~~~~~~~~~~~
+Fixes to minor release 2.0.3
+
+
+Fixes
+^^^^^
+- Use raw intensity values in SHG-PL-Trans image segments (#80)
+
+Release 2.0.3
+-------------
+
+Date:
+~~~~~
+11/04/2021
+
+Authors:
+~~~~~~~~
+Frank Longford
+
+Description:
+~~~~~~~~~~~~
+Fixes to RTD builds and SHG-PL-Trans routines
+
+Maint
+^^^^^
+- Update requirements file for ReadTheDocs builds (#74)
+
+Fixes
+^^^^^
+- FIX for SHG and PL Analysis (#75)
+- Include clipping in network building and segmentation for SHG-PL-Trans images (#77)
+
 Release 2.0.2
 -------------
 
