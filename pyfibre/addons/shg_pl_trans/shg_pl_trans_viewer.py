@@ -5,7 +5,6 @@ from traits.api import Instance, on_trait_change
 
 from pyfibre.core.base_multi_image_viewer import BaseMultiImageViewer
 from pyfibre.gui.image_tab import ImageTab, NetworkImageTab, TensorImageTab
-from pyfibre.gui.metric_tab import ImageMetricTab
 from pyfibre.gui.segment_image_tab import SegmentImageTab
 from pyfibre.io.object_io import (
     load_fibre_segments, load_cell_segments,

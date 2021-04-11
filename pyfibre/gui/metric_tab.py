@@ -1,5 +1,3 @@
-import numpy as np
-
 from chaco.api import ArrayPlotData
 from enable.component_editor import ComponentEditor
 from traits.api import (

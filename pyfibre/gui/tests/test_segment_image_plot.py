@@ -42,6 +42,3 @@ class TestSegmentImageTab(UnittestTools, TestCase):
             ['B', 'C'],
             self.metric_tab._display_cols
         )
-
-    def test(self):
-        self.metric_tab.configure_traits()
