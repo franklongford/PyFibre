@@ -12,7 +12,10 @@ Each plugin contributes a set of ``IMultiImageFactory`` classes that contains:
 
 1. An image file type, provided by a class that fulfils the ``IMultiImage`` interface.
 2. A reader for the image file type, provided by a class that fulfils the ``IMultiImageReader`` interface.
-3. An analysis script for image file type, provided by a class that fulfils the ``IMultiImageAnalysis`` interface.
+3. An analysis script for the image file type, provided by a class that fulfils the ``IMultiImageAnalysis`` interface.
+4. A parser for the image file type, provided by a class that fulfils the ``IFileParser`` interface.
+5. A set of view objects for the image file type, provided by a class that fulfils the ``IMultiImageViewer`` interface.
+
 
 In practice, a developer should use the following abstract base classes:
 
@@ -106,6 +109,20 @@ and requires the following methods to be implemented
     def create_figures(self, *args, **kwargs):
         """Create figures from multi-image components that can be
         generated upon end of analysis"""
+
+
+``BaseFileParser``
+^^^^^^^^^^^^^^^^^^
+
+Contains routines to parse a single file or collection of files as an ``IMultiImage`` class. These
+are packaged together into ``FileSet`` objects.
+
+
+.. code-block:: python
+
+    def get_file_sets(self, filenames):
+        """From a given list of file names, returns a dictionary where each entry
+        represents the files required to create an instance of a multi image."""
 
 
 ``BaseMultiImageViewer``

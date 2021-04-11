@@ -3,7 +3,7 @@ from pickle import UnpicklingError
 import logging
 
 import pandas as pd
-from skimage.exposure import equalize_adapthist
+from skimage.exposure import equalize_adapthist, rescale_intensity
 
 from traits.api import Instance, List, Any, Tuple, Dict
 
@@ -236,7 +236,9 @@ class SHGAnalyser(BaseMultiImageAnalyser):
         """
 
         logger.debug("Applying AHE to SHG image")
-        image_equal = equalize_adapthist(self.multi_image.shg_image)
+        norm_stack = self.multi_image.preprocess_images()
+        image_equal = equalize_adapthist(
+            rescale_intensity(norm_stack[0]))
 
         logger.debug(
             "Performing NL Denoise using local windows {} {}".format(
