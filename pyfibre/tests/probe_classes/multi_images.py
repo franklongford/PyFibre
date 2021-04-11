@@ -23,7 +23,7 @@ class ProbeMultiImage(BaseMultiImage):
         }
 
     def preprocess_images(self):
-        pass
+        return self.image_stack
 
     @classmethod
     def verify_stack(cls, image_stack):

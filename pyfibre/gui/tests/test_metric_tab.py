@@ -24,6 +24,7 @@ class TestMetricTab(UnittestTools, TestCase):
         self.assertIsNotNone(self.metric_tab.tabular_adapter)
 
     def test_init_data(self):
+        print(self.metric_tab.data)
         self.assertListEqual(
             ['', 'A', 'B', 'C'],
             self.metric_tab.headers

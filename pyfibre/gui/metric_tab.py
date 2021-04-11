@@ -83,11 +83,13 @@ class ImageMetricTab(ImageTab):
     def _get__display_cols(self):
         if self.data is None:
             return []
-        return [
+        display_cols = [
             name for dtype, name in zip(
                 self.data.dtypes, self.data.columns)
             if dtype in [int, float]
         ]
+        print(display_cols)
+        return display_cols
 
     def _get_headers(self):
         if self.data is None:
