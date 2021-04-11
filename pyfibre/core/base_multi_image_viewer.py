@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
 from chaco.api import AbstractPlotData, Plot
-from enable.component_editor import ComponentEditor
+from enable.api import ComponentEditor, Component
 from traits.api import (
     ABCHasStrictTraits, Instance, Property, List, Str, provides)
 from traitsui.api import Item, View, ListEditor, Group
@@ -16,6 +16,9 @@ class BaseDisplayTab(ABCHasStrictTraits):
     # Label of image tab
     label = Str()
 
+    #: Reference to the Chaco component to be displayed in the TraitsUI view
+    component = Instance(Component)
+
     # Plot object to display in tab
     plot = Property(Instance(Plot), depends_on="plot_data")
 
@@ -24,11 +27,14 @@ class BaseDisplayTab(ABCHasStrictTraits):
 
     # Simple view displaying plot attribute
     trait_view = View(
-            Item('plot',
+            Item('component',
                  editor=ComponentEditor(),
                  show_label=False),
             resizable=True
         )
+
+    def _component_default(self):
+        return self.plot
 
     def _get_plot(self):
         """Returns chaco Plot object with formatting provided

@@ -21,7 +21,7 @@ class TestImageTab(UnittestTools, TestCase):
     def test___init__(self):
 
         self.assertIsNotNone(self.image_tab.multi_image)
-        self.assertIsNotNone(self.image_tab.plot)
+        self.assertIsNotNone(self.image_tab.image_plot)
         self.assertEqual('Test 0', self.image_tab.selected_label)
 
     def test_empty_image_dict(self):
@@ -30,21 +30,21 @@ class TestImageTab(UnittestTools, TestCase):
 
         self.assertIsNone(image_tab.selected_label)
         self.assertDictEqual({}, image_tab._image_dict)
-        self.assertDictEqual({}, image_tab.plot.data.arrays)
+        self.assertDictEqual({}, image_tab.image_plot.data.arrays)
         self.assertListEqual([], image_tab.image_labels)
 
     def test_image_labels(self):
 
         self.assertListEqual(
             ['Test 0', 'Test 1'], self.image_tab.image_labels)
-        with self.assertTraitChanges(self.image_tab, 'plot'):
+        with self.assertTraitChanges(self.image_tab, 'image_plot'):
             self.image_tab.selected_label = 'Test 1'
 
     def test_multi_image_change(self):
 
         image_tab = ImageTab()
 
-        with self.assertTraitChanges(image_tab, 'plot'):
+        with self.assertTraitChanges(image_tab, 'image_plot'):
             image_tab.multi_image = self.multi_image
 
 

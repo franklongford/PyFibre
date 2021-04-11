@@ -26,12 +26,12 @@ class ImageTab(BaseDisplayTab):
 
     selected_label = Enum(values='image_labels')
 
-    plot = Property(
+    image_plot = Property(
         Instance(Plot),
-        depends_on='plot_data,'
+        depends_on='image_data,'
                    'selected_label')
 
-    plot_data = Property(
+    image_data = Property(
         Instance(ArrayPlotData),
         depends_on='_image_dict'
     )
@@ -46,7 +46,7 @@ class ImageTab(BaseDisplayTab):
     )
 
     trait_view = View(
-            Item('plot',
+            Item('image_plot',
                  editor=ComponentEditor(),
                  show_label=False),
             Item('selected_label',
@@ -57,27 +57,11 @@ class ImageTab(BaseDisplayTab):
         )
 
     @cached_property
-    def _get_plot(self):
-        return super(ImageTab, self)._get_plot()
-
-    def _get__image_dict(self):
-        """Simply exposes the BaseMultiImage.image_dict attribute."""
-        if self.multi_image is not None:
-            return self.multi_image.image_dict
-        return {}
-
-    def _get_image_labels(self):
-        """Exposes list of keys for BaseMultiImage.image_dict."""
-        return list(self._image_dict.keys())
-
-    def _get_plot_data(self):
-        return ArrayPlotData(**self._image_dict)
-
-    def customise_plot(self, plot):
-        """Attach optional tools to plot"""
+    def _get_image_plot(self):
+        plot = Plot(self.image_data)
 
         if self.multi_image is None:
-            return
+            return plot
 
         kwargs = {"origin": 'top left',
                   'axis': 'off'}
@@ -97,13 +81,32 @@ class ImageTab(BaseDisplayTab):
             tool_mode="box",
             always_on=False))
 
+        return plot
+
+    def _get__image_dict(self):
+        """Simply exposes the BaseMultiImage.image_dict attribute."""
+        if self.multi_image is not None:
+            return self.multi_image.image_dict
+        return {}
+
+    def _get_image_labels(self):
+        """Exposes list of keys for BaseMultiImage.image_dict."""
+        return list(self._image_dict.keys())
+
+    def _get_image_data(self):
+        return ArrayPlotData(**self._image_dict)
+
+    def customise_plot(self, plot):
+        """Attach optional tools to plot"""
+        pass
+
 
 class TensorImageTab(ImageTab):
 
     def _tensor_image(self, image):
         return create_tensor_image(image)
 
-    def _get_plot_data(self):
+    def _get_image_data(self):
         """Convert each image into a tensor image"""
         image_dict = {
             label: self._tensor_image(image).astype('uint8')
@@ -117,7 +120,7 @@ class NetworkImageTab(ImageTab):
 
     c_mode = Int(0)
 
-    plot_data = Property(
+    image_data = Property(
         Instance(ArrayPlotData),
         depends_on='_image_dict,networks'
     )
@@ -128,7 +131,7 @@ class NetworkImageTab(ImageTab):
             self.networks,
             c_mode=self.c_mode)
 
-    def _get_plot_data(self):
+    def _get_image_data(self):
         """Convert each image into a network image"""
         image_dict = {
             label: self._network_image(image).astype('uint8')

@@ -26,8 +26,6 @@ class TestSHGPLTransViewer(TestCase):
         )
 
         self.assertListEqual(
-            [], self.viewer.metric_tab.data)
-        self.assertListEqual(
             [], self.viewer.network_tab.networks)
         self.assertListEqual(
             [], self.viewer.fibre_tab.networks)

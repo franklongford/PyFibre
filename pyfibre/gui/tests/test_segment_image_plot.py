@@ -3,27 +3,37 @@ import pandas as pd
 
 from traits.testing.unittest_tools import UnittestTools
 
-from pyfibre.tests.probe_classes.gui_objects import (
-    ProbeImageMetricTab)
+from pyfibre.gui.segment_image_tab import SegmentImageTab
+from pyfibre.tests.probe_classes.multi_images import (
+    ProbeMultiImage)
 
 
-class TestMetricTab(UnittestTools, TestCase):
+class TestSegmentImageTab(UnittestTools, TestCase):
 
     def setUp(self):
-        self.example_data = pd.DataFrame(
+        self.multi_image = ProbeMultiImage()
+        example_data = pd.DataFrame(
             {'A': ['l', 'h'], 'B': [2, 1], 'C': [4, 2]}
         )
-        self.metric_tab = ProbeImageMetricTab(
-            data=self.example_data
+        self.metric_tab = SegmentImageTab(
+            multi_image=self.multi_image,
+            data=example_data
         )
 
     def test___init__(self):
+        self.metric_tab.configure_traits()
 
         self.assertIsNotNone(self.metric_tab.data)
         self.assertIsNotNone(self.metric_tab.plot)
+        self.assertIsNotNone(self.metric_tab.image_plot)
         self.assertIsNotNone(self.metric_tab.tabular_adapter)
 
     def test_init_data(self):
+        example_data = pd.DataFrame(
+            {'A': ['l', 'h'], 'B': [2, 1], 'C': [4, 2]}
+        )
+        self.metric_tab.data = example_data
+
         self.assertListEqual(
             ['', 'A', 'B', 'C'],
             self.metric_tab.headers
@@ -34,8 +44,4 @@ class TestMetricTab(UnittestTools, TestCase):
         )
 
     def test(self):
-        example_data = pd.DataFrame(
-            {'A': ['l', 'h'], 'B': [2, 1], 'C': [4, 2]}
-        )
-        self.metric_tab.data = example_data
         self.metric_tab.configure_traits()
