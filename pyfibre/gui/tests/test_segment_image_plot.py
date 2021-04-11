@@ -21,8 +21,6 @@ class TestSegmentImageTab(UnittestTools, TestCase):
         )
 
     def test___init__(self):
-        self.metric_tab.configure_traits()
-
         self.assertIsNotNone(self.metric_tab.data)
         self.assertIsNotNone(self.metric_tab.plot)
         self.assertIsNotNone(self.metric_tab.image_plot)
