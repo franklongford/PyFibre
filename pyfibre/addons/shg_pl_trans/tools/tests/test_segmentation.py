@@ -31,6 +31,11 @@ class TestSegmentation(PyFibreTestCase):
         self.assertEqual(0, len(fibre_segments))
         self.assertEqual(1, len(cell_segments))
 
+        segment = cell_segments[0]
+        self.assertAlmostEqual(
+            120.6667, segment.region.intensity_image.max(), 4
+        )
+
     @mock.patch(f'{MODULE_PATH}.rgb_segmentation')
     def test_shg_pl_trans_segmentation(self, mk_seg):
         mk_seg.return_value = self.fibre_mask, ~self.fibre_mask
@@ -38,4 +43,11 @@ class TestSegmentation(PyFibreTestCase):
             self.multi_image, self.fibre_networks
         )
         self.assertEqual(0, len(fibre_segments))
-        self.assertEqual(5, len(cell_segments))
+        self.assertEqual(8, len(cell_segments))
+
+        max_values = [64.6667, 79.3333, 61.6667, 106.3333,
+                      89.6667, 116.0, 68.0, 101.3333]
+        for max_value, segment in zip(max_values, cell_segments):
+            self.assertAlmostEqual(
+                max_value, segment.region.intensity_image.max(), 4
+            )
