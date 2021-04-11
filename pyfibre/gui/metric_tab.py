@@ -66,6 +66,7 @@ class ImageMetricTab(ImageTab):
                     ),
                 ),
                 UItem("_data", editor=editor),
+                layout="split"
             )
         )
 

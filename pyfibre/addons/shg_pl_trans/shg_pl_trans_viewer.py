@@ -119,6 +119,14 @@ class SHGPLTransViewer(BaseMultiImageViewer):
 
         self.cell_segment_tab.segments = cell_segments
 
+        try:
+            self.cell_segment_tab.data = load_database(
+                filename, file_type='cell_metric'
+            )
+        except (AttributeError, IOError, EOFError):
+            logger.debug(
+                f"Unable to load cell metrics for {image_name}")
+
     @on_trait_change('selected_tab')
     def update_tab(self, object, name, old, new):
         self.selected_tab.multi_image = self.multi_image
