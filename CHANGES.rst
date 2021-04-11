@@ -1,6 +1,26 @@
 Change Log
 ==========
 
+Release 2.0.4
+-------------
+
+Date:
+~~~~~
+12/04/2021
+
+Authors:
+~~~~~~~~
+Frank Longford
+
+Description:
+~~~~~~~~~~~~
+Fixes to minor release 2.0.3
+
+
+Fixes
+^^^^^
+- Use raw intensity values in SHG-PL-Trans image segments (#80)
+
 Release 2.0.3
 -------------
 
