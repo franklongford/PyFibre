@@ -107,14 +107,14 @@ def shg_pl_trans_segmentation(
     # Create a new set of segments for each fibre region
     fibre_segments = binary_to_segments(
         fibre_binary, FibreSegment,
-        intensity_image=norm_stack[0],
+        intensity_image=multi_image.shg_image,
         min_size=min_fibre_size,
         min_frac=min_fibre_frac)
 
     # Create a new set of segments for each cell region
     cell_segments = binary_to_segments(
         cell_binary, CellSegment,
-        intensity_image=norm_stack[1],
+        intensity_image=multi_image.pl_image,
         min_size=min_cell_size,
         min_frac=min_cell_frac)
 
