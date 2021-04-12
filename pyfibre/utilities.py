@@ -98,7 +98,13 @@ def nanmean(array_like, weights=None):
         ),
         dtype=float
     )
-    indices = ~np.isnan(array_like)
+    weights = np.array(
+        np.where(
+            weights == None, np.nan, weights  # noqa: 501
+        ),
+        dtype=float
+    )
+    indices = ~np.isnan(array_like) * ~np.isnan(weights)
 
     try:
         average = np.average(

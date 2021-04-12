@@ -26,11 +26,10 @@ def metric_averaging(database, metrics, weights=None):
                 'database columns')
 
     for metric in metrics:
-        try:
+        if metric in database:
             average_database[metric] = nanmean(
-                database[metric], weights)
-        except KeyError:
-            pass
+                database[metric], weights
+            )
 
     return average_database
 
