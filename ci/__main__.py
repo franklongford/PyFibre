@@ -20,11 +20,12 @@ EDM_CORE_DEPS = [
     "pyqt5>=5.14.2-3",
     "chaco==4.8.0-5",
     "traits_futures==0.1.0-21",
-    "scikits.image==0.16.2-3",
+    "scikits.image==0.17.1-6",
     "xlwt==1.2.0-1",
     "xlrd==1.2.0-1",
     "matplotlib==3.2.1-2",
-    "networkx>=2.2-2"
+    "networkx==2.4-1",
+    "decorator==4.4.2-1"
 ]
 
 EDM_DEV_DEPS = ["flake8==3.7.7-1",
