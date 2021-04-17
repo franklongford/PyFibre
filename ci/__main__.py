@@ -17,12 +17,12 @@ EDM_CORE_DEPS = [
     "pyqt5>=5.14.2-3",
     "chaco==4.8.0-5",
     "traits_futures>=0.2.0-1",
-    "scikits.image>=0.16.2-3",
+    "scikits.image==0.16.2-3",
     "xlwt==1.2.0-1",
     "xlrd==1.2.0-1",
     "matplotlib>=3.2.1-2",
-    "networkx==2.4-1",
-    "decorator==4.4.2-1"
+    "networkx==2.2-2",
+    "decorator==4.1.2-1"
 ]
 
 EDM_DEV_DEPS = ["flake8==3.7.7-1",
@@ -90,8 +90,7 @@ def build_env(python_version):
         + EDM_CORE_DEPS + EDM_DEV_DEPS
     )
 
-    edm_run(
-        env_name, ['pip', 'install'] + PIP_DEPS + PIP_DOCS_DEPS)
+    edm_run(env_name, ['pip', 'install'] + PIP_DEPS)
 
 
 @cli.command(
@@ -140,6 +139,10 @@ def coverage(python_version):
 def docs(python_version):
 
     env_name = get_env_name(python_version)
+
+    click.echo("Installing Documentation Deps")
+    edm_run(
+        env_name, ['pip', 'install'] + PIP_DOCS_DEPS)
 
     click.echo("Generating HTML")
     returncode = edm_run(env_name, ["make", "html"], cwd="docs")
