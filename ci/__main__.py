@@ -10,20 +10,17 @@ PYFIBRE_REPO = os.path.abspath('.')
 
 EDM_CORE_DEPS = [
     'Click==7.0-1',
-    "envisage==4.9.2-3",
+    "envisage==4.9.2-5",
     "stevedore==1.29.0-7",
-    'pytables==3.5.1-4',
-    'traits==6.1.0-1',
-    'traitsui==7.0.1-1',
-    "pyface==7.0.1-1",
+    'pytables==3.5.1-7',
     "pygments>=2.2.0-1",
     "pyqt5>=5.14.2-3",
     "chaco==4.8.0-5",
-    "traits_futures==0.1.0-21",
-    "scikits.image==0.17.1-6",
+    "traits_futures>=0.2.0-1",
+    "scikits.image>=0.16.2-3",
     "xlwt==1.2.0-1",
     "xlrd==1.2.0-1",
-    "matplotlib==3.2.1-2",
+    "matplotlib>=3.2.1-2",
     "networkx==2.4-1",
     "decorator==4.4.2-1"
 ]
@@ -31,7 +28,7 @@ EDM_CORE_DEPS = [
 EDM_DEV_DEPS = ["flake8==3.7.7-1",
                 "testfixtures==4.10.0-1",
                 "coverage==4.3.4-1",
-                "mock==2.0.0-3"]
+                "mock>=2.0.0-3"]
 
 with open('docs/requirements.txt', 'r') as infile:
     PIP_DOCS_DEPS = infile.readlines()
@@ -40,9 +37,7 @@ with open('docs/requirements.txt', 'r') as infile:
 # We pin to a version of Traits Futures with updated GuiTestAssistant
 PIP_DEPS = [
     "scikit-learn==0.23.0",
-    "pandas>=1.0.0",
-    "git+https://github.com/enthought/traits-futures.git"
-    "@9f5973f330bcf5bf7d813439bb817c3e7eadd6ad"
+    "pandas>=1.0.0"
 ]
 
 
