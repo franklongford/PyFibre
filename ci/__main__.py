@@ -37,7 +37,7 @@ with open('docs/requirements.txt', 'r') as infile:
 # We pin to a version of Traits Futures with updated GuiTestAssistant
 PIP_DEPS = [
     "scikit-learn==0.23.0",
-    "pandas>=1.0.0"
+    "pandas==1.1.5"
 ]
 
 
@@ -130,7 +130,7 @@ def coverage(python_version):
         raise click.ClickException("There were test failures.")
 
     edm_run(
-        env_name, ["coverage", "html"]
+        env_name, ["coverage", "report"]
     )
 
 

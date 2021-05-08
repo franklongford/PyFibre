@@ -2,6 +2,7 @@ from envisage.core_plugin import CorePlugin
 from envisage.ui.tasks.tasks_plugin import TasksPlugin
 
 from pyfibre.gui.image_tab import ImageTab, NetworkImageTab
+from pyfibre.gui.metric_tab import ImageMetricTab
 from pyfibre.gui.segment_image_tab import SegmentImageTab
 from pyfibre.gui.pyfibre_gui import PyFibreGUI
 from pyfibre.gui.file_display_pane import TableRow
@@ -57,3 +58,11 @@ class ProbeTableRow(TableRow):
         kwargs['tag'] = 'Probe'
         kwargs['file_set'] = ProbeFileSet()
         super().__init__(*args, **kwargs)
+
+
+class ProbeImageMetricTab(ImageMetricTab):
+
+    def __init__(self, *args, **kwargs):
+        kwargs['label'] = 'Test Image'
+        super().__init__(*args, **kwargs)
+        self.multi_image = ProbeMultiImage()

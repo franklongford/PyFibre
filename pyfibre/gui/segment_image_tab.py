@@ -1,21 +1,20 @@
 from chaco.array_plot_data import ArrayPlotData
 from skimage.measure._regionprops import RegionProperties
-from traits.trait_types import List, Any
-from traits.traits import Property
+from traits.api import List, Any, Property
 
-from pyfibre.gui.image_tab import ImageTab
+from pyfibre.gui.metric_tab import ImageMetricTab
 from pyfibre.model.core.base_segment import BaseSegment
 from pyfibre.model.tools.figures import create_region_image
 
 
-class SegmentImageTab(ImageTab):
+class SegmentImageTab(ImageMetricTab):
 
     segments = List(BaseSegment)
 
     regions = Property(
         List(RegionProperties), depends_on='segments')
 
-    plot_data = Property(
+    image_data = Property(
         Any, depends_on='_image_dict,regions'
     )
 
@@ -27,7 +26,7 @@ class SegmentImageTab(ImageTab):
             image,
             self.regions)
 
-    def _get_plot_data(self):
+    def _get_image_data(self):
         """Convert each image into a segment image"""
         image_dict = {
             label: self._region_image(image).astype('uint8')

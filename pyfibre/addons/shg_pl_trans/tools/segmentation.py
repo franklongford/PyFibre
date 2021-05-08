@@ -75,7 +75,8 @@ def shg_pl_trans_segmentation(
 
     original_binary = np.where(
         fibre_filter >= threshold_mean(fibre_filter),
-        1, 0)
+        1, 0
+    )
 
     # Create composite RGB image from SHG, PL and transmission
     stack = (norm_stack[0],

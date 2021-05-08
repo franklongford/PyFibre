@@ -1,6 +1,7 @@
 import logging
 import os
 
+import pandas as pd
 from traits.api import Instance, on_trait_change
 
 from pyfibre.core.base_multi_image_viewer import BaseMultiImageViewer
@@ -9,6 +10,9 @@ from pyfibre.gui.segment_image_tab import SegmentImageTab
 from pyfibre.io.object_io import (
     load_fibre_segments, load_cell_segments,
     load_fibre_networks, load_fibres)
+from pyfibre.io.database_io import (
+    load_database
+)
 from pyfibre.utilities import flatten_list
 
 
@@ -94,6 +98,16 @@ class SHGPLTransViewer(BaseMultiImageViewer):
         self.fibre_tab.networks = fibres
         self.fibre_segment_tab.segments = fibre_segments
 
+        try:
+            data = load_database(
+                filename, file_type='fibre_metric'
+            )
+            self.fibre_segment_tab.data = data.drop(['File'], axis=1)
+        except (AttributeError, IOError, EOFError):
+            self.fibre_segment_tab.data = pd.DataFrame()
+            logger.debug(
+                f"Unable to load fibre metrics for {image_name}")
+
     def _update_pl_image_tabs(self, filename, image_name):
 
         cell_segments = []
@@ -107,10 +121,21 @@ class SHGPLTransViewer(BaseMultiImageViewer):
 
         self.cell_segment_tab.segments = cell_segments
 
+        try:
+            data = load_database(
+                filename, file_type='cell_metric'
+            )
+            self.cell_segment_tab.data = data.drop(['File'], axis=1)
+        except (AttributeError, IOError, EOFError):
+            self.cell_segment_tab.data = pd.DataFrame()
+            logger.debug(
+                f"Unable to load cell metrics for {image_name}")
+
     @on_trait_change('selected_tab')
     def update_tab(self, object, name, old, new):
         self.selected_tab.multi_image = self.multi_image
-        self.selected_tab.selected_label = old.selected_label
+        if old.selected_label is not None:
+            self.selected_tab.selected_label = old.selected_label
 
     def create_display_tabs(self):
 

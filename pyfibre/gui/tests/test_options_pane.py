@@ -20,5 +20,3 @@ class TestOptionsPane(TestCase):
 
         self.assertEqual(1, self.options_pane.low_intensity)
         self.assertEqual(99, self.options_pane.high_intensity)
-
-        # self.options_pane.configure_traits()
