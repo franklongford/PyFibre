@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import logging
 from functools import partial
 
+import numpy as np
 import pandas as pd
 
 from pyfibre.model.tools.metrics import (
@@ -20,17 +21,18 @@ def metric_averaging(database, metrics, weights=None):
     average_database = pd.Series(dtype=object)
 
     if weights is not None:
+        if isinstance(weights, list):
+            weights = np.array(weights)
         if weights.size != database.shape[0]:
             raise ValueError(
                 'Weights array must have same shape as '
                 'database columns')
 
     for metric in metrics:
-        try:
+        if metric in database:
             average_database[metric] = nanmean(
-                database[metric], weights)
-        except KeyError:
-            pass
+                database[metric], weights
+            )
 
     return average_database
 

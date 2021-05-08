@@ -1,12 +1,12 @@
 import contextlib
 from testfixtures import LogCapture
-import threading
 from unittest import mock, TestCase
 
 import pandas as pd
 
 from pyface.api import FileDialog, CANCEL
 from pyface.tasks.api import TaskWindow
+from traits_futures.api import MultithreadingContext, submit_call
 from traits_futures.toolkit_support import toolkit
 
 from pyfibre.pyfibre_runner import PyFibreRunner
@@ -72,13 +72,22 @@ def get_probe_pyfibre_tasks():
     return tasks[0]
 
 
-class TestPyFibreMainTask(GuiTestAssistant, TestCase):
+class TestPyFibreMainTask(TestCase, GuiTestAssistant):
 
     def setUp(self):
-        super(GuiTestAssistant, self).setUp()
+        GuiTestAssistant.setUp(self)
+        self._context = MultithreadingContext()
         self.main_task = get_probe_pyfibre_tasks()
         self.table_row = ProbeTableRow()
         self.file_sets = [ProbeFileSet()]
+
+    def tearDown(self):
+        if hasattr(self, "executor"):
+            self.executor.stop()
+            self.wait_until_stopped(self.executor)
+            del self.executor
+        self._context.close()
+        GuiTestAssistant.tearDown(self)
 
     @contextlib.contextmanager
     def long_running_task(self, executor):
@@ -86,9 +95,9 @@ class TestPyFibreMainTask(GuiTestAssistant, TestCase):
         Simulate a long-running task being submitted to the executor.
         The task finishes on exit of the with block.
         """
-        event = threading.Event()
+        event = self._context.event()
         try:
-            yield executor.submit_call(event.wait)
+            yield submit_call(executor, event.wait)
         finally:
             event.set()
 

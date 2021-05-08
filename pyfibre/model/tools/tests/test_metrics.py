@@ -142,6 +142,7 @@ class TestAnalysis(TestCase):
 
         for metric in NETWORK_METRICS:
             self.assertIn(f'test Network {metric}', metrics)
+            self.assertIsNotNone(metrics[f'test Network {metric}'])
 
     def test_fibre_network_analysis(self):
 
@@ -156,9 +157,11 @@ class TestAnalysis(TestCase):
 
         for metric in FIBRE_METRICS:
             self.assertIn(f'Mean Fibre {metric}', metrics)
+            self.assertIsNotNone(metrics[f'Mean Fibre {metric}'])
 
         for metric in NETWORK_METRICS:
             self.assertIn(f'Fibre Network {metric}', metrics)
+            self.assertIsNotNone(metrics[f'Fibre Network {metric}'])
 
     def test_segment_metrics(self):
 

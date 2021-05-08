@@ -147,19 +147,22 @@ def network_metrics(network, network_red, n_fibres, tag=''):
     try:
         value = nx.degree_pearson_correlation_coefficient(
             network, weight='r') ** 2
-    except Exception:
+    except Exception as err:
+        logger.debug(f'Network Degree calculation failed: {str(err)}')
         value = None
     database[f"{tag} Network Degree"] = value
 
     try:
         value = np.real(nx.adjacency_spectrum(network_red).max())
-    except Exception:
+    except Exception as err:
+        logger.debug(f'Network Eigenvalue calculation failed: {str(err)}')
         value = None
     database[f"{tag} Network Eigenvalue"] = value
 
     try:
         value = nx.algebraic_connectivity(network_red, weight='r')
-    except Exception:
+    except Exception as err:
+        logger.debug(f'Network Connectivity calculation failed: {str(err)}')
         value = None
     database[f"{tag} Network Connectivity"] = value
 
