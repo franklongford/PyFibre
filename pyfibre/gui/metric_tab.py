@@ -104,6 +104,11 @@ class ImageMetricTab(ImageTab):
     def _update_adapter(self):
         self.tabular_adapter.columns = self.headers
 
+    @on_trait_change("data")
+    def _update_data(self):
+        self._update_plot_x_data()
+        self._update_plot_y_data()
+
     @on_trait_change("x_label")
     def _update_plot_x_data(self):
         """ Update data points displayed by the x axis.

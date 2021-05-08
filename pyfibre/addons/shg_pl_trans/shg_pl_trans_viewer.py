@@ -1,6 +1,7 @@
 import logging
 import os
 
+import pandas as pd
 from traits.api import Instance, on_trait_change
 
 from pyfibre.core.base_multi_image_viewer import BaseMultiImageViewer
@@ -98,10 +99,12 @@ class SHGPLTransViewer(BaseMultiImageViewer):
         self.fibre_segment_tab.segments = fibre_segments
 
         try:
-            self.fibre_segment_tab.data = load_database(
+            data = load_database(
                 filename, file_type='fibre_metric'
             )
+            self.fibre_segment_tab.data = data.drop(['File'], axis=1)
         except (AttributeError, IOError, EOFError):
+            self.fibre_segment_tab.data = pd.DataFrame()
             logger.debug(
                 f"Unable to load fibre metrics for {image_name}")
 
@@ -119,10 +122,12 @@ class SHGPLTransViewer(BaseMultiImageViewer):
         self.cell_segment_tab.segments = cell_segments
 
         try:
-            self.cell_segment_tab.data = load_database(
+            data = load_database(
                 filename, file_type='cell_metric'
             )
+            self.cell_segment_tab.data = data.drop(['File'], axis=1)
         except (AttributeError, IOError, EOFError):
+            self.cell_segment_tab.data = pd.DataFrame()
             logger.debug(
                 f"Unable to load cell metrics for {image_name}")
 
