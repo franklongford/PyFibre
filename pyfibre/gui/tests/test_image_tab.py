@@ -29,23 +29,22 @@ class TestImageTab(UnittestTools, TestCase):
         image_tab = ImageTab()
 
         self.assertIsNone(image_tab.selected_label)
-        self.assertDictEqual({}, image_tab._image_dict)
-        self.assertDictEqual({}, image_tab.image_plot.data.arrays)
+        self.assertIsNone(image_tab.image_plot.data)
         self.assertListEqual([], image_tab.image_labels)
 
     def test_image_labels(self):
-
+        self.image_tab.update_tab()
         self.assertListEqual(
             ['Test 0', 'Test 1'], self.image_tab.image_labels)
         with self.assertTraitChanges(self.image_tab, 'image_plot'):
             self.image_tab.selected_label = 'Test 1'
 
     def test_multi_image_change(self):
-
         image_tab = ImageTab()
 
         with self.assertTraitChanges(image_tab, 'image_plot'):
             image_tab.multi_image = self.multi_image
+            image_tab.update_tab()
 
 
 class TestNetworkImageTab(UnittestTools, TestCase):
@@ -63,6 +62,7 @@ class TestNetworkImageTab(UnittestTools, TestCase):
 
         with self.assertTraitChanges(self.image_tab, "image_data"):
             self.image_tab.networks = new_networks
+            self.image_tab.update_tab()
 
 
 class TestSegmentImageTab(UnittestTools, TestCase):
@@ -74,13 +74,10 @@ class TestSegmentImageTab(UnittestTools, TestCase):
     def test___init__(self):
 
         self.assertIsNotNone(self.image_tab.segments)
-        self.assertEqual(
-            len(self.image_tab.segments),
-            len(self.image_tab.regions)
-        )
 
     def test_image_data(self):
         new_segments = [ProbeSegment()]
 
         with self.assertTraitChanges(self.image_tab, "image_data"):
             self.image_tab.segments = new_segments
+            self.image_tab.update_tab()

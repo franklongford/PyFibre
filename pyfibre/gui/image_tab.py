@@ -68,7 +68,6 @@ class ImageTab(BaseDisplayTab):
         self.image_data = ArrayPlotData(**image_dict)
 
     def _update_image_plot(self):
-
         if self.multi_image is None:
             self.image_plot = Plot()
             return
@@ -77,6 +76,15 @@ class ImageTab(BaseDisplayTab):
             plot = Plot()
         else:
             plot = Plot(self.image_data)
+            kwargs = {"origin": 'top left',
+                      'axis': 'off'}
+            if self.multi_image.ndim == 2:
+                kwargs['colormap'] = self.cmap
+
+            if self.selected_label:
+                plot.img_plot(
+                    self.selected_label,
+                    **kwargs)
 
         # Attach some tools to the plot
         plot.tools.append(
@@ -85,16 +93,6 @@ class ImageTab(BaseDisplayTab):
             component=plot,
             tool_mode="box",
             always_on=False))
-
-        kwargs = {"origin": 'top left',
-                  'axis': 'off'}
-        if self.multi_image.ndim == 2:
-            kwargs['colormap'] = self.cmap
-
-        if self.selected_label:
-            plot.img_plot(
-                self.selected_label,
-                **kwargs)
 
         self.image_plot = plot
 
