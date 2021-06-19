@@ -10,13 +10,13 @@ PYFIBRE_REPO = os.path.abspath('.')
 
 EDM_CORE_DEPS = [
     'Click==7.0-1',
-    "envisage==4.9.2-5",
+    "envisage^=4.9.2",
     "stevedore==1.29.0-7",
     'pytables==3.5.1-7',
     "pygments>=2.2.0-1",
     "pyqt5>=5.14.2-3",
-    "chaco==4.8.0-5",
-    "traits_futures>=0.2.0-1",
+    "chaco^=4.8.0",
+    "traits_futures^=0.2.0",
     "scikits.image==0.16.2-3",
     "xlwt==1.2.0-1",
     "xlrd==1.2.0-1",

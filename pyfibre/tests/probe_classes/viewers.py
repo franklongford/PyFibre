@@ -8,6 +8,9 @@ class ProbeDisplayTab(BaseDisplayTab):
 
     updated = Event()
 
+    def update_tab(self):
+        self.updated = True
+
     def customise_plot(self, plot):
         return plot
 

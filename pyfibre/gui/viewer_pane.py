@@ -23,7 +23,10 @@ class BasicViewer(BaseMultiImageViewer):
 
     def update_display_tabs(self):
         """Updates each display tab when called"""
-        self.display_tabs[0].multi_image = self.multi_image
+        logger.debug("Updating ImageTab")
+        for tab in self.display_tabs:
+            tab.multi_image = self.multi_image
+            tab.update_tab()
 
 
 class ViewerPane(TraitsTaskPane):
