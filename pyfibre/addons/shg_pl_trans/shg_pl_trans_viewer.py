@@ -87,6 +87,9 @@ class SHGPLTransViewer(BaseMultiImageViewer):
                     for fibre_network in fibre_networks])
             fibres = [fibre.graph for fibre in fibres]
 
+        self.network_tab.networks = networks
+        self.fibre_tab.networks = fibres
+
         try:
             fibre_segments = load_fibre_segments(
                 filename, intensity_image=self.multi_image.shg_image)
@@ -94,8 +97,6 @@ class SHGPLTransViewer(BaseMultiImageViewer):
             logger.debug(
                 f"Unable to display fibre segments for {image_name}")
 
-        self.network_tab.networks = networks
-        self.fibre_tab.networks = fibres
         self.fibre_segment_tab.segments = fibre_segments
 
         try:
@@ -132,10 +133,16 @@ class SHGPLTransViewer(BaseMultiImageViewer):
                 f"Unable to load cell metrics for {image_name}")
 
     @on_trait_change('selected_tab')
-    def update_tab(self, object, name, old, new):
-        self.selected_tab.multi_image = self.multi_image
+    def _selected_tab_updated(self, object, name, old, new):
+        self.update_tab()
         if old.selected_label is not None:
             self.selected_tab.selected_label = old.selected_label
+
+    def update_tab(self):
+        logger.debug("Updating selected ImageTab")
+        if self.selected_tab.multi_image is None:
+            self.selected_tab.multi_image = self.multi_image
+            self.selected_tab.update_tab()
 
     def create_display_tabs(self):
 
@@ -148,13 +155,17 @@ class SHGPLTransViewer(BaseMultiImageViewer):
 
     def update_display_tabs(self):
 
+        logger.debug("Resetting ImageTabs")
+        for tab in self.display_tabs:
+            tab.reset_tab()
+
         image_name = self.multi_image.name
         image_path = self.multi_image.path
-
         data_path = os.path.join(
             image_path, f"{image_name}-pyfibre-analysis", "data")
         filename = os.path.join(data_path, image_name)
 
+        logger.debug(f"Loading data for {image_name}")
         self._update_shg_image_tabs(filename, image_name)
         self._update_pl_image_tabs(filename, image_name)
-        self.selected_tab.multi_image = self.multi_image
+        self.update_tab()

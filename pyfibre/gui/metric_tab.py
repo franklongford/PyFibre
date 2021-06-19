@@ -44,8 +44,6 @@ class ImageMetricTab(ImageTab):
                 HGroup(
                     VGroup(
                         UItem('selected_label',
-                              editor=EnumEditor(
-                                  name='object.image_labels'),
                               style='simple'),
                         UItem('image_plot',
                               editor=ComponentEditor(),
@@ -134,3 +132,7 @@ class ImageMetricTab(ImageTab):
             index = self.headers.index(self.y_label)
             y_data = [row[index] for row in self._data]
             self.plot_data.set_data("y", y_data)
+
+    def reset_tab(self):
+        super().reset_tab()
+        self.data = None
