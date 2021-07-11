@@ -1,4 +1,5 @@
 from unittest import TestCase
+import numpy as np
 
 from traits.testing.unittest_tools import UnittestTools
 
@@ -45,6 +46,16 @@ class TestImageTab(UnittestTools, TestCase):
         with self.assertTraitChanges(image_tab, 'image_plot'):
             image_tab.multi_image = self.multi_image
             image_tab.update_tab()
+
+    def test_brightness_change(self):
+        self.image_tab.update_tab()
+        orig_image = self.multi_image.image_dict[self.image_tab.selected_label]
+
+        np.testing.assert_array_almost_equal(
+            0.1 * orig_image,
+            self.image_tab.image_plot.data[self.image_tab.selected_label],
+            2
+        )
 
 
 class TestNetworkImageTab(UnittestTools, TestCase):

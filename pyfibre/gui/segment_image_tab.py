@@ -18,12 +18,12 @@ class SegmentImageTab(ImageMetricTab):
     def _update_image_data(self):
         """Convert each image into a segment image"""
         if self.multi_image is None:
-            image_dict = {}
+            image_data = {}
         else:
-            image_dict = {
+            image_data = {
                 label: self._region_image(image).astype('uint8')
                 for label, image in self.multi_image.image_dict.items()}
-        self.image_data = ArrayPlotData(**image_dict)
+        self.image_data = image_data
 
     def reset_tab(self):
         self.segments = []
