@@ -13,6 +13,7 @@ import numpy as np
 from skimage import draw
 from skimage.transform import rotate
 from skimage.color import label2rgb, grey2rgb, rgb2hsv, hsv2rgb
+from skimage.exposure import rescale_intensity
 
 from pyfibre.model.tools.fibre_utilities import get_node_coord_array
 from pyfibre.model.tools.filters import form_structure_tensor
@@ -28,6 +29,10 @@ BASE_COLOURS = {
     'm': (0.75, 0, 0.75),
     'y': (0.75, 0.75, 0),
     'k': (0, 0, 0)}
+
+
+def _normalise_image(image):
+    return rescale_intensity(image, out_range=(0, 1))
 
 
 def create_figure(image, filename, figsize=(10, 10),
@@ -123,7 +128,7 @@ def create_tensor_image(image, min_N=50):
 
     # Form structure tensor image
     rgb_image = create_hsb_image(
-        image, hue, saturation, brightness) * 255.999
+        image, hue, saturation, brightness)
 
     return rgb_image
 
@@ -139,7 +144,7 @@ def create_region_image(image, regions):
         List of segmented regions
     """
 
-    image /= image.max()
+    image = _normalise_image(image)
     label_image = np.zeros(image.shape, dtype=int)
     label = 1
 
@@ -153,13 +158,13 @@ def create_region_image(image, regions):
         label_image, image=image, bg_label=0,
         image_alpha=0.99, alpha=0.25, bg_color=(0, 0, 0))
 
-    return image_label_overlay * 255.9999
+    return image_label_overlay
 
 
 def create_network_image(image, networks, c_mode=0):
     """Create image with overlayed fibre networks"""
 
-    image *= 255.9999 / image.max()
+    image = _normalise_image(image)
 
     colours = list(BASE_COLOURS.keys())
 
@@ -187,7 +192,7 @@ def create_network_image(image, networks, c_mode=0):
                     node_coord[n][0], node_coord[n][1])
 
                 for i, c in enumerate(colour):
-                    rgb_image[rr, cc, i] = c * val * 255.9999
+                    rgb_image[rr, cc, i] = c * val
 
     return rgb_image
 

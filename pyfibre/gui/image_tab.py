@@ -15,6 +15,7 @@ from pyfibre.core.base_multi_image import BaseMultiImage
 from pyfibre.core.base_multi_image_viewer import BaseDisplayTab
 from pyfibre.model.tools.figures import (
     create_tensor_image, create_network_image)
+from pyfibre.utilities import IMAGE_MAX
 
 
 class ImageTab(BaseDisplayTab):
@@ -143,7 +144,7 @@ class ImageTab(BaseDisplayTab):
 class TensorImageTab(ImageTab):
 
     def _tensor_image(self, image):
-        return create_tensor_image(image)
+        return create_tensor_image(image) * IMAGE_MAX
 
     def _update_image_data(self):
         """Convert each image into a tensor image"""
@@ -166,7 +167,7 @@ class NetworkImageTab(ImageTab):
         return create_network_image(
             image,
             self.networks,
-            c_mode=self.c_mode)
+            c_mode=self.c_mode) * IMAGE_MAX
 
     def _update_image_data(self):
         """Convert each image into a network image"""

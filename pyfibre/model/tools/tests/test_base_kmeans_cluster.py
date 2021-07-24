@@ -36,7 +36,7 @@ class TestKmeansFilter(PyFibreTestCase):
 
         self.assertEqual((10, 10, 3), image_scaled.shape)
         self.assertEqual((10, 10), self.bd_filter._greyscale.shape)
-        self.assertAlmostEqual(224.0, image_scaled.mean())
+        self.assertAlmostEqual(225.0, image_scaled.mean())
 
     def test__cluster_generator(self):
 

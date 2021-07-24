@@ -4,6 +4,7 @@ from traits.api import List
 from pyfibre.gui.metric_tab import ImageMetricTab
 from pyfibre.model.core.base_segment import BaseSegment
 from pyfibre.model.tools.figures import create_region_image
+from pyfibre.utilities import IMAGE_MAX
 
 
 class SegmentImageTab(ImageMetricTab):
@@ -13,7 +14,7 @@ class SegmentImageTab(ImageMetricTab):
     def _region_image(self, image):
         return create_region_image(
             image,
-            [segment.region for segment in self.segments])
+            [segment.region for segment in self.segments]) * IMAGE_MAX
 
     def _update_image_data(self):
         """Convert each image into a segment image"""
