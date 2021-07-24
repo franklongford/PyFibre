@@ -21,6 +21,8 @@ from skimage.exposure import equalize_hist
 
 from sklearn.cluster import MiniBatchKMeans
 
+from pyfibre.utilities import IMAGE_MAX
+
 from .preprocessing import clip_intensities
 
 logger = logging.getLogger(__name__)
@@ -60,7 +62,7 @@ class BaseKmeansFilter(ABC):
 
         # Mimic contrast stretching decorrstrech routine in MatLab
         for i in range(image_channels):
-            image_scaled[:, :, i] = 255 * clip_intensities(
+            image_scaled[:, :, i] = IMAGE_MAX * clip_intensities(
                 image[:, :, i], p_intensity=self.p_intensity)
 
         # Pad each channel, equalise and smooth to remove
@@ -70,7 +72,7 @@ class BaseKmeansFilter(ABC):
                 image_scaled[:, :, i],
                 [pad_size, pad_size],
                 'symmetric')
-            equalised = 255 * equalize_hist(padded)
+            equalised = IMAGE_MAX * equalize_hist(padded)
 
             # Double median filter
             for j in range(2):

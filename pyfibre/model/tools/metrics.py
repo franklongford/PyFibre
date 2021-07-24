@@ -11,6 +11,7 @@ from pyfibre.model.tools.analysis import (
 from pyfibre.model.tools.feature import greycoprops_edit
 from pyfibre.model.tools.filters import form_structure_tensor
 from pyfibre.model.tools.utilities import bbox_sample
+from pyfibre.utilities import IMAGE_MAX
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +113,7 @@ def region_texture_metrics(region, image=None, tag='', glcm=False):
     if glcm:
 
         glcm = greycomatrix(
-            (region_image * region.image * 255.999).astype('uint8'),
+            (region_image * region.image * IMAGE_MAX).astype('uint8'),
             [1, 2], [0, np.pi/4, np.pi/2, np.pi*3/4], 256,
             symmetric=True, normed=True)
         glcm[0, :, :, :] = 0

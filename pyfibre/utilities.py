@@ -15,9 +15,14 @@ from stevedore import ExtensionManager
 import numpy as np
 
 logger = logging.getLogger(__name__)
+
 SQRT3 = np.sqrt(3)
+
 SQRT2 = np.sqrt(2)
+
 SQRTPI = np.sqrt(np.pi)
+
+IMAGE_MAX = 255.99999
 
 
 class NoiseError(Exception):
