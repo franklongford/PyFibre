@@ -26,6 +26,21 @@ class TestFigures(PyFibreTestCase):
         self.segments = regionprops(labels)
         self.fibre_network = ProbeFibreNetwork()
 
+    def _check_pixels(self, image, channels, conditions):
+        for channel in channels:
+            for condition, expected in conditions:
+                condition = f"self.image {condition}"
+                with self.subTest(channel=channel,
+                                  condition=condition,
+                                  expected=expected):
+                    indices = np.where(eval(condition))
+                    self.assertTrue(
+                        np.allclose(
+                            image[..., channel][indices],
+                            expected
+                        )
+                    )
+
     def test_create_figure(self):
 
         with NamedTemporaryFile() as temp_file:
@@ -41,44 +56,52 @@ class TestFigures(PyFibreTestCase):
 
         self.assertEqual(
             (10, 10, 3), hsb_image.shape)
-        self.assertArrayAlmostEqual(
-            np.ones((10, 10)), hsb_image[..., 0])
-        self.assertArrayAlmostEqual(
-            np.zeros((10, 10)), hsb_image[..., 1])
-        self.assertArrayAlmostEqual(
-            np.zeros((10, 10)), hsb_image[..., 2])
+        self._check_pixels(
+            hsb_image, [0], [(" >= 0", 1)])
+        self._check_pixels(
+            hsb_image, [1, 2], [(" >= 0", 0)])
 
     def test_create_tensor_image(self):
-
         tensor_image = create_tensor_image(self.image)
 
         self.assertEqual(
             (10, 10, 3), tensor_image.shape)
+        self._check_pixels(
+            tensor_image, [0, 1, 2], [(" == 0", 0)])
+        self._check_pixels(
+            tensor_image, [1], [(" == 10", 1)])
+        self._check_pixels(
+            tensor_image, [1, 2], [(" == 7", 0.7)])
+        self._check_pixels(
+            tensor_image, [1], [(" == 5", 0.5)])
 
     def test_create_segment_image(self):
         segment_image = create_region_image(
             self.image, self.segments
         )
-
-        indices = np.where(self.binary == 0)
-
         self.assertEqual(
             (10, 10, 3), segment_image.shape)
-        self.assertTrue(
-            np.allclose(segment_image[..., 0][indices], 1.92)
-        )
-        self.assertTrue(
-            np.allclose(segment_image[..., 1][indices], 1.92)
-        )
-        self.assertTrue(
-            np.allclose(segment_image[..., 2][indices], 1.92)
-        )
+        self._check_pixels(
+            segment_image, [0, 1, 2], [(" == 0", 0.0075)])
+        self._check_pixels(
+            segment_image, [1], [(" == 10", 0.75)])
+        self._check_pixels(
+            segment_image, [1, 2], [(" == 7", 0.52725)])
+        self._check_pixels(
+            segment_image, [1], [(" == 5", 0.37875)])
 
     def test_create_network_image(self):
-
-        image = create_network_image(
+        network_image = create_network_image(
             self.image,
             [self.fibre_network.graph])
 
-        # Expect an RGB image back
-        self.assertEqual(3, image.ndim)
+        self.assertEqual(
+            (10, 10, 3), network_image.shape)
+        self._check_pixels(
+            network_image, [1, 2], [(" == 0", 0)])
+        self._check_pixels(
+            network_image, [1], [(" == 10", 1)])
+        self._check_pixels(
+            network_image, [1, 2], [(" == 7", 0.7)])
+        self._check_pixels(
+            network_image, [1], [(" == 5", 0.5)])
