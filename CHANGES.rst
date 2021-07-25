@@ -1,6 +1,37 @@
 Change Log
 ==========
 
+Release 2.1.0
+-------------
+
+Date:
+~~~~~
+25/07/2021
+
+Authors:
+~~~~~~~~
+Frank Longford
+
+Description:
+~~~~~~~~~~~~
+Includes new features to GUI image display that enables
+
+Features
+^^^^^^^^
+- Lazy loading of images in each tab improves performance (#85)
+- Include brightness slider in GUI (#88)
+
+Fixes
+^^^^^
+- Fix to normalise intensity levels of saved image PNGs (#87)
+- Fix to networkx random state and handling of weights as a list in nanmean routine (#82)
+
+Maintenance
+^^^^^^^^^^^
+- Bump ETS packages to support Traits Futures version 2.0 (#82)
+- Include explict dependency on decorator package to fix issue with networkx
+
+
 Release 2.0.4
 -------------
 
