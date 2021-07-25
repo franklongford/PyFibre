@@ -1,4 +1,3 @@
-from chaco.array_plot_data import ArrayPlotData
 from traits.api import List
 
 from pyfibre.gui.metric_tab import ImageMetricTab
