@@ -71,14 +71,20 @@ class ImageTab(BaseDisplayTab):
             return []
         return list(self.multi_image.image_dict.keys())
 
-    @on_trait_change('selected_label,brightness')
-    def _selected_label_updated(self):
+    @on_trait_change('brightness')
+    def _brightness_updated(self):
         """Regenerate the selected image if runtime changes have been made
         """
         new_image = self._adjusted_image(
             self.multi_image.image_dict[self.selected_label])
         new_image = self.customise_image(new_image)
         self.image_data.set_data(self.selected_label, new_image)
+
+    @on_trait_change('selected_label')
+    def _selected_label_updated(self):
+        """Regenerate plot if new image selected
+        """
+        self._refresh_image_plot()
 
     def _adjusted_image(self, image):
         gain = 1.0
