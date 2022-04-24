@@ -1,6 +1,25 @@
 Change Log
 ==========
 
+Release 2.1.1
+-------------
+
+Date:
+~~~~~
+24/04/2022
+
+Authors:
+~~~~~~~~
+Frank Longford
+
+Description:
+~~~~~~~~~~~~
+Minor release to include normalization of intensity values by accumulation number
+
+Features
+^^^^^^^
+- Include normalization of intensity by accumulation value (#91)
+
 Release 2.1.0
 -------------
 
