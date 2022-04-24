@@ -15,6 +15,7 @@ from pyfibre.addons.shg_pl_trans.shg_reader import (
 
 from .fixtures import (
     test_shg_image_path,
+    test_shg_acc_image_path,
     test_shg_pl_trans_image_path)
 
 
@@ -72,6 +73,20 @@ class TestTiffReader(PyFibreTestCase):
             self.assertEqual(3, n_modes)
             self.assertEqual((200, 200), xy_dim)
 
+    def test_get_accumulation_number(self):
+        self.assertEqual(
+            2, get_accumulation_number('some-file-acc2.tif')
+        )
+        self.assertEqual(
+            12, get_accumulation_number('some-file-acc12.tif')
+        )
+        self.assertEqual(
+            12, get_accumulation_number('some-path/some-file-acc12.tif')
+        )
+        self.assertEqual(
+            1, get_accumulation_number('some-file.tif')
+        )
+
 
 class TestSHGReader(PyFibreTestCase):
 
@@ -86,6 +101,7 @@ class TestSHGReader(PyFibreTestCase):
     def test_can_load(self):
 
         self.assertTrue(self.reader.can_load(test_shg_image_path))
+        self.assertTrue(self.reader.can_load(test_shg_acc_image_path))
         self.assertFalse(self.reader.can_load('not_an_image'))
 
     def test__format_image(self):
@@ -167,17 +183,19 @@ class TestSHGReader(PyFibreTestCase):
         self.assertEqual('/some/path', multi_image.path)
         self.assertEqual((200, 200), multi_image.shape)
         self.assertEqual(1, len(multi_image))
+        self.assertAlmostEqual(
+            543915.6666666666, multi_image.image_stack[0].sum())
 
-    def test_get_accumulation_number(self):
-        self.assertEqual(
-            2, get_accumulation_number('some-file-acc2.tif')
+    def test_load_multi_image_acc(self):
+        self.filenames = [test_shg_acc_image_path]
+        self.file_set = SHGPLTransFileSet(
+            prefix='/some/path/test-shg',
+            registry={'SHG': test_shg_acc_image_path}
         )
-        self.assertEqual(
-            12, get_accumulation_number('some-file-acc12.tif')
-        )
-        self.assertEqual(
-            12, get_accumulation_number('some-path/some-file-acc12.tif')
-        )
-        self.assertEqual(
-            1, get_accumulation_number('some-file.tif')
-        )
+        multi_image = self.reader.load_multi_image(self.file_set)
+        self.assertEqual('test-shg', multi_image.name)
+        self.assertEqual('/some/path', multi_image.path)
+        self.assertEqual((200, 200), multi_image.shape)
+        self.assertEqual(1, len(multi_image))
+        self.assertAlmostEqual(
+            271957.8333333333, multi_image.image_stack[0].sum())
