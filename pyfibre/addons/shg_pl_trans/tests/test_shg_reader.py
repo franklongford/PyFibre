@@ -110,8 +110,12 @@ class TestSHGReader(PyFibreTestCase):
             image
         )
 
+    def test__format_image_minor_axis(self):
+        expected_2D_array = np.ones((10, 10)) * 2
+
         image = self.reader._format_image(
-            np.ones((10, 10, 3)) * 2, 2
+            np.ones((10, 10, 3)) * 2,
+            minor_axis=2
         )
         self.assertArrayAlmostEqual(
             expected_2D_array,
@@ -122,13 +126,37 @@ class TestSHGReader(PyFibreTestCase):
         test_image[0] *= 2
         test_image[2] *= 3
         image = self.reader._format_image(
-            test_image, 1
+            test_image, minor_axis=1
         )
         expected_array = np.ones((3, 10, 10))
         expected_array[0] *= 2
         expected_array[2] *= 3
         self.assertArrayAlmostEqual(
             expected_array,
+            image
+        )
+
+    def test__format_image_acc_number(self):
+
+        expected_2D_array = np.ones((10, 10))
+        expected_3D_array = np.ones((10, 10, 3))
+
+        image = self.reader._format_image(
+            np.ones((10, 10)) * 2,
+            acc_number=2
+        )
+        self.assertArrayAlmostEqual(
+            expected_2D_array,
+            image
+        )
+        self.assertEqual(np.float, image.dtype)
+
+        image = self.reader._format_image(
+            np.ones((10, 10, 3)) * 2,
+            acc_number=2
+        )
+        self.assertArrayAlmostEqual(
+            expected_3D_array,
             image
         )
 

@@ -170,15 +170,15 @@ class SHGReader(BaseMultiImageReader):
     def get_filenames(self, file_set):
         yield file_set.registry['SHG']
 
-    def _format_image(self, image, minor_axis=None):
+    def _format_image(self, image, minor_axis=None, acc_number=1):
         """Transform image to normalised float array and average
-        over any stack"""
+        over stack + accumulation number """
 
         # Average over minor axis if needed
         if minor_axis is not None:
             image = np.mean(image, axis=minor_axis)
 
-        return img_as_float(image)
+        return img_as_float(image) / acc_number
 
     def load_image(self, filename):
 
@@ -192,7 +192,11 @@ class SHGReader(BaseMultiImageReader):
             n_stacks = image.shape[minor_axis]
             logger.debug(f"Number of stacks = {n_stacks}")
 
-        image = self._format_image(image, minor_axis)
+        acc_number = get_accumulation_number(filename)
+        logger.debug(f"Using accumulation number = {acc_number}")
+        image = self._format_image(
+            image, minor_axis=minor_axis, acc_number=acc_number
+        )
 
         return image
 
