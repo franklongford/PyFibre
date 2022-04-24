@@ -2,7 +2,7 @@ import os
 from setuptools import setup, find_packages
 
 
-VERSION = '2.1.0'
+VERSION = '2.1.1'
 
 #: Read description
 with open('README.rst', 'r') as readme:
