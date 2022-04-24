@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 
 import numpy as np
 from skimage.util import img_as_float
@@ -129,6 +130,33 @@ def get_tiff_param(tiff_file):
         return minor_axis, n_modes, xy_dim
 
 
+def get_accumulation_number(file_name):
+    """ Extrct accumulation from file name if present.
+    Return default value of 1 if not present.
+
+    Parameters
+    ----------
+    file_name: str
+        File name of Tiff image
+
+    Returns
+    -------
+    acc_number: int
+        Accumulation number for image
+
+    Notes
+    -----
+    Expects the following file formatting:
+
+        <prefix>-acc<number>.ext
+    """
+    path, ext = os.path.splitext(file_name)
+    if 'acc' in path.lower():
+        _, number = path.split('acc')
+        return int(number)
+    return 1
+
+
 class SHGReader(BaseMultiImageReader):
     """Reader class for a combined SHG file"""
 
@@ -142,15 +170,15 @@ class SHGReader(BaseMultiImageReader):
     def get_filenames(self, file_set):
         yield file_set.registry['SHG']
 
-    def _format_image(self, image, minor_axis=None):
+    def _format_image(self, image, minor_axis=None, acc_number=1):
         """Transform image to normalised float array and average
-        over any stack"""
+        over stack + accumulation number """
 
         # Average over minor axis if needed
         if minor_axis is not None:
             image = np.mean(image, axis=minor_axis)
 
-        return img_as_float(image)
+        return img_as_float(image) / acc_number
 
     def load_image(self, filename):
 
@@ -164,7 +192,11 @@ class SHGReader(BaseMultiImageReader):
             n_stacks = image.shape[minor_axis]
             logger.debug(f"Number of stacks = {n_stacks}")
 
-        image = self._format_image(image, minor_axis)
+        acc_number = get_accumulation_number(filename)
+        logger.debug(f"Using accumulation number = {acc_number}")
+        image = self._format_image(
+            image, minor_axis=minor_axis, acc_number=acc_number
+        )
 
         return image
 
