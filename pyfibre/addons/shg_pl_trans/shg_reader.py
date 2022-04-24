@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 
 import numpy as np
 from skimage.util import img_as_float
@@ -127,6 +128,33 @@ def get_tiff_param(tiff_file):
         xy_dim = tuple(desc_dict['xy_dim'])
 
         return minor_axis, n_modes, xy_dim
+
+
+def get_accumulation_number(file_name):
+    """ Extrct accumulation from file name if present.
+    Return default value of 1 if not present.
+
+    Parameters
+    ----------
+    file_name: str
+        File name of Tiff image
+
+    Returns
+    -------
+    acc_number: int
+        Accumulation number for image
+
+    Notes
+    -----
+    Expects the following file formatting:
+
+        <prefix>-acc<number>.ext
+    """
+    path, ext = os.path.splitext(file_name)
+    if 'acc' in path.lower():
+        _, number = path.split('acc')
+        return int(number)
+    return 1
 
 
 class SHGReader(BaseMultiImageReader):

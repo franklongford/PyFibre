@@ -5,6 +5,7 @@ from pyfibre.tests.pyfibre_test_case import PyFibreTestCase
 from pyfibre.addons.shg_pl_trans.shg_pl_trans_parser import (
     SHGPLTransFileSet)
 from pyfibre.addons.shg_pl_trans.shg_reader import (
+    get_accumulation_number,
     get_fluoview_param,
     get_imagej_param,
     get_tiff_param,
@@ -138,3 +139,17 @@ class TestSHGReader(PyFibreTestCase):
         self.assertEqual('/some/path', multi_image.path)
         self.assertEqual((200, 200), multi_image.shape)
         self.assertEqual(1, len(multi_image))
+
+    def test_get_accumulation_number(self):
+        self.assertEqual(
+            2, get_accumulation_number('some-file-acc2.tif')
+        )
+        self.assertEqual(
+            12, get_accumulation_number('some-file-acc12.tif')
+        )
+        self.assertEqual(
+            12, get_accumulation_number('some-path/some-file-acc12.tif')
+        )
+        self.assertEqual(
+            1, get_accumulation_number('some-file.tif')
+        )
