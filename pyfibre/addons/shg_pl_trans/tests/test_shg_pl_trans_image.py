@@ -49,7 +49,7 @@ class TestSHGPLTransImage(TestCase):
         )
 
     def test_subtract_pl(self):
-        multi_image = SHGPLTransImage(
+        stack = SHGPLTransImage(
             image_stack=[
                 np.ones((5, 5)),
                 np.array([
@@ -62,15 +62,15 @@ class TestSHGPLTransImage(TestCase):
                 np.zeros((5, 5))
             ],
             subtract_pl = True,
-        )
+        ).preprocess_images()
 
         np.testing.assert_array_equal(
-            multi_image.shg_image,
+            stack[0],
             np.array([
-                [1, 1, 0.5, 1, 1],
-                [1, 1, 0.5, 1, 1],
-                [0.5, 0.5, 0.5, 0.5, 0.5],
-                [1, 1, 0.5, 1, 1],
-                [1, 1, 0.5, 1, 1],
+                [1, 1, 1, 1, 1],
+                [1, 0.5, 0.5, 0.5, 1],
+                [1, 0.5, 0.5, 0.5, 1],
+                [1, 0.5, 0.5, 0.5, 1],
+                [1, 1, 1, 1, 1],
             ]),
         )

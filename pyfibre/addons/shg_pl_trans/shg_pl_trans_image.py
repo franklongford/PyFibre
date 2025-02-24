@@ -25,18 +25,6 @@ class SHGPLTransImage(SHGImage):
     subtract_pl = Bool(False)
 
     _stack_len = 3
-
-    def _get_shg_image(self):
-        if self.subtract_pl:
-            # Attempt to subtract PL signal from SHG by reducing intensity
-            # in pixels proportional to inverse PL strength
-            filtered = np.where(
-                self.image_stack[1] > 0,
-                (self.image_stack[0] / self.image_stack[1]),
-                self.image_stack[0]
-            )
-            return filters.median(filtered)
-        return self.image_stack[0]
 #
     def _get_pl_image(self):
         return self.image_stack[1]
@@ -62,3 +50,20 @@ class SHGPLTransImage(SHGImage):
 
     def segmentation_algorithm(self, *args, **kwargs):
         return shg_pl_trans_segmentation(self, *args, **kwargs)
+
+    def preprocess_images(self):
+        """Clip high and low percentile image intensities
+        for each image in stack.
+
+        Apply PL subtraction of SHG intensities if required"""
+        stack = super(SHGPLTransImage, self).preprocess_images()
+        if self.subtract_pl:
+            # Attempt to subtract PL signal from SHG by reducing intensity
+            # in pixels proportional to inverse PL strength
+            filtered = np.where(
+                self.image_stack[1] > 0,
+                (self.image_stack[0] / self.image_stack[1]),
+                self.image_stack[0]
+            )
+            stack[0] = filters.median(filtered)
+        return stack
