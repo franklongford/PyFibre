@@ -29,7 +29,21 @@ class SHGPLTransImage(SHGImage):
     subtract_pl = Bool(True)
 
     _stack_len = 3
-#
+
+    def _get_shg_image(self):
+        """Apply PL subtraction of SHG intensities if required"""
+        if self.subtract_pl:
+            logger.debug("Applying PL subtraction from SHG channel")
+            # Attempt to subtract PL signal from SHG by reducing intensity
+            # in pixels proportional to inverse PL strength
+            filtered = np.where(
+                self.image_stack[1] > 0,
+                (self.image_stack[0] / self.image_stack[1]),
+                self.image_stack[0]
+            )
+            return filters.median(filtered)
+        return self.image_stack[0]
+
     def _get_pl_image(self):
         return self.image_stack[1]
 
@@ -57,24 +71,13 @@ class SHGPLTransImage(SHGImage):
 
     def preprocess_images(self):
         """Clip high and low percentile image intensities
-        for each image in stack.
-
-        Apply PL subtraction of SHG intensities if required"""
-        stack = [
-            copy.copy(image) for image in self.image_stack
-        ]
-        if self.subtract_pl:
-            logger.debug("Applying PL subtraction from SHG channel")
-            # Attempt to subtract PL signal from SHG by reducing intensity
-            # in pixels proportional to inverse PL strength
-            filtered = np.where(
-                stack[1] > 0,
-                (stack[0] / stack[1]),
-                stack[0]
-            )
-            stack[0] = filters.median(filtered)
+        for each image in stack."""
         return [
             clip_intensities(
                 image, p_intensity=self.p_intensity)
-            for image in stack
+            for image in [
+                self.shg_image,
+                self.pl_image,
+                self.trans_image
+            ]
         ]
