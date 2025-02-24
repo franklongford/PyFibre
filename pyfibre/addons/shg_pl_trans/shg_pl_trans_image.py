@@ -22,7 +22,8 @@ class SHGPLTransImage(SHGImage):
     #: Reference to Transmission image
     trans_image = Property(Array, depends_on='image_stack')
 
-    subtract_pl = Bool(False)
+    # FIXME: set to False by default once testing is complete
+    subtract_pl = Bool(True)
 
     _stack_len = 3
 #
