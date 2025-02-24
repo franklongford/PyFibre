@@ -61,7 +61,7 @@ class TestSHGPLTransImage(TestCase):
                 ]),
                 np.zeros((5, 5))
             ],
-            subtract_pl = True,
+            subtract_pl=True,
         )
 
         np.testing.assert_array_equal(
