@@ -64,6 +64,7 @@ class SHGPLTransImage(SHGImage):
             copy.copy(image) for image in self.image_stack
         ]
         if self.subtract_pl:
+            logger.debug("Applying PL subtraction from SHG channel")
             # Attempt to subtract PL signal from SHG by reducing intensity
             # in pixels proportional to inverse PL strength
             filtered = np.where(
