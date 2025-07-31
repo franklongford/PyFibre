@@ -67,16 +67,3 @@ class SHGPLTransImage(SHGImage):
 
     def segmentation_algorithm(self, *args, **kwargs):
         return shg_pl_trans_segmentation(self, *args, **kwargs)
-
-    def preprocess_images(self):
-        """Clip high and low percentile image intensities
-        for each image in stack."""
-        return [
-            clip_intensities(
-                image, p_intensity=self.p_intensity)
-            for image in [
-                self.shg_image,
-                self.pl_image,
-                self.trans_image
-            ]
-        ]
