@@ -1,6 +1,10 @@
 import logging
 
-from traits.api import Array, Property
+import numpy as np
+from skimage import filters
+from traits.api import Array, Bool, Property
+
+from pyfibre.model.tools.preprocessing import clip_intensities
 
 from .shg_image import SHGImage
 from .tools.figures import create_shg_pl_trans_figures
@@ -20,7 +24,24 @@ class SHGPLTransImage(SHGImage):
     #: Reference to Transmission image
     trans_image = Property(Array, depends_on='image_stack')
 
+    # FIXME: set to False by default once testing is complete
+    subtract_pl = Bool(True)
+
     _stack_len = 3
+
+    def _get_shg_image(self):
+        """Apply PL subtraction of SHG intensities if required"""
+        if self.subtract_pl:
+            logger.debug("Applying PL subtraction from SHG channel")
+            # Attempt to subtract PL signal from SHG by reducing intensity
+            # in pixels proportional to inverse PL strength
+            filtered = np.where(
+                self.image_stack[1] > 0,
+                (self.image_stack[0] / self.image_stack[1]),
+                self.image_stack[0]
+            )
+            return filters.median(filtered)
+        return self.image_stack[0]
 
     def _get_pl_image(self):
         return self.image_stack[1]
