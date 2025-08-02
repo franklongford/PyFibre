@@ -1,0 +1,14 @@
+[project]
+name = "pyfibre"
+version = "3.0.0"
+description = "Open source image analysis toolkit for fibrous tissue"
+readme = "README.md"
+authors = [
+    { name = "franklongford", email = "franklongford@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
