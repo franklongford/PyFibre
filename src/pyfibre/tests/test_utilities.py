@@ -1,8 +1,6 @@
 from unittest import mock
 
 import numpy as np
-from skimage import data
-from scipy.ndimage.filters import gaussian_filter
 
 from pyfibre.utilities import (
     unit_vector,

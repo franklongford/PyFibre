@@ -83,17 +83,17 @@ def nanmean(array_like, weights=None):
     # numpy.where cannot handle identity checks
     array_like = np.array(
         np.where(
-            array_like == None,
+            array_like == None,  # noqa: E711
             np.nan,
-            array_like,  # noqa: 501
+            array_like,  # noqa: E501
         ),
         dtype=float,
     )
     weights = np.array(
         np.where(
-            weights == None,
+            weights == None,  # noqa: E711
             np.nan,
-            weights,  # noqa: 501
+            weights,  # noqa: E501
         ),
         dtype=float,
     )
