@@ -7,7 +7,10 @@ authors = [
     { name = "franklongford", email = "franklongford@gmail.com" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "networkx>=3.5",
+    "scikit-image>=0.25.2",
+]
 
 [build-system]
 requires = ["hatchling"]
