@@ -10,7 +10,9 @@ requires-python = ">=3.13"
 dependencies = [
     "networkx>=3.5",
     "pandas[excel,hdf5]>=2.3.1",
+    "pywavelets>=1.8.0",
     "scikit-image>=0.25.2",
+    "scikit-learn>=1.7.1",
 ]
 
 [build-system]
