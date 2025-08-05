@@ -104,7 +104,7 @@ def deserialize_networkx_graph(data):
     networkx Graph object"""
 
     data = python_to_numpy_recursive(data)
-    graph = node_link_graph(data)
+    graph = node_link_graph(data, edges="links")
 
     return graph
 
@@ -113,7 +113,7 @@ def serialize_networkx_graph(graph):
     """Transform a networkx Graph object into
     a JSON serialised dictionary"""
 
-    data = node_link_data(graph)
+    data = node_link_data(graph, edges="links")
     data = numpy_to_python_recursive(data)
 
     return data
