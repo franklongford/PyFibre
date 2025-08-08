@@ -46,8 +46,7 @@ def stack_to_binary(stack):
 
 def regions_to_stack(regions, shape):
     """Convert a list of scikit-image segments to a single binary mask"""
-    stack = np.zeros(
-        (len(regions),) + shape, dtype=int)
+    stack = np.zeros((len(regions),) + shape, dtype=int)
 
     for index, region in enumerate(regions):
         binary_image = np.zeros(shape, dtype=int)
@@ -71,8 +70,7 @@ def stack_to_regions(stack, intensity_image=None, min_size=0, min_frac=0):
         labels = measure.label(binary.astype(np.uint32))
         regions += [
             region
-            for region in regionprops(
-                labels, intensity_image=intensity_image)
+            for region in regionprops(labels, intensity_image=intensity_image)
             if region_check(region, min_size, min_frac)
         ]
 
@@ -94,8 +92,7 @@ def regions_to_binary(regions, shape):
     return binary_image
 
 
-def binary_to_regions(binary, intensity_image=None,
-                      min_size=0, min_frac=0.0):
+def binary_to_regions(binary, intensity_image=None, min_size=0, min_frac=0.0):
     """Convert a binary mask image to a set of scikit-image
     segment objects"""
 
@@ -106,8 +103,7 @@ def binary_to_regions(binary, intensity_image=None,
 
     regions = [
         region
-        for region in regionprops(
-            labels, intensity_image=intensity_image)
+        for region in regionprops(labels, intensity_image=intensity_image)
         if region_check(region, min_size, min_frac)
     ]
 

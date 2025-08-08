@@ -3,8 +3,7 @@ import logging
 import numpy as np
 
 from scipy.ndimage.filters import median_filter
-from scipy.ndimage.morphology import (
-    binary_fill_holes, binary_opening)
+from scipy.ndimage.morphology import binary_fill_holes, binary_opening
 
 from skimage.color import rgb2gray
 from skimage.morphology import remove_small_objects
@@ -27,11 +26,17 @@ class BaseKmeansFilter(ABC):
     Developers need to implement a cellular_classifier method
     that processes raw Kmeans clusters"""
 
-    def __init__(self, n_runs=2, n_clusters=10, p_intensity=(2, 98),
-                 sm_size=5, min_size=20,
-                 init_size=10000, reassignment_ratio=0.99,
-                 max_no_improvement=15):
-
+    def __init__(
+        self,
+        n_runs=2,
+        n_clusters=10,
+        p_intensity=(2, 98),
+        sm_size=5,
+        min_size=20,
+        init_size=10000,
+        reassignment_ratio=0.99,
+        max_no_improvement=15,
+    ):
         self.n_runs = n_runs
         self.n_clusters = n_clusters
         self.p_intensity = p_intensity
@@ -54,26 +59,24 @@ class BaseKmeansFilter(ABC):
         # Mimic contrast stretching decorrstrech routine in MatLab
         for i in range(image_channels):
             image_scaled[:, :, i] = IMAGE_MAX * clip_intensities(
-                image[:, :, i], p_intensity=self.p_intensity)
+                image[:, :, i], p_intensity=self.p_intensity
+            )
 
         # Pad each channel, equalise and smooth to remove
         # salt and pepper noise
         for i in range(image_channels):
-            padded = np.pad(
-                image_scaled[:, :, i],
-                [pad_size, pad_size],
-                'symmetric')
+            padded = np.pad(image_scaled[:, :, i], [pad_size, pad_size], "symmetric")
             equalised = IMAGE_MAX * equalize_hist(padded)
 
             # Double median filter
             for j in range(2):
-                equalised = median_filter(
-                    equalised, size=(self.sm_size, self.sm_size))
+                equalised = median_filter(equalised, size=(self.sm_size, self.sm_size))
 
             # Transfer original image from padded back
-            image_scaled[:, :, i] = (
-                equalised[pad_size: pad_size + image.shape[0],
-                          pad_size: pad_size + image.shape[1]])
+            image_scaled[:, :, i] = equalised[
+                pad_size : pad_size + image.shape[0],
+                pad_size : pad_size + image.shape[1],
+            ]
 
         # Generate greyscale image of RGB
         self._greyscale = rgb2gray(image_scaled.astype(np.float64))
@@ -90,14 +93,13 @@ class BaseKmeansFilter(ABC):
         image_channels = image.shape[-1]
 
         # Perform k-means clustering on PL image
-        values = np.array(
-            image.reshape((image_size, image_channels)),
-            dtype=float)
+        values = np.array(image.reshape((image_size, image_channels)), dtype=float)
         clusterer = MiniBatchKMeans(
             n_clusters=self.n_clusters,
             init_size=self.init_size,
             reassignment_ratio=self.reassignment_ratio,
-            max_no_improvement=self.max_no_improvement)
+            max_no_improvement=self.max_no_improvement,
+        )
         clusterer.fit(values)
 
         # Extract cluster labels for each pixel and centroids
@@ -125,14 +127,9 @@ class BaseKmeansFilter(ABC):
         """
 
         for run in range(self.n_runs):
+            label_image, centres = self._kmeans_cluster_colours(image)
 
-            label_image, centres = self._kmeans_cluster_colours(
-                image)
-
-            label_mask, cost = self.cellular_classifier(
-                label_image, centres,
-                **kwargs
-            )
+            label_mask, cost = self.cellular_classifier(label_image, centres, **kwargs)
 
             # Create binary stack corresponding to each cluster region
             binary_mask = np.zeros(label_image.shape, dtype=bool)
@@ -184,8 +181,7 @@ class BaseKmeansFilter(ABC):
         binary_mask = binary_opening(binary_mask, iterations=2)
         binary_mask = binary_fill_holes(binary_mask)
         for _ in range(2):
-            binary_mask = remove_small_objects(
-                ~binary_mask, min_size=self.min_size)
+            binary_mask = remove_small_objects(~binary_mask, min_size=self.min_size)
 
         self._greyscale = None
 

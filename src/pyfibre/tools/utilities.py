@@ -36,20 +36,17 @@ def bbox_sample(region, metric):
 
 def smooth_binary(binary, sigma=None):
     """Smooths binary image based on Gaussian filter with
-     sigma standard deviation"""
+    sigma standard deviation"""
 
     if sigma is not None:
-        smoothed = gaussian_filter(
-            binary.astype(float), sigma=sigma
-        )
+        smoothed = gaussian_filter(binary.astype(float), sigma=sigma)
         # Convert float image back to binary
         binary = np.where(smoothed, 1, 0)
 
     return binary
 
 
-def region_check(region, min_size=0, min_frac=0,
-                 edges=False, max_x=0, max_y=0):
+def region_check(region, min_size=0, min_frac=0, edges=False, max_x=0, max_y=0):
     """Return whether input region passes minimum area and average
     intensity checks"""
 
@@ -58,17 +55,17 @@ def region_check(region, min_size=0, min_frac=0,
     if edges:
         minr, minc, maxr, maxc = region.bbox
         edge_check = (minr != 0) * (minc != 0)
-        edge_check *= (maxr != max_x)
-        edge_check *= (maxc != max_y)
+        edge_check *= maxr != max_x
+        edge_check *= maxc != max_y
 
         check *= edge_check
 
     check *= region.filled_area >= min_size
 
     if region._intensity_image is not None:
-        region_filter = (region.image * region.intensity_image)
+        region_filter = region.image * region.intensity_image
         region_frac = region_filter.sum() / region.filled_area
-        check *= (region_frac >= min_frac)
+        check *= region_frac >= min_frac
 
     return check
 
@@ -80,26 +77,24 @@ def region_swap(masks, images, min_sizes, min_fracs):
     intensity image. If this check passes, assigns region onto other mask."""
 
     for i, j in [[0, 1], [1, 0]]:
-
         labels = measure.label(masks[i].astype(np.int))
 
-        for region_1 in measure.regionprops(
-                labels, intensity_image=images[i]):
-
+        for region_1 in measure.regionprops(labels, intensity_image=images[i]):
             if not region_check(region_1, min_sizes[i], min_fracs[i]):
                 intensity_image = bbox_sample(region_1, images[j])
                 masks[i][np.where(labels == region_1.label)] = False
 
                 region_2 = measure.regionprops(
-                    np.array(region_1.image, dtype=int),
-                    intensity_image=intensity_image)[0]
+                    np.array(region_1.image, dtype=int), intensity_image=intensity_image
+                )[0]
 
                 if region_check(region_2, 0, min_fracs[j]):
                     masks[j][np.where(labels == region_1.label)] = True
 
 
-def mean_binary(binaries, image, iterations=1, min_intensity=0,
-                area_threshold=0, sigma=None):
+def mean_binary(
+    binaries, image, iterations=1, min_intensity=0, area_threshold=0, sigma=None
+):
     """Compares two binary of image and produces a
     filter based on the overlap"""
 
@@ -107,10 +102,8 @@ def mean_binary(binaries, image, iterations=1, min_intensity=0,
     intensity_mask = np.where(intensity_map > min_intensity, True, False)
 
     # Remove small holes and objects from masks
-    intensity_mask = remove_small_holes(
-        intensity_mask, area_threshold=area_threshold)
-    intensity_mask = remove_small_objects(
-        intensity_mask, min_size=area_threshold)
+    intensity_mask = remove_small_holes(intensity_mask, area_threshold=area_threshold)
+    intensity_mask = remove_small_objects(intensity_mask, min_size=area_threshold)
 
     # Dilate image
     binary = binary_dilation(intensity_mask, iterations=iterations)

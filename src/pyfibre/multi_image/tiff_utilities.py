@@ -16,10 +16,8 @@ def lookup_page(tiff_page):
 
 
 def get_fluoview_param(description, xy_dim, shape):
-
-    desc_list = description.split('\n')
-    channel_lines = [
-        line.strip() for line in desc_list if 'Gamma' in line]
+    desc_list = description.split("\n")
+    channel_lines = [line.strip() for line in desc_list if "Gamma" in line]
     n_modes = len(channel_lines)
 
     # If number of modes is not in image shape (typically
@@ -30,8 +28,7 @@ def get_fluoview_param(description, xy_dim, shape):
         elif n_modes == 1 and len(shape) == 3:
             minor_axis = np.argmin(shape)
         else:
-            raise IndexError(
-                f"Image shape {shape} not supported")
+            raise IndexError(f"Image shape {shape} not supported")
 
         return minor_axis, n_modes, xy_dim
 
@@ -47,43 +44,41 @@ def get_fluoview_param(description, xy_dim, shape):
         if shape[0] == n_modes:
             major_axis = 0
         else:
-            raise IndexError(
-                f"Image shape {shape} not supported")
+            raise IndexError(f"Image shape {shape} not supported")
 
     # Work out the minor axis (stack to average over) from the
     # remaining image dimensions
     minor_axes = [
-        index for index, value in enumerate(shape)
-        if value not in xy_dim and index != major_axis]
+        index
+        for index, value in enumerate(shape)
+        if value not in xy_dim and index != major_axis
+    ]
 
     if len(minor_axes) == 0:
         minor_axis = None
     elif len(minor_axes) == 1:
         minor_axis = minor_axes[0]
     else:
-        raise IndexError(
-            f"Image shape {shape} not supported")
+        raise IndexError(f"Image shape {shape} not supported")
 
     return minor_axis, n_modes, xy_dim
 
 
 def get_imagej_param(description, xy_dim, shape):
-
-    desc_list = description.split('\n')
-    slices = [
-        line.strip() for line in desc_list if 'slices' in line]
+    desc_list = description.split("\n")
+    slices = [line.strip() for line in desc_list if "slices" in line]
 
     if not slices:
-        raise IndexError(
-            f"Image shape {shape} not supported")
+        raise IndexError(f"Image shape {shape} not supported")
     else:
-        n_slices = int(slices[0].split('=')[-1])
+        n_slices = int(slices[0].split("=")[-1])
         minor_axis = shape.index(n_slices)
 
     # Work out the number of modes from the
     # remaining image dimensions
     n_modes = [
-        index for index, value in enumerate(shape)
+        index
+        for index, value in enumerate(shape)
         if value not in xy_dim and index != minor_axis
     ]
 
@@ -92,8 +87,7 @@ def get_imagej_param(description, xy_dim, shape):
     elif len(n_modes) == 1:
         n_modes = shape[n_modes[0]]
     else:
-        raise IndexError(
-            f"Image shape {shape} not supported")
+        raise IndexError(f"Image shape {shape} not supported")
 
     return minor_axis, n_modes, xy_dim
 
@@ -114,15 +108,15 @@ def get_tiff_param(tiff_file: TiffFile):
         # We are using test data
         desc_dict = json.loads(description)
 
-        minor_axis = desc_dict['minor_axis']
-        n_modes = desc_dict['n_modes']
-        xy_dim = tuple(desc_dict['xy_dim'])
+        minor_axis = desc_dict["minor_axis"]
+        n_modes = desc_dict["n_modes"]
+        xy_dim = tuple(desc_dict["xy_dim"])
 
         return minor_axis, n_modes, xy_dim
 
 
 def get_accumulation_number(file_name):
-    """ Extract accumulation from file name if present.
+    """Extract accumulation from file name if present.
     Return default value of 1 if not present.
 
     Parameters
@@ -142,7 +136,7 @@ def get_accumulation_number(file_name):
         <prefix>-acc<number>.ext
     """
     path, ext = os.path.splitext(file_name)
-    if 'acc' in path.lower():
-        _, number = path.split('acc')
+    if "acc" in path.lower():
+        _, number = path.split("acc")
         return int(number)
     return 1

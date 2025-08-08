@@ -4,8 +4,12 @@ from scipy.ndimage.filters import gaussian_filter
 
 from skimage.feature import structure_tensor
 from skimage.filters import (
-    threshold_li, threshold_isodata, threshold_mean,
-    apply_hysteresis_threshold, sato)
+    threshold_li,
+    threshold_isodata,
+    threshold_mean,
+    apply_hysteresis_threshold,
+    sato,
+)
 
 
 def gaussian(image, sigma=None):
@@ -22,7 +26,7 @@ def tubeness(image, sigma_max=3):
 
     tube = sato(
         image,
-        sigmas=range(1, sigma_max+1),
+        sigmas=range(1, sigma_max + 1),
         black_ridges=False,
         mode="constant",
     )
@@ -34,8 +38,7 @@ def hysteresis(image, alpha=1.0):
     """Hystersis thresholding with low and high clipped values
     determined by the mean, li and isodata threshold"""
 
-    low = np.min([
-        alpha * threshold_mean(image), threshold_li(image)])
+    low = np.min([alpha * threshold_mean(image), threshold_li(image)])
     high = threshold_isodata(image)
 
     threshold = apply_hysteresis_threshold(image, low, high)
@@ -64,21 +67,23 @@ def derivatives(image, rank=1):
     """
 
     derivative = np.zeros(((2,) + image.shape))
-    derivative[0] += np.nan_to_num(
-        np.gradient(image, edge_order=1, axis=-2))
-    derivative[1] += np.nan_to_num(
-        np.gradient(image, edge_order=1, axis=-1))
+    derivative[0] += np.nan_to_num(np.gradient(image, edge_order=1, axis=-2))
+    derivative[1] += np.nan_to_num(np.gradient(image, edge_order=1, axis=-1))
 
     if rank == 2:
         second_derivative = np.zeros(((4,) + image.shape))
         second_derivative[0] += np.nan_to_num(
-            np.gradient(derivative[0], edge_order=1, axis=-2))
+            np.gradient(derivative[0], edge_order=1, axis=-2)
+        )
         second_derivative[1] += np.nan_to_num(
-            np.gradient(derivative[1], edge_order=1, axis=-2))
+            np.gradient(derivative[1], edge_order=1, axis=-2)
+        )
         second_derivative[2] += np.nan_to_num(
-            np.gradient(derivative[0], edge_order=1, axis=-1))
+            np.gradient(derivative[0], edge_order=1, axis=-1)
+        )
         second_derivative[3] += np.nan_to_num(
-            np.gradient(derivative[1], edge_order=1, axis=-1))
+            np.gradient(derivative[1], edge_order=1, axis=-1)
+        )
 
         return second_derivative
 
@@ -111,15 +116,15 @@ def form_nematic_tensor(image, sigma=0.0001):
     nframe = image.shape[0]
 
     dx_shg, dy_shg = derivatives(image)
-    r_xy_2 = (dx_shg**2 + dy_shg**2)
+    r_xy_2 = dx_shg**2 + dy_shg**2
     indicies = np.where(r_xy_2 > 0)
 
     nxx = np.zeros(dx_shg.shape)
     nyy = np.zeros(dx_shg.shape)
     nxy = np.zeros(dx_shg.shape)
 
-    nxx[indicies] += dy_shg[indicies]**2 / r_xy_2[indicies]
-    nyy[indicies] += dx_shg[indicies]**2 / r_xy_2[indicies]
+    nxx[indicies] += dy_shg[indicies] ** 2 / r_xy_2[indicies]
+    nyy[indicies] += dx_shg[indicies] ** 2 / r_xy_2[indicies]
     nxy[indicies] -= dx_shg[indicies] * dy_shg[indicies] / r_xy_2[indicies]
 
     for frame in range(nframe):
@@ -127,8 +132,7 @@ def form_nematic_tensor(image, sigma=0.0001):
         nyy[frame] = gaussian_filter(nyy[frame], sigma=sigma)
         nxy[frame] = gaussian_filter(nxy[frame], sigma=sigma)
 
-    n_tensor = np.stack((nxx, nxy, nxy, nyy), -1).reshape(
-        nxx.shape + (2, 2))
+    n_tensor = np.stack((nxx, nxy, nxy, nyy), -1).reshape(nxx.shape + (2, 2))
 
     if nframe == 1:
         n_tensor = n_tensor.reshape(n_tensor.shape[1:])
@@ -165,11 +169,9 @@ def form_structure_tensor(image, sigma=0.0001):
     jyy = np.zeros(image.shape)
 
     for frame in range(nframe):
-        jxx[frame], jxy[frame], jyy[frame] = structure_tensor(
-            image[frame], sigma=sigma)
+        jxx[frame], jxy[frame], jyy[frame] = structure_tensor(image[frame], sigma=sigma)
 
-    j_tensor = np.stack((jxx, jxy, jxy, jyy), -1).reshape(
-        jxx.shape + (2, 2))
+    j_tensor = np.stack((jxx, jxy, jxy, jyy), -1).reshape(jxx.shape + (2, 2))
 
     if nframe == 1:
         j_tensor = j_tensor.reshape(j_tensor.shape[1:])

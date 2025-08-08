@@ -27,14 +27,10 @@ def clip_intensities(image, p_intensity=(1, 98)):
     """
 
     logger.debug(
-        f"Preprocessing images using clipped "
-        f"intensity percentages {p_intensity}")
-    low, high = np.percentile(image, p_intensity)
-    image = rescale_intensity(
-        image,
-        in_range=(low, high),
-        out_range=(low, high)
+        f"Preprocessing images using clipped intensity percentages {p_intensity}"
     )
+    low, high = np.percentile(image, p_intensity)
+    image = rescale_intensity(image, in_range=(low, high), out_range=(low, high))
 
     return image
 
@@ -60,9 +56,12 @@ def nl_means(image, p_denoise=(5, 35)):
 
     sigma = estimate_sigma(image)
     image = denoise_nl_means(
-        image, patch_size=p_denoise[0],
+        image,
+        patch_size=p_denoise[0],
         patch_distance=p_denoise[1],
-        fast_mode=True, h=1.2 * sigma,
-        sigma=sigma)
+        fast_mode=True,
+        h=1.2 * sigma,
+        sigma=sigma,
+    )
 
     return image

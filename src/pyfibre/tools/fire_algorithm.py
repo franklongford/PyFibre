@@ -10,8 +10,11 @@ from skimage.morphology import local_maxima
 from pyfibre.utilities import ring, numpy_remove
 
 from pyfibre.tools.fibre_utilities import (
-    branch_angles, reduce_coord, new_branches, transfer_edges,
-    check_2D_arrays
+    branch_angles,
+    reduce_coord,
+    new_branches,
+    transfer_edges,
+    check_2D_arrays,
 )
 
 logger = logging.getLogger(__name__)
@@ -21,8 +24,9 @@ class FIREAlgorithm:
     """Class that extracts a complete fibre network from a
     provided image as a single nx.Graph object"""
 
-    def __init__(self, nuc_thresh=2, lmp_thresh=0.15, angle_thresh=70,
-                 r_thresh=7, nuc_radius=10):
+    def __init__(
+        self, nuc_thresh=2, lmp_thresh=0.15, angle_thresh=70, r_thresh=7, nuc_radius=10
+    ):
         """Initialise FibreNetwork object
 
         Parameters
@@ -55,15 +59,13 @@ class FIREAlgorithm:
     @property
     def theta_thresh(self):
         """Conversion of angle_thresh to radians"""
-        return 1 + np.cos(
-            (180 - self.angle_thresh) * np.pi / 180)
+        return 1 + np.cos((180 - self.angle_thresh) * np.pi / 180)
 
     def _assign_graph(self, graph=None):
         """Assign graph to self.graph"""
 
         assert isinstance(graph, nx.Graph), (
-            f"Argument `graph` must be an object "
-            f"of type {nx.Graph}"
+            f"Argument `graph` must be an object of type {nx.Graph}"
         )
         self._graph = graph
 
@@ -81,13 +83,12 @@ class FIREAlgorithm:
         """Set distance and angle thresholds for fibre iterator"""
 
         # Get global maxima for smoothed distance matrix
-        maxima = local_maxima(
-            image, connectivity=self.nuc_radius, allow_borders=True
-        )
+        maxima = local_maxima(image, connectivity=self.nuc_radius, allow_borders=True)
         nuc_node_coord = reduce_coord(
             np.argwhere(maxima * image >= self.nuc_thresh),
             image[np.where(maxima * image >= self.nuc_thresh)],
-            self.r_thresh)
+            self.r_thresh,
+        )
 
         return nuc_node_coord
 
@@ -100,9 +101,8 @@ class FIREAlgorithm:
 
         n_nodes = n_nuc
         for nuc, nuc_coord in enumerate(nuc_node_coord):
-
-            self._graph.nodes[nuc]['xy'] = nuc_coord
-            self._graph.nodes[nuc]['nuc'] = nuc
+            self._graph.nodes[nuc]["xy"] = nuc_coord
+            self._graph.nodes[nuc]["nuc"] = nuc
             self.grow_list.remove(nuc)
 
             ring_filter = ring(
@@ -115,20 +115,17 @@ class FIREAlgorithm:
 
             self._graph.add_nodes_from(n_nodes + np.arange(n_lmp))
             self._graph.add_edges_from(
-                [*zip(nuc * np.ones(n_lmp, dtype=int),
-                      n_nodes + np.arange(n_lmp))]
+                [*zip(nuc * np.ones(n_lmp, dtype=int), n_nodes + np.arange(n_lmp))]
             )
 
-            generator = zip(
-                lmp_coord, lmp_vectors, lmp_r, n_nodes + np.arange(n_lmp)
-            )
+            generator = zip(lmp_coord, lmp_vectors, lmp_r, n_nodes + np.arange(n_lmp))
 
             for xy, vec, r, lmp in generator:
-                self._graph.nodes[lmp]['xy'] = xy
-                self._graph[nuc][lmp]['r'] = r
-                self._graph.nodes[lmp]['nuc'] = nuc
+                self._graph.nodes[lmp]["xy"] = xy
+                self._graph[nuc][lmp]["r"] = r
+                self._graph.nodes[lmp]["nuc"] = nuc
                 self.grow_list.append(lmp)
-                self._graph.nodes[lmp]['direction'] = -vec / r
+                self._graph.nodes[lmp]["direction"] = -vec / r
 
             n_nodes += n_lmp
 
@@ -150,7 +147,7 @@ class FIREAlgorithm:
         # Get nodes: end_node (end of fibre), nuc_node (start of fibre)
         # and prior_node (node connected to end)
         end_node = self._graph.nodes[index]
-        nuc_node = self._graph.nodes[end_node['nuc']]
+        nuc_node = self._graph.nodes[end_node["nuc"]]
 
         # Get list of connected nodes in fibre
         connected_nodes = self._get_connected_nodes(index)
@@ -160,23 +157,19 @@ class FIREAlgorithm:
         # Get edge between end and prior nodes
         edge = self._graph[index][prior]
 
-        ring_filter = ring(
-            np.zeros(image.shape), end_node['xy'], np.arange(2, 3), 1
-        )
+        ring_filter = ring(np.zeros(image.shape), end_node["xy"], np.arange(2, 3), 1)
 
         branch_coord, branch_vector, branch_r = new_branches(
-            image, end_node['xy'], ring_filter, self.lmp_thresh
+            image, end_node["xy"], ring_filter, self.lmp_thresh
         )
 
-        cos_the = branch_angles(
-            end_node['direction'], branch_vector, branch_r
-        )
+        cos_the = branch_angles(end_node["direction"], branch_vector, branch_r)
         indices = np.argwhere(abs(cos_the + 1) <= self.theta_thresh)
 
         if indices.size == 0:
             self.grow_list.remove(index)
 
-            if edge['r'] <= self.r_thresh / 10:
+            if edge["r"] <= self.r_thresh / 10:
                 transfer_edges(self._graph, index, prior)
 
             return
@@ -188,7 +181,6 @@ class FIREAlgorithm:
         close_nodes = numpy_remove(close_nodes, connected_nodes)
 
         if close_nodes.size != 0:
-
             new_end = close_nodes.min()
             transfer_edges(self._graph, index, new_end)
             self.grow_list.remove(index)
@@ -197,14 +189,13 @@ class FIREAlgorithm:
             new_index = branch_r.argmax()
 
             new_end_coord = branch_coord[new_index].flatten()
-            new_end_vector = new_end_coord - prior_node['xy']
+            new_end_vector = new_end_coord - prior_node["xy"]
             new_end_r = np.sqrt((new_end_vector**2).sum())
 
-            new_dir_vector = new_end_coord - nuc_node['xy']
+            new_dir_vector = new_end_coord - nuc_node["xy"]
             new_dir_r = np.sqrt((new_dir_vector**2).sum())
 
             if new_end_r >= self.r_thresh:
-
                 new_end = self._graph.number_of_nodes()
 
                 self._graph.add_node(new_end)
@@ -213,20 +204,19 @@ class FIREAlgorithm:
                 self._graph.add_edge(index, new_end)
                 new_edge = self._graph[index][new_end]
 
-                new_node['xy'] = new_end_coord
-                new_node['nuc'] = end_node['nuc']
+                new_node["xy"] = new_end_coord
+                new_node["nuc"] = end_node["nuc"]
 
-                new_edge['r'] = np.sqrt(
-                    ((new_end_coord - end_node['xy'])**2).sum())
-                new_node['direction'] = (new_dir_vector / new_dir_r)
+                new_edge["r"] = np.sqrt(((new_end_coord - end_node["xy"]) ** 2).sum())
+                new_node["direction"] = new_dir_vector / new_dir_r
 
                 self.grow_list.remove(index)
                 self.grow_list.append(new_end)
 
             else:
-                end_node['xy'] = new_end_coord
-                edge['r'] = new_end_r
-                end_node['direction'] = (new_dir_vector / new_dir_r)
+                end_node["xy"] = new_end_coord
+                edge["r"] = new_end_r
+                end_node["direction"] = new_dir_vector / new_dir_r
 
     def create_network(self, image):
         """Initialise network from n_nucleation sites"""
@@ -253,14 +243,11 @@ class FIREAlgorithm:
         while len(fibre_grow) > 0:
             start = time.time()
 
-            tot_node_coord = [self._graph.nodes[node]['xy']
-                              for node in self._graph]
+            tot_node_coord = [self._graph.nodes[node]["xy"] for node in self._graph]
             tot_node_coord = np.stack(tot_node_coord)
 
             for fibre in fibre_grow:
-                self.grow_lmp(
-                    fibre, image, tot_node_coord
-                )
+                self.grow_lmp(fibre, image, tot_node_coord)
 
             n_node = self._graph.number_of_nodes()
             fibre_grow[:] = self.grow_list
@@ -272,6 +259,7 @@ class FIREAlgorithm:
             logger.debug(
                 f"Iteration {it} time = {round(end - start, 3)} s,"
                 f" {n_node} nodes  {len(fibre_grow)}/{n_fibres} "
-                f"fibres left to grow")
+                f"fibres left to grow"
+            )
 
         return copy.copy(self._graph)

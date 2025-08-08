@@ -40,7 +40,6 @@ def fourier_transform_analysis(image, n_split=1, sigma=None):
     sdi = []
 
     for region in sampled_regions:
-
         image_fft = np.fft.fft2(region)
         image_fft[0][0] = 0
         # image_fft = np.fft.fftshift(image_fft)
@@ -54,13 +53,12 @@ def fourier_transform_analysis(image, n_split=1, sigma=None):
         image_grid = np.mgrid[: region.shape[0], : region.shape[1]]
         for i in range(2):
             image_grid[i] -= region.shape[0] * np.array(
-                2 * image_grid[i] / region.shape[0],
-                dtype=int
+                2 * image_grid[i] / region.shape[0], dtype=int
             )
         image_radius = np.sqrt(np.sum(image_grid**2, axis=0))
 
         angles = image_grid[0] / image_radius
-        angles = (np.arccos(angles) * 360 / np.pi)
+        angles = np.arccos(angles) * 360 / np.pi
         angles[0][0] = 0
         angles = np.fft.fftshift(angles)
 
@@ -101,9 +99,12 @@ def tensor_analysis(tensor):
     tot_coher = np.zeros(tensor.shape[:-2])
     tot_coher[indicies] += (eig_diff[indicies] / eig_sum[indicies]) ** 2
 
-    tot_angle = 0.5 * np.arctan2(
-        2 * tensor[..., 1, 0],
-        (tensor[..., 1, 1] - tensor[..., 0, 0])) / np.pi * 180
+    tot_angle = (
+        0.5
+        * np.arctan2(2 * tensor[..., 1, 0], (tensor[..., 1, 1] - tensor[..., 0, 0]))
+        / np.pi
+        * 180
+    )
     tot_energy = np.trace(np.abs(tensor), axis1=-2, axis2=-1)
 
     return tot_coher, tot_angle, tot_energy
@@ -136,8 +137,7 @@ def angle_analysis(angles, weights=None, n_bin=200):
         weights = np.ones(angles.shape)
 
     angle_hist, angle_x = np.histogram(
-        angles.flatten(), bins=n_bin, weights=weights.flatten(),
-        density=True
+        angles.flatten(), bins=n_bin, weights=weights.flatten(), density=True
     )
     angle_sdi = angle_hist.mean() / angle_hist.max()
 

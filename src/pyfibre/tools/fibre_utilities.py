@@ -9,7 +9,7 @@ def get_node_coord_array(graph):
     """Return a numpy array containing xy attributes of all nodes
     in graph"""
 
-    node_coord = [graph.nodes[i]['xy'] for i in graph.nodes()]
+    node_coord = [graph.nodes[i]["xy"] for i in graph.nodes()]
 
     return np.stack(node_coord)
 
@@ -52,7 +52,7 @@ def check_2D_arrays(array1, array2, thresh=1):
     array2_mat = np.tile(array2, (array1.shape[0], 1))
     array2_mat = array2_mat.reshape(shape)
 
-    diff = np.sum((array1_mat - array2_mat)**2, axis=2)
+    diff = np.sum((array1_mat - array2_mat) ** 2, axis=2)
     array1_indices = np.argwhere(diff <= thresh**2)[:, 0]
     array2_indices = np.argwhere(diff <= thresh**2)[:, 1]
 
@@ -90,8 +90,7 @@ def cos_sin_theta_2D(vector, r_vector):
     temp_vector = np.reshape(vector, (n_vector // 2, 2, n_dim))
 
     # Calculate |rij||rjk| product for each pair of vectors
-    r_prod = np.prod(
-        np.reshape(r_vector, (n_vector // 2, 2)), axis=1)
+    r_prod = np.prod(np.reshape(r_vector, (n_vector // 2, 2)), axis=1)
 
     # Form dot product of each vector pair rij*rjk in vector
     # array corresponding to an angle
@@ -134,8 +133,9 @@ def reduce_coord(coord, weights=None, thresh=1):
 
     # For any clashes, keep the coordinate with the highest
     # corresponding intensity value
-    indices = np.stack((weights[del_coord[:, 0]],
-                        weights[del_coord[:, 1]])).argmax(axis=0)
+    indices = np.stack((weights[del_coord[:, 0]], weights[del_coord[:, 1]])).argmax(
+        axis=0
+    )
     del_coord = [a[i] for a, i in zip(del_coord, indices)]
 
     coord = np.delete(coord, del_coord, 0)
@@ -148,10 +148,10 @@ def new_branches(image, coord, ring_filter, max_thresh=0.2):
     excluding pixels in ring filter"""
 
     filtered = image * ring_filter
-    branch_coord = np.argwhere(
-        local_maxima(filtered) * image >= max_thresh)
+    branch_coord = np.argwhere(local_maxima(filtered) * image >= max_thresh)
     branch_coord = reduce_coord(
-        branch_coord, image[branch_coord[:, 0], branch_coord[:, 1]])
+        branch_coord, image[branch_coord[:, 0], branch_coord[:, 1]]
+    )
 
     n_branch = branch_coord.shape[0]
     branch_vector = np.tile(coord, (n_branch, 1)) - branch_coord
@@ -161,13 +161,11 @@ def new_branches(image, coord, ring_filter, max_thresh=0.2):
 
 
 def branch_angles(direction, branch_vector, branch_r):
-
     n_branch = branch_vector.shape[0]
     dir_vector = np.tile(direction, (n_branch, 1))
     dir_r = np.ones(n_branch)
 
-    combined_vector = np.hstack(
-        (branch_vector, dir_vector)).reshape(n_branch * 2, 2)
+    combined_vector = np.hstack((branch_vector, dir_vector)).reshape(n_branch * 2, 2)
     combined_r = np.column_stack((branch_r, dir_r)).flatten()
     cos_the = cos_sin_theta_2D(combined_vector, combined_r)
 
@@ -182,8 +180,8 @@ def transfer_edges(network, source, target):
 
         if node != target:
             network.add_edge(node, target)
-            diff = network.nodes[target]['xy'] - network.nodes[node]['xy']
-            network[node][target]['r'] = np.sqrt((diff ** 2).sum())
+            diff = network.nodes[target]["xy"] - network.nodes[node]["xy"]
+            network[node][target]["r"] = np.sqrt((diff**2).sum())
 
 
 def distance_matrix(node_coord):
@@ -192,7 +190,8 @@ def distance_matrix(node_coord):
 
     node_coord_matrix = np.tile(node_coord, (node_coord.shape[0], 1))
     node_coord_matrix = node_coord_matrix.reshape(
-        node_coord.shape[0], node_coord.shape[0], node_coord.shape[1])
+        node_coord.shape[0], node_coord.shape[0], node_coord.shape[1]
+    )
     d_node = node_coord_matrix - np.transpose(node_coord_matrix, (1, 0, 2))
     r2_node = np.sum(d_node**2, axis=2)
 
@@ -206,7 +205,6 @@ def get_edge_list(graph, max_degree=2):
     edge_list = np.empty((0, 2), dtype=int)
 
     for edge in graph.edges:
-
         edge = np.array(edge)
         degrees = np.array((graph.degree[edge[0]], graph.degree[edge[1]]))
 
@@ -215,10 +213,7 @@ def get_edge_list(graph, max_degree=2):
 
         if degree_check:
             order = np.argsort(degrees)
-            edge_list = np.concatenate(
-                (edge_list,
-                 np.expand_dims(edge[order], axis=0))
-            )
+            edge_list = np.concatenate((edge_list, np.expand_dims(edge[order], axis=0)))
 
     return edge_list
 
@@ -234,7 +229,7 @@ def remove_redundant_nodes(network, r_thresh=2):
 
     while checking:
         # Calculate distances between each node
-        node_coord = [network.nodes[i]['xy'] for i in network.nodes()]
+        node_coord = [network.nodes[i]["xy"] for i in network.nodes()]
         node_coord = np.stack(node_coord)
         d_coord, r2_coord = distance_matrix(node_coord)
 
@@ -244,7 +239,7 @@ def remove_redundant_nodes(network, r_thresh=2):
 
         # Find nodes in a similar location
         duplicate_nodes = np.where(r2_coord < r2_thresh)
-        checking = (duplicate_nodes[0].size > 0)
+        checking = duplicate_nodes[0].size > 0
 
         # Iterate through each duplicate and transfer edges on to
         # most connected
@@ -279,8 +274,7 @@ def simplify_network(network):
     while edge_list.size > 0:
         for edge in edge_list:
             try:
-                new_network = nx.contracted_edge(
-                    new_network, edge, self_loops=False)
+                new_network = nx.contracted_edge(new_network, edge, self_loops=False)
             except (ValueError, KeyError):
                 pass
 
@@ -293,6 +287,6 @@ def simplify_network(network):
     r_coord = np.sqrt(r2_coord)
 
     for edge in new_network.edges:
-        new_network[edge[0]][edge[1]]['r'] = r_coord[edge[0]][edge[1]]
+        new_network[edge[0]][edge[1]]["r"] = r_coord[edge[0]][edge[1]]
 
     return new_network
