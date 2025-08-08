@@ -49,7 +49,7 @@ class TestUtilities(TestCase):
         self.assertIn(self.file_name, input_files)
 
         input_files = parse_file_path(self.directory, key=self.key)
-        self.assertEqual(1, len(input_files))
+        self.assertEqual(5, len(input_files))
         self.assertIn(self.file_name, input_files)
 
         input_files = parse_file_path(self.directory, key="not-there")
