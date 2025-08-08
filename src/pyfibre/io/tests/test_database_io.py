@@ -34,4 +34,3 @@ class TestDatabaseWriter(TestCase):
 
             pd.testing.assert_series_equal(self.database["one"], database["one"])
             pd.testing.assert_series_equal(self.database["two"], database["two"])
-
