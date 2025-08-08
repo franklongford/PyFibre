@@ -1,11 +1,11 @@
 import numpy as np
 import networkx as nx
+from unittest import TestCase
 
 from pyfibre.tools.fire_algorithm import FIREAlgorithm
-from pyfibre.testing.pyfibre_test_case import PyFibreTestCase
 
 
-class TestNetworkExtraction(PyFibreTestCase):
+class TestNetworkExtraction(TestCase):
     def setUp(self):
         self.N = 20
 
@@ -41,7 +41,7 @@ class TestNetworkExtraction(PyFibreTestCase):
 
     def test__get_connected_nodes(self):
         self.fire_algorithm._graph = nx.grid_2d_graph(2, 3)
-        self.assertArrayAlmostEqual(
+        np.testing.assert_almost_equal(
             np.array([[1, 0], [0, 1]]), self.fire_algorithm._get_connected_nodes((0, 0))
         )
 
@@ -160,7 +160,7 @@ class TestNetworkExtraction(PyFibreTestCase):
         adjacency = nx.adjacency_matrix(self.fire_algorithm._graph).todense()
 
         self.assertEqual(8, self.fire_algorithm._graph.number_of_nodes())
-        self.assertArrayAlmostEqual(
+        np.testing.assert_almost_equal(
             np.array(
                 [
                     [0, 1, 1, 1, 1, 0, 0, 0],

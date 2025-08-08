@@ -1,10 +1,10 @@
 import numpy as np
+from unittest import TestCase
 
 from pyfibre.tools.analysis import tensor_analysis, angle_analysis
-from pyfibre.testing.pyfibre_test_case import PyFibreTestCase
 
 
-class TestAnalysis(PyFibreTestCase):
+class TestAnalysis(TestCase):
     def setUp(self):
         self.tensor = np.ones((3, 3, 2, 2))
         self.tensor[0, 0, 0, 1] = 2
@@ -15,45 +15,45 @@ class TestAnalysis(PyFibreTestCase):
         tensor = np.array([[1, 0], [0, 1]])
 
         tot_coher, tot_angle, tot_energy = tensor_analysis(tensor)
-        self.assertArrayAlmostEqual(np.array([0]), tot_coher)
-        self.assertArrayAlmostEqual(np.array([0]), tot_angle)
-        self.assertArrayAlmostEqual(np.array([2]), tot_energy)
+        np.testing.assert_almost_equal(tot_coher, np.array([0]))
+        np.testing.assert_almost_equal(tot_angle, np.array([0]))
+        np.testing.assert_almost_equal(tot_energy, np.array([2]))
 
         tensor = np.array([[1, 0], [0, -1]])
 
         tot_coher, tot_angle, tot_energy = tensor_analysis(tensor)
-        self.assertArrayAlmostEqual(np.array([0]), tot_coher)
-        self.assertArrayAlmostEqual(np.array([90]), tot_angle)
-        self.assertArrayAlmostEqual(np.array([2]), tot_energy)
+        np.testing.assert_almost_equal(tot_coher, np.array([0]))
+        np.testing.assert_almost_equal(tot_angle, np.array([90]))
+        np.testing.assert_almost_equal(tot_energy, np.array([2]))
 
         tensor = np.array([[1, 0], [0, 0]])
 
         tot_coher, tot_angle, tot_energy = tensor_analysis(tensor)
-        self.assertArrayAlmostEqual(np.array([1]), tot_coher)
-        self.assertArrayAlmostEqual(np.array([90]), tot_angle)
-        self.assertArrayAlmostEqual(np.array([1]), tot_energy)
+        np.testing.assert_almost_equal(tot_coher, np.array([1]))
+        np.testing.assert_almost_equal(tot_angle, np.array([90]))
+        np.testing.assert_almost_equal(tot_energy, np.array([1]))
 
         tensor = np.array([[0, 0], [0, 1]])
 
         tot_coher, tot_angle, tot_energy = tensor_analysis(tensor)
-        self.assertArrayAlmostEqual(np.array([1]), tot_coher)
-        self.assertArrayAlmostEqual(np.array([0]), tot_angle)
-        self.assertArrayAlmostEqual(np.array([1]), tot_energy)
+        np.testing.assert_almost_equal(tot_coher, np.array([1]))
+        np.testing.assert_almost_equal(tot_angle, np.array([0]))
+        np.testing.assert_almost_equal(tot_energy, np.array([1]))
 
         tensor = np.array([[0, 1], [1, 0]])
 
         tot_coher, tot_angle, tot_energy = tensor_analysis(tensor)
-        self.assertArrayAlmostEqual(np.array([0]), tot_coher)
-        self.assertArrayAlmostEqual(np.array([45]), tot_angle)
-        self.assertArrayAlmostEqual(np.array([0]), tot_energy)
+        np.testing.assert_almost_equal(tot_coher, np.array([0]))
+        np.testing.assert_almost_equal(tot_angle, np.array([45]))
+        np.testing.assert_almost_equal(tot_energy, np.array([0]))
 
     def test_1d_tensor(self):
         tensor_1d = np.array([[[0, 1], [1, 0]], [[0, 0], [0, 1]]])
 
         tot_coher, tot_angle, tot_energy = tensor_analysis(tensor_1d)
-        self.assertArrayAlmostEqual(np.array([0, 1]), tot_coher)
-        self.assertArrayAlmostEqual(np.array([45, 0]), tot_angle)
-        self.assertArrayAlmostEqual(np.array([0, 1]), tot_energy)
+        np.testing.assert_almost_equal(tot_coher, np.array([0, 1]))
+        np.testing.assert_almost_equal(tot_angle, np.array([45, 0]))
+        np.testing.assert_almost_equal(tot_energy, np.array([0, 1]))
 
     def test_2d_tensor(self):
         tensor_2d = np.array(
@@ -64,9 +64,9 @@ class TestAnalysis(PyFibreTestCase):
         )
 
         tot_coher, tot_angle, tot_energy = tensor_analysis(tensor_2d)
-        self.assertArrayAlmostEqual(np.array([[0, 1], [0, 1]]), tot_coher)
-        self.assertArrayAlmostEqual(np.array([[45, 0], [90, 90]]), tot_angle)
-        self.assertArrayAlmostEqual(np.array([[0, 1], [2, 1]]), tot_energy)
+        np.testing.assert_almost_equal(tot_coher, np.array([[0, 1], [0, 1]]))
+        np.testing.assert_almost_equal(tot_angle, np.array([[45, 0], [90, 90]]))
+        np.testing.assert_almost_equal(tot_energy, np.array([[0, 1], [2, 1]]))
 
     def test_angle_analysis(self):
         angles = np.array([45, 90, 100, 180, 45, 45, 45, 90, 180])

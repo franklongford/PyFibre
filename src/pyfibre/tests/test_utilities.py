@@ -1,4 +1,4 @@
-from unittest import mock
+from unittest import mock, TestCase
 
 import numpy as np
 
@@ -14,13 +14,12 @@ from pyfibre.utilities import (
     log_time,
 )
 from pyfibre.testing.example_objects import generate_image
-from pyfibre.testing.pyfibre_test_case import PyFibreTestCase
 
 
 THRESH = 1e-7
 
 
-class TestUtilities(PyFibreTestCase):
+class TestUtilities(TestCase):
     def setUp(self):
         (self.image, self.labels, self.binary, self.stack) = generate_image()
 
@@ -29,7 +28,7 @@ class TestUtilities(PyFibreTestCase):
         answer = np.array([-0.42857143, 0.28571429, 0.85714286])
         u_vector = unit_vector(vector)
 
-        self.assertArrayAlmostEqual(u_vector, answer, THRESH)
+        np.testing.assert_almost_equal(u_vector, answer, THRESH)
 
         vector_array = np.array([[3, 2, 6], [1, 2, 5], [4, 2, 5], [-7, -1, 2]])
 
@@ -44,7 +43,7 @@ class TestUtilities(PyFibreTestCase):
 
         edit_array = numpy_remove(array_1, array_2)
 
-        self.assertArrayAlmostEqual(answer, edit_array)
+        np.testing.assert_almost_equal(answer, edit_array)
 
     def test_nanmean(self):
         array_nan = np.array([2, 3, 1, np.nan])
@@ -58,10 +57,10 @@ class TestUtilities(PyFibreTestCase):
 
     def test_label_set(self):
         labels = label_set(self.labels)
-        self.assertArrayAlmostEqual(labels, np.array([1, 2]))
+        np.testing.assert_almost_equal(labels, np.array([1, 2]))
 
         labels = label_set(self.labels, background=-1)
-        self.assertArrayAlmostEqual(labels, np.array([0, 1, 2]))
+        np.testing.assert_almost_equal(labels, np.array([0, 1, 2]))
 
     def test_ring(self):
         ring_answer = np.array(
@@ -77,20 +76,20 @@ class TestUtilities(PyFibreTestCase):
 
         ring_filter = ring(np.zeros((6, 6)), [2, 2], [1], 1)
 
-        self.assertArrayAlmostEqual(ring_answer, ring_filter)
+        np.testing.assert_almost_equal(ring_answer, ring_filter)
 
         split_filter = matrix_split(ring_answer, 2, 2)
 
-        self.assertArrayAlmostEqual(
+        np.testing.assert_almost_equal(
             split_filter[0], np.array([[0, 0, 0], [0, 1, 1], [0, 1, 0]])
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_almost_equal(
             split_filter[1], np.array([[0, 0, 0], [1, 0, 0], [1, 0, 0]])
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_almost_equal(
             split_filter[2], np.array([[0, 1, 1], [0, 0, 0], [0, 0, 0]])
         )
-        self.assertArrayAlmostEqual(
+        np.testing.assert_almost_equal(
             split_filter[3], np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]])
         )
 
@@ -107,7 +106,7 @@ class TestUtilities(PyFibreTestCase):
         )
 
         clear_filter = clear_border(np.ones((6, 6)))
-        self.assertArrayAlmostEqual(clear_answer, clear_filter)
+        np.testing.assert_almost_equal(clear_answer, clear_filter)
 
         clear_answer = np.array(
             [
@@ -121,7 +120,7 @@ class TestUtilities(PyFibreTestCase):
         )
 
         clear_filter = clear_border(np.ones((6, 6)), thickness=2)
-        self.assertArrayAlmostEqual(clear_answer, clear_filter)
+        np.testing.assert_almost_equal(clear_answer, clear_filter)
 
     def test_flatten_list(self):
         list_of_lists = [

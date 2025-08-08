@@ -1,4 +1,5 @@
 import numpy as np
+from unittest import TestCase
 
 from pyfibre.tools.convertors import (
     binary_to_stack,
@@ -8,7 +9,6 @@ from pyfibre.tools.convertors import (
     stack_to_regions,
     regions_to_stack,
 )
-from pyfibre.testing.pyfibre_test_case import PyFibreTestCase
 from pyfibre.testing.example_objects import (
     generate_image,
     generate_probe_graph,
@@ -16,7 +16,7 @@ from pyfibre.testing.example_objects import (
 )
 
 
-class TestConvertors(PyFibreTestCase):
+class TestConvertors(TestCase):
     def setUp(self):
         (self.image, self.labels, self.binary, self.stack) = generate_image()
         self.network = generate_probe_graph()
@@ -60,7 +60,7 @@ class TestConvertors(PyFibreTestCase):
 
     def test_regions_to_stack(self):
         stack = regions_to_stack(self.regions, (10, 10))
-        self.assertArrayAlmostEqual(self.stack, stack)
+        np.testing.assert_array_equal(stack, self.stack)
 
     def test_stack_to_regions(self):
         regions = stack_to_regions(self.stack)

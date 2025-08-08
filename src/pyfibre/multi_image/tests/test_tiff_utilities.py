@@ -1,7 +1,7 @@
 import importlib.resources
+from unittest import TestCase
 from tifffile import TiffFile
 
-from pyfibre.testing.pyfibre_test_case import PyFibreTestCase
 from pyfibre.multi_image.tiff_utilities import (
     get_accumulation_number,
     get_fluoview_param,
@@ -10,7 +10,7 @@ from pyfibre.multi_image.tiff_utilities import (
 )
 
 
-class TestTiffUtilities(PyFibreTestCase):
+class TestTiffUtilities(TestCase):
     def setUp(self):
         testing_dir = self.enterContext(importlib.resources.path("pyfibre.testing"))
         self.test_shg_image_path = str(

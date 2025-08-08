@@ -1,14 +1,14 @@
 import os
+from unittest import TestCase
 from tempfile import NamedTemporaryFile
 
 import pandas as pd
 import numpy as np
 
 from pyfibre.io.database_io import save_database, load_database
-from pyfibre.testing.pyfibre_test_case import PyFibreTestCase
 
 
-class TestDatabaseWriter(PyFibreTestCase):
+class TestDatabaseWriter(TestCase):
     def setUp(self):
         self.data = {
             "one": np.array([1.0, 2.0, 3.0, 4.0]),
@@ -32,5 +32,6 @@ class TestDatabaseWriter(PyFibreTestCase):
             save_database(self.database, temp_file.name)
             database = load_database(temp_file.name)
 
-            self.assertArrayAlmostEqual(self.database["one"], database["one"])
-            self.assertArrayAlmostEqual(self.database["two"], database["two"])
+            pd.testing.assert_series_equal(self.database["one"], database["one"])
+            pd.testing.assert_series_equal(self.database["two"], database["two"])
+

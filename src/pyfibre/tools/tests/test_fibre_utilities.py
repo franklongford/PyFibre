@@ -1,4 +1,5 @@
 import numpy as np
+from unittest import TestCase
 
 from pyfibre.tools.fibre_utilities import (
     check_2D_arrays,
@@ -11,10 +12,9 @@ from pyfibre.tools.fibre_utilities import (
     reduce_coord,
 )
 from pyfibre.testing.example_objects import generate_image, generate_probe_graph
-from pyfibre.testing.pyfibre_test_case import PyFibreTestCase
 
 
-class TestFibreUtilities(PyFibreTestCase):
+class TestFibreUtilities(TestCase):
     def setUp(self):
         self.image, _, _, _ = generate_image()
         self.network = generate_probe_graph()
@@ -37,12 +37,12 @@ class TestFibreUtilities(PyFibreTestCase):
     def test_distance_matrix(self):
         d_2D, r2_2D = distance_matrix(self.pos_2D)
 
-        self.assertArrayAlmostEqual(self.answer_d_2D, d_2D)
-        self.assertArrayAlmostEqual(self.answer_r2_2D, r2_2D)
+        np.testing.assert_almost_equal(d_2D, self.answer_d_2D)
+        np.testing.assert_almost_equal(r2_2D, self.answer_r2_2D)
 
     def test_get_edge_list(self):
         edge_list = get_edge_list(self.network)
-        self.assertArrayAlmostEqual(np.array([[2, 3], [3, 4], [5, 4]]), edge_list)
+        np.testing.assert_almost_equal(edge_list, np.array([[2, 3], [3, 4], [5, 4]]))
 
     def test_branch_angles(self):
         direction = np.array([1, 0])
@@ -50,7 +50,7 @@ class TestFibreUtilities(PyFibreTestCase):
         r = np.sqrt(self.answer_r2_2D[([2, 0], [0, 1])])
 
         cos_the = branch_angles(direction, vectors, r)
-        self.assertArrayAlmostEqual(self.answer_cos_the, cos_the)
+        np.testing.assert_almost_equal(self.answer_cos_the, cos_the)
 
     def test_transfer_edges(self):
         transfer_edges(self.network, 3, 2)
@@ -87,16 +87,16 @@ class TestFibreUtilities(PyFibreTestCase):
         weights = np.arange(len(coord))
 
         reduced_coord = reduce_coord(coord)
-        self.assertArrayAlmostEqual(np.array([[2, 7], [8, 3]]), reduced_coord)
+        np.testing.assert_almost_equal(np.array([[2, 7], [8, 3]]), reduced_coord)
 
         reduced_coord = reduce_coord(coord, weights)
-        self.assertArrayAlmostEqual(np.array([[2, 4], [8, 1]]), reduced_coord)
+        np.testing.assert_almost_equal(np.array([[2, 4], [8, 1]]), reduced_coord)
 
         # Edge case with no minimum threshold
         reduced_coord = reduce_coord(coord, weights, thresh=0)
-        self.assertArrayAlmostEqual(coord, reduced_coord)
+        np.testing.assert_almost_equal(coord, reduced_coord)
 
         # Edge case with infinite threshold, should always
         # return at least one coordinate
         reduced_coord = reduce_coord(coord, weights, thresh=500)
-        self.assertArrayAlmostEqual(np.array([[2, 4]]), reduced_coord)
+        np.testing.assert_almost_equal(np.array([[2, 4]]), reduced_coord)
