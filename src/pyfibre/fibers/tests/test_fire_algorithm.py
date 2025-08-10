@@ -2,10 +2,10 @@ import numpy as np
 import networkx as nx
 from unittest import TestCase
 
-from pyfibre.tools.fire_algorithm import FIREAlgorithm
+from pyfibre.fibers.fire_algorithm import FIREAlgorithm
 
 
-class TestNetworkExtraction(TestCase):
+class TestFIREAlgorithm(TestCase):
     def setUp(self):
         self.N = 20
 

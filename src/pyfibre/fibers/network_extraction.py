@@ -13,7 +13,7 @@ from pyfibre.fibers.fibre_network import FibreNetwork
 from pyfibre.tools.filters import tubeness, hysteresis
 from pyfibre.utilities import clear_border
 
-from pyfibre.tools.fire_algorithm import FIREAlgorithm
+from pyfibre.fibers.fire_algorithm import FIREAlgorithm
 from pyfibre.fibers.fibre_utilities import remove_redundant_nodes
 
 logger = logging.getLogger(__name__)
