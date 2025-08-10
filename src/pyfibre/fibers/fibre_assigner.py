@@ -6,7 +6,7 @@ import numpy as np
 from pyfibre.utilities import numpy_remove
 
 from pyfibre.fibers.fibre import fiber_from_node_list
-from pyfibre.tools.fibre_utilities import (
+from pyfibre.fibers.fibre_utilities import (
     distance_matrix,
     branch_angles,
     get_node_coord_array,

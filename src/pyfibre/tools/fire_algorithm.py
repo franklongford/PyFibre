@@ -9,7 +9,7 @@ from skimage.morphology import local_maxima
 
 from pyfibre.utilities import ring, numpy_remove
 
-from pyfibre.tools.fibre_utilities import (
+from pyfibre.fibers.fibre_utilities import (
     branch_angles,
     reduce_coord,
     new_branches,

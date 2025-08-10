@@ -2,7 +2,7 @@ import numpy as np
 import networkx as nx
 from dataclasses import dataclass
 
-from pyfibre.tools.fibre_utilities import branch_angles, get_node_coord_array
+from pyfibre.fibers.fibre_utilities import branch_angles, get_node_coord_array
 
 
 @dataclass(kw_only=True)

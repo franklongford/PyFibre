@@ -1,7 +1,7 @@
 import numpy as np
 from unittest import TestCase
 
-from pyfibre.tools.fibre_utilities import (
+from pyfibre.fibers.fibre_utilities import (
     check_2D_arrays,
     distance_matrix,
     branch_angles,
