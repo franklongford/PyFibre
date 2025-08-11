@@ -71,7 +71,7 @@ def glcm_props(p_matrix):
     return mean_i, mean_j, diff_i, diff_j, std_i, std_j
 
 
-def greycoprops_edit(P):
+def graycoprops_edit(P):
     """Edited version of the scikit-image greycoprops function,
     including additional properties"""
 
