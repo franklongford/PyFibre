@@ -5,7 +5,7 @@ from scipy.spatial.distance import cdist
 from skimage.morphology import local_maxima
 
 
-def get_node_coord_array(graph):
+def get_node_coord_array(graph: nx.Graph) -> np.typing.NDArray:
     """Return a numpy array containing xy attributes of all nodes
     in graph"""
 
@@ -14,7 +14,7 @@ def get_node_coord_array(graph):
     return np.stack(node_coord)
 
 
-def get_node_degree_array(graph):
+def get_node_degree_array(graph: nx.Graph) -> np.typing.NDArray:
     """Return a numpy array containing number of edges for each node
     in graph"""
 
@@ -23,7 +23,9 @@ def get_node_degree_array(graph):
     return np.array(node_degree, dtype=int)
 
 
-def check_2D_arrays(array1, array2, thresh=1):
+def check_2D_arrays(
+    array1: np.typing.NDArray, array2: np.typing.NDArray, thresh: int = 1
+):
     """Returns indices where values of array1 are within thresh distance
     of array2
 
@@ -59,7 +61,7 @@ def check_2D_arrays(array1, array2, thresh=1):
     return array1_indices, array2_indices
 
 
-def cos_sin_theta_2D(vector, r_vector):
+def cos_sin_theta_2D(vector: np.typing.NDArray, r_vector: np.typing.NDArray):
     """
     Returns cosine and sine of angles of intersecting vectors
     between even and odd indices
@@ -102,7 +104,9 @@ def cos_sin_theta_2D(vector, r_vector):
     return cos_the
 
 
-def reduce_coord(coord, weights=None, thresh=1):
+def reduce_coord(
+    coord: np.typing.NDArray, weights: np.typing.NDArray | None = None, thresh: int = 1
+):
     """
     Find elements in coord that lie within thresh distance of
     each other. Remove element with lowest corresponding value.
@@ -143,7 +147,12 @@ def reduce_coord(coord, weights=None, thresh=1):
     return coord
 
 
-def new_branches(image, coord, ring_filter, max_thresh=0.2):
+def new_branches(
+    image: np.typing.NDArray,
+    coord: np.typing.NDArray,
+    ring_filter: np.typing.NDArray,
+    max_thresh: float = 0.2,
+):
     """Find local maxima in image within max_thresh of coord,
     excluding pixels in ring filter"""
 
@@ -160,7 +169,11 @@ def new_branches(image, coord, ring_filter, max_thresh=0.2):
     return branch_coord, branch_vector, branch_r
 
 
-def branch_angles(direction, branch_vector, branch_r):
+def branch_angles(
+    direction: np.typing.NDArray,
+    branch_vector: np.typing.NDArray,
+    branch_r: np.typing.NDArray,
+) -> np.typing.NDArray:
     n_branch = branch_vector.shape[0]
     dir_vector = np.tile(direction, (n_branch, 1))
     dir_r = np.ones(n_branch)
@@ -172,7 +185,7 @@ def branch_angles(direction, branch_vector, branch_r):
     return cos_the
 
 
-def transfer_edges(network, source, target):
+def transfer_edges(network: nx.Graph, source: int, target: int) -> None:
     """Transfer edges from source node to target"""
 
     for node in list(network.adj[source]):
@@ -184,7 +197,9 @@ def transfer_edges(network, source, target):
             network[node][target]["r"] = np.sqrt((diff**2).sum())
 
 
-def distance_matrix(node_coord):
+def distance_matrix(
+    node_coord: np.typing.NDArray,
+) -> tuple[np.typing.NDArray, np.typing.NDArray]:
     """Calculate distances between each index value of
     node_coord"""
 
@@ -198,7 +213,7 @@ def distance_matrix(node_coord):
     return d_node, r2_node.astype(float)
 
 
-def get_edge_list(graph, max_degree=2):
+def get_edge_list(graph: nx.Graph, max_degree: int = 2):
     """Get a list of edges between nodes that contain less that
     max_degree edges"""
 
@@ -218,7 +233,7 @@ def get_edge_list(graph, max_degree=2):
     return edge_list
 
 
-def remove_redundant_nodes(network, r_thresh=2):
+def remove_redundant_nodes(network: nx.Graph, r_thresh: float = 2) -> nx.Graph:
     """Reduces any two nodes that are within r_thresh distance of each
     other down to one, by transferring any edges on the least connected node
     to the most connected node before removing the least connected node"""
@@ -264,7 +279,7 @@ def remove_redundant_nodes(network, r_thresh=2):
     return network
 
 
-def simplify_network(network):
+def simplify_network(network: nx.Graph) -> nx.Graph:
     """Simplify all linear sections of network by removing nodes
     containing 2 degrees"""
 

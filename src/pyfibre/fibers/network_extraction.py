@@ -20,16 +20,16 @@ logger = logging.getLogger(__name__)
 
 
 def build_network(
-    image,
-    scale=1,
-    alpha=0.5,
-    sigma=0.5,
-    nuc_thresh=2,
-    nuc_radius=11,
-    lmp_thresh=0.15,
-    angle_thresh=70,
-    r_thresh=7,
-):
+    image: np.typing.NDArray,
+    scale: float = 1,
+    alpha: float = 0.5,
+    sigma: float = 0.5,
+    nuc_thresh: float = 2,
+    nuc_radius: float = 11,
+    lmp_thresh: float = 0.15,
+    angle_thresh: float = 70,
+    r_thresh: float = 7,
+) -> nx.Graph:
     """
     Uses the FibeR Extraction algorithm to extract a fibre network from
     provided image
@@ -118,7 +118,7 @@ def build_network(
     return network
 
 
-def clean_network(network, r_thresh=2):
+def clean_network(network: nx.Graph, r_thresh: int = 2):
     """Cleans network by removing isolated nodes, combining any
     two nodes that are located too close together into one, and removing
     any components that are too small to be considered fibres"""

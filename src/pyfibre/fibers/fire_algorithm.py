@@ -25,8 +25,13 @@ class FIREAlgorithm:
     provided image as a single nx.Graph object"""
 
     def __init__(
-        self, nuc_thresh=2, lmp_thresh=0.15, angle_thresh=70, r_thresh=7, nuc_radius=10
-    ):
+        self,
+        nuc_thresh: float = 2,
+        lmp_thresh: float = 0.15,
+        angle_thresh: float = 70,
+        r_thresh: float = 7,
+        nuc_radius: float = 10,
+    ) -> None:
         """Initialise FibreNetwork object
 
         Parameters
@@ -57,11 +62,11 @@ class FIREAlgorithm:
         self.nuc_radius = nuc_radius
 
     @property
-    def theta_thresh(self):
+    def theta_thresh(self) -> float:
         """Conversion of angle_thresh to radians"""
         return 1 + np.cos((180 - self.angle_thresh) * np.pi / 180)
 
-    def _assign_graph(self, graph=None):
+    def _assign_graph(self, graph: nx.Graph | None = None) -> None:
         """Assign graph to self.graph"""
 
         assert isinstance(graph, nx.Graph), (
@@ -69,17 +74,17 @@ class FIREAlgorithm:
         )
         self._graph = graph
 
-    def _reset_graph(self):
+    def _reset_graph(self) -> None:
         """Reset attribute `graph` to empty nx.Graph object"""
         self._assign_graph(nx.Graph())
         self.grow_list = []
         self.fibres = []
 
-    def _get_connected_nodes(self, node):
+    def _get_connected_nodes(self, node: int) -> np.typing.NDArray:
         """Get nodes connected to input node"""
         return np.array(list(self._graph.adj[node]))
 
-    def _get_nucleation_points(self, image):
+    def _get_nucleation_points(self, image: np.typing.NDArray) -> np.typing.NDArray:
         """Set distance and angle thresholds for fibre iterator"""
 
         # Get global maxima for smoothed distance matrix
@@ -92,7 +97,9 @@ class FIREAlgorithm:
 
         return nuc_node_coord
 
-    def _initialise_graph(self, image, nuc_node_coord):
+    def _initialise_graph(
+        self, image: np.typing.NDArray, nuc_node_coord: np.typing.NDArray
+    ):
         """Initialise graph with nucleation nodes"""
 
         n_nuc = nuc_node_coord.shape[0]
@@ -129,7 +136,9 @@ class FIREAlgorithm:
 
             n_nodes += n_lmp
 
-    def grow_lmp(self, index, image, tot_node_coord):
+    def grow_lmp(
+        self, index: int, image: np.typing.NDArray, tot_node_coord: np.typing.NDArray
+    ) -> None:
         """
         Grow fibre object along network
 
@@ -218,7 +227,7 @@ class FIREAlgorithm:
                 edge["r"] = new_end_r
                 end_node["direction"] = new_dir_vector / new_dir_r
 
-    def create_network(self, image):
+    def create_network(self, image: np.typing.NDArray) -> nx.Graph:
         """Initialise network from n_nucleation sites"""
 
         self._reset_graph()
