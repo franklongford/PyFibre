@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from skimage.feature import graycomatrix
 from skimage.measure import shannon_entropy
+from skimage.measure._regionprops import RegionProperties
 
 from pyfibre.tools.analysis import tensor_analysis, angle_analysis
 from pyfibre.tools.feature import graycoprops_edit
@@ -16,11 +17,11 @@ logger = logging.getLogger(__name__)
 STRUCTURE_METRICS = ["Angle SDI", "Coherence", "Local Coherence"]
 SHAPE_METRICS = ["Area", "Eccentricity", "Circularity", "Coverage"]
 TEXTURE_METRICS = ["Mean", "STD", "Entropy"]
-FIBRE_METRICS = ["Waviness", "Length"]
-NETWORK_METRICS = ["Degree", "Eigenvalue", "Connectivity", "Cross-Link Density"]
 
 
-def _region_sample(region, metric):
+def _region_sample(
+    region: RegionProperties, metric: np.typing.NDArray
+) -> np.typing.NDArray:
     """Extract metric values for pixels within segment
 
     Parameters
@@ -40,7 +41,9 @@ def _region_sample(region, metric):
     return metric[indices]
 
 
-def structure_tensor_metrics(structure_tensor, tag=""):
+def structure_tensor_metrics(
+    structure_tensor: np.typing.NDArray, tag: str = ""
+) -> pd.Series:
     """Nematic tensor analysis for a scikit-image region"""
 
     database = pd.Series(dtype=object)
@@ -64,7 +67,7 @@ def structure_tensor_metrics(structure_tensor, tag=""):
     return database
 
 
-def region_shape_metrics(region, tag=""):
+def region_shape_metrics(region: RegionProperties, tag: str = "") -> pd.Series:
     """Shape analysis for a scikit-image region"""
 
     database = pd.Series(dtype=object)
@@ -85,7 +88,12 @@ def region_shape_metrics(region, tag=""):
     return database
 
 
-def region_texture_metrics(region, image=None, tag="", glcm=False):
+def region_texture_metrics(
+    region: RegionProperties,
+    image: np.typing.NDArray | None = None,
+    tag="",
+    glcm: bool = False,
+) -> pd.Series:
     """Texture analysis for a of scikit-image region"""
 
     database = pd.Series(dtype=object)
@@ -141,13 +149,18 @@ def region_texture_metrics(region, image=None, tag="", glcm=False):
     return database
 
 
-def segment_metrics(segments, image, image_tag=None, sigma=0.0001):
-    """Analysis of a list of `BaseSegment` objects
+def segment_metrics(
+    segments,
+    image: np.typing.NDArray,
+    image_tag: str | None = None,
+    sigma: float = 0.0001,
+):
+    """Analysis of a list of `Segment` objects
 
     Parameters
     ----------
-    segments : list of `<class: BaseSegment>`
-        List of cells to analyse
+    segments : list of `<class: Segment>`
+        List of segments to analyse
     image: array-like
         Full image to analyse
 
