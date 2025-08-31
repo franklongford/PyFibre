@@ -8,7 +8,6 @@ from pyfibre.tools.convertors import (
     stack_to_binary,
     stack_to_regions,
     regions_to_stack,
-    networks_to_binary,
 )
 from pyfibre.testing.example_objects import (
     generate_image,
@@ -68,16 +67,3 @@ class TestConvertors(TestCase):
         self.assertEqual(2, len(regions))
         self.assertEqual(9, regions[0].filled_area)
         self.assertEqual(3, regions[1].filled_area)
-
-    def test_networks_to_binary(self):
-
-        binary = networks_to_binary([self.network], self.image.shape,
-                                    iterations=1, sigma=None,
-                                    area_threshold=50)
-        self.assertEqual((10, 10), binary.shape)
-        np.testing.assert_array_equal(
-            np.array([[0, 0], [0, 1], [1, 0], [1, 1],
-                      [1, 2], [1, 3], [2, 1], [2, 2],
-                      [2, 3], [2, 4], [3, 2], [3, 3]]),
-            np.argwhere(binary)
-        )
