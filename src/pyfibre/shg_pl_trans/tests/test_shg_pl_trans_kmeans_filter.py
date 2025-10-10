@@ -3,7 +3,7 @@ import numpy as np
 from skimage.io import imread
 from unittest import TestCase
 
-from pyfibre.tools.shg_pl_trans_kmeans_filter import (
+from pyfibre.shg_pl_trans.shg_pl_trans_kmeans_filter import (
     nonzero_mean,
     spherical_coords,
     binary_classifier_spherical,
