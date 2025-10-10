@@ -3,16 +3,13 @@ from unittest import TestCase
 
 from pyfibre.segments.segment import Segment
 from pyfibre.segments.convertors import segments_to_binary, binary_to_segments
-from pyfibre.testing.example_objects import (
-    generate_regions,
-)
+from pyfibre.testing.example_objects import generate_regions, generate_image
 
 
 class TestConvertors(TestCase):
     def setUp(self):
+        self.image, _, self.binary, _ = generate_image()
         self.regions = generate_regions()
-        self.image = self.regions[0].image_intensity
-        self.binary = self.regions[0].image
 
     def test_binary_to_segments(self):
         segments = binary_to_segments(self.binary)
@@ -39,10 +36,6 @@ class TestConvertors(TestCase):
         np.testing.assert_almost_equal(expected, segments[0].region.intensity_image)
 
     def test_segments_to_binary(self):
-        segments = [
-            Segment(region=region)
-            for region in self.regions
-        ]
+        segments = [Segment(region=region) for region in self.regions]
         binary = segments_to_binary(segments, (10, 10))
-        self.assertEqual((10, 10), binary.shape)
-        np.testing.assert_almost_equal(self.binary, binary)
+        np.testing.assert_almost_equal(binary, self.binary)
