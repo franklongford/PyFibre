@@ -1,0 +1,45 @@
+from unittest import TestCase
+import importlib.resources
+
+import networkx as nx
+from skimage.io import imread
+
+from pyfibre.fibers.network_extraction import (
+    build_network,
+    clean_network,
+    fibre_network_assignment,
+)
+from pyfibre.testing.example_objects import generate_probe_graph
+
+
+class TestExtraction(TestCase):
+    def setUp(self):
+        testing_dir = self.enterContext(importlib.resources.path("pyfibre.testing"))
+        self.test_image_path = str(testing_dir / "fixtures" / "test-pyfibre-Stack.tif")
+        self.network = generate_probe_graph()
+        self.image = imread(self.test_image_path).mean(axis=-1)
+
+    def test_build_network(self):
+        network = build_network(self.image)
+        self.assertFalse(list(nx.isolates(network)))
+        self.assertEqual(568, network.number_of_nodes())
+        self.assertEqual(603, network.number_of_edges())
+
+    def test_clean_network(self):
+        network = clean_network(self.network, r_thresh=1)
+        self.assertListEqual([0, 1, 2, 3], list(network.nodes))
+
+        network = clean_network(self.network, r_thresh=2)
+        self.assertListEqual([], list(network.nodes))
+
+    def test_fibre_network_assignment(self):
+        fibre_networks = fibre_network_assignment(self.network)
+        fibres = fibre_networks[0].generate_fibres()
+        red_graph = fibre_networks[0].generate_red_graph()
+
+        self.assertEqual(1, len(fibre_networks))
+        self.assertEqual(1, len(fibres))
+
+        self.assertListEqual([2, 3, 4, 5], fibre_networks[0].node_list)
+        self.assertListEqual([0, 1], list(red_graph.nodes))
+        self.assertListEqual([0, 1, 2, 3], fibres[0].node_list)
